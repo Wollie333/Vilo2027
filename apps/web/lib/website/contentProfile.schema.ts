@@ -50,7 +50,12 @@ export const contentProfileSchema = z
         // The origin / why-you-host narrative → the About page intro body.
         story: z.string().max(4000).optional(),
         hostBio: z
-          .object({ body: z.string().max(4000).optional() })
+          .object({
+            body: z.string().max(4000).optional(),
+            // Optional host/team photo the host picks or uploads in the wizard;
+            // falls back to the account profile photo when empty.
+            photoPath: z.string().max(400).optional(),
+          })
           .partial()
           .optional(),
       })
@@ -213,6 +218,7 @@ export const SLOT_BINDINGS: SlotBinding[] = [
     page: "about",
     sectionType: "host_bio",
     prop: "photo_path",
+    get: (p) => p.about?.hostBio?.photoPath,
     derive: (d) => d.hostPhotoPath,
   },
   {

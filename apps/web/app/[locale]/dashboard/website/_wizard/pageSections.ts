@@ -53,7 +53,7 @@ export type TextSlot =
   | "about.story"
   | "about.hostBio.body";
 
-export type ImageSlotId = "home.hero.image";
+export type ImageSlotId = "home.hero.image" | "about.hostBio.image";
 
 export const PAGE_SECTIONS: Record<string, SectionSpec[]> = {
   home: [
@@ -171,7 +171,13 @@ export const PAGE_SECTIONS: Record<string, SectionSpec[]> = {
           multiline: true,
         },
       ],
-      note: "Your name and photo come from your account profile.",
+      image: {
+        slot: "about.hostBio.image",
+        label: "Your photo",
+        size: "600 × 600 px",
+        shape: "square",
+      },
+      note: "Your name comes from your account; pick a photo below or we'll use your profile picture.",
     },
     {
       key: "cta",
@@ -324,6 +330,8 @@ export function getImageSlot(
   switch (slot) {
     case "home.hero.image":
       return p.home?.hero?.imagePath;
+    case "about.hostBio.image":
+      return p.about?.hostBio?.photoPath;
   }
 }
 
@@ -337,6 +345,14 @@ export function setImageSlot(
       return {
         ...p,
         home: { ...p.home, hero: { ...p.home?.hero, imagePath: path } },
+      };
+    case "about.hostBio.image":
+      return {
+        ...p,
+        about: {
+          ...p.about,
+          hostBio: { ...p.about?.hostBio, photoPath: path },
+        },
       };
   }
 }
