@@ -3,6 +3,7 @@ import "server-only";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { isBreachedPassword, passwordSchema } from "@/lib/auth/password";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
+import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import {
   grantCreditsForOrder,
   grantSubscriptionCredits,
@@ -67,6 +68,11 @@ export async function createProductOrder(
     amountOverride?: number | null;
     label?: string | null;
     activateOnPay?: boolean;
+    // Wielo promo code typed by the buyer. Resolved server-side — an invalid one
+    // FAILS the order rather than quietly billing full price (a checkout that
+    // accepts a code and charges as if you hadn't typed it is a lying label).
+    // Ignored for a custom-amount top-up: that's an admin-priced delta.
+    promoCode?: string | null;
   },
   origin?: string | null,
 ): Promise<CreateOrderResult> {
@@ -134,7 +140,26 @@ export async function createProductOrder(
     }
     if (firstPurchase) setupFee = Number(product.setup_fee);
   }
-  const amount = base + setupFee;
+  const subtotal = base + setupFee;
+
+  // Promo code — the discount comes off the whole order (price + setup fee), so
+  // there is one rule to explain and it matches how min_spend reads.
+  let couponId: string | null = null;
+  let discount = 0;
+  if (input.promoCode?.trim() && !isOverride) {
+    const promo = await resolvePlatformCoupon(admin, {
+      code: input.promoCode,
+      productId: product.id,
+      productType: product.product_type,
+      amount: subtotal,
+      currency: product.currency,
+      userId: payerUserId,
+    });
+    if (!promo.ok) return { ok: false, error: promo.error };
+    couponId = promo.couponId;
+    discount = promo.discount;
+  }
+  const amount = subtotal - discount;
 
   const payToken = token();
   const { error } = await admin.from("product_orders").insert({
@@ -144,6 +169,8 @@ export async function createProductOrder(
     payer_user_id: payerUserId,
     amount,
     setup_fee_amount: setupFee,
+    coupon_id: couponId,
+    discount_amount: discount,
     currency: product.currency,
     status: "pending",
     pay_token: payToken,
@@ -160,12 +187,143 @@ export async function createProductOrder(
   };
 }
 
+export type PromoApplyResult =
+  | { ok: true; code: string; label: string; discount: number; total: number }
+  | { ok: false; error: string };
+
+// The order's pre-discount total. `amount` is always already-discounted, so the
+// subtotal has to be reconstituted before re-pricing — otherwise swapping one
+// code for another would compound the discounts.
+function orderSubtotal(o: {
+  amount: number | string;
+  discount_amount: number | string | null;
+}): number {
+  return Number(o.amount) + Number(o.discount_amount ?? 0);
+}
+
+/**
+ * Apply a promo code to a PENDING order (the pay page). Re-prices from the
+ * subtotal every time, so applying B after A replaces A rather than stacking.
+ * Refuses a settled order: the amount charged must never move after payment.
+ */
+export async function applyPromoToOrder(
+  payToken: string,
+  code: string,
+): Promise<PromoApplyResult> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, amount, discount_amount, currency, status, payer_user_id",
+    )
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status !== "pending") {
+    return { ok: false, error: "This order is already settled." };
+  }
+  if (!order.product_id) {
+    return { ok: false, error: "This order has no product to discount." };
+  }
+
+  const { data: product } = await admin
+    .from("products")
+    .select("product_type")
+    .eq("id", order.product_id)
+    .maybeSingle();
+  if (!product) return { ok: false, error: "Product not found." };
+
+  const promo = await resolvePlatformCoupon(admin, {
+    code,
+    productId: order.product_id,
+    productType: product.product_type,
+    amount: orderSubtotal(order),
+    currency: order.currency,
+    userId: order.payer_user_id,
+  });
+  if (!promo.ok) return promo;
+
+  const { error } = await admin
+    .from("product_orders")
+    .update({
+      coupon_id: promo.couponId,
+      discount_amount: promo.discount,
+      amount: promo.total,
+    })
+    .eq("id", order.id);
+  if (error) return { ok: false, error: error.message };
+
+  return {
+    ok: true,
+    code: promo.code,
+    label: promo.label,
+    discount: promo.discount,
+    total: promo.total,
+  };
+}
+
+/** Drop the promo from a pending order and restore the full price. */
+export async function removePromoFromOrder(
+  payToken: string,
+): Promise<{ ok: true; total: number } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select("id, amount, discount_amount, status")
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status !== "pending") {
+    return { ok: false, error: "This order is already settled." };
+  }
+
+  const subtotal = orderSubtotal(order);
+  const { error } = await admin
+    .from("product_orders")
+    .update({ coupon_id: null, discount_amount: 0, amount: subtotal })
+    .eq("id", order.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, total: subtotal };
+}
+
+/**
+ * Record the promo redemption for an order that has just been PAID. Called by
+ * every settle path (Paystack return, PayPal capture) and idempotent per order,
+ * so the webhook backstop re-running is harmless. Best-effort by design: a
+ * redemption row is an audit record, and failing to write one must never break
+ * a settlement that already took the buyer's money.
+ */
+async function recordPromoRedemption(
+  admin: ReturnType<typeof createAdminClient>,
+  order: {
+    id: string;
+    coupon_id?: string | null;
+    discount_amount?: number | string | null;
+    currency: string;
+    payer_user_id: string | null;
+  },
+): Promise<void> {
+  if (!order.coupon_id) return;
+  try {
+    await admin.rpc("redeem_platform_coupon", {
+      p_coupon_id: order.coupon_id,
+      p_order_id: order.id,
+      p_user_id: order.payer_user_id,
+      p_amount: Number(order.discount_amount ?? 0),
+      p_currency: order.currency,
+    });
+  } catch {
+    // Never break settlement over an audit row.
+  }
+}
+
 // Self-serve purchase from a product's standalone page (/p/[slug]).
 export async function startProductPurchaseBySlug(
   slug: string,
   email: string,
   origin?: string | null,
   buyer?: { name?: string | null; phone?: string | null },
+  promoCode?: string | null,
 ): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -183,6 +341,7 @@ export async function startProductPurchaseBySlug(
       createdBy: null,
       name: buyer?.name ?? null,
       phone: buyer?.phone ?? null,
+      promoCode: promoCode ?? null,
     },
     origin,
   );
@@ -198,8 +357,18 @@ export async function startProductCheckoutDirect(
   email: string,
   origin?: string | null,
   signupReturn?: boolean,
+  // A promo code typed in the signup wizard. This path skips the pay page, so
+  // without threading it here a new host could never use a welcome code — the
+  // exact moment they are most likely to have one.
+  promoCode?: string | null,
 ): Promise<CreateOrderResult> {
-  const order = await startProductPurchaseBySlug(slug, email, origin);
+  const order = await startProductPurchaseBySlug(
+    slug,
+    email,
+    origin,
+    undefined,
+    promoCode,
+  );
   if (!order.ok) return order;
 
   // Card available = product offers Paystack AND the platform has it enabled.
@@ -527,7 +696,7 @@ export async function startProductPaystack(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, product_name, payer_email, payer_user_id, amount, setup_fee_amount, currency, status, pay_token",
+      "id, product_id, product_name, payer_email, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, coupon_id",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -577,6 +746,7 @@ export async function startProductPaystack(
       currency: order.currency,
       provider: "paystack",
       provider_reference: reference,
+      coupon_id: order.coupon_id ?? null,
       environment,
       reason: "Product purchase",
     });
@@ -631,7 +801,7 @@ export async function startProductPayPal(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, coupon_id",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -656,7 +826,11 @@ export async function startProductPayPal(
     });
     if (!paypalOrder) throw new Error("PayPal order creation failed.");
 
-    await admin
+    // The reference MUST land: capturePayPalProductOrder finds the order by
+    // provider_reference, so an unchecked failure here means the buyer approves
+    // a payment that can never be captured. (This write was silently rejected
+    // for months — product_orders.method forbade 'paypal' until 20260717000000.)
+    const { error: refErr } = await admin
       .from("product_orders")
       .update({
         provider_reference: paypalOrder.orderId,
@@ -664,6 +838,7 @@ export async function startProductPayPal(
         environment: creds.env,
       })
       .eq("id", order.id);
+    if (refErr) throw new Error(refErr.message);
 
     // Pending revenue row (idempotency anchor for the capture flip). Kept in ZAR
     // for a consistent ledger; the USD amount lives on the PayPal order.
@@ -677,6 +852,7 @@ export async function startProductPayPal(
       currency: order.currency,
       provider: "paypal",
       provider_reference: paypalOrder.orderId,
+      coupon_id: order.coupon_id ?? null,
       environment: creds.env,
       reason: "Product purchase",
     });
@@ -706,7 +882,7 @@ export async function recordProductEftIntent(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, product_name, amount, setup_fee_amount, currency, status, environment, payer_email, payer_user_id",
+      "id, product_id, product_name, amount, setup_fee_amount, currency, status, environment, payer_email, payer_user_id, coupon_id",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -748,6 +924,7 @@ export async function recordProductEftIntent(
       currency: order.currency,
       provider: "eft",
       provider_reference: ref,
+      coupon_id: order.coupon_id ?? null,
       environment,
       reason: "Product purchase (EFT)",
     });
@@ -940,7 +1117,7 @@ export async function confirmProductOrderByReference(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount",
     )
     .eq("provider_reference", reference)
     .maybeSingle();
@@ -1001,11 +1178,15 @@ export async function confirmProductOrderByReference(
       currency: order.currency,
       provider: "paystack",
       provider_reference: reference,
+      coupon_id: order.coupon_id ?? null,
       environment,
       paid_at: nowIso,
       reason: "Product purchase",
     });
   }
+
+  // Bank the promo redemption now the money is real (idempotent per order).
+  await recordPromoRedemption(admin, order);
 
   // Accrue affiliate commission if the payer was referred (idempotent RPC).
   try {
@@ -1058,7 +1239,7 @@ export async function capturePayPalProductOrder(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount",
     )
     .eq("provider_reference", orderId)
     .maybeSingle();
@@ -1118,11 +1299,15 @@ export async function capturePayPalProductOrder(
       currency: order.currency,
       provider: "paypal",
       provider_reference: orderId,
+      coupon_id: order.coupon_id ?? null,
       environment,
       paid_at: nowIso,
       reason: "Product purchase",
     });
   }
+
+  // Bank the promo redemption now the money is real (idempotent per order).
+  await recordPromoRedemption(admin, order);
 
   // Accrue affiliate commission if the payer was referred (idempotent RPC).
   try {

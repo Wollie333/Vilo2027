@@ -10,6 +10,7 @@ import {
   sendSignupCollisionEmail,
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
+import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -218,6 +219,11 @@ export async function uploadHostAvatarAction(
 
 export async function startSignupCheckoutAction(
   slug: string,
+  // A Wielo promo code typed on the plan step. This path jumps straight to the
+  // card form, so without threading it here a welcome code would be unusable at
+  // exactly the moment a new host is most likely to hold one. An invalid code
+  // fails the call — it must never quietly bill full price.
+  promoCode?: string | null,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = createServerClient();
   const {
@@ -233,9 +239,64 @@ export async function startSignupCheckoutAction(
   const origin = headers().get("origin");
   // signupReturn=true → Paystack returns to the wizard's own Welcome/receipt
   // step (/signup/host?paid_token=…), not the standalone /pay/product page.
-  const r = await startProductCheckoutDirect(slug, user.email, origin, true);
+  const r = await startProductCheckoutDirect(
+    slug,
+    user.email,
+    origin,
+    true,
+    promoCode,
+  );
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, url: r.url };
+}
+
+/**
+ * Validate a promo code on the signup plan step WITHOUT creating an order, so
+ * the wizard can show the reduced price before the host commits to paying.
+ * Purely a preview — startSignupCheckoutAction re-resolves the code server-side
+ * when the order is actually created, so a stale or tampered preview can't set
+ * a price.
+ */
+export async function previewSignupPromoAction(
+  slug: string,
+  code: string,
+): Promise<
+  | { ok: true; code: string; discount: number; total: number }
+  | { ok: false; error: string }
+> {
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("products")
+    .select("id, price, setup_fee, currency, product_type, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!product || !product.is_active) {
+    return { ok: false, error: "This plan isn't available." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Mirror createProductOrder's subtotal: price + setup fee. The setup fee is
+  // only skipped for a repeat purchase, which a signing-up host never is.
+  const subtotal = Number(product.price) + Number(product.setup_fee ?? 0);
+  const promo = await resolvePlatformCoupon(admin, {
+    code,
+    productId: product.id,
+    productType: product.product_type,
+    amount: subtotal,
+    currency: product.currency,
+    userId: user?.id ?? null,
+  });
+  if (!promo.ok) return { ok: false, error: promo.error };
+  return {
+    ok: true,
+    code: promo.code,
+    discount: promo.discount,
+    total: promo.total,
+  };
 }
 
 // ─── Final step: create profile + host + listing + free subscription ─

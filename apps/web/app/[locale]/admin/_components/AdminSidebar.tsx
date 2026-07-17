@@ -60,6 +60,14 @@ const FINANCE: GmailNavItem[] = [
     match: "prefix",
   },
   {
+    // Wielo's OWN promo codes (discounts on Wielo products). Distinct from a
+    // host's booking coupons, which live in the host dashboard.
+    href: "/admin/promo-codes",
+    label: "Promo codes",
+    icon: Tag,
+    match: "prefix",
+  },
+  {
     // The Wielo ledger — every transaction between users and Wielo.
     href: "/admin/subscriptions/revenue",
     label: "Ledger",

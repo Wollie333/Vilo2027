@@ -2,7 +2,71 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt14) — **START HERE** (supersedes pt13 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt15) — **START HERE** (supersedes pt14 below)
+
+**`pnpm build` (exit 0) · `apps/web` lint (0 warnings) · `tsc --noEmit` green. Machine clean
+(0 node procs).** Untracked mobile eslint scaffold left alone per the founder. `mobile#lint` fails on
+a PRE-EXISTING `useRNColorScheme` rule — no mobile file was touched this session.
+
+### ✅ SHIPPED: Wielo promo codes (the pt14 "next session builds this" — done)
+**A host types `SAVE30` at Wielo product checkout and pays less.** Both surfaces witnessed live.
+- **`platform_coupons` + `platform_coupon_redemptions`** (`20260717000100`) — **a separate table, not
+  `coupons`** (founder-approved). 🔑 **The killer argument: `coupons`' unique index is
+  `(host_id, upper(code))` and Postgres treats NULLs as DISTINCT — so the "platform = NULL host"
+  option would have let two Wielo codes silently share a code.** Booking money path untouched.
+- **Adopted `platform_ledger.coupon_id`** — the dead "P1.4" placeholder (no FK, all-NULL/37 rows).
+- **Surfaces:** `/pay/product/[token]` (covers admin pay-links + `/p/[slug]`) **and the signup
+  wizard** (it skips the pay page → needed its own field). **`/admin/promo-codes`** = the founder's
+  "admin coupon settings control" — left-rail editor + autosave (no admin coupon UI existed, by
+  documented design).
+- Lifecycle: **`docs/lifecycles/platform-coupons.md`**.
+
+### 🔴 ALSO FIXED: PayPal could never buy a Wielo product (found while reading the money path)
+`product_orders.method` allowed only `paystack|eft` while `startProductPayPal` writes `'paypal'` —
+**every sibling table already allowed it**. Proven live in a rollback: the UPDATE is rejected,
+`provider_reference` stays NULL, **the app never checked the error** → returns ok → the buyer
+approves → `capturePayPalProductOrder` looks up BY `provider_reference`, finds nothing, "Order not
+found." No money lost (lookup precedes capture) but **the purchase could never complete.** Live:
+`paypal_enabled=true` + Starter lists `paypal`. Fixed `20260717000000` + the error check.
+
+### 🔑 METHOD (pt15 — earned the hard way)
+- 🔑 **`formatMoney()` rounds to WHOLE RANDS app-wide.** All Wielo prices are whole Rands, so a
+  percentage was the FIRST thing able to create cents: 30% off R599 = R179.70 → the page would print
+  **"R 419" while Paystack charged R419.30.** Discounts now land on whole Rands (clamped AFTER
+  rounding, so 100%-off can't go negative). **Verified `amount = 419` exactly.**
+- 🔑 **`admin_audit_log.target_type` is a fixed CHECK list.** A new `targetType` needs a migration
+  AND the `AUDIT_TARGET_TYPES` array — otherwise the mutation succeeds and the AUDIT INSERT throws.
+- 🔑 **A fake Tailwind class fails silently** — `text-status-error` doesn't exist; lint + tsc both
+  pass and the text just renders colourless. **Grep the token first.** (Convention here: `text-red-600`.)
+- 🔑 **`preview_stop` left 4 node procs (2120 MB, incl. an 1827 MB worker)** — the orphan mechanism.
+  Kill explicitly and re-check; don't trust the stop.
+- 🔑 **`form_input` silently no-ops on some controlled React inputs** (the signup wizard) — click then
+  `type` instead. A filled-looking field can still be empty state.
+
+### 🔴 STILL OPEN (pt15)
+1. 🔴 **FOUNDER SMOKE-TEST NEEDED: no card/PayPal settlement was witnessed** (agent may not enter
+   payment details). The redemption RPC is proven against the real order (2 calls → 1 row,
+   idempotent) and both checkout surfaces are proven, but the settle *callers* are build-proven only.
+   **This same test confirms the PayPal fix.** Test artifact ready: code **`SAVE30`** = 30% off
+   Starter, live on the DB.
+2. ⚠️ **EFT product orders have NO settle path** (pre-existing, NOT introduced here):
+   `recordProductEftIntent` says "settling happens when the admin marks it received" — **no such
+   admin action exists.** So an EFT product order never becomes `paid`, no plan activates, no
+   redemption records. **Needs a founder decision** (build the settle action?).
+3. 🔴 **iOS zoom-on-focus** — unchanged from pt14 (every checkout input 14px, no `maximum-scale`).
+   **The 2 new promo inputs use `text-base`/16px, so they don't add to it.** App-wide → founder's call.
+4. Unchanged from pt14: 44px-bar items (calendar 38×36, nav 32, steppers 28) · **IDOR** (analytics fns
+   take `p_host_id`, never check ownership) · `docs/WIRING_AUDIT.md` §3 + ~40 deletes · offer emails
+   not delivery-witnessed (`RESEND_API_KEY` empty locally).
+
+### 🧪 TEST ARTIFACTS ADDED (safe to clear)
+**`SAVE30`** promo code (30% off Starter) · a **pending** R419 Starter order for
+`wollie@manamarketing.co.za` with SAVE30 applied · wizard draft state on `sipho-later@wielostarter.com`
+(**no host was created** — finalize only runs on leaving the plan step, which I never did).
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt14) — ⚠️ SUPERSEDED by pt15 above
 
 **Repo clean + pushed `fb53b21c`. `pnpm build` (exit 0) · `pnpm lint` (0 warnings) · `tsc` green.**
 Only untracked = the mobile eslint scaffold (founder: *"leave it"*). Machine clean (0 node procs).

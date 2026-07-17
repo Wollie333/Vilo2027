@@ -15,6 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { EftPayPanel } from "./EftPayPanel";
 
 import { PayButton, PayPalButton, ProductPayPalButtons } from "./PayButton";
+import { PromoCodeField } from "./PromoCodeField";
 import { Receipt } from "./Receipt";
 
 export const metadata: Metadata = {
@@ -48,7 +49,7 @@ export default async function ProductPayPage({
   const { data: order } = await service
     .from("product_orders")
     .select(
-      "id, product_id, product_name, amount, setup_fee_amount, currency, status, payer_email, payer_user_id",
+      "id, product_id, product_name, amount, setup_fee_amount, currency, status, payer_email, payer_user_id, coupon_id, discount_amount",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -139,8 +140,21 @@ export default async function ProductPayPage({
   const currency = order.currency ?? "ZAR";
   const amount = Number(order.amount);
   const setupFee = Number(order.setup_fee_amount ?? 0);
+  const discount = Number(order.discount_amount ?? 0);
   const issuerName = issuer.legal_name?.trim() || brandName;
   const noMethod = !showPaystack && !showPaypal && !showEft;
+
+  // The applied promo, for the chip. `amount` is already net of it — the code is
+  // read only so the buyer can see WHICH code is working, and remove it.
+  let appliedPromo: { code: string } | null = null;
+  if (order.coupon_id) {
+    const { data: promo } = await service
+      .from("platform_coupons")
+      .select("code")
+      .eq("id", order.coupon_id)
+      .maybeSingle();
+    if (promo) appliedPromo = { code: promo.code };
+  }
 
   return (
     // Standalone payment page — mirrors the guest booking pay page, but for a
@@ -196,20 +210,36 @@ export default async function ProductPayPage({
         {/* Amount + action */}
         <section className="mt-6 space-y-5">
           <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
-            {setupFee > 0 ? (
+            {setupFee > 0 || discount > 0 ? (
               <dl className="mb-3 space-y-1.5 border-b border-brand-line pb-3 text-sm">
                 <div className="flex items-center justify-between text-brand-mute">
                   <dt>{order.product_name}</dt>
                   <dd className="font-medium text-brand-ink">
-                    {formatMoney(amount - setupFee, currency)}
+                    {/* The list price: `amount` is already net of the promo, so
+                        the discount has to be added back or this line would show
+                        a reduced price with nothing explaining it. */}
+                    {formatMoney(amount + discount - setupFee, currency)}
                   </dd>
                 </div>
-                <div className="flex items-center justify-between text-brand-mute">
-                  <dt>Setup fee (once-off)</dt>
-                  <dd className="font-medium text-brand-ink">
-                    {formatMoney(setupFee, currency)}
-                  </dd>
-                </div>
+                {setupFee > 0 ? (
+                  <div className="flex items-center justify-between text-brand-mute">
+                    <dt>Setup fee (once-off)</dt>
+                    <dd className="font-medium text-brand-ink">
+                      {formatMoney(setupFee, currency)}
+                    </dd>
+                  </div>
+                ) : null}
+                {discount > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-brand-secondary">
+                      Promo discount
+                      {appliedPromo ? ` (${appliedPromo.code})` : ""}
+                    </dt>
+                    <dd className="font-semibold text-brand-secondary">
+                      −{formatMoney(discount, currency)}
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
             ) : null}
             <div className="flex items-end justify-between">
@@ -219,6 +249,12 @@ export default async function ProductPayPage({
               </div>
             </div>
           </div>
+
+          {/* A promo code only makes sense while the order is unpaid and still
+              tied to a product (a deleted product leaves product_id NULL). */}
+          {order.product_id ? (
+            <PromoCodeField token={params.token} applied={appliedPromo} />
+          ) : null}
 
           {showPaystack ? <PayButton token={params.token} /> : null}
 

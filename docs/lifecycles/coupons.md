@@ -1,10 +1,16 @@
-# Lifecycle — Coupons (discount codes)
+# Lifecycle — Coupons (HOST discount codes for BOOKINGS)
 
 Guests type a code at checkout; the host defines the code, discount, targeting,
 validity window and caps. Every redemption is re-validated server-side — the
 client is never trusted for eligibility.
 
 Status: **create/edit on the left-rail editor pattern + autosave (2026-07-13).**
+
+> **Scope:** this is a HOST's coupon against a GUEST's stay (`coupons` table,
+> booking-shaped). **Wielo's own promo codes** — a host paying less for a Wielo
+> membership / credit pack / service — are a separate feature on a separate
+> table: see [`platform-coupons.md`](./platform-coupons.md). Don't cross-wire
+> them; `resolveCoupon()` here requires nights/rooms and cannot price a product.
 
 ---
 
@@ -82,7 +88,9 @@ invoice for a coupon booking emitted `discount_amount:250, coupon_code:AUDIT10`.
   the DB per-guest cap needs a signed-in `guest_id`).
 - No currency guard in `resolveCoupon` (coupon vs booking currency) — impossible today
   (frontend ZAR-locked); add when multi-currency arrives.
-- No admin coupon UI — admin access is DB-only via RLS `is_super_admin()`.
+- No admin UI for HOST coupons — admin access is DB-only via RLS
+  `is_super_admin()`. (Still true. `/admin/promo-codes` added 2026-07-17 manages
+  **Wielo's own** promo codes, a different table — it does not surface these.)
 - Cosmetic: FK names `coupons_listing_id_fkey`/`_room_id_fkey` still say "listing"
   after the `property_id` column rename.
 

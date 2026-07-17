@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-16
+> **Last generated:** 2026-07-17
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,8 +16,8 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **180** (179 with RLS) |
-| Functions | **157** (126 SECURITY DEFINER, 56 trigger fns) |
+| Tables | **182** (181 with RLS) |
+| Functions | **159** (127 SECURITY DEFINER, 57 trigger fns) |
 | Cron jobs | **36** (11 Vault-gated, 0 inactive) |
 | Vault secrets set | **9** |
 
@@ -288,6 +288,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `recalculate_listing_ranking` | **yes** | **NO** | callable |
 | `record_guest_post` | **yes** | yes | callable |
 | `redeem_coupon` | **yes** | **NO** | callable |
+| `redeem_platform_coupon` | **yes** | yes | callable |
 | `redeem_special` | **yes** | **NO** | callable |
 | `refund_lf_quote_credit_on_expire` | **yes** | yes | trigger |
 | `release_addon_stock` | **yes** | **NO** | callable |
@@ -320,6 +321,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `touch_addons_updated_at` | — | — | trigger |
 | `touch_coupons_updated_at` | — | — | trigger |
 | `touch_listing_rooms_updated_at` | — | — | trigger |
+| `touch_platform_coupons_updated_at` | — | — | trigger |
 | `touch_seasonal_pricing_updated_at` | — | — | trigger |
 | `touch_wielo_credit_wallet` | — | — | trigger |
 | `update_payment_refunded_amount` | **yes** | **NO** | trigger |
@@ -421,7 +423,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text])))`
 
 **RLS policies:**
 - `admin_read_audit` (SELECT) — `USING is_super_admin()`
@@ -3392,6 +3394,73 @@ CASE
 **Checks:**
 - `CHECK (id)`
 
+### `platform_coupon_redemptions`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `coupon_id` | uuid | — | — |
+| `order_id` | uuid | — | — |
+| `user_id` | uuid | yes | — |
+| `amount_discounted` | numeric | — | — |
+| `currency` | text | — | `'ZAR'::text` |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE CASCADE`
+- `FOREIGN KEY (order_id) REFERENCES product_orders(id) ON DELETE CASCADE`
+- `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (coupon_id, order_id)`
+
+**RLS policies:**
+- `admin_full_platform_coupon_redemptions` (ALL) — `USING is_super_admin() CHECK is_super_admin()`
+
+### `platform_coupons`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `code` | text | — | — |
+| `description` | text | yes | — |
+| `discount_type` | text | — | `'percent'::text` |
+| `discount_value` | numeric | — | — |
+| `product_id` | uuid | yes | — |
+| `product_type` | text | yes | — |
+| `currency` | text | — | `'ZAR'::text` |
+| `min_spend` | numeric | yes | — |
+| `starts_at` | timestamp with time zone | yes | — |
+| `ends_at` | timestamp with time zone | yes | — |
+| `max_redemptions` | integer | yes | — |
+| `per_user_limit` | integer | yes | — |
+| `redeemed_count` | integer | — | `0` |
+| `is_active` | boolean | — | `true` |
+| `created_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+- `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK (((starts_at IS NULL) OR (ends_at IS NULL) OR (ends_at >= starts_at)))`
+- `CHECK (((discount_type <> 'percent'::text) OR ((discount_value > (0)::numeric) AND (discount_value <= (100)::numeric))))`
+- `CHECK (((product_id IS NULL) OR (product_type IS NULL)))`
+- `CHECK ((discount_type = ANY (ARRAY['percent'::text, 'fixed'::text])))`
+- `CHECK ((discount_value > (0)::numeric))`
+- `CHECK (((max_redemptions IS NULL) OR (max_redemptions > 0)))`
+- `CHECK (((min_spend IS NULL) OR (min_spend >= (0)::numeric)))`
+- `CHECK (((per_user_limit IS NULL) OR (per_user_limit > 0)))`
+- `CHECK ((product_type = ANY (ARRAY['membership'::text, 'service'::text, 'product'::text, 'wielo_credits'::text])))`
+
+**Triggers:**
+- `trigger_platform_coupons_touch` → `touch_platform_coupons_updated_at()`
+
+**RLS policies:**
+- `admin_full_platform_coupons` (ALL) — `USING is_super_admin() CHECK is_super_admin()`
+
 ### `platform_integrations`
 
 | column | type | null | default |
@@ -3447,6 +3516,7 @@ CASE
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_commission_id) REFERENCES affiliate_commissions(id) ON DELETE SET NULL`
 - `FOREIGN KEY (affiliate_payout_id) REFERENCES affiliate_payouts(id) ON DELETE SET NULL`
+- `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE SET NULL`
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE SET NULL`
 - `FOREIGN KEY (plan) REFERENCES plans(key) ON UPDATE CASCADE`
@@ -3774,8 +3844,11 @@ CASE
 | `environment` | text | — | `'live'::text` |
 | `activate_on_pay` | boolean | — | `true` |
 | `setup_fee_amount` | numeric | — | `0` |
+| `coupon_id` | uuid | yes | — |
+| `discount_amount` | numeric | — | `0` |
 
 **Foreign keys:**
+- `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE SET NULL`
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (payer_user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL`
@@ -3785,8 +3858,9 @@ CASE
 - `UNIQUE (provider_reference)`
 
 **Checks:**
+- `CHECK ((discount_amount >= (0)::numeric))`
 - `CHECK ((environment = ANY (ARRAY['test'::text, 'live'::text])))`
-- `CHECK ((method = ANY (ARRAY['paystack'::text, 'eft'::text])))`
+- `CHECK ((method = ANY (ARRAY['paystack'::text, 'paypal'::text, 'eft'::text])))`
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'cancelled'::text, 'expired'::text])))`
 
 ### `products`

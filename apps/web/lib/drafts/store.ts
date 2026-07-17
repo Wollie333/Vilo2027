@@ -14,6 +14,9 @@ export const DRAFT_ENTITY_TYPES = [
   "special",
   "room",
   "coupon",
+  // Wielo's own promo codes (admin). Distinct from "coupon", which is a host's
+  // booking coupon — different table, different editor.
+  "platform_coupon",
   "booking",
   "quote",
   "looking_for_request",

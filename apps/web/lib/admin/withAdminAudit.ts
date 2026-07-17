@@ -54,6 +54,7 @@ export const AUDIT_TARGET_TYPES = [
   "product",
   "product_feature",
   "platform_ledger",
+  "platform_coupon",
   "feature_override",
   "platform_setting",
   "platform_staff",

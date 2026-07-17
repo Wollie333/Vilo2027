@@ -5,6 +5,69 @@
 
 ---
 
+## 2026-07-17 (pt15) — Wielo promo codes ship; and PayPal could never buy a Wielo product.
+
+The founder's ask: *"take the coupon feature and make it work for Wielo products… as well as set an
+admin coupon settings control."* Recon first — because this repo builds things twice — confirmed the
+host coupon CRUD is complete (1243-line editor) and must not be touched, and that **no admin coupon
+UI existed by documented design**. So the admin control is genuinely new.
+
+### 🔴 Found + fixed en route: PayPal product checkout was structurally dead
+`product_orders.method` shipped as `CHECK (method IN ('paystack','eft'))` while `startProductPayPal`
+writes `method='paypal'` — **every sibling table already allowed the value**. Proven on live in a
+rollback: the UPDATE is rejected and `provider_reference` stays NULL. The app never checked that
+error, so it returned `ok:true` and the buyer approved a payment that `capturePayPalProductOrder`
+could then never find (it looks the order up *by* `provider_reference`). No money lost — the lookup
+precedes the capture — but **a PayPal purchase could never complete**, and it left an orphaned
+pending ledger row. Live and reachable: `paypal_enabled=true` with a client_id, and the active
+**Starter** membership lists `paypal`. Fixed `20260717000000` + the unchecked error.
+🔑 **An unchecked `.update()` error let a rejected write masquerade as a started checkout.**
+
+### ✅ Shipped — Wielo promo codes (`platform_coupons`)
+- **A separate table, not `coupons`** (founder-approved). `coupons.host_id` is NOT NULL and cascades
+  from `hosts`; `property_id`/`room_id`/`addon_id`/`min_nights`/`scope` are meaningless for a product.
+  🔑 **Its unique index is `(host_id, upper(code))` and Postgres treats NULLs as DISTINCT — so
+  "platform = NULL host" would have let two Wielo codes silently share a code.** The booking money
+  path is untouched.
+- **Adopted the dead `platform_ledger.coupon_id`** — a "P1.4" placeholder with no FK, all-NULL across
+  37 rows — rather than adding a second competing column.
+- **Both surfaces** (founder's call): `/pay/product/[token]`, which covers every admin pay-link and
+  the `/p/[slug]` page; **and the signup wizard**, which jumps straight to the card form and skips the
+  pay page — without its own field a welcome code was unusable at the one moment a new host has one.
+- **`/admin/promo-codes`** — list + left-rail editor per the create-data default layout (identity
+  bar, health ring, 4 steps, Review with the single CTA, autosave + resume banner).
+- **An invalid code FAILS order creation** instead of quietly billing full price.
+
+### 🔑 Method
+- 🔑 **`formatMoney()` rounds to whole Rands app-wide.** Every Wielo product is priced in whole Rands,
+  so a percentage was the FIRST thing able to make cents: 30% off R599 = R179.70 would print
+  **"R 419" while Paystack charged R419.30** — a label that lies. Discounts now land on whole Rands,
+  clamped AFTER rounding so a 100%-off code can't drive an order negative. Verified: `amount = 419`.
+- 🔑 **The audit CHECK is a fixed list.** `admin_audit_log.target_type` would have thrown on every
+  promo write; `platform_coupon` had to be added to the constraint AND `AUDIT_TARGET_TYPES`
+  (`20260717000200`). The mutation succeeds, then the audit insert kills it — a trap worth knowing.
+- 🔑 **`text-status-error` doesn't exist.** Lint/TS can't catch a fake Tailwind class — it just
+  renders colourless. The convention here is `text-red-600`. **Grep the token before using it.**
+- 🔑 **`preview_stop` left 4 node procs alive (2120 MB, incl. an 1827 MB worker)** — the mechanism
+  behind the 92-orphan pileup. Killed explicitly; machine ends clean.
+
+### 🧪 Verified live (both surfaces)
+Admin editor → `SAVE30` (30% off Starter) → audit row written. **Pay page:** bogus code rejected
+(stays R 599) · `SAVE30` → **R 599 → −R 180 → R 419**, DB `amount = 419` exactly (shown == charged) ·
+remove → R 599 · re-apply as `save30` → R 419 (no compounding, case-insensitive). **Signup wizard:**
+no field on Free · Starter reveals it · *"R 180 off — you'll pay R 419"* · switching plan drops it ·
+Starter-only code on Wielo Quotes → *"doesn't apply to this item"*. **Redemption:** RPC called twice
+on the real order → 1 row, `redeemed_count=1`. **Security:** `anon` sees 0 rows; RPC ACL is
+`postgres=X | service_role=X` (**no PUBLIC grant**); `search_path` pinned (`redeem_coupon` isn't).
+
+### 🔴 Not verified / open
+- **No card or PayPal settlement witnessed end-to-end** — needs real payment details, which the agent
+  may not enter. Redemption RPC proven against the real order; the settle *callers* are build-proven
+  only. **Founder smoke-test needed** (this also confirms the PayPal fix).
+- ⚠️ **EFT product orders have NO settle path** (pre-existing): `recordProductEftIntent` says
+  "settling happens when the admin marks it received" — **no such action exists**, so an EFT product
+  order never becomes paid, no plan activates, no redemption records. Needs a decision.
+
 ## 2026-07-17 (pt14) — The founder's smoke test: 4 of his 5 bugs were features nothing called.
 
 He made a real booking and reported 5 faults. **Four of the five were already built and wired to

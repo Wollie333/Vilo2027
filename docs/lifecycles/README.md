@@ -38,7 +38,8 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Subscriptions (guest tier → membership → renew → change → pause → cancel) | `subscriptions.md` | 🟢 one-membership rule enforced + rehearsed live (`20260716240000`); renewal/scheduled-change crons ⚠️ not verified |
 | Account deletion (soft delete → 30-day hold → admin hard purge) | `account-deletion.md` | 🟢 GDPR purge fixed + proven live against an account holding every blocking row (`20260716230000`) |
 | Add-ons (create → attach → charge → refundability) | `addons.md` | 🟢 |
-| Coupons (create → redeem → limits) | `coupons.md` | 🟢 redemption verified live (`3ed85c1b`) |
+| Coupons — HOST codes for BOOKINGS (create → redeem → limits) | `coupons.md` | 🟢 redemption verified live (`3ed85c1b`) |
+| Wielo promo codes — WIELO codes for PRODUCTS (admin create → apply at checkout → redeem) | `platform-coupons.md` | 🟢 both surfaces witnessed live 2026-07-17 (pay page R599→R419; signup wizard). ⚠️ no card/PayPal settlement witnessed (needs real payment details) |
 | Specials / deals (create → publish → book → redeem) | `specials.md` | 🟢 deal checkout unified through the main BookingForm |
 | Policy enforcement & refunds (snapshot → immutability → refund → payment_status) | `policy-refunds.md` | 🟢 P0 fix + Phase 1 + panel driven live; G5/G7/G8/G9 + card rail pending |
 | Affiliate programme (join → link → refer → commission → payout) | `affiliate.md` | 🟡 access-per-shell + join driven live; refer→accrue→payout documented from code |

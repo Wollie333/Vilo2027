@@ -64,6 +64,7 @@ import {
   uploadHostAvatarAction,
   type FinalizeOnboardingData,
 } from "./actions";
+import { SignupPromoField, type AppliedPromo } from "./SignupPromoField";
 
 // ─── Step machinery ───────────────────────────────────────────────
 
@@ -328,6 +329,9 @@ export function Wizard({
     return base;
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Promo code applied on the plan step. Preview only — the price is re-resolved
+  // server-side when the order is created.
+  const [promo, setPromo] = useState<AppliedPromo | null>(null);
   // Turnstile bot-check token for account creation (null until solved; inert
   // when Turnstile isn't configured). resetSignal forces a fresh token after a
   // failed submit consumes the single-use one.
@@ -552,7 +556,7 @@ export function Wizard({
 
       // Paid plan chosen → go to checkout for that product.
       if (isPaid && chosen?.slug) {
-        const co = await startSignupCheckoutAction(chosen.slug);
+        const co = await startSignupCheckoutAction(chosen.slug, promo?.code);
         if (!co.ok) {
           toast.error(co.error);
           return;
@@ -655,7 +659,16 @@ export function Wizard({
             purchasedProductName={purchasedProductName}
             products={products}
             selectedSlug={data.productSlug}
-            onSelect={(slug) => patch({ productSlug: slug })}
+            onSelect={(slug) => {
+              patch({ productSlug: slug });
+              // A code is validated against a specific product, so switching
+              // plans must drop it — otherwise a Starter-only code would look
+              // like it still applied to Business.
+              setPromo(null);
+            }}
+            promo={promo}
+            onPromoApplied={setPromo}
+            onPromoRemoved={() => setPromo(null)}
           />
         );
       case "welcome":
@@ -1472,12 +1485,18 @@ function StepPlan({
   products = [],
   selectedSlug = null,
   onSelect,
+  promo = null,
+  onPromoApplied,
+  onPromoRemoved,
 }: {
   stepIndex: number;
   purchasedProductName?: string | null;
   products?: CatalogProduct[];
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
+  promo?: AppliedPromo | null;
+  onPromoApplied?: (promo: AppliedPromo) => void;
+  onPromoRemoved?: () => void;
 }) {
   const brandName = useBrandName();
 
@@ -1557,6 +1576,11 @@ function StepPlan({
   };
   const rand = (n: number) =>
     "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+
+  // The selected plan, only when it's a PAID one — a promo code is meaningless
+  // against the free tier.
+  const selectedPaidSlug =
+    products.find((p) => p.slug === selectedSlug && !p.isFree)?.slug ?? null;
 
   return (
     <div className="wielo-step-enter">
@@ -1650,6 +1674,17 @@ function StepPlan({
           );
         })}
       </div>
+
+      {/* Only a paid plan can take a code — offering one next to "Free" would
+          promise a discount on nothing. */}
+      {selectedPaidSlug ? (
+        <SignupPromoField
+          slug={selectedPaidSlug}
+          applied={promo}
+          onApplied={(p) => onPromoApplied?.(p)}
+          onRemoved={() => onPromoRemoved?.()}
+        />
+      ) : null}
 
       <div className="mt-5 flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">

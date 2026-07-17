@@ -370,7 +370,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   const { data: order } = await supabase
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay, coupon_id, discount_amount",
     )
     .eq("provider_reference", ref)
     .maybeSingle();
@@ -408,9 +408,22 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
       currency: order.currency,
       provider: "paystack",
       provider_reference: ref,
+      coupon_id: order.coupon_id ?? null,
       environment,
       paid_at: now,
       reason: "Product purchase",
+    });
+  }
+
+  // Bank the Wielo promo redemption (idempotent per order, so this backstop and
+  // the pay-page return path can both run without double-counting the code).
+  if (order.coupon_id) {
+    await supabase.rpc("redeem_platform_coupon", {
+      p_coupon_id: order.coupon_id,
+      p_order_id: order.id,
+      p_user_id: order.payer_user_id,
+      p_amount: Number(order.discount_amount ?? 0),
+      p_currency: order.currency,
     });
   }
 

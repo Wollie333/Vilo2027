@@ -5986,6 +5986,136 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_coupon_redemptions: {
+        Row: {
+          amount_discounted: number
+          coupon_id: string
+          created_at: string
+          currency: string
+          id: string
+          order_id: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_discounted: number
+          coupon_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_discounted?: number
+          coupon_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          order_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_coupon_redemptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          min_spend: number | null
+          per_user_limit: number | null
+          product_id: string | null
+          product_type: string | null
+          redeemed_count: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          discount_type?: string
+          discount_value: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          min_spend?: number | null
+          per_user_limit?: number | null
+          product_id?: string | null
+          product_type?: string | null
+          redeemed_count?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          min_spend?: number | null
+          per_user_limit?: number | null
+          product_id?: string | null
+          product_type?: string | null
+          redeemed_count?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_coupons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_coupons_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_integrations: {
         Row: {
           ga4_measurement_id: string | null
@@ -6132,6 +6262,13 @@ export type Database = {
             columns: ["affiliate_payout_id"]
             isOneToOne: false
             referencedRelation: "affiliate_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
             referencedColumns: ["id"]
           },
           {
@@ -6687,9 +6824,11 @@ export type Database = {
         Row: {
           activate_on_pay: boolean
           amount: number
+          coupon_id: string | null
           created_at: string
           created_by: string | null
           currency: string
+          discount_amount: number
           environment: string
           id: string
           method: string | null
@@ -6706,9 +6845,11 @@ export type Database = {
         Insert: {
           activate_on_pay?: boolean
           amount: number
+          coupon_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          discount_amount?: number
           environment?: string
           id?: string
           method?: string | null
@@ -6725,9 +6866,11 @@ export type Database = {
         Update: {
           activate_on_pay?: boolean
           amount?: number
+          coupon_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          discount_amount?: number
           environment?: string
           id?: string
           method?: string | null
@@ -6742,6 +6885,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "product_orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_orders_created_by_fkey"
             columns: ["created_by"]
@@ -11797,6 +11947,16 @@ export type Database = {
           p_coupon_id: string
           p_currency: string
           p_guest_id: string
+        }
+        Returns: boolean
+      }
+      redeem_platform_coupon: {
+        Args: {
+          p_amount: number
+          p_coupon_id: string
+          p_currency: string
+          p_order_id: string
+          p_user_id: string
         }
         Returns: boolean
       }

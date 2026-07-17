@@ -2,10 +2,14 @@
 
 import { headers } from "next/headers";
 
+import { revalidatePath } from "next/cache";
+
 import {
+  applyPromoToOrder,
   capturePayPalProductOrder,
   claimProductAccount,
   recordProductEftIntent,
+  removePromoFromOrder,
   startProductPaystack,
   startProductPayPal,
 } from "@/lib/billing/product-checkout";
@@ -63,6 +67,31 @@ export async function recordProductEftAction(
   token: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   return recordProductEftIntent(token);
+}
+
+// Public (token-gated) — apply a Wielo promo code to this pending order. The
+// discount is computed and stored server-side (the client never sends a price),
+// so every rail that follows — Paystack, PayPal, EFT — bills the reduced amount
+// straight off the order row without knowing a code was involved.
+export async function applyPromoCodeAction(
+  token: string,
+  code: string,
+): Promise<
+  | { ok: true; code: string; label: string; discount: number; total: number }
+  | { ok: false; error: string }
+> {
+  const r = await applyPromoToOrder(token, code);
+  if (r.ok) revalidatePath(`/pay/product/${token}`);
+  return r;
+}
+
+// Public (token-gated) — drop the code and restore the full price.
+export async function removePromoCodeAction(
+  token: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await removePromoFromOrder(token);
+  if (r.ok) revalidatePath(`/pay/product/${token}`);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
 // Public (token-gated) — a new buyer sets a password on the thank-you page. We
