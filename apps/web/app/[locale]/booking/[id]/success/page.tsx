@@ -488,6 +488,30 @@ export default async function BookingSuccessPage({
     }
   }
 
+  // ── First-booking celebration (once ever, per guest) ──────────────────────
+  // Fire ONLY when this is the guest's first CONFIRMED booking. We claim it
+  // atomically: flip first_booking_celebrated_at NULL → now() and only the
+  // request that won the flip shows the modal, so a refresh/revisit — or a
+  // second tab — can never re-fire it. Guard with a confirmed-count check so a
+  // guest with prior confirmed bookings (e.g. pre-column data) isn't celebrated.
+  let celebrateFirstBooking = false;
+  if (isConfirmed) {
+    const { count: confirmedCount } = await admin
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("guest_id", user.id)
+      .eq("status", "confirmed");
+    if ((confirmedCount ?? 0) <= 1) {
+      const { data: claimed } = await admin
+        .from("user_profiles")
+        .update({ first_booking_celebrated_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .is("first_booking_celebrated_at", null)
+        .select("id");
+      celebrateFirstBooking = !!(claimed && claimed.length > 0);
+    }
+  }
+
   // Party manifest, resolved against each member's own Wielo profile.
   const partyGuests = await resolvePartyGuests(
     admin,
@@ -554,6 +578,7 @@ export default async function BookingSuccessPage({
     calendarUrl,
     directionsUrl,
     purchase,
+    celebrateFirstBooking,
   };
 
   return (

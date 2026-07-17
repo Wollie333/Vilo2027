@@ -5965,27 +5965,6 @@ export type Database = {
         }
         Relationships: []
       }
-      platform_counters: {
-        Row: {
-          id: boolean
-          last_credit_note_number: number
-          last_invoice_number: number
-          updated_at: string
-        }
-        Insert: {
-          id?: boolean
-          last_credit_note_number?: number
-          last_invoice_number?: number
-          updated_at?: string
-        }
-        Update: {
-          id?: boolean
-          last_credit_note_number?: number
-          last_invoice_number?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       platform_coupon_redemptions: {
         Row: {
           amount_discounted: number
@@ -10131,6 +10110,7 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           email_verified_at: string | null
+          first_booking_celebrated_at: string | null
           full_name: string | null
           id: string
           id_verified_at: string | null
@@ -10154,6 +10134,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           email_verified_at?: string | null
+          first_booking_celebrated_at?: string | null
           full_name?: string | null
           id: string
           id_verified_at?: string | null
@@ -10177,6 +10158,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           email_verified_at?: string | null
+          first_booking_celebrated_at?: string | null
           full_name?: string | null
           id?: string
           id_verified_at?: string | null
@@ -11171,6 +11153,7 @@ export type Database = {
         Args: { p_label: string; p_val: string }
         Returns: string
       }
+      _assert_can_read_host: { Args: { p_host_id: string }; Returns: undefined }
       _can_read_host: { Args: { p_host_id: string }; Returns: boolean }
       _host_guest_rows: {
         Args: { p_host_id: string }

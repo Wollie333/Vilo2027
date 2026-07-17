@@ -36,6 +36,7 @@ import { formatMoney } from "@/lib/format";
 
 import { AddTripGuestModal } from "./AddTripGuestModal";
 import { EftProofUploader } from "./EftProofUploader";
+import { FirstBookingCelebration } from "./FirstBookingCelebration";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared data shape (built server-side in page.tsx)                          */
@@ -145,6 +146,12 @@ export type ConfirmationData = {
       quantity: number;
     }>;
   } | null;
+  /**
+   * True ONLY on the guest's first confirmed booking — the server has already
+   * atomically stamped the "celebrated" flag, so showing the one-time
+   * congratulations modal here can never re-fire on refresh/revisit.
+   */
+  celebrateFirstBooking?: boolean;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -1242,6 +1249,10 @@ export function BookingConfirmation({ data }: { data: ConfirmationData }) {
 `,
         }}
       />
+
+      {data.celebrateFirstBooking ? (
+        <FirstBookingCelebration guestFirstName={data.guestFirstName} />
+      ) : null}
 
       <Hero data={data} />
 
