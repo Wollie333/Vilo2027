@@ -220,12 +220,18 @@ export function OceansViewRoomDetail({
   });
   const hasBars = items.length >= 3;
 
-  // Other rooms — each unique room shown ONCE. With only a few rooms we render a
-  // static row (no repeats). Only when there are enough unique rooms to overflow
-  // the viewport do we use the looping marquee — which needs one duplicate set to
-  // scroll seamlessly, but by then each room is off-screen before its repeat shows.
-  const others = (otherRooms ?? []).filter((r) => r.id !== room.id);
-  const useMarquee = others.length >= 5;
+  // Other rooms — each unique room shown ONCE. Drop the current room AND dedupe by
+  // id (the feed can return a room more than once), so a small property renders a
+  // clean static row with no repeats. The looping marquee only kicks in with MORE
+  // THAN 4 unique rooms; below that the cards stay static at the bottom.
+  const seenRoomIds = new Set<string>([room.id]);
+  const others: RoomCard[] = [];
+  for (const r of otherRooms ?? []) {
+    if (seenRoomIds.has(r.id)) continue;
+    seenRoomIds.add(r.id);
+    others.push(r);
+  }
+  const useMarquee = others.length > 4;
   const loop = useMarquee ? [...others, ...others] : others;
   const renderRoomCard = (r: RoomCard, i: number, decorative: boolean) => (
     <a
