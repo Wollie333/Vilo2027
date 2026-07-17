@@ -31,12 +31,17 @@ export type AiDeps = {
   models?: Partial<Record<AiTier, string>>;
 };
 
-/** Default model per tier — override via env to pin current Claude versions. */
+/** Default model per tier — override via env to pin current Claude versions.
+ *  The old `claude-3-5-…-latest` ids were RETIRED (the API returns 404
+ *  "model: claude-3-5-sonnet-latest"), so these default to current models.
+ *  Note: from the 4.6 generation on, Claude model ids are dateless pinned
+ *  snapshots (no `-latest` aliases). Bump these (or set the env vars) when
+ *  newer versions ship. */
 function defaultModel(tier: AiTier): string {
   if (tier === "fast") {
-    return process.env.ANTHROPIC_MODEL_FAST ?? "claude-3-5-haiku-latest";
+    return process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5";
   }
-  return process.env.ANTHROPIC_MODEL_QUALITY ?? "claude-3-5-sonnet-latest";
+  return process.env.ANTHROPIC_MODEL_QUALITY ?? "claude-sonnet-5";
 }
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
