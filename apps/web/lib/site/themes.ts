@@ -98,6 +98,7 @@ export const SITE_PRESETS = {
       line: "#E9E1D1",
       accent: "#12A5B5",
       accentInk: "#FFFFFF",
+      secondary: "#FF6B57", // coral — the reference's conversion-CTA colour
     },
     font: "grotesk",
     radius: "lg",
