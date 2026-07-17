@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
@@ -7,14 +9,56 @@ import { SiteImg } from "../SiteImg";
 import { SectionHeading, Card, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "host_bio" }>["props"];
+type Point = NonNullable<Props["points"]>[number];
+
+/** Optional check-list beneath the body (the Safari About "conservation" block).
+ *  Class hooks (`site-hostbio-points`) let per-theme skins restyle the markers. */
+function HostPoints({
+  points,
+  centered = false,
+}: {
+  points: Point[];
+  centered?: boolean;
+}) {
+  if (!points.length) return null;
+  return (
+    <ul
+      className={`site-hostbio-points mt-6 flex flex-col gap-3 ${
+        centered ? "items-center text-center" : ""
+      }`}
+    >
+      {points.map((p, i) => (
+        <li key={i} className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className="site-hostbio-point-mark mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+            style={{
+              background: "var(--site-accent)",
+              color: "var(--site-accent-ink, #ffffff)",
+            }}
+          >
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+          <span style={{ color: "var(--el-body-fg, var(--site-ink))" }}>
+            {p.text}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function HostText({
   name,
   body,
+  points,
+  pointsCentered = false,
   className = "",
 }: {
   name?: string | null;
   body: string;
+  points?: Point[];
+  pointsCentered?: boolean;
   className?: string;
 }) {
   return (
@@ -40,6 +84,9 @@ function HostText({
       >
         {body}
       </p>
+      {points && points.length > 0 ? (
+        <HostPoints points={points} centered={pointsCentered} />
+      ) : null}
     </div>
   );
 }
@@ -94,7 +141,12 @@ export function HostBioSection({
               className="h-32 w-32 shrink-0 object-cover"
             />
           ) : null}
-          <HostText name={props.name} body={props.body} />
+          <HostText
+            name={props.name}
+            body={props.body}
+            points={props.points}
+            pointsCentered
+          />
         </div>
       </>
     );
@@ -115,19 +167,24 @@ export function HostBioSection({
               className="h-40 w-40 shrink-0 object-cover"
             />
           ) : null}
-          <HostText name={props.name} body={props.body} />
+          <HostText name={props.name} body={props.body} points={props.points} />
         </Card>
       </>
     );
   }
 
-  // SIDE (default) — photo beside the text.
+  // SIDE (default) — photo beside the text. `reverse` flips the photo to the
+  // opposite side (the Safari "conservation" wide/left layout).
   return (
     <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-8 md:flex-row md:items-start">
+      <div
+        className={`mx-auto flex max-w-3xl flex-col items-center gap-8 md:items-start ${
+          props.reverse ? "md:flex-row-reverse" : "md:flex-row"
+        }`}
+      >
         {photo ? (
           <HostPhoto
             src={photo}
@@ -138,6 +195,7 @@ export function HostBioSection({
         <HostText
           name={props.name}
           body={props.body}
+          points={props.points}
           className="text-center md:text-left"
         />
       </div>

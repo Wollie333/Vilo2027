@@ -12,6 +12,7 @@ import {
 } from "@/lib/website/readiness";
 
 import { CreateWebsiteButton } from "./_components/CreateWebsiteButton";
+import { DeleteWebsiteButton } from "./_components/DeleteWebsiteButton";
 import { ReadinessChecklist } from "./_components/ReadinessChecklist";
 import { WebsiteLocked } from "./_components/WebsiteLocked";
 
@@ -100,10 +101,14 @@ export default async function WebsiteLandingPage() {
   const missingBySite = new Map<string, ReadinessItem[]>(readinessEntries);
 
   // Single business that already has a site → go straight to its editor.
-  if (businesses.length === 1) {
-    const only = siteByBusiness.get(businesses[0].id);
-    if (only) redirect(`/dashboard/website/${only.id}`);
-  }
+  // TEMPORARILY DISABLED (testing/wizard refinement): this auto-redirect hides
+  // the website management card, and the card now carries the prominent
+  // "Delete & start over" affordance used to reset the wizard between runs.
+  // Re-enable before launch so single-business hosts land in the editor directly.
+  // if (businesses.length === 1) {
+  //   const only = siteByBusiness.get(businesses[0].id);
+  //   if (only) redirect(`/dashboard/website/${only.id}`);
+  // }
 
   return (
     <div className="space-y-6">
@@ -132,6 +137,7 @@ export default async function WebsiteLandingPage() {
                       href={`/dashboard/website/${site.id}`}
                       manageLabel={t("manageCta")}
                       statusLabel={t(badgeKey(site.status))}
+                      websiteId={site.id}
                     />
                     {(missingBySite.get(site.id)?.length ?? 0) > 0 ? (
                       <div className="border-t border-brand-line bg-brand-light/40 px-5 py-4">
@@ -197,6 +203,7 @@ function ManageRow({
   href,
   manageLabel,
   statusLabel,
+  websiteId,
 }: {
   name: string;
   subdomain: string;
@@ -204,6 +211,7 @@ function ManageRow({
   href: string;
   manageLabel: string;
   statusLabel: string;
+  websiteId: string;
 }) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   return (
@@ -221,13 +229,16 @@ function ManageRow({
           {subdomain}.{root}
         </div>
       </div>
-      <Link
-        href={href}
-        className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
-      >
-        {manageLabel}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      <div className="flex items-center gap-2">
+        <DeleteWebsiteButton websiteId={websiteId} siteName={name} />
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+        >
+          {manageLabel}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </div>
   );
 }

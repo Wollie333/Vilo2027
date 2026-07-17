@@ -176,6 +176,39 @@ function HeroInner({
           ) : null}
         </div>
       ) : null}
+      {/* Stat row (Safari "12,000 Hectares" etc.). The props already exist in the
+          schema; the generic hero renders them now. Class hooks (`site-hero-stat*`)
+          let per-theme skins restyle without touching this component. */}
+      {props.stats && props.stats.length > 0 && props.show_stats !== false ? (
+        <dl
+          className="site-hero-stats mt-10 flex flex-wrap gap-x-10 gap-y-6"
+          style={{ justifyContent: alignLeft ? "flex-start" : "center" }}
+        >
+          {props.stats.map((stat, i) => (
+            <div key={i} className="site-hero-stat">
+              <dt
+                className="site-hero-stat-value font-semibold"
+                style={{
+                  fontFamily: "var(--site-font-heading)",
+                  fontSize: "var(--el-stat-size, 1.75rem)",
+                  lineHeight: 1.1,
+                  color: `var(--el-stat-fg, ${titleColor})`,
+                }}
+              >
+                {stat.value}
+              </dt>
+              {stat.label ? (
+                <dd
+                  className="site-hero-stat-label mt-1 text-sm uppercase tracking-wide"
+                  style={{ color: `var(--el-stat-label-fg, ${subColor})` }}
+                >
+                  {stat.label}
+                </dd>
+              ) : null}
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </>
   );
 }
@@ -193,6 +226,33 @@ export function HeroSection({
   const variant = normalizeVariant(props.variant ?? "spotlight");
   const alignLeft = props.align === "left";
   const minHeight = HEIGHT_MINH[props.height ?? "auto"] || undefined;
+
+  // ── COMPACT — slim page-header banner (About/Rooms/Contact inner pages) ──
+  // Overrides the full-bleed hero: no photo, a smaller title (via the scoped
+  // --site-hero-title-size), on the theme surface with a hairline base. Themes
+  // set `compact:true` on interior heroes; this stops them rendering at full
+  // landing-hero height.
+  if (props.compact) {
+    const onDark = resolveOnDark(props.textTone ?? "auto", false);
+    const compactStyle = {
+      background: "var(--site-surface)",
+      borderBottom: "1px solid var(--site-line)",
+      "--site-hero-title-size": "var(--site-h2)",
+    } as CSSProperties;
+    return (
+      <section
+        className="site-hero-compact px-5 py-12 md:py-16"
+        style={compactStyle}
+      >
+        <div
+          className="mx-auto w-full max-w-4xl"
+          style={{ textAlign: alignLeft ? "left" : "center" }}
+        >
+          <HeroInner props={props} onDark={onDark} alignLeft={alignLeft} />
+        </div>
+      </section>
+    );
+  }
 
   const rawBg = asset?.(props.image_path) ?? props.image_path ?? undefined;
   const bgWide = rawBg

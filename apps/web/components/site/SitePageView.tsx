@@ -159,13 +159,10 @@ export async function SitePageView({
     </>
   );
 
-  // Safari is a fully bespoke design (the NenGama Lodge look) — it renders
-  // through its own self-contained, scoped layer rather than the shared chrome +
-  // section components, so it matches the design exactly. Driven by the same
-  // page sections (by type) so content stays host-editable.
-  // Safari is a fully bespoke design (the NenGama Lodge look) — every page kind it
-  // ships renders through its own self-contained, scoped layer so it matches the
-  // design exactly. Unmapped kinds fall through to the standard themed pipeline.
+  // Every theme (Safari included) renders through the ONE shared chrome + section
+  // components; its look comes entirely from its `--site-*` tokens (SiteThemeRoot)
+  // plus its scoped `.wielo-<slug>` rules in theme-skins.css. There are no bespoke
+  // per-theme renderers — that layer was removed at the Builder-V2 cutover.
   // The shared theme-preview bar's page navigator (every theme, every page).
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)

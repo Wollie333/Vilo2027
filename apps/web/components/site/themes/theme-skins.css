@@ -532,3 +532,226 @@
   background: var(--site-tint);
   color: var(--site-accent-deep);
 }
+
+/* ======================================================================
+ * SAFARI — NenGama Lodge: unfenced Waterberg lodge (bone · ochre · espresso)
+ * Palette: bg #F4EDE0 · surface #FBF6EC · ink #221A11 · accent #B26C2E.
+ * Safari is the earliest, richest theme (full NenGama content in
+ * themeSections.ts) and the default preset, but shipped with NO skin — so it
+ * rendered as bare generic blocks. This skin brings it to the same quality bar
+ * as Oceans View using its own warm palette (no external reference design dir
+ * exists for Safari, unlike sabela/oceansview/marmalade). Scope: `.wielo-safari`.
+ * ==================================================================== */
+.wielo-safari {
+  /* Extra tokens the warm-lodge look derives from, beyond the core --site-*
+     palette — additive, brand-safe. */
+  --site-soft: #efe6d4; /* warm sand alternating band */
+  --site-soft-2: #e7dcc4;
+  --site-tint: rgba(178, 108, 46, 0.12); /* ochre tint (chips / icon boxes) */
+  --site-accent-deep: #8f5320; /* darker ochre (hover / text on light) */
+  --site-ring: rgba(178, 108, 46, 0.24);
+  /* Deep espresso anchor for dark bands (experiences / location / CTA use
+     tone="dark", which resolves to --site-ink; navy is defined so a navy tone
+     still reads as a distinct warm-dark band rather than blue). */
+  --site-navy: #1c150e;
+  --site-navy-2: #2a2016;
+  --site-navy-ink: #f4ede0;
+  --site-navy-mute: #c6b69a;
+
+  /* Hero display type — editorial lodge scale, read by HeroSection as the
+     `--el-*` fallback, so it stays host-editable. Fluid clamp keeps the headline
+     viewport-safe on phones until a host sets a fixed size. */
+  --site-hero-title-size: clamp(2.9rem, 6.5vw, 5.6rem);
+  --site-hero-title-weight: 600;
+  --site-hero-title-lh: 1;
+  --site-hero-title-ls: -0.02em;
+  --site-hero-sub-size: clamp(1.04rem, 1.5vw, 1.3rem);
+
+  /* Intro stat badge + section eyebrows in the ochre accent. */
+  --site-intro-badge-bg: var(--site-surface);
+  --site-intro-badge-fg: var(--site-ink);
+  --site-intro-badge-value: var(--site-accent);
+  --site-intro-eyebrow-fg: var(--site-accent);
+}
+
+/* Section heading scale (descendant beats the root's inline modular scale, no
+   !important; a host's per-element size edit still wins). Lifts every "auto"
+   heading to the lodge display scale, theme-wide. */
+.wielo-safari [data-section-type] {
+  --site-h1: clamp(2.9rem, 6.5vw, 5.6rem);
+  --site-h2: clamp(2rem, 4vw, 3.3rem);
+  --site-h3: 1.5rem;
+}
+
+/* --- Section eyebrow "tag" (ochre uppercase + dot) ----------------------- */
+.wielo-safari .site-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--site-accent);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.wielo-safari .site-eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-accent);
+}
+
+/* --- HERO --------------------------------------------------------------- */
+/* Structural rhythm only (type is host-editable via --el-*/
+--site-hero-*). */
+.wielo-safari [data-section-type="hero"] .site-hero-title {
+  max-width: 16ch;
+  margin-top: 22px;
+}
+.wielo-safari [data-section-type="hero"] .site-hero-sub {
+  max-width: 48ch;
+  margin-top: 22px;
+}
+.wielo-safari [data-section-type="hero"] .site-hero-cta {
+  gap: 14px;
+  margin-top: 34px;
+}
+/* Glassy rating chip over the hero photo — only on the full (over-image) hero,
+   NOT the compact page-header (where a white glass chip would vanish on light). */
+.wielo-safari
+  [data-section-type="hero"]:not(:has(.site-hero-compact))
+  .site-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+/* Hero stat row ("12,000 Hectares" etc.): a hairline over the dark photo, wide
+   gaps, editorial numerals + small uppercase labels. */
+.wielo-safari [data-section-type="hero"] .site-hero-stats {
+  margin-top: 44px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  gap: 44px;
+}
+.wielo-safari [data-section-type="hero"] .site-hero-stat-value {
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+  letter-spacing: -0.01em;
+}
+.wielo-safari [data-section-type="hero"] .site-hero-stat-label {
+  letter-spacing: 0.14em;
+  font-size: 11px;
+}
+
+/* --- ROOM CARDS + SHOWCASE ---------------------------------------------- */
+.wielo-safari .site-room-card {
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.wielo-safari .site-room-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 34px 60px -34px rgba(34, 26, 17, 0.45);
+}
+.wielo-safari [data-section-type="rooms_preview"] .rounded-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  border-color: transparent;
+}
+.wielo-safari .site-room-frame {
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.wielo-safari .site-room-row:hover .site-room-frame {
+  transform: scale(1.02);
+}
+.wielo-safari .site-room-badge {
+  box-shadow: 0 24px 50px -22px rgba(34, 26, 17, 0.4);
+}
+
+/* --- EXPERIENCE / FEATURE TILES (highlights) ---------------------------- */
+.wielo-safari [data-section-type="highlights"] .text-2xl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--site-tint);
+  color: var(--site-accent);
+}
+.wielo-safari .site-hl-tile {
+  transition: box-shadow 0.35s;
+}
+.wielo-safari .site-hl-tile:hover {
+  box-shadow: 0 30px 60px -30px rgba(34, 26, 17, 0.5);
+}
+
+/* --- INCLUDED PILL BAR (amenities inline) ------------------------------- */
+.wielo-safari .site-amen-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* --- GALLERY MOSAIC ----------------------------------------------------- */
+.wielo-safari [data-section-type="gallery"] .overflow-hidden {
+  border-radius: var(--site-img-radius);
+}
+
+/* --- TESTIMONIALS (ochre opening quote-mark) ---------------------------- */
+.wielo-safari [data-section-type="reviews"] .grid > * {
+  position: relative;
+  padding-top: 40px;
+}
+.wielo-safari [data-section-type="reviews"] .grid > *::before {
+  content: "\201C";
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  font-family: var(--site-font-heading);
+  font-size: 3rem;
+  line-height: 0.6;
+  color: var(--site-accent);
+}
+
+/* --- LOCATION (round the embedded map) ---------------------------------- */
+.wielo-safari [data-section-type="location"] iframe {
+  border-radius: var(--site-img-radius);
+}
+
+/* --- FAQ (airier rows) -------------------------------------------------- */
+.wielo-safari [data-section-type="faq"] details {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* --- HOST BIO (tighten the display name tracking) ----------------------- */
+.wielo-safari [data-section-type="host_bio"] h3 {
+  letter-spacing: -0.01em;
+}
+
+/* --- ROOM DETAIL (sticky rate card + rounded imagery) ------------------- */
+.wielo-safari [data-section-type="room_rate"] {
+  position: sticky;
+  top: 100px;
+}
+.wielo-safari [data-section-type="room_rate"] a[href] {
+  display: flex;
+  width: 100%;
+}
+.wielo-safari [data-section-type="room_gallery"] .overflow-hidden,
+.wielo-safari [data-section-type="room_gallery"] [class*="rounded"] {
+  border-radius: var(--site-img-radius);
+}
