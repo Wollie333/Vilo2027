@@ -73,16 +73,36 @@ He booked for real with `wollie333@gmail.com` (booking **BK-0050**, still `pendi
    like a failed dispatch — the queue is **`notification_queue`.`type`** and had it `sent:true`
    (**wrong surface, nearly a false alarm — same as pt13's false `unreachable`**).
 
-### 🔴 FOUNDER'S REMAINING 3 (asked for, NOT yet done — start here)
-1. 🔴 **Added guests are never registered.** The "Who's coming?" people are stored as **JSONB on
-   `bookings.additional_guests`** (name/email/phone — see `success/page.tsx` `partyGuests`) and are
-   **never created as accounts**. Founder wants: register them as guests; when that email later
-   signs up they're **prompted to set a password and given the EXISTING account**. ⚠️ The **claim
-   flow already exists** (`app/[locale]/claim/actions.ts` → sets password + `markEmailVerified`) —
-   check what's already there before building (this codebase's disease is duplicating built things).
-2. 🔴 **Super admin can't open a guest's booking.** On the guest record → Bookings the booking is
+### ✅ 3 — ADDED GUESTS NOW MINT AN ACCOUNT (`c45600d2`)
+**This was BUSINESS_PRINCIPLES #1 — written 2026-06-10, never enforced.** Rule 1 names the exact
+entry point (*"being added as an additional / party guest on someone else's booking"*), and **rule 3
+is the founder's second ask VERBATIM** (*"recognises them and prompts them to set a password…
+Signup must never dead-end a returning passwordless guest"*). 🔑 **The principle wasn't the gap —
+enforcement was. Reuse the spine, don't build a parallel one.**
+- `mintPartyGuestIdentities` in **`persist.ts` (THE single persistence tail)** → every booking path
+  mints uniformly, via **`findOrCreateLeadIdentity`** (the ONE find-or-create path) → passwordless
+  `is_lead`, affiliate-attributed, never duplicated. No email = skipped (rule 2: email IS the key).
+- Signup collision now routes by type: a **lead** got *"you already have an account, just sign in"* —
+  **advice they CANNOT act on (they have no password)** = the dead-end rule 3 forbids. New
+  **`ClaimAccount`** email + `sendSignupCollisionEmail` → magic link → `/claim`. All 3 `/signup/*`.
+  🔒 The claim link goes to their **INBOX**, never the browser that typed the address — else anyone
+  could type a stranger's email and take the account.
+- ✅ **Witnessed:** booked **BK-0051** through the real UI with a party guest → the tail minted
+  `party-test@wielostarter.com` **8s later** (role guest, `is_lead: true`). His **BK-0050** carries
+  a party guest (**Petra**) who had **ZERO accounts** before this.
+- ⚠️ **NOT witnessed: the signup→claim branch** (needs creating an account + typing a password =
+  out of scope for the agent). **Founder can settle it in 30s:** go to `/signup/guest`, enter
+  `party-test@wielostarter.com` + any password → expect *"check your inbox for a link to set your
+  password"* + a **ClaimAccount** email, **NOT** "we couldn't complete your signup".
+- 📌 **Petra is NOT retro-minted** — the fix only mints on NEW bookings, and `petra@gmail.com` may be
+  a real person. **Founder's call** whether to backfill historical `additional_guests`.
+- 🧪 Test artifacts left in place (bookings/user_profiles are never-hard-delete): **BK-0051** +
+  the `party-test@wielostarter.com` lead. They ARE the evidence.
+
+### 🔴 FOUNDER'S REMAINING 2 (asked for, NOT yet done — start here)
+1. 🔴 **Super admin can't open a guest's booking.** On the guest record → Bookings the booking is
    listed but not openable as super admin. Needs an admin booking-detail surface.
-3. 🔴 **"Sell" doesn't send the offer.** Founder: *"it worked in the past."* Should land in the
+2. 🔴 **"Sell" doesn't send the offer.** Founder: *"it worked in the past."* Should land in the
    guest's **inbox** AND email a proper offer. 📌 The audit log shows the action fires:
    `user.sell_product` on his account at 08:42:40 — so the write happens; the notify/email is the
    gap. (That admin sell → claim link is also what stamped his `email_verified_at` at 08:43:48.)
