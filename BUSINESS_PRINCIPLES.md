@@ -430,6 +430,38 @@ That is a blocker to RESOLVE, not an excuse to skip. Do whatever it takes:
 element, section, widget, control, page and piece of chrome — is MOBILE-FIRST and
 must be FULLY RESPONSIVE at every breakpoint, always. No exceptions.**
 
+**Restated and sharpened by the founder, 2026-07-17:** *"always design mobile
+first so the feature/page/section is 100% mobile responsive and works beautifully
+on mobile devices."* Applies to **the whole app** — not just the website builder
+this principle was originally written about.
+
+### 🔴 The booking flow is the sharpest edge of this principle
+
+**~95% of bookings happen on a phone.** Our competitors do not take this
+seriously, and their negative reviews are full of guests who *wanted to book* and
+couldn't — the form fought them on a small screen. **That is a commercial
+opportunity, not a detail.** A guest who abandons a booking on their phone is a
+booking the host never gets, and the host churns to the marketplace we exist to
+replace.
+
+So the booking path — property page → date/room select → guest details → payment →
+confirmation — carries a **higher bar than "it doesn't overflow"**:
+
+- It must be **pleasant to complete one-handed on a 360–390px phone**, thumb-first.
+- **No horizontal scroll, ever.** Not on a price table, not on a date picker, not
+  on a summary row.
+- The **price and the primary action stay reachable** — a guest must never scroll
+  hunting for "Reserve", or lose sight of what they're paying.
+- **Tap targets ≥44px** on every date cell, stepper, radio and submit.
+- Inputs use the right **`inputMode`/`type`** so phones show the correct keyboard,
+  and the field is never covered by it.
+- **Nothing important is desktop-only.** If a summary/breakdown/policy is visible
+  on desktop, it is reachable on mobile — collapsed is fine, absent is not.
+
+**Booking is the one flow where "works on mobile" is not enough — it must be the
+best mobile booking experience in the market. Verify it on a phone viewport, on
+the real render, every time it changes** (Principle #9).
+
 ### The rule
 
 - Design and build for the smallest screen first, then enhance up (Tailwind's

@@ -1,15 +1,23 @@
 // Wielo primary brand mark (green "W" roundel). `gradientId` namespaces the
 // internal gradients so multiple logos can render on one page without id clashes.
+//
+// This is the ONE mark. The auth surfaces (login + all three signup wizards) each
+// used to inline their own hand-rolled "V"-in-a-squircle — the PREVIOUS logo — so
+// the first thing a new host ever saw was the old brand. Import this instead of
+// pasting an <svg>: a copy is a logo that can't be updated.
 export function VLogo({
   size = 32,
   gradientId,
+  className,
 }: {
   size?: number;
   gradientId: string;
+  /** Extra classes (e.g. `wielo-logo-pulse`). Merged after the base rounding. */
+  className?: string;
 }) {
   return (
     <svg
-      className="rounded-full"
+      className={`rounded-full ${className ?? ""}`.trim()}
       width={size}
       height={size}
       viewBox="0 0 200 200"

@@ -14,11 +14,13 @@ import {
   Star,
   Upload,
 } from "lucide-react";
+import { VLogo } from "@/app/_components/home/VLogo";
 import { Link } from "@/i18n/navigation";
 import {
   cloneElement,
   isValidElement,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -2014,8 +2016,18 @@ function StepHeading({
   );
 }
 
-// ─── Inline logo ──────────────────────────────────────────────────
+// ─── Logo ─────────────────────────────────────────────────────────
 
+/**
+ * The brand mark, with this wizard's optional glow treatment.
+ *
+ * Delegates to the ONE mark (`VLogo`). It used to inline its own SVG — the old
+ * "V"-in-a-squircle — so a new host's very first impression of Wielo was the
+ * previous logo, and no amount of updating the real one would have fixed it.
+ *
+ * `useId` (not Math.random) namespaces the gradients: a random id differs between
+ * the server and client render, which is a hydration mismatch waiting to happen.
+ */
 function WieloMark({
   size = 36,
   glow = false,
@@ -2023,40 +2035,17 @@ function WieloMark({
   size?: number;
   glow?: boolean;
 }) {
-  const id = useMemo(
-    () => `wielo-grad-${Math.random().toString(36).slice(2, 8)}`,
-    [],
-  );
+  const id = useId();
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
+    <span
       style={
         glow
           ? { filter: "drop-shadow(0 8px 20px rgba(16,185,129,0.45))" }
           : undefined
       }
+      className="inline-flex"
     >
-      <defs>
-        <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#064E3B" />
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="22" fill={`url(#${id})`} />
-      <path
-        d="M50 76L20 32H36L50 56L64 32H80L50 76Z"
-        fill="white"
-        opacity="0.4"
-      />
-      <path
-        d="M50 66L26 32H38L50 50L62 32H74L50 66Z"
-        fill="white"
-        opacity="0.7"
-      />
-      <path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="white" />
-    </svg>
+      <VLogo size={size} gradientId={`wielo-grad-${id}`} />
+    </span>
   );
 }
