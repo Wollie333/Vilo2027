@@ -220,17 +220,66 @@ export function OceansViewRoomDetail({
   });
   const hasBars = items.length >= 3;
 
-  // Other rooms — dedupe the current room out, then build the marquee track:
-  // repeat the set until it comfortably overflows the viewport (so it never runs
-  // out and looks static/left-aligned), then duplicate that whole run ONCE so the
-  // leftward scroll loops seamlessly (the track animates by exactly -50%).
+  // Other rooms — each unique room shown ONCE. With only a few rooms we render a
+  // static row (no repeats). Only when there are enough unique rooms to overflow
+  // the viewport do we use the looping marquee — which needs one duplicate set to
+  // scroll seamlessly, but by then each room is off-screen before its repeat shows.
   const others = (otherRooms ?? []).filter((r) => r.id !== room.id);
-  const base = others.length
-    ? Array.from({ length: Math.max(2, Math.ceil(5 / others.length)) }).flatMap(
-        () => others,
-      )
-    : [];
-  const loop = base.length ? [...base, ...base] : [];
+  const useMarquee = others.length >= 5;
+  const loop = useMarquee ? [...others, ...others] : others;
+  const renderRoomCard = (r: RoomCard, i: number, decorative: boolean) => (
+    <a
+      href={r.bookHref || roomsHref || "#"}
+      className="room"
+      key={i}
+      aria-hidden={decorative ? true : undefined}
+      tabIndex={decorative ? -1 : undefined}
+    >
+      <div className="room-img">
+        {money(r.price, r.currency) ? (
+          <span className="room-price">
+            {money(r.price, r.currency)}
+            <small>/night</small>
+          </span>
+        ) : null}
+        {r.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={r.imageUrl} alt={r.name} />
+        ) : null}
+      </div>
+      <div className="room-body">
+        <h3>{r.name}</h3>
+        {r.facts && r.facts.length > 0 ? (
+          <div className="room-feat">
+            {r.facts.slice(0, 2).map((f, j) => (
+              <span className="chip" key={j}>
+                {f}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {r.description ? <p>{r.description}</p> : null}
+        <div className="room-foot">
+          <span className="alink">
+            View room
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </div>
+      </div>
+    </a>
+  );
 
   const tag =
     room.facts[0] && !/^sleeps/i.test(room.facts[0]) ? room.facts[0] : null;
@@ -542,62 +591,19 @@ export function OceansViewRoomDetail({
               ) : null}
             </div>
           </div>
-          <div className="marquee" aria-label="More rooms">
-            <div className="marquee-track">
-              {loop.map((r, i) => (
-                <a
-                  href={r.bookHref || roomsHref || "#"}
-                  className="room"
-                  key={i}
-                  aria-hidden={i >= others.length ? true : undefined}
-                >
-                  <div className="room-img">
-                    {money(r.price, r.currency) ? (
-                      <span className="room-price">
-                        {money(r.price, r.currency)}
-                        <small>/night</small>
-                      </span>
-                    ) : null}
-                    {r.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imageUrl} alt={r.name} />
-                    ) : null}
-                  </div>
-                  <div className="room-body">
-                    <h3>{r.name}</h3>
-                    {r.facts && r.facts.length > 0 ? (
-                      <div className="room-feat">
-                        {r.facts.slice(0, 2).map((f, j) => (
-                          <span className="chip" key={j}>
-                            {f}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    {r.description ? <p>{r.description}</p> : null}
-                    <div className="room-foot">
-                      <span className="alink">
-                        View room
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
-                        >
-                          <path d="M5 12h14M13 6l6 6-6 6" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+          {useMarquee ? (
+            <div className="marquee" aria-label="More rooms">
+              <div className="marquee-track">
+                {loop.map((r, i) => renderRoomCard(r, i, i >= others.length))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="wrap">
+              <div className="rooms-row">
+                {others.map((r, i) => renderRoomCard(r, i, false))}
+              </div>
+            </div>
+          )}
         </section>
       ) : null}
     </div>
