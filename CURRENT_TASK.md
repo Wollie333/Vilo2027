@@ -54,7 +54,40 @@ checkbox is 16×16 but wrapped in a `<label>` → the label text is the real tar
 - 🔑 **A `fixed` bar occupies NO layout space — if the page doesn't reserve its height, whatever the
   document ends on is permanently unreachable, and ONLY a hit test AT TRUE MAX SCROLL reveals it.**
 
-### ▶ NEXT (in order)
+### ✅ FOUNDER'S SMOKE BOOKING — 2 of 5 fixed (`0bce3ae9`), 3 STILL OPEN
+He booked for real with `wollie333@gmail.com` (booking **BK-0050**, still `pending_eft`).
+1. ✅ **No verify email** — `createCheckoutGuestAccountAction` never called `sendVerificationEmail`.
+   Its comment claims it "mirrors /signup/guest"; that one sends it, this one didn't. **The resend
+   button always worked — that's WHY it read as "lack of automation": the send was fine, the TRIGGER
+   was missing.** Fixed + all 3 `/signup/*` paths already did it.
+2. ✅ **"Upload proof of payment" was a button to nowhere** — the email points at
+   `/booking/<id>/success`, which had no uploader (`PHASE_PLAN.md:332` ⬜). **~80% was already built
+   and wired to NOTHING**: private `eft-proofs` bucket ✓, both storage policies live+correct ✓, BOTH
+   `eft_proof_url` columns ✓, `eft_proof_received_host` email+resolver+registry+seed ✓, and **16 UI
+   files render `pending_eft_review`** — a status **nothing had EVER set**. Built the missing 20%;
+   witnessed the whole loop (upload → object → status flip → queue `sent:true` → host's "Needs
+   review" card → signed URL 200 image/png).
+   🔑 **2 more faults found ONLY by querying back:** `payments.eft_proof_url` stayed NULL because a
+   `pending_eft` booking **has no payments row yet** (→ the host's *payment* page was the wrong
+   surface; proof must hang off the BOOKING); and a `notification_events` check read 0 and looked
+   like a failed dispatch — the queue is **`notification_queue`.`type`** and had it `sent:true`
+   (**wrong surface, nearly a false alarm — same as pt13's false `unreachable`**).
+
+### 🔴 FOUNDER'S REMAINING 3 (asked for, NOT yet done — start here)
+1. 🔴 **Added guests are never registered.** The "Who's coming?" people are stored as **JSONB on
+   `bookings.additional_guests`** (name/email/phone — see `success/page.tsx` `partyGuests`) and are
+   **never created as accounts**. Founder wants: register them as guests; when that email later
+   signs up they're **prompted to set a password and given the EXISTING account**. ⚠️ The **claim
+   flow already exists** (`app/[locale]/claim/actions.ts` → sets password + `markEmailVerified`) —
+   check what's already there before building (this codebase's disease is duplicating built things).
+2. 🔴 **Super admin can't open a guest's booking.** On the guest record → Bookings the booking is
+   listed but not openable as super admin. Needs an admin booking-detail surface.
+3. 🔴 **"Sell" doesn't send the offer.** Founder: *"it worked in the past."* Should land in the
+   guest's **inbox** AND email a proper offer. 📌 The audit log shows the action fires:
+   `user.sell_product` on his account at 08:42:40 — so the write happens; the notify/email is the
+   gap. (That admin sell → claim link is also what stamped his `email_verified_at` at 08:43:48.)
+
+### ▶ NEXT (also open)
 1. 🔴 **iOS zoom-on-focus — FOUND, NOT FIXED, NOT WITNESSED.** Every checkout input is
    `font-size: 14px`; viewport meta sets no `maximum-scale` → **iOS Safari auto-zooms any field under
    16px**, throwing the guest into a zoomed page mid-checkout. **Could NOT witness it — the preview
