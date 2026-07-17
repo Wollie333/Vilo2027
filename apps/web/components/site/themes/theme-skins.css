@@ -592,9 +592,10 @@
 /* ======================================================================
  * MARMALADE HOUSE — warm guesthouse "postcards" (butter cream · marmalade · berry)
  * Ref: docs/themes/marmalade/{theme.css, base.md, pages/*.html}
- * A LIGHT theme — tokens carry most of the warm look. The signature SHELL
- * (floating pill nav, tilted/taped postcards) is bespoke chrome beyond the
- * generic blocks; here we get the palette, fonts, bands + warm card treatment.
+ * A LIGHT theme. The bespoke postcard/tape/stamp DOM isn't emitted by the generic
+ * blocks, so the signature is evoked with a SCOPED skin: warm eyebrow, tilted
+ * postcard cards that straighten on hover, warm shadows, and a light pill-nav
+ * treatment (rounded menu links + book CTA, no shared-chrome changes).
  * Scope: `.wielo-marmalade`.
  * ==================================================================== */
 .wielo-marmalade {
@@ -666,6 +667,115 @@
   border-radius: var(--site-radius, 16px);
   background: var(--site-tint);
   color: var(--site-accent-deep);
+}
+
+/* --- Section eyebrow "tag" (warm marmalade accent) ---------------------- */
+/* Marmalade's eyebrow is a warm uppercase tag with no rule/dot. */
+.wielo-marmalade .site-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--site-accent);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+/* --- HERO (rhythm) ------------------------------------------------------ */
+.wielo-marmalade [data-section-type="hero"] .site-hero-title {
+  max-width: 18ch;
+  margin-top: 20px;
+}
+.wielo-marmalade [data-section-type="hero"] .site-hero-sub {
+  max-width: 52ch;
+  margin-top: 20px;
+}
+.wielo-marmalade [data-section-type="hero"] .site-hero-cta {
+  gap: 14px;
+  margin-top: 32px;
+}
+
+/* --- POSTCARD CARDS (tilt at rest, straighten on hover) ----------------- */
+/* Evokes the tilted/taped postcard motif without the bespoke DOM: a gentle
+   rotation that straightens on hover, over the existing warm shadow. */
+.wielo-marmalade .site-room-card {
+  transform: rotate(-0.8deg);
+}
+.wielo-marmalade .site-room-card:hover {
+  transform: translateY(-6px) rotate(0deg);
+}
+.wielo-marmalade [data-section-type="reviews"] .grid > *:nth-child(even) {
+  transform: rotate(0.7deg);
+}
+.wielo-marmalade [data-section-type="reviews"] .grid > *:nth-child(odd) {
+  transform: rotate(-0.7deg);
+}
+.wielo-marmalade [data-section-type="reviews"] .grid > *:hover {
+  transform: rotate(0deg);
+}
+
+/* --- LIGHT PILL-NAV TREATMENT (scoped; no shared-chrome edits) ---------- */
+/* Rounds the header menu links + book CTA + submenu into pills, evoking the
+   floating pill menu. Targets SiteChrome's stable class hooks only. */
+.wielo-marmalade .wielo-hmenu {
+  border-radius: 999px;
+}
+.wielo-marmalade [data-wielo-book] {
+  border-radius: 999px;
+}
+.wielo-marmalade .wielo-submenu {
+  border-radius: 18px;
+}
+
+/* --- INCLUDED PILL BAR (amenities inline) ------------------------------- */
+.wielo-marmalade .site-amen-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* --- GALLERY / LOCATION imagery ----------------------------------------- */
+.wielo-marmalade [data-section-type="gallery"] .overflow-hidden {
+  border-radius: var(--site-img-radius);
+}
+.wielo-marmalade [data-section-type="location"] iframe {
+  border-radius: var(--site-img-radius);
+}
+
+/* --- FAQ (airier rows) -------------------------------------------------- */
+.wielo-marmalade [data-section-type="faq"] details {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* --- HOST BIO (tighten the display name tracking) ----------------------- */
+.wielo-marmalade [data-section-type="host_bio"] h3 {
+  letter-spacing: -0.01em;
+}
+
+/* --- AMENITIES (facilities grid — soft hover lift) ---------------------- */
+.wielo-marmalade [data-section-type="amenities"] .grid > div {
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.wielo-marmalade [data-section-type="amenities"] .grid > div:hover {
+  transform: translateY(-4px);
+}
+
+/* --- ROOM DETAIL (sticky rate card + rounded imagery) ------------------- */
+.wielo-marmalade [data-section-type="room_rate"] {
+  position: sticky;
+  top: 100px;
+}
+.wielo-marmalade [data-section-type="room_rate"] a[href] {
+  display: flex;
+  width: 100%;
+}
+.wielo-marmalade [data-section-type="room_gallery"] .overflow-hidden,
+.wielo-marmalade [data-section-type="room_gallery"] [class*="rounded"] {
+  border-radius: var(--site-img-radius);
 }
 
 /* ======================================================================
