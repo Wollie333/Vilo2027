@@ -1432,7 +1432,7 @@ export async function convertQuoteAction(
       special_requests: quote.notes,
       status: "pending",
     })
-    .select("id")
+    .select("id, deposit_amount")
     .single();
   if (bookErr || !booking) {
     return { ok: false, error: "Could not create the booking." };
@@ -1478,7 +1478,13 @@ export async function convertQuoteAction(
   // so this goes through the service role. Marked received already when the host
   // says the deal is paid; otherwise pending for them to apply later.
   const admin = createAdminClient();
-  const depositAmount = depositDue;
+  // Seed the deposit from the post-VAT booking.deposit_amount (the apply_booking_vat
+  // BEFORE-INSERT trigger grosses deposit_amount for a VAT-registered listing),
+  // NOT the pre-gross depositDue. This matches the guest-accept converter
+  // (accept-convert.ts) so the same quote yields the SAME deposit/balance split
+  // whoever converts it. No-op today (no property has VAT configured); keeps the
+  // two paths in lockstep once VAT is enabled. See AGENT_RULES §4.7.
+  const depositAmount = Number(booking.deposit_amount ?? depositDue);
   if (depositAmount > 0) {
     await admin.from("payments").insert({
       booking_id: booking.id,
