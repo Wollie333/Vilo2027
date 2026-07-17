@@ -49,11 +49,16 @@ export function newSection(
   spans: number[] = [12],
   opts: Partial<Omit<SectionNode, "id" | "type" | "kids">> = {},
 ): SectionNode {
+  const multiColumn = spans.length > 1;
   return {
     id: newId(),
     type: "section",
     kids: spans.map((s) => newColumn(s)),
     maxw: 1180,
+    // Mobile-first default: a multi-column section collapses to one column on
+    // phones, so a host who adds a 2/3/4-col structure can't accidentally ship a
+    // non-stacking row that squishes on a phone. Any explicit opts.stack wins.
+    ...(multiColumn ? { stack: "mobile" as const } : {}),
     ...opts,
   };
 }
