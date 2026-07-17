@@ -358,7 +358,7 @@ export function OceansViewRoomDetail({
                       const best = s.priceFrom === minP && seasons.length > 1;
                       const peak = s.priceFrom === maxP && maxP !== minP;
                       return (
-                        <div className={`scard${best ? "best" : ""}`} key={i}>
+                        <div className={best ? "scard best" : "scard"} key={i}>
                           <div className="sh">
                             <span className="sn">{s.label}</span>
                             {best ? (
@@ -442,7 +442,7 @@ export function OceansViewRoomDetail({
               </h2>
             </div>
 
-            <div className={`revsum${hasBars ? "" : "solo"}`}>
+            <div className={hasBars ? "revsum" : "revsum solo"}>
               <div className="score">
                 <b>{avg != null ? avg.toFixed(1) : "—"}</b>
                 <span className="stars">★★★★★</span>

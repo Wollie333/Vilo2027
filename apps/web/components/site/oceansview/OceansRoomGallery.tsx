@@ -78,7 +78,7 @@ export function OceansRoomGallery({
       </div>
 
       <div
-        className={`ovroom-lightbox${lightbox ? "open" : ""}`}
+        className={lightbox ? "ovroom-lightbox open" : "ovroom-lightbox"}
         onClick={() => setLightbox(null)}
         role="presentation"
       >
