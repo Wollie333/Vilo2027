@@ -5,6 +5,57 @@
 
 ---
 
+## 2026-07-17 (pt12) — Real data at last: two of the three wired features are finally *witnessed*.
+
+**The drought is over.** `apps/web/scripts/seed-starter.mjs` seeds 2 Beta-subscriber hosts (1 published
+property + 3 rooms + policies + banking + 50 credits each) and 1 guest, idempotently. Logins:
+`host1@` / `host2@` / `guest@wielostarter.com`, all `WieloStarter123!`.
+
+### ✅ Two of the three now PROVEN in the real render (Principle #9)
+- **Report-a-review works end to end** — clicked in the browser: wrote a `review_flags` row (reason +
+  details + flagged_by) **and** flipped `reviews.flagged`. **The first time that path has ever
+  completed** — RLS had zero policies on that table since May.
+- **Bookmark works** — writes `looking_for_bookmarks`, **survives a reload**, shows in Saved Requests.
+- ⚠️ Still unwitnessed: the external-review **dropdown** (needs OAuth) and the admin "Host said:" detail.
+
+### 🔑 The seed's own ✅ proved nothing — verifying what LANDED caught 4 bugs
+1. **Host A had ZERO rooms.** Child ids were derived with `propId.slice(0,-2)`, but the two property ids
+   differ only in their LAST character — so host B's rooms/photo/amenities **silently upserted over**
+   host A's. The script printed success throughout.
+2. **A phantom `lead` credit wallet.** `lib/credits/wallet.ts` is explicit: leads and quotes draw the
+   SAME `quote` wallet, *"there is deliberately no second wallet"*.
+3. **`braai_bbq` is not a real amenity slug** (it's `braai`), and a wrong key fails **silently**.
+   `seed-demo`, `seed-test-site` and `seed-single-host` all still carry this bug.
+4. **`accommodation_type: "guest_house"`** isn't a key `ACC_LABEL` knows → rendered as generic "Stay".
+
+### 🎨 The old logo was on EVERY auth surface
+Founder spotted it on signup. It was **four files**, each with the old "V"-in-a-squircle inlined
+character-for-character: `signup/page.tsx`, the host wizard, the guest wizard, `LoginForm`. A new host's
+first impression of Wielo was the *previous brand*, and updating the real logo could never have fixed
+it. All four now import the ONE mark (`VLogo`). 🔑 **A copied SVG is a logo that cannot be updated.**
+Also replaced a `Math.random()` gradient id with `useId()` — a random id differs server vs client.
+
+### 📐 Principle #10 sharpened, not duplicated
+The founder asked to add a mobile-first principle. **It already existed, word for word, since
+2026-07-06.** *That is the finding* — written and never enforced, the same disease as everything else
+here; adding a #15 would have violated #5 (One Source of Truth). #10 now carries what was genuinely
+new: **booking is the sharpest edge of it** — ~95% of bookings are on a phone, competitors' negative
+reviews are full of guests who *wanted to book and couldn't*, and an abandoned mobile booking is a
+booking the host never gets. Named bar: one-handed at 360–390px · **no horizontal scroll ever** · price
++ primary action always reachable · ≥44px targets · correct `inputMode` · nothing desktop-only.
+Audit started: the property page has **no page-level horizontal scroll** and a fixed bottom bar with
+price + Reserve. **`/property/<slug>/book` itself is not yet audited.**
+
+### 🔴 The machine was out of memory — and it explains a lot
+**92 orphaned `node` processes** (~5GB, 20GB page file) from dev servers piled up across sessions.
+Every `preview_start` died on arrival; `git` and `fork` failed with *"the paging file is too small"*.
+Killed 69 → **RAM free 3.89GB → 8.99GB**. 📌 This is also the real cause of the `0xC0000409` build
+crash (`--max-old-space-size=8192` is the workaround, not a fix).
+**Founder directive: run ONLY the node processes the current work needs; never leave dev servers
+running.**
+
+---
+
 ## 2026-07-16 (pt11) — The wire pass: three dead features, and the day our own security fix took the public site down.
 
 Founder's order was **live bug → wire → deletes**. This is the wire pass over the three real gaps in

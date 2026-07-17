@@ -2,7 +2,86 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt11) — **START HERE** (supersedes pt10 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt12) — **START HERE** (supersedes pt11 below)
+
+**Repo clean + pushed `e13ea55c`. `pnpm build` (888) · `pnpm lint` · `tsc` green. Migrations synced
+through `20260716340000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
+
+### 🎉 THERE IS REAL DATA NOW — the drought is over
+`apps/web/scripts/seed-starter.mjs` (idempotent). **This is what unblocks everything pt9–pt11 called
+"built, not witnessed".**
+| | login | password |
+|---|---|---|
+| Host A — Table Mountain Guest House (Cape Town, `rooms_only`) | `host1@wielostarter.com` | `WieloStarter123!` |
+| Host B — Drakensberg Mountain Lodge (Winterton, `flexible`) | `host2@wielostarter.com` | `WieloStarter123!` |
+| Guest — Lerato Mahlangu | `guest@wielostarter.com` | `WieloStarter123!` |
+
+Each host: **Beta** subscriber · 1 published property · **3 rooms** · business+legal · banking · full
+policy set · photos · amenities · **50 Wielo credits**. Plus a completed booking + review (host A), an
+upcoming booking (host B), a public LF post. 🔑 **Sign in WITHOUT typing a password:**
+`POST $SB/auth/v1/admin/generate_link {type:"magiclink"}` → **top-level `hashed_token`** →
+`/auth/confirm?token_hash=<t>&type=magiclink&next=/dashboard`.
+
+### ✅ TWO OF THE THREE WIRED FEATURES ARE NOW **WITNESSED** (rule #9 satisfied)
+- **Report-a-review WORKS end to end** — clicked it in the real render: wrote a `review_flags` row
+  (reason+details+flagged_by) **and** flipped `reviews.flagged`. **First time that path has ever
+  completed** (RLS had zero policies since May; fixed `20260716330000`).
+- **Bookmark WORKS** — writes `looking_for_bookmarks`, **SURVIVES A RELOAD**, appears in Saved Requests.
+- ⚠️ **Still NOT witnessed:** the external-review **property dropdown** (needs a connected
+  Google/Facebook source = OAuth) and the admin **"Host said:"** detail.
+
+### 🔴 THE MACHINE WAS OUT OF MEMORY — founder directive
+**92 orphaned `node` processes** (~5GB, 20GB page file) from dev servers accumulated across sessions.
+Every `preview_start` died instantly; `git`/`fork` failed with *"paging file is too small"*. Killed 69
+→ **RAM free 3.89GB → 8.99GB, node count → 0.**
+**🔑 FOUNDER DIRECTIVE (2026-07-17): run ONLY the node processes the current work needs. Never leave
+dev servers running. Don't overload the PC.** ONE dev server, stop it when done (Principle #13 caps at
+2 — treat 1 as the norm). 📌 This is also the true cause of the `0xC0000409` build crash — it is
+memory, and `NODE_OPTIONS=--max-old-space-size=8192` is the workaround.
+
+### ✅ SHIPPED THIS SESSION
+- **The old logo was on EVERY auth surface** `e13ea55c` — the old "V"-in-a-squircle was inlined
+  **character-for-character in FOUR files** (signup page + host wizard + guest wizard + LoginForm), so a
+  new host's first impression was the previous brand and updating the real logo could never have fixed
+  it. All four now import the ONE mark (`VLogo`). 🔑 **A copied SVG is a logo that cannot be updated.**
+  Also killed a `Math.random()` gradient id (hydration mismatch) → `useId()`.
+- **Principle #10 sharpened, NOT duplicated** — founder asked to "add" a mobile-first principle; **it
+  already existed word-for-word since 2026-07-06.** *That is the finding*: written, never enforced —
+  the same disease as everything else. A #15 would have violated #5 (One Source of Truth). #10 now
+  carries what was new: **booking is the sharpest edge** (~95% of bookings are mobile; competitors'
+  bad reviews are guests who wanted to book and couldn't; an abandoned mobile booking is a booking the
+  host never gets). Named bar: one-handed at 360–390px · **no horizontal scroll ever** · price +
+  primary action always reachable · ≥44px targets · correct `inputMode` · nothing desktop-only.
+
+### ▶ NEXT (in order)
+1. 🔴 **FOUNDER'S SMOKE SIGNUP — he was about to run it when the PC ran out of memory.** Start ONE dev
+   server, walk `/en/signup/host` (Beta, R0). Confirm: the **new W-roundel logo** shows · exactly ONE
+   active subscription (`trg_one_active_membership` still sits in signup's path, **still unproven —
+   the seed writes hosts directly, so it does NOT test signup**) · the right credit balance.
+2. 🔴 **MOBILE BOOKING AUDIT — the founder's new priority.** Partly started at 390×844 on the real
+   seeded property: **no page-level horizontal scroll (390 = scrollWidth) ✅**, and there IS a fixed
+   bottom bar showing *"R 1 450 / night · You won't be charged yet · [Quote] [Reserve]"* (44px tap
+   target) ✅. **NOT yet audited: `/property/<slug>/book` itself** (date picker, room select, guest
+   details, payment) — that is the crucial part. ⚠️ Known: the rates table is `min-w-[560px]` inside a
+   scroll container.
+3. `docs/WIRING_AUDIT.md`: 2 unwired left (external-review **reply**, brochure **remove**) · §3 founder
+   decisions · **~40 safe deletes** (re-run sweep to a fixed point).
+4. 🔴 **IDOR still open** — analytics fns take `p_host_id`, never check ownership.
+
+### 🔴 FOUNDER-ONLY (unchanged)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — Vault **AND** Vercel.
+2. **4 Vault-gated crons still dead** → auto-flagged in `docs/SCHEMA.md`.
+3. **Decide:** access unlock gates on status but NOT payment (`docs/lifecycles/access-details.md`).
+
+### 🔑 METHOD (pt12 additions)
+- **The seed's own ✅ proved nothing — verifying what LANDED caught 4 bugs**, incl. child-id collision
+  that left host A with **ZERO rooms** while printing success. Always query back what you wrote.
+- **When the founder asks for a rule that already exists, the rule isn't the gap — enforcement is.**
+  Don't add a second copy; sharpen the original and go prove the app obeys it.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt11) — ⚠️ SUPERSEDED by pt12 above
 
 **Repo clean + pushed `7d0fc876`. `pnpm build` (888) · `pnpm lint` · `tsc` · 315 tests green.
 Migrations synced through `20260716340000`.** Only untracked = the mobile eslint scaffold
