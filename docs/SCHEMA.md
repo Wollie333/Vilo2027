@@ -3846,6 +3846,7 @@ CASE
 | `setup_fee_amount` | numeric | — | `0` |
 | `coupon_id` | uuid | yes | — |
 | `discount_amount` | numeric | — | `0` |
+| `billing_cycle` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE SET NULL`
@@ -3858,6 +3859,7 @@ CASE
 - `UNIQUE (provider_reference)`
 
 **Checks:**
+- `CHECK (((billing_cycle IS NULL) OR (billing_cycle = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'biannual'::text, 'annual'::text]))))`
 - `CHECK ((discount_amount >= (0)::numeric))`
 - `CHECK ((environment = ANY (ARRAY['test'::text, 'live'::text])))`
 - `CHECK ((method = ANY (ARRAY['paystack'::text, 'paypal'::text, 'eft'::text])))`
@@ -3899,10 +3901,14 @@ CASE
 CASE
     WHEN (product_type = ANY (ARRAY['product'::text, '` |
 | `max_quantity` | integer | yes | — |
+| `annual_price` | numeric | yes | — |
+| `account_kind` | text | — | `'host'::text` |
 
 **Checks:**
+- `CHECK ((account_kind = ANY (ARRAY['host'::text, 'quote_only'::text])))`
 - `CHECK ((affiliate_duration = ANY (ARRAY['once'::text, 'months'::text, 'forever'::text])))`
 - `CHECK ((affiliate_type = ANY (ARRAY['none'::text, 'amount'::text, 'percent'::text])))`
+- `CHECK (((annual_price IS NULL) OR (annual_price >= (0)::numeric)))`
 - `CHECK ((billing_cycle = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'biannual'::text, 'annual'::text])))`
 - `CHECK (((max_quantity IS NULL) OR (max_quantity >= 0)))`
 - `CHECK ((product_type = ANY (ARRAY['membership'::text, 'service'::text, 'product'::text, 'wielo_credits'::text])))`

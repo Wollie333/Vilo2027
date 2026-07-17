@@ -5,6 +5,52 @@
 
 ---
 
+## 2026-07-17 (pt16) — Demo host, annual pricing + signup filtering, EFT settle, system library.
+
+A five-part founder batch, each shipped in dependency order and verified live.
+
+### ✅ Demo safari host (`ce0de95b`)
+An idempotent seed (`scripts/seed-demo-host.mjs [email] [--reset]`) builds a full demo host onto
+`wollie@manamarketing.co.za` so the website/builder feature has real data: **Mana Bush Lodge** (a Sabi
+Sand safari lodge, published, with in-depth realistic copy), **3 priced rooms**, **21 real CC-licensed
+safari photos** uploaded into the host's `listing-photos` bucket (so they show in the media library and
+render live), 6 bookings, 3 published reviews, 3 active specials, policies and business. Everything
+attaches to the existing super-admin host. 🔑 **Photos come from Wikimedia Commons, resolved by exact
+title, and each download is validated as a real JPEG (>40KB, JPEG magic bytes) before upload — Commons
+returns a small HTML page, not an image, when it throttles.** Verified: listing page + Media library
+both render the photos.
+
+### ✅ Annual pricing + relevant-plans-per-signup-type (`cfa009f8`)
+- `products.annual_price` (a subscription can now be billed monthly OR annually — before, a product was
+  strictly one or the other). `product_orders.billing_cycle` records the buyer's choice so activation
+  grants the matching period. Admin product editor gains a "Price / year" field.
+- `products.account_kind` ('host' | 'quote_only') so each signup shows only its own plans. Wielo Quotes
+  → quote_only; the host signup filters to host plans, so Wielo Quotes no longer appears there.
+- Host signup plan step: a monthly/annual toggle (shown only when a plan offers an annual price),
+  cycle-aware card prices, and the cycle threads through checkout + the promo preview.
+- Verified live: host signup shows Beta + Starter only; the toggle switches Starter R 599/month ↔
+  R 5 990/year.
+
+### ✅ EFT product-order settle (`4b853524`)
+`recordProductEftIntent` promised "settling happens when the admin marks it received" — **no such
+action existed**, so an EFT payment for a Wielo product never became paid. Added
+`markProductOrderEftReceived` (the EFT sibling of the card settle, minus provider verification) and a
+"Mark received" button on pending EFT rows in `/admin/payments`. Verified live: a pending EFT Starter
+order settled → order paid, ledger completed, subscription flipped Beta → Starter.
+
+### ✅ Wielo system image library (`8cf5a225`)
+`/admin/library` — an app-scoped image store for the Wielo business side (affiliate resources, promo
+art), over the same `marketing-assets` bucket. Grid + multi-upload (signed PUT) + copy-URL + audited
+delete (refuses a file an affiliate asset still references). Distinct from a host's own media library.
+Verified live: upload lists in the grid, delete removes the object + writes an audit row.
+
+### 🔑 Method (pt16)
+- 🔑 **The browser `type` action doesn't reliably drive controlled React inputs** (the signup wizard) —
+  fields read back empty. Setting `value` via the native `HTMLInputElement` setter + dispatching an
+  `input` event is what actually updates React state.
+- 🔑 **`preview_stop` keeps leaving node processes alive** (2 GB+ each time) — killed explicitly after
+  every session, machine ends clean.
+
 ## 2026-07-17 (pt15) — Wielo promo codes ship; and PayPal could never buy a Wielo product.
 
 The founder's ask: *"take the coupon feature and make it work for Wielo products… as well as set an

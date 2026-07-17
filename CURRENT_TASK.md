@@ -2,7 +2,51 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt15) — **START HERE** (supersedes pt14 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt16) — **START HERE** (supersedes pt15 below)
+
+**Pushed `8cf5a225`. `apps/web` build (exit 0) · lint (0 warnings) · `tsc` green. Machine clean.**
+A five-part founder batch — all shipped in dependency order and **verified live**.
+
+### ✅ SHIPPED THIS SESSION
+1. **Demo safari host** `ce0de95b` — `scripts/seed-demo-host.mjs [email] [--reset]` builds Mana Bush
+   Lodge (Sabi Sand safari lodge) onto **`wollie@manamarketing.co.za`**: 3 priced rooms, **21 real
+   CC-licensed Commons photos** in the host's `listing-photos` bucket, 6 bookings, 3 reviews, 3
+   specials, policies. Renders live + shows in the Media library. Website theme left to the founder
+   (they're building the builder on `website-cms-10min-wizard`). 🔑 **Validate each Commons download as
+   a real JPEG (>40KB + magic bytes) — it returns an HTML error page when throttled.**
+2. **Annual pricing + signup plan filtering** `cfa009f8` — `products.annual_price` +
+   `product_orders.billing_cycle` (a plan can be billed monthly OR annually; activation grants the
+   matching period). `products.account_kind` ('host'|'quote_only') → host signup shows only host plans
+   (Wielo Quotes gone), with a monthly/annual toggle. Admin editor has a "Price / year" field.
+   **Verified: Starter R 599/mo ↔ R 5 990/yr.**
+3. **EFT product-order settle** `4b853524` — `markProductOrderEftReceived` + a "Mark received" button on
+   pending EFT rows in `/admin/payments` (the promised-but-missing action). **Verified: settled a
+   pending EFT Starter order → paid + subscription activated.**
+4. **Wielo system image library** `8cf5a225` — `/admin/library` (under Platform): app-scoped image store
+   over the `marketing-assets` bucket (affiliate resources / promo art). Grid + multi-upload + copy +
+   audited delete. Distinct from a host's own media library. **Verified: upload lists, delete audited.**
+
+### 🔑 METHOD (pt16)
+- 🔑 **Browser `type` doesn't reliably drive controlled React inputs** (signup wizard) — use the native
+  `HTMLInputElement` value setter + dispatch an `input` event to update React state.
+- 🔑 **`preview_stop` keeps leaving node procs alive (2 GB+)** — kill explicitly every time.
+
+### 🧪 TEST ARTIFACTS ON THE LINKED DB (safe to clear)
+Demo host on `wollie@` (Mana Bush Lodge + rooms/photos/bookings/reviews/specials — this is the
+INTENDED demo, keep it). Starter/Wielo-Quotes now carry annual prices (5990 / 990). EFT test order +
+host1 subscription change were cleaned up (host1 back on Beta).
+
+### 🔴 STILL OPEN (carried from pt15)
+1. 🔴 **FOUNDER SMOKE-TEST: no card/PayPal settlement witnessed end-to-end** (agent may not enter
+   payment details). Covers: the PayPal-product fix (pt15), promo-code settlement (pt15), AND the annual
+   charge path (pt16 — bills annual_price, 12-month period; wired + tsc-green, not witnessed).
+2. 🔴 **iOS zoom-on-focus** — unchanged; app-wide input change → founder's call.
+3. Carried: 44px-bar items · **IDOR** (analytics fns take `p_host_id`, never check ownership) ·
+   `docs/WIRING_AUDIT.md` §3 + deletes · offer emails not delivery-witnessed.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt15) — ⚠️ SUPERSEDED by pt16 above
 
 **`pnpm build` (exit 0) · `apps/web` lint (0 warnings) · `tsc --noEmit` green. Machine clean
 (0 node procs).** Untracked mobile eslint scaffold left alone per the founder. `mobile#lint` fails on
