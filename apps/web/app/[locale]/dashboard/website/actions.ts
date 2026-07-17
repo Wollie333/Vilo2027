@@ -1132,6 +1132,31 @@ export async function createWizardLogoUploadUrl(
   return { ok: true, data: { path, token: data.token } };
 }
 
+/**
+ * Signed upload URL for a generic wizard section image (hero / experience card /
+ * host photo). Same host-scoped `website-assets/wizard/<hostId>/…` path as the
+ * logo, so the content step can attach an image to any content slot.
+ */
+export async function createWizardImageUploadUrl(
+  ext: string,
+): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
+  const host = await requireHost();
+  if (!host.ok) return { ok: false, error: "not_authorized" };
+  if (!(await assertWebsiteFeature(host.hostId)))
+    return { ok: false, error: "locked" };
+
+  const safeExt =
+    (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `wizard/${host.hostId}/img-${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("website-assets")
+    .createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "upload_start_failed" };
+  return { ok: true, data: { path, token: data.token } };
+}
+
 /** Issue a signed upload URL for a brand asset slot. */
 export async function createWebsiteBrandAssetUploadUrl(
   websiteId: string,

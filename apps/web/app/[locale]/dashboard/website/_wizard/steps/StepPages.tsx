@@ -4,6 +4,8 @@ import { ChevronDown, GripVertical } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { PageSectionsPanel } from "../PageSectionsPanel";
+import { PAGE_SECTIONS } from "../pageSections";
 import type { WizardPage, WizardRoom, WizardState } from "../wizardState";
 
 // Pages step: drag to reorder (the order sets the site nav), toggle pages off,
@@ -26,6 +28,8 @@ export function StepPages({
   const [dragKind, setDragKind] = useState<string | null>(null);
   const [overKind, setOverKind] = useState<string | null>(null);
   const [pos, setPos] = useState<"before" | "after">("before");
+  // Which page's section panel is expanded (accordion — one open at a time).
+  const [openKind, setOpenKind] = useState<string | null>(null);
 
   const toggle = (kind: WizardPage["kind"]) => {
     if (kind === "home") return; // Home is the site root — always included.
@@ -73,6 +77,8 @@ export function StepPages({
           if (on) order += 1;
           const locked = p.kind === "home";
           const showIndicator = dragKind && overKind === p.kind;
+          const expandable = on && (PAGE_SECTIONS[p.kind]?.length ?? 0) > 0;
+          const isOpen = openKind === p.kind;
           return (
             <li
               key={p.kind}
@@ -93,7 +99,7 @@ export function StepPages({
                 if (dragKind) move(dragKind, p.kind, pos);
                 clearDrag();
               }}
-              className={`relative flex items-center gap-3 border-t border-brand-line px-3.5 py-3 first:border-t-0 ${
+              className={`relative border-t border-brand-line first:border-t-0 ${
                 on ? "bg-white" : "bg-brand-light/30 opacity-60"
               } ${dragKind === p.kind ? "opacity-40" : ""}`}
             >
@@ -106,44 +112,75 @@ export function StepPages({
                 />
               ) : null}
 
-              <span
-                className={`shrink-0 ${
-                  on
-                    ? "cursor-grab text-brand-mute active:cursor-grabbing"
-                    : "text-brand-line"
-                }`}
-                aria-hidden
-              >
-                <GripVertical className="h-4 w-4" />
-              </span>
-
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-light text-[12px] font-semibold text-brand-ink">
-                {on ? order : "—"}
-              </span>
-
-              <span
-                className={`flex-1 text-[14px] font-semibold text-brand-ink ${
-                  on ? "" : "line-through"
-                }`}
-              >
-                {t(`wizardPage_${p.kind}`)}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => toggle(p.kind)}
-                disabled={locked}
-                aria-pressed={on}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-                  on ? "bg-brand-primary" : "bg-brand-line"
-                } ${locked ? "cursor-not-allowed opacity-60" : ""}`}
-              >
+              <div className="flex items-center gap-3 px-3.5 py-3">
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
-                    on ? "left-[18px]" : "left-0.5"
+                  className={`shrink-0 ${
+                    on
+                      ? "cursor-grab text-brand-mute active:cursor-grabbing"
+                      : "text-brand-line"
                   }`}
+                  aria-hidden
+                >
+                  <GripVertical className="h-4 w-4" />
+                </span>
+
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-light text-[12px] font-semibold text-brand-ink">
+                  {on ? order : "—"}
+                </span>
+
+                {expandable ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpenKind(isOpen ? null : p.kind)}
+                    aria-expanded={isOpen}
+                    className="flex flex-1 items-center gap-2 text-left"
+                  >
+                    <span className="flex-1 text-[14px] font-semibold text-brand-ink">
+                      {t(`wizardPage_${p.kind}`)}
+                      <span className="ml-2 text-[11px] font-medium text-brand-mute">
+                        Edit content & images
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-brand-mute transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                ) : (
+                  <span
+                    className={`flex-1 text-[14px] font-semibold text-brand-ink ${
+                      on ? "" : "line-through"
+                    }`}
+                  >
+                    {t(`wizardPage_${p.kind}`)}
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => toggle(p.kind)}
+                  disabled={locked}
+                  aria-pressed={on}
+                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                    on ? "bg-brand-primary" : "bg-brand-line"
+                  } ${locked ? "cursor-not-allowed opacity-60" : ""}`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                      on ? "left-[18px]" : "left-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {expandable && isOpen ? (
+                <PageSectionsPanel
+                  pageKind={p.kind}
+                  state={state}
+                  update={update}
                 />
-              </button>
+              ) : null}
             </li>
           );
         })}
