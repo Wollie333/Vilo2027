@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import type { ThemeOption } from "@/lib/site/themes.server";
 
+import { WizardLivePreview } from "../WizardLivePreview";
 import { WizardThemePreview } from "../WizardThemePreview";
 import type { WizardState } from "../wizardState";
 
@@ -24,6 +25,7 @@ export function StepTheme({
 }) {
   const t = useTranslations("website");
   const logoUrl = websiteAssetUrl(state.logoPath ?? undefined);
+  const selectedTheme = themes.find((x) => x.id === state.themeId) ?? null;
 
   return (
     <div className="space-y-5">
@@ -89,6 +91,21 @@ export function StepTheme({
           );
         })}
       </div>
+
+      {/* Live render of the selected theme — the REAL renderer + skin, not a
+          mock, so "pick a look" shows the actual design (and how it looks on a
+          phone at this width). */}
+      {selectedTheme ? (
+        <div className="space-y-2">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-brand-mute">
+            Live preview — {selectedTheme.name}
+          </p>
+          <WizardLivePreview
+            slug={selectedTheme.slug}
+            siteName={state.siteName}
+          />
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between pt-1">
         <button

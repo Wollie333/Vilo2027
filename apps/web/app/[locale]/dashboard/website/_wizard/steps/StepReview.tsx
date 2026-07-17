@@ -3,8 +3,10 @@
 import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { generatePalettes, isHexColor } from "@/lib/site/palettes";
 import type { ThemeOption } from "@/lib/site/themes.server";
 
+import { WizardLivePreview } from "../WizardLivePreview";
 import type {
   WizardPaymentMethod,
   WizardPolicy,
@@ -30,6 +32,14 @@ export function StepReview({
 }) {
   const t = useTranslations("website");
   const theme = themes.find((x) => x.id === state.themeId) ?? themes[0];
+  // The accent actually in effect (same resolution as the colours step) so the
+  // final preview reflects the host's chosen palette.
+  const baseAccent = theme?.base?.palette?.accent ?? "#0a7d4b";
+  const palettes = generatePalettes(baseAccent);
+  const effectiveAccent =
+    state.useCustom && isHexColor(state.customAccent)
+      ? state.customAccent
+      : (palettes[state.paletteIndex]?.accent ?? baseAccent);
   const included = state.pages.filter((p) => p.include);
   const pageNames = included.map((p) => t(`wizardPage_${p.kind}`)).join(", ");
   const paymentsOn = paymentMethods.filter(
@@ -110,6 +120,21 @@ export function StepReview({
           ))}
         </ul>
       </div>
+
+      {/* Final look — the real renderer + skin + chosen accent, so "ready to
+          build?" is answered by seeing the actual site. */}
+      {theme?.slug ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            {t("wizardReviewSkin")} — {theme.name}
+          </p>
+          <WizardLivePreview
+            slug={theme.slug}
+            accent={effectiveAccent}
+            siteName={state.siteName}
+          />
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between pt-1">
         <button
