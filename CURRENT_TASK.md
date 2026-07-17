@@ -5,7 +5,8 @@
 ## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt17) — **START HERE** (supersedes pt16 below)
 
 **Pushed `bcee7b3a`. `apps/web` build/tsc/lint green. Machine clean (0 node procs).**
-This batch = the founder's "fix these 4" open-items list. 3 of 4 done + verified; #4 in progress.
+This batch = the founder's "fix these 4" open-items list. **All 4 done + verified.** (No new commit
+for #4 — it was a verification pass with no code change.)
 
 ### ✅ DONE THIS BATCH (all verified live unless noted)
 1. **🔴 IDOR fix** `d7bd44b4` — 17 host-analytics `SECURITY DEFINER` fns took a `p_host_id` and never
@@ -29,20 +30,26 @@ This batch = the founder's "fix these 4" open-items list. 3 of 4 done + verified
    RW; numbering verified intact after. (c) **`entitlements.ts` module DELETED** (0 importers,
    superseded by featureGate).
 
-### 🔴 IN PROGRESS — #4: offer/email delivery verification (RESUME HERE)
-**Goal:** verify the offer-email path end-to-end EXCEPT the final Resend HTTP call (RESEND_API_KEY is
-empty locally; founder confirms Resend works on prod). **What I mapped before pausing:**
-- **Resend boundary = `apps/web/lib/email/send.ts`**: `sendTransactionalEmail` / `sendReactEmail` read
-  `RESEND_API_KEY`; if unset they return `{ok:false, error:"RESEND_API_KEY not set"}` — so LOCALLY the
-  whole pipeline runs and only the final `resend.emails.send()` is short-circuited.
-- **Pipeline:** an action inserts into **`notification_queue`** → **`drainEmailQueue()`
-  (`lib/email/drain.ts:38`)** calls the `claim_email_queue_batch` RPC, renders each, calls the send fn,
-  then marks `notification_queue.sent_at` / `failed_at`+`error`.
-- **NEXT STEP:** `notification_queue` has NO `channel` column (my query errored on it) — get its real
-  columns first (`grep -n "^### \`notification_queue\`" -A 30 docs/SCHEMA.md`). Then: confirm an offer
-  enqueues a row with the right type+recipient+template, and that draining it reaches the send fn and
-  fails ONLY on the missing key (proving the whole path bar the HTTP call). The offer/sell enqueue is
-  the pt14 `77396acc` path (admin sell → buyer email). Then document the finding + mark #15 done.
+### ✅ #4: offer/email delivery verification — DONE (verification only, no code change)
+**Goal was:** verify the offer-email path end-to-end EXCEPT the final Resend HTTP call (RESEND_API_KEY
+is empty locally; founder confirms Resend works on prod). **KEY CORRECTION to the pt14 map: the offer
+email is a DIRECT synchronous send, NOT the `notification_queue`/`drainEmailQueue` path.** The queue is a
+separate mechanism (booking/host notifications). The offer path is:
+- **Callers** (both in `admin/users/[id]/actions.ts`): `sellProductAction` (once-off / credit pack,
+  L1584) and `setUserProductAction` (membership upgrade, L1423). Each ALWAYS posts the inbox pay card,
+  then emails via the shared sender **only when the per-sale opt-out toggle is on** (`if (sendEmail)` /
+  `if (parsed.data.sendEmail !== false)`).
+- **Shared sender = `lib/billing/offer-email.ts` → `sendProductOfferEmail`** → renders `ProductOffer`
+  (`emails/templates/ProductOffer.tsx`, props match the sender exactly) → **`sendReactEmail`
+  (`lib/email/send.ts`)**. Wrapped in best-effort try/catch so a sale NEVER fails on email.
+- **Resend boundary = `lib/email/send.ts`**: `sendReactEmail`/`sendTransactionalEmail` short-circuit at
+  `if (!apiKey) return {ok:false, error:"RESEND_API_KEY not set"}` — the ONLY step that needs the key.
+- **PROVEN empirically:** the one thing the empty local key hides is the actual template render (the
+  short-circuit returns *before* Resend renders `createElement(ProductOffer, payload)`). Ran an esbuild
+  render harness with the exact prod payload → `@react-email/render` produced **6557 chars of valid
+  HTML** containing the subject "Starter (upgrade) — R 595,21 to pay", the pay URL, the amount, and the
+  pro-rated note. So the whole path bar the HTTP send is verified; delivery fails ONLY on the key.
+  (Harness was temporary — bundled + run + deleted; nothing left in the tree.)
 
 ### 🔴 STILL OPEN (carried, needs founder)
 1. 🔴 **Card/PayPal/annual + promo SETTLEMENT never witnessed** (agent can't enter payment details).
