@@ -54,10 +54,28 @@ export async function SiteRoomView({
   // a SECOND, duplicate booking form in the content column — drop it here. room_rate
   // stays in the template (keeps the required-widget contract if the page is later
   // authored as a PageDoc); it's just not rendered inline beside the dock.
+  // Full-width sections that read better spanning the page BELOW the two-column
+  // area than trapped in the narrow content column beside the sticky dock
+  // (reviews, location map, the closing CTA, and other marketing bands). The
+  // room's own info blocks (overview, amenities, rates, seasonal, policies) sit
+  // beside the dock. Matches the directory listing's layout.
+  const BELOW_FULL_TYPES = new Set([
+    "reviews",
+    "location",
+    "cta",
+    "trust",
+    "faq",
+    "blog_preview",
+    "specials_preview",
+  ]);
   const gallerySections = sections.filter((s) => s.type === "room_gallery");
-  const contentSections = sections.filter(
-    (s) => s.type !== "room_gallery" && s.type !== "room_rate",
+  const besideSections = sections.filter(
+    (s) =>
+      s.type !== "room_gallery" &&
+      s.type !== "room_rate" &&
+      !BELOW_FULL_TYPES.has(s.type),
   );
+  const belowSections = sections.filter((s) => BELOW_FULL_TYPES.has(s.type));
 
   let jsonLdGraph: Record<string, unknown>[] = [];
   if (!ctx.preview) {
@@ -275,9 +293,20 @@ export async function SiteRoomView({
                 interactive
               />
             }
+            below={
+              belowSections.length > 0 ? (
+                <SectionRenderer
+                  sections={belowSections}
+                  data={data}
+                  asset={siteAsset}
+                  websiteId={ctx.websiteId}
+                  interactive
+                />
+              ) : null
+            }
           >
             <SectionRenderer
-              sections={contentSections}
+              sections={besideSections}
               data={data}
               asset={siteAsset}
               websiteId={ctx.websiteId}

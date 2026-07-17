@@ -67,9 +67,10 @@ export function RoomRatesSection({
       : [];
   const rows: Row[] = live.length ? live : (props.items ?? []);
 
-  // Live page: an empty rates block should render NOTHING, never a guest-facing
-  // "your rates appear here" placeholder. The builder keeps the placeholder.
-  if (rows.length === 0 && !interactive) return null;
+  // On the LIVE site (`interactive`) an empty rates block renders NOTHING, never a
+  // guest-facing "your rates appear here" placeholder. The builder / preview
+  // (`!interactive`) keeps the placeholder so the block stays visible + selectable.
+  if (rows.length === 0 && interactive) return null;
 
   return (
     // Bare element (Elementor reframe): just the rate list. The SECTION owns the
@@ -178,9 +179,10 @@ export function SeasonalPricingSection({
       : [];
   const cards: SeasonCard[] = live.length ? live : (props.items ?? []);
 
-  // Live page: only render when the host has seasonal pricing set — never a
-  // guest-facing "your seasonal pricing appears here" placeholder. Builder keeps it.
-  if (cards.length === 0 && !interactive) return null;
+  // On the LIVE site (`interactive`) render ONLY when the host has seasonal pricing
+  // set — never a guest-facing "your seasonal pricing appears here" placeholder.
+  // The builder / preview (`!interactive`) keeps the placeholder.
+  if (cards.length === 0 && interactive) return null;
 
   return (
     // Bare element (Elementor reframe): just the season cards. The SECTION owns the
