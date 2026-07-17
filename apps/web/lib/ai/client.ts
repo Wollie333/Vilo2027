@@ -39,9 +39,9 @@ export type AiDeps = {
  *  newer versions ship. */
 function defaultModel(tier: AiTier): string {
   if (tier === "fast") {
-    return process.env.ANTHROPIC_MODEL_FAST ?? "claude-opus-4-8";
+    return process.env.ANTHROPIC_MODEL_FAST ?? "claude-sonnet-4-6";
   }
-  return process.env.ANTHROPIC_MODEL_QUALITY ?? "claude-opus-4-8";
+  return process.env.ANTHROPIC_MODEL_QUALITY ?? "claude-sonnet-4-6";
 }
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
