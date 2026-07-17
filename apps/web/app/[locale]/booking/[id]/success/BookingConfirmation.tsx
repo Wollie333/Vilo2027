@@ -49,8 +49,18 @@ export type ConfirmationData = {
   reference: string;
   guestFirstName: string;
   guest: { name: string; email: string; phone: string | null };
-  /** Other named party members captured at checkout (beyond the lead booker). */
-  partyGuests: { name: string; email: string | null; phone: string | null }[];
+  /**
+   * Other named party members (beyond the lead booker). `name` + `avatarUrl`
+   * come from their own Wielo profile when they have one, else from what the
+   * booker typed at checkout.
+   */
+  partyGuests: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    isMember: boolean;
+  }[];
   listing: {
     name: string;
     slug: string | null;
@@ -714,22 +724,46 @@ function GuestCard({ data }: { data: ConfirmationData }) {
             {data.partyGuests.map((g, i) => (
               <li
                 key={i}
-                className="flex flex-col gap-0.5 rounded border border-brand-line bg-brand-light/40 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex items-center gap-3 rounded border border-brand-line bg-brand-light/40 px-3.5 py-2.5"
               >
-                <span className="text-sm font-medium text-brand-ink">
-                  {g.name}
-                </span>
-                {g.email || g.phone ? (
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-brand-mute">
-                    {g.email ? (
-                      <span className="break-all">{g.email}</span>
+                <div className="vc-ph relative h-9 w-9 shrink-0 overflow-hidden rounded-pill">
+                  {g.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={g.avatarUrl}
+                      alt={g.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center bg-brand-accent font-display text-[13px] font-semibold text-brand-secondary">
+                      {g.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="text-sm font-medium text-brand-ink">
+                      {g.name}
+                    </span>
+                    {g.isMember ? (
+                      <BadgeCheck
+                        className="h-3.5 w-3.5 shrink-0 text-brand-primary"
+                        aria-label="Has a Wielo account"
+                      />
                     ) : null}
-                    {g.email && g.phone ? (
-                      <span className="text-brand-line">·</span>
-                    ) : null}
-                    {g.phone ? <span>{g.phone}</span> : null}
-                  </span>
-                ) : null}
+                  </div>
+                  {g.email || g.phone ? (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-brand-mute">
+                      {g.email ? (
+                        <span className="break-all">{g.email}</span>
+                      ) : null}
+                      {g.email && g.phone ? (
+                        <span className="text-brand-line">·</span>
+                      ) : null}
+                      {g.phone ? <span>{g.phone}</span> : null}
+                    </div>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
