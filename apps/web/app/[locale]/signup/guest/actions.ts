@@ -12,6 +12,7 @@ import {
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
 import { combineName } from "@/lib/profile/name";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -34,7 +35,15 @@ export type ActionResult<T = undefined> =
 export async function createGuestAccountAction(
   input: AccountInput,
   captchaToken?: string | null,
+  honeypot?: string | null,
 ): Promise<ActionResult> {
+  // Honeypot — a filled decoy field means a bot. Reject quietly (generic error,
+  // no account created) so we never hint the field is a trap. Runs first: it's
+  // free and needs no third party (Turnstile is inert without its secret key).
+  if (isHoneypotTripped(honeypot)) {
+    return { ok: false, error: "Could not create your account. Try again." };
+  }
+
   const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];

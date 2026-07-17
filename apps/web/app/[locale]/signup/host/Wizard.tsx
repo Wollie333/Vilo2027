@@ -337,6 +337,8 @@ export function Wizard({
   // failed submit consumes the single-use one.
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+  // Honeypot — real users never fill it; a non-empty value = a bot.
+  const [honeypot, setHoneypot] = useState("");
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
   // Returned by finalizeOnboardingAction — drives the receipt on the
@@ -457,6 +459,7 @@ export function Wizard({
           terms: data.terms,
         },
         captchaToken,
+        honeypot,
       );
       if (!result.ok) {
         toast.error(result.error);
@@ -635,6 +638,7 @@ export function Wizard({
             lockEmail={!!purchasedEmail}
             onCaptcha={setCaptchaToken}
             captchaReset={captchaReset}
+            onHoneypot={setHoneypot}
           />
         );
       case "about":
@@ -964,6 +968,7 @@ function StepAccount({
   lockEmail = false,
   onCaptcha,
   captchaReset = 0,
+  onHoneypot,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
@@ -973,6 +978,7 @@ function StepAccount({
   lockEmail?: boolean;
   onCaptcha?: (token: string | null) => void;
   captchaReset?: number;
+  onHoneypot?: (value: string) => void;
 }) {
   const brandName = useBrandName();
   return (
@@ -1102,6 +1108,22 @@ function StepAccount({
           {errors.terms ? (
             <div className="mt-1.5 text-xs text-red-600">{errors.terms}</div>
           ) : null}
+        </div>
+
+        {/* Honeypot — off-screen decoy; real users never see or fill it. */}
+        <div
+          aria-hidden
+          className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+        >
+          <label htmlFor="company_website">Company website</label>
+          <input
+            id="company_website"
+            name="company_website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            onChange={(e) => onHoneypot?.(e.target.value)}
+          />
         </div>
 
         {onCaptcha ? (

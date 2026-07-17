@@ -24,6 +24,8 @@ export function QuotesSignupForm() {
   const [terms, setTerms] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+  // Honeypot — real users never fill it; a non-empty value = a bot.
+  const [honeypot, setHoneypot] = useState("");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +41,7 @@ export function QuotesSignupForm() {
       const r = await createQuotesAccountAction(
         { first_name: firstName, surname, email, password, terms },
         captchaToken,
+        honeypot,
       );
       if (!r.ok) {
         toast.error(r.error);
@@ -127,6 +130,22 @@ export function QuotesSignupForm() {
           .
         </span>
       </label>
+      {/* Honeypot — off-screen decoy; real users never see or fill it. */}
+      <div
+        aria-hidden
+        className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+      >
+        <label htmlFor="company_website">Company website</label>
+        <input
+          id="company_website"
+          name="company_website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+        />
+      </div>
       {turnstileEnabled() ? (
         <TurnstileWidget
           onVerify={setCaptchaToken}

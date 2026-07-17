@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/verifyEmail";
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -43,7 +44,14 @@ export type ActionResult<T = undefined> =
 export async function createAccountAction(
   input: AccountInput,
   captchaToken?: string | null,
+  honeypot?: string | null,
 ): Promise<ActionResult> {
+  // Honeypot — a filled decoy field means a bot; reject quietly (see
+  // lib/security/honeypot.ts). Free, always-on — Turnstile is inert unkeyed.
+  if (isHoneypotTripped(honeypot)) {
+    return { ok: false, error: "Could not create your account. Try again." };
+  }
+
   const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
@@ -510,13 +518,32 @@ export async function finalizeOnboardingAction(
 
   // 4. Subscription — Free unless a purchased product maps to a paid plan.
   //    product_id records the exact catalog product (drives gating). Payment
-  //    auto-renewal lands later. Non-blocking on failure.
-  await admin.from("subscriptions").insert({
-    host_id: host.id,
-    plan: resolvedPlan,
-    product_id: resolvedProductId,
-    status: "active",
-  });
+  //    auto-renewal lands later.
+  //    A host with NO active subscription resolves NO entitlements
+  //    (check_feature_permission finds nothing) — so this is gating-critical.
+  //    Guard against a duplicate on a re-run/double-submit, and surface a
+  //    failure loudly instead of silently stranding a host with no sub.
+  const { data: existingSub } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("host_id", host.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (!existingSub) {
+    const { error: subErr } = await admin.from("subscriptions").insert({
+      host_id: host.id,
+      plan: resolvedPlan,
+      product_id: resolvedProductId,
+      status: "active",
+    });
+    if (subErr) {
+      console.error("[signup:host] active subscription insert failed", {
+        hostId: host.id,
+        error: subErr.message,
+      });
+    }
+  }
 
   // Return the host id + chosen plan so the wizard can render a
   // thank-you / receipt step. The user clicks through to /dashboard

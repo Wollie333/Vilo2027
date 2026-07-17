@@ -10,6 +10,7 @@ import {
   sendSignupCollisionEmail,
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
+import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -29,7 +30,14 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 export async function createQuotesAccountAction(
   input: AccountInput,
   captchaToken?: string | null,
+  honeypot?: string | null,
 ): Promise<ActionResult> {
+  // Honeypot — a filled decoy field means a bot; reject quietly (see
+  // lib/security/honeypot.ts). Free, always-on — Turnstile is inert unkeyed.
+  if (isHoneypotTripped(honeypot)) {
+    return { ok: false, error: "Could not create your account. Try again." };
+  }
+
   const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];

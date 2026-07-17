@@ -159,6 +159,8 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
   // Turnstile bot-check token for account creation (inert when unconfigured).
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
+  // Honeypot — real users never fill it; a non-empty value = a bot.
+  const [honeypot, setHoneypot] = useState("");
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
 
@@ -241,6 +243,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
           terms: data.terms,
         },
         captchaToken,
+        honeypot,
       );
       if (!result.ok) {
         toast.error(result.error);
@@ -317,6 +320,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
             stepIndex={currentIndex}
             onCaptcha={setCaptchaToken}
             captchaReset={captchaReset}
+            onHoneypot={setHoneypot}
           />
         );
       case "about":
@@ -578,6 +582,7 @@ function StepAccount({
   stepIndex,
   onCaptcha,
   captchaReset = 0,
+  onHoneypot,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
@@ -586,6 +591,7 @@ function StepAccount({
   stepIndex: number;
   onCaptcha?: (token: string | null) => void;
   captchaReset?: number;
+  onHoneypot?: (value: string) => void;
 }) {
   const brandName = useBrandName();
   return (
@@ -719,6 +725,22 @@ function StepAccount({
           {errors.terms ? (
             <div className="mt-1.5 text-xs text-red-600">{errors.terms}</div>
           ) : null}
+        </div>
+
+        {/* Honeypot — off-screen decoy; real users never see or fill it. */}
+        <div
+          aria-hidden
+          className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+        >
+          <label htmlFor="company_website">Company website</label>
+          <input
+            id="company_website"
+            name="company_website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            onChange={(e) => onHoneypot?.(e.target.value)}
+          />
         </div>
 
         {onCaptcha ? (
