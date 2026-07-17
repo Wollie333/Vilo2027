@@ -67,14 +67,18 @@ export default async function WebsiteWizardPage({
     : businesses[0];
   if (!target) redirect("/dashboard/website");
 
-  // One site per business — if it already has one, go straight to the editor.
+  // One site per business — if it already has one, the wizard bounces to that
+  // site's editor CLIENT-SIDE (see WebsiteWizard). This is NOT a server redirect
+  // because a server action re-renders this page right after the wizard creates
+  // the site — a server redirect here would then fire and skip the success
+  // screen. The client only bounces on the id present at MOUNT, so a freshly
+  // created site keeps the success screen up until the host clicks through.
   const { data: existing } = await supabase
     .from("host_websites")
     .select("id")
     .eq("business_id", target.id)
     .is("deleted_at", null)
     .maybeSingle();
-  if (existing) redirect(`/dashboard/website/${existing.id}`);
 
   const [t, themes, paymentMethods, policies, rooms] = await Promise.all([
     getTranslations("website"),
@@ -104,6 +108,7 @@ export default async function WebsiteWizardPage({
         paymentMethods={paymentMethods}
         policies={policies}
         rooms={rooms}
+        existingWebsiteId={existing?.id ?? null}
       />
     </div>
   );

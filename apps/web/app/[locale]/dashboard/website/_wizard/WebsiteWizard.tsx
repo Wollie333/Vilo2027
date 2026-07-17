@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
@@ -110,6 +110,18 @@ export function WebsiteWizard(props: WizardProps) {
   // readiness gate holds a brand-new site as a draft until it's bookable).
   const [published, setPublished] = useState(true);
   const [missing, setMissing] = useState<ReadinessItem[]>([]);
+
+  // If a site ALREADY existed for this business when the wizard opened, bounce to
+  // its editor — once, on mount only. Captured in a ref so the re-render a server
+  // action triggers right after THIS wizard creates a site (which repopulates
+  // existingWebsiteId) can't fire it again and skip the success screen.
+  const bounceId = useRef(props.existingWebsiteId ?? null);
+  useEffect(() => {
+    if (bounceId.current) {
+      router.replace(`/dashboard/website/${bounceId.current}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Leaving the wizard returns to the website landing (the create surface).
   const close = () => router.push("/dashboard/website");

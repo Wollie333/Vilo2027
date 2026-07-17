@@ -107,6 +107,11 @@ export type WizardProps = {
   policies: WizardPolicy[];
   /** The host's rooms (Pages step nav preview → Rooms submenu). */
   rooms: WizardRoom[];
+  /** A website that ALREADY exists for this business at page load (one-per-
+   *  business). When set on mount, the wizard bounces to that site's editor.
+   *  Null on a normal create — and the site the wizard itself creates does NOT
+   *  set this, so the success screen is never auto-skipped. */
+  existingWebsiteId?: string | null;
 };
 
 export function initialWizardState(p: WizardProps): WizardState {
