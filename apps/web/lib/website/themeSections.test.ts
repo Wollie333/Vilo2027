@@ -140,7 +140,10 @@ describe("themeSections registry", () => {
         "room_overview",
         "room_amenities",
         "room_rate",
+        "room_rates",
+        "seasonal_pricing",
         "room_policies",
+        "location",
       ]);
     });
 
