@@ -16,22 +16,29 @@ export function RoomDockLayout({
   gallery,
   children,
   dock,
+  below,
 }: {
   /** Full-width section(s) shown above the 2-column grid (the room gallery). */
   gallery?: ReactNode;
-  /** The room content — the left column of the grid. */
+  /** The room content — the left column of the grid (beside the booking dock). */
   children: ReactNode;
   /** The booking dock — the sticky right rail. */
   dock: ReactNode;
+  /** Full-width section(s) shown BELOW the 2-column grid — reviews, location, the
+   *  closing CTA — so they span the page instead of being trapped in the narrow
+   *  content column beside the dock (matches the directory listing). */
+  below?: ReactNode;
 }) {
   return (
     <div className="room-dock-page">
       <style>{`
         .room-dock-grid{display:flex;gap:32px;align-items:flex-start;max-width:1280px;margin:8px auto 0;padding:0 20px;}
         .room-dock-grid .room-dock-main{flex:1;min-width:0;}
-        .room-dock-grid .room-dock-aside{width:340px;flex-shrink:0;}
+        .room-dock-grid .room-dock-main > * + *{margin-top:36px;}
+        .room-dock-grid .room-dock-aside{width:360px;flex-shrink:0;}
         @media (max-width:1023px){
-          .room-dock-grid{flex-direction:column;gap:18px;padding:0 14px;}
+          .room-dock-grid{flex-direction:column;gap:24px;padding:0 14px;}
+          .room-dock-grid .room-dock-main > * + *{margin-top:28px;}
           .room-dock-grid .room-dock-aside{width:100%;}
         }
       `}</style>
@@ -41,6 +48,7 @@ export function RoomDockLayout({
         {/* Same shared sticky-card rule as the checkout Summary. */}
         <aside className="room-dock-aside wielo-book-card-sticky">{dock}</aside>
       </div>
+      {below ? <div className="room-dock-below">{below}</div> : null}
     </div>
   );
 }
