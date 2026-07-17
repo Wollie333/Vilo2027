@@ -102,6 +102,44 @@ export const SITE_PRESETS = {
     font: "grotesk",
     radius: "lg",
   },
+  // Sabela Lodge — dark-first editorial safari lodge (Ebony default). Deep ebony
+  // ground, warm-bone ink, brand-gold accent; editorial serif display, sharp
+  // corners. Fallback for when the DB theme base is unavailable (else it
+  // collapses to "warm", the wrong palette); the dark bands + gold details come
+  // from the .wielo-sabela skin.
+  sabela: {
+    label: "Sabela Lodge",
+    palette: {
+      bg: "#14120D",
+      surface: "#1C1913",
+      ink: "#F1EADB",
+      mute: "#A99B7F",
+      line: "#2B2618",
+      accent: "#C9A24A",
+      accentInk: "#15120B",
+    },
+    font: "elegant",
+    radius: "sm",
+  },
+  // Marmalade House — warm guesthouse "postcards". Butter-cream ground, warm
+  // near-black ink, marmalade accent; display serif headings, soft corners.
+  // Fallback for when the DB theme base is unavailable (else it collapses to
+  // "warm"); the berry secondary + postcard treatment come from the
+  // .wielo-marmalade skin.
+  marmalade: {
+    label: "Marmalade House",
+    palette: {
+      bg: "#F4ECDB",
+      surface: "#FFFFFF",
+      ink: "#2C2620",
+      mute: "#6F6354",
+      line: "#E4D6BE",
+      accent: "#C8702E",
+      accentInk: "#FFFFFF",
+    },
+    font: "serif",
+    radius: "lg",
+  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;
