@@ -1157,6 +1157,46 @@ export async function createWizardImageUploadUrl(
   return { ok: true, data: { path, token: data.token } };
 }
 
+/**
+ * List the host's own property photos (from the listing) so the wizard's image
+ * slots can PICK an existing photo instead of only uploading. Returns absolute
+ * URLs / storage paths (websiteAssetUrl/siteImageUrl pass both through). Deduped,
+ * cover-first, capped.
+ */
+export async function listHostPhotosAction(): Promise<
+  | { ok: true; photos: { url: string; caption?: string }[] }
+  | { ok: false; error: string }
+> {
+  const host = await requireHost();
+  if (!host.ok) return { ok: false, error: "not_authorized" };
+  const supabase = createServerClient();
+  const { data: props } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("host_id", host.hostId)
+    .is("deleted_at", null);
+  const ids = (props ?? []).map((p) => p.id);
+  if (!ids.length) return { ok: true, photos: [] };
+
+  const { data: rows } = await supabase
+    .from("property_photos")
+    .select("url, caption")
+    .in("property_id", ids)
+    .order("sort_order", { ascending: true })
+    .limit(60);
+
+  const seen = new Set<string>();
+  const photos: { url: string; caption?: string }[] = [];
+  for (const r of rows ?? []) {
+    const url = (r.url ?? "").trim();
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      photos.push({ url, caption: r.caption ?? undefined });
+    }
+  }
+  return { ok: true, photos };
+}
+
 /** Issue a signed upload URL for a brand asset slot. */
 export async function createWebsiteBrandAssetUploadUrl(
   websiteId: string,

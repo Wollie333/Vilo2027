@@ -1,12 +1,12 @@
 "use client";
 
 import { ImagePlus, RefreshCw, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { createWizardImageUploadUrl } from "../actions";
+import { createWizardImageUploadUrl, listHostPhotosAction } from "../actions";
 import {
   generateWizardContentAction,
   writeWizardSlotAction,
@@ -30,6 +30,8 @@ import type { WizardState } from "./wizardState";
 const field =
   "w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary";
 
+type HostPhoto = { url: string; caption?: string };
+
 /** Expanded panel for one page: its sections, each with an AI content form,
  *  image slot (with the ideal size), or a "from your listing" note. */
 export function PageSectionsPanel({
@@ -44,7 +46,19 @@ export function PageSectionsPanel({
   const sections = PAGE_SECTIONS[pageKind] ?? [];
   const [drafting, setDrafting] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [hostPhotos, setHostPhotos] = useState<HostPhoto[]>([]);
   const profile = state.contentProfile ?? {};
+
+  // The host's own listing photos — so image slots can PICK, not only upload.
+  useEffect(() => {
+    let alive = true;
+    listHostPhotosAction().then((r) => {
+      if (alive && r.ok) setHostPhotos(r.photos);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const setProfile = (next: typeof profile) => update({ contentProfile: next });
 
@@ -111,6 +125,7 @@ export function PageSectionsPanel({
             setProfile={setProfile}
             siteName={state.siteName}
             answers={state.answers}
+            hostPhotos={hostPhotos}
           />
         ))}
       </div>
@@ -124,12 +139,14 @@ function SectionCard({
   setProfile,
   siteName,
   answers,
+  hostPhotos,
 }: {
   spec: SectionSpec;
   profile: WizardState["contentProfile"] & object;
   setProfile: (p: NonNullable<WizardState["contentProfile"]>) => void;
   siteName: string;
   answers: WizardState["answers"];
+  hostPhotos: HostPhoto[];
 }) {
   const p = profile ?? {};
   const isContent = spec.kind === "content";
@@ -173,6 +190,7 @@ function SectionCard({
           size={spec.image.size}
           shape={spec.image.shape}
           value={getImageSlot(p, spec.image.slot)}
+          hostPhotos={hostPhotos}
           onChange={(path) =>
             setProfile(setImageSlot(p, spec.image!.slot as ImageSlotId, path))
           }
@@ -182,6 +200,7 @@ function SectionCard({
       {spec.items === "experiences" ? (
         <ExperiencesEditor
           items={getExpItems(p)}
+          hostPhotos={hostPhotos}
           onChange={(items) => setProfile(setExpItems(p, items))}
         />
       ) : null}
@@ -265,9 +284,11 @@ function AiTextField({
 function ExperiencesEditor({
   items,
   onChange,
+  hostPhotos,
 }: {
   items: ExpItem[];
   onChange: (items: ExpItem[]) => void;
+  hostPhotos: HostPhoto[];
 }) {
   const rows: ExpItem[] = [0, 1, 2].map((i) => items[i] ?? {});
   const setRow = (i: number, patch: Partial<ExpItem>) => {
@@ -300,6 +321,7 @@ function ExperiencesEditor({
             size="800 × 600 px"
             shape="landscape"
             value={r.imagePath}
+            hostPhotos={hostPhotos}
             onChange={(path) => setRow(i, { imagePath: path })}
             compact
           />
@@ -314,6 +336,7 @@ function ImageDrop({
   size,
   shape,
   value,
+  hostPhotos,
   onChange,
   compact,
 }: {
@@ -321,11 +344,13 @@ function ImageDrop({
   size: string;
   shape: "landscape" | "square" | "portrait";
   value: string | undefined;
+  hostPhotos: HostPhoto[];
   onChange: (path: string | undefined) => void;
   compact?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   const url = websiteAssetUrl(value ?? undefined);
 
   async function onFile(file: File | null) {
@@ -384,26 +409,38 @@ function ImageDrop({
           ) : null}
         </div>
         <div className="min-w-0">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink hover:bg-brand-light">
-            <ImagePlus className="h-3.5 w-3.5" />
-            {busy ? "Uploading…" : url ? "Replace" : "Add image"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={busy}
-              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
-          {url ? (
-            <button
-              type="button"
-              onClick={() => onChange(undefined)}
-              className="ml-2 inline-flex items-center gap-1 text-[12px] text-brand-mute hover:text-brand-ink"
-            >
-              <X className="h-3 w-3" /> Remove
-            </button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {hostPhotos.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setPicking((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink hover:bg-brand-light"
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                Choose from your photos
+              </button>
+            ) : null}
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink hover:bg-brand-light">
+              <ImagePlus className="h-3.5 w-3.5" />
+              {busy ? "Uploading…" : url ? "Upload new" : "Upload"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {url ? (
+              <button
+                type="button"
+                onClick={() => onChange(undefined)}
+                className="inline-flex items-center gap-1 text-[12px] text-brand-mute hover:text-brand-ink"
+              >
+                <X className="h-3 w-3" /> Remove
+              </button>
+            ) : null}
+          </div>
           <p className="mt-1 text-[11px] text-brand-mute">
             Ideal size {size} · {shape}
           </p>
@@ -412,6 +449,34 @@ function ImageDrop({
           ) : null}
         </div>
       </div>
+
+      {picking && hostPhotos.length > 0 ? (
+        <div className="mt-2 grid grid-cols-4 gap-2 rounded-[10px] border border-brand-line bg-white p-2 sm:grid-cols-6">
+          {hostPhotos.map((ph) => {
+            const thumb = websiteAssetUrl(ph.url);
+            const selected = value === ph.url;
+            return (
+              <button
+                key={ph.url}
+                type="button"
+                title={ph.caption}
+                onClick={() => {
+                  onChange(ph.url);
+                  setPicking(false);
+                }}
+                className={`aspect-square overflow-hidden rounded-[8px] border-2 ${
+                  selected ? "border-brand-primary" : "border-transparent"
+                }`}
+                style={{
+                  backgroundImage: thumb ? `url(${thumb})` : undefined,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
