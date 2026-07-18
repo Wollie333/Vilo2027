@@ -2,6 +2,22 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢🟢🟢 SAVE POINT (2026-07-18 pt2) — OceansView JOURNAL wip → **read `WEBSITE_CMS_SAVEPOINT_Resume_Here.md`**
+
+**Branch `feature/website-cms-10min-wizard`, pushed `ec79150`. Full resume context lives in the repo-root
+file `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` (committed) — read it first.**
+
+- **DONE + live-verified on the `mana` branch site:** bespoke Rooms, Offers, Contact (+ earlier home/about/
+  room-detail). Contact FAQ now standard-aligned (wizard `contact.faq` → property `policies` → omit).
+  Rooms blurb clamped to 4 lines.
+- **IN PROGRESS (start here):** bespoke **Journal** — `OceansViewJournal` (index) + `OceansViewArticle`
+  (article) + `oceansJournal.css`, hooked into `app/[locale]/site/blog/page.tsx` + `…/[postSlug]/page.tsx`
+  behind the oceansview guard. **`pnpm lint` GREEN; tsc + live render NOT yet verified.** Founder seeded 2
+  live posts. FIRST: verify the `ec79150` deploy built green + open `…/site/blog?site=mana&preview=1` and a
+  post, then fix design. Gotchas + full detail in the savepoint file + memory `oceansview-cms-worktree-env`.
+
+---
+
 ## 🟢🟢 SAVE POINT / RESUME ANCHOR (2026-07-18) — OceansView Rooms · Offers · Contact bespoke pages
 
 **Branch `feature/website-cms-10min-wizard`, pushed `b075eb2`, Vercel deploy READY.** Built the 3 remaining
