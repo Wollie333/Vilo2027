@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="persimmon" data-font="grotesk" data-shape="round">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Footer variants — Atelier / Wielo theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  body{padding:clamp(20px,4vw,48px);background:var(--site-soft)}
+  .demo{max-width:1180px;margin:0 auto}
+  .demo h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+  .cap{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute);margin:36px 0 12px}
+  .frame{border:1px solid var(--site-line);border-radius:var(--site-radius);overflow:hidden}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>Footer</h1>
+  <p class="muted">A big wordmark, link columns, a newsletter signup, social icons and a legal row. Two treatments: dark (default) and light (<code>.foot-light</code>).</p>
+
+  <div class="cap">Dark footer (default)</div>
+  <div class="frame">
+    <footer class="foot">
+      <div class="wmark">Atelier<b>.</b></div>
+      <div class="foot-grid">
+        <div><p class="foot-blurb">A 22-room design hotel above a working studio on Loop Street, in the heart of Cape Town. Colour, craft, and very good coffee.</p></div>
+        <div><div class="foot-h">Explore</div><div class="foot-col"><a href="#">Rooms</a><a href="#">Rates</a><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Offers</a><a href="#">Journal</a></div></div>
+        <div><div class="foot-h">Stay</div><div class="foot-col"><a href="#">Book a room</a><a href="#">Getting here</a><a href="#">FAQ</a></div></div>
+        <div><div class="foot-h">Newsletter</div><p class="foot-blurb" style="font-size:14px">New rooms, openings and the odd dispatch from the roof.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-accent btn-sm" type="submit">Join</button></form></div>
+      </div>
+      <div class="foot-bot"><span>© 2026 Atelier Hotel · Loop Street, Cape Town</span><span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span><div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div></div>
+    </footer>
+  </div>
+
+  <div class="cap">Light footer (<code>.foot-light</code>)</div>
+  <div class="frame">
+    <footer class="foot foot-light">
+      <div class="wmark">Atelier<b>.</b></div>
+      <div class="foot-grid">
+        <div><p class="foot-blurb">A 22-room design hotel above a working studio on Loop Street, in the heart of Cape Town. Colour, craft, and very good coffee.</p></div>
+        <div><div class="foot-h">Explore</div><div class="foot-col"><a href="#">Rooms</a><a href="#">Rates</a><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Offers</a><a href="#">Journal</a></div></div>
+        <div><div class="foot-h">Stay</div><div class="foot-col"><a href="#">Book a room</a><a href="#">Getting here</a><a href="#">FAQ</a></div></div>
+        <div><div class="foot-h">Newsletter</div><p class="foot-blurb" style="font-size:14px">New rooms, openings and the odd dispatch from the roof.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-accent btn-sm" type="submit">Join</button></form></div>
+      </div>
+      <div class="foot-bot"><span>© 2026 Atelier Hotel · Loop Street, Cape Town</span><span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span><div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div></div>
+    </footer>
+  </div>
+</div>
+</body>
+</html>

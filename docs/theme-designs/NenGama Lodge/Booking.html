@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" data-theme="savanna" data-font="classic">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reserve — NenGama Lodge, Limpopo</title>
+<meta name="description" content="Complete your booking at NenGama Lodge. Book direct — the price you see is the price you pay." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="nengama.css" />
+<style>
+  .checkout{display:grid;grid-template-columns:1.5fr 1fr;gap:clamp(40px,5vw,68px);align-items:start;padding-top:140px}
+  .co-step{margin-bottom:44px}
+  .co-step-head{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+  .co-num{width:34px;height:34px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:17px;flex-shrink:0}
+  .co-step-head h2{font-size:1.7rem}
+  .pay-note{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:13px;color:var(--ink-soft)}
+  @media(max-width:860px){.checkout{grid-template-columns:1fr;padding-top:120px}.summary{order:-1}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.NENGAMA_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"savanna","font":"classic"}/*EDITMODE-END*/;
+try{var d=window.NENGAMA_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('nengamaTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);document.documentElement.setAttribute('data-theme',t.theme);document.documentElement.setAttribute('data-font',t.font);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav solid" data-screen-label="Checkout">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama<small>Limpopo · Waterberg</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link">Suites</a>
+      <a href="Home.html#experiences" class="nav-link">Safari</a>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <span class="rating-line" style="opacity:.8"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure booking</span>
+      <button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<section class="section" style="padding-top:0;padding-bottom:clamp(64px,8vw,110px)">
+  <div class="wrap">
+    <div class="reveal" style="margin-bottom:8px">
+      <div class="crumbs" style="color:var(--ink-soft)"><a href="Rooms.html" style="color:var(--accent)">Suites</a><span>·</span><span>Reserve</span></div>
+      <h1 class="display" style="margin-top:14px;font-size:clamp(2.2rem,4.6vw,3.4rem)">Complete your reservation</h1>
+    </div>
+
+    <form class="checkout" data-booking data-rate="14500" data-go="Thank You.html" id="bookingForm">
+      <!-- LEFT: STEPS -->
+      <div>
+        <!-- STEP 1 -->
+        <div class="co-step reveal">
+          <div class="co-step-head"><span class="co-num">1</span><h2>Your stay</h2></div>
+          <div class="field-row">
+            <div class="field"><label>Check in</label><input type="date" name="checkin" value="2026-07-10" required /></div>
+            <div class="field"><label>Check out</label><input type="date" name="checkout" value="2026-07-13" required /></div>
+          </div>
+          <div class="field"><label>Guests</label>
+            <select name="guests"><option value="1">1 guest</option><option value="2" selected>2 guests</option><option value="3">3 guests</option><option value="4">4 guests</option></select>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="co-step reveal">
+          <div class="co-step-head"><span class="co-num">2</span><h2>Guest details</h2></div>
+          <div class="field-row">
+            <div class="field"><label>First name</label><input type="text" required placeholder="Naledi" /></div>
+            <div class="field"><label>Last name</label><input type="text" required placeholder="Mokoena" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Email</label><input type="email" required placeholder="you@email.com" /></div>
+            <div class="field"><label>Phone</label><input type="tel" required placeholder="+27 ..." /></div>
+          </div>
+          <div class="field"><label>Country</label><select><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Germany</option><option>Other</option></select></div>
+          <div class="field"><label>Special requests <span style="text-transform:none;letter-spacing:0;opacity:.7">(optional)</span></label><textarea placeholder="Dietary needs, anniversaries, transfer details..."></textarea></div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="co-step reveal">
+          <div class="co-step-head"><span class="co-num">3</span><h2>Payment</h2></div>
+          <div class="field"><label>Card number</label><input type="text" inputmode="numeric" placeholder="4242 4242 4242 4242" required /></div>
+          <div class="field-row">
+            <div class="field"><label>Expiry</label><input type="text" placeholder="MM / YY" required /></div>
+            <div class="field"><label>CVC</label><input type="text" inputmode="numeric" placeholder="123" required /></div>
+          </div>
+          <div class="field"><label>Name on card</label><input type="text" placeholder="N. Mokoena" required /></div>
+          <div class="pay-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Encrypted &amp; secure. You won't be charged a booking fee — not now, not ever.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: SUMMARY -->
+      <aside>
+        <div class="summary reveal" data-d="1">
+          <div class="sum-room">
+            <img id="sumImg" src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80" alt="Selected suite" />
+            <div>
+              <span class="muted" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase">NenGama Lodge</span>
+              <h4 id="sumSuite" style="margin-top:4px">Marula Suite</h4>
+              <div class="rating-line" style="margin-top:6px"><span class="stars" style="font-size:12px">★★★★★</span><span class="muted" style="font-size:12.5px">Fully inclusive</span></div>
+            </div>
+          </div>
+          <div class="sum-line"><span>Dates</span><b><span data-fill="checkin">10 Jul</span> → <span data-fill="checkout">13 Jul 2026</span></b></div>
+          <div class="sum-line"><span data-rate-nights>R14,500 × 3 nights</span><b data-subtotal>R43,500</b></div>
+          <div class="sum-line"><span>Conservation levy <span style="opacity:.7">(R280 pp / night)</span></span><b data-levy>R1,680</b></div>
+          <div class="sum-total"><span class="lbl">Total to pay</span><span class="amt" data-total>R45,180</span></div>
+          <div class="no-fee"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>Booked direct · 0% booking fees</span></div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top:24px"><span>Pay &amp; confirm</span></button>
+          <p class="muted center" style="font-size:12.5px;margin-top:14px"><span data-nights>3 nights</span> · free cancellation up to 14 days before arrival</p>
+        </div>
+      </aside>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-bottom" style="margin-top:0;border-top:none;padding-top:0">
+      <span>© 2026 NenGama Lodge · Limpopo, South Africa</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <a href="Contact.html" style="color:var(--dark-soft)">Need help? Contact us</a>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama</span></a>
+    <button class="nav-burger" data-mclose aria-label="Close menu" style="display:block"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Suites</a><a href="Home.html#experiences">Safari</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Rooms.html" class="btn btn-primary btn-lg btn-block"><span>Back to suites</span></a>
+</div>
+
+<!-- query-param suite setup (runs BEFORE nengama.js) -->
+<script>
+(function(){
+  var SUITES={
+    Marula:{name:'Marula Suite',rate:14500,img:'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80'},
+    Tamboti:{name:'Tamboti Suite',rate:18900,img:'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80'},
+    Leadwood:{name:'Leadwood Tent',rate:11500,img:'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&q=80'}
+  };
+  var p=new URLSearchParams(location.search);
+  var key=p.get('suite'); var s=SUITES[key]||SUITES.Marula;
+  var rate=parseInt(p.get('rate'),10)||s.rate;
+  document.getElementById('sumSuite').textContent=s.name;
+  document.getElementById('sumImg').src=s.img;
+  document.getElementById('bookingForm').setAttribute('data-rate',rate);
+  // persist suite for the thank-you page
+  try{var b=JSON.parse(localStorage.getItem('nengamaBooking')||'{}');b.suite=s.name;b.rate=rate;localStorage.setItem('nengamaBooking',JSON.stringify(b));}catch(e){}
+  // on submit, persist a reference + readable dates
+  document.getElementById('bookingForm').addEventListener('submit',function(){
+    try{
+      var b=JSON.parse(localStorage.getItem('nengamaBooking')||'{}');
+      b.suite=s.name; b.rate=rate;
+      b.ref='NG-'+Math.floor(100000+Math.random()*899999);
+      var nm=document.querySelector('input[type="email"]'); b.email=nm?nm.value:'';
+      var fn=document.querySelector('input[placeholder="Naledi"]'); b.firstName=fn?fn.value:'';
+      localStorage.setItem('nengamaBooking',JSON.stringify(b));
+    }catch(e){}
+  },true);
+})();
+</script>
+<script src="nengama.js"></script>
+<script src="nengama-tweaks.js"></script>
+</body>
+</html>

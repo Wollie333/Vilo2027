@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="persimmon" data-font="grotesk" data-shape="round">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Header / nav states — Atelier / Wielo theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  /* STATIC reference of the header in each state. Live, the top nav is sticky,
+     can sit transparent over a hero and turn solid on scroll, the dropdown opens
+     on hover/focus and the burger opens the drawer — all host-wired. Each state
+     is frozen here with small inline overrides so they show together. */
+  body{padding:clamp(20px,4vw,48px);background:var(--site-soft)}
+  .demo{max-width:1100px;margin:0 auto}
+  .demo h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+  .cap{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute);margin:36px 0 12px}
+  .frame{border:1px solid var(--site-line);border-radius:var(--site-radius);overflow:hidden;background:var(--site-bg)}
+  .hero-demo{position:relative}
+  .hero-demo .bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=1600&q=80') center/cover}
+  .hero-demo .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,12,.28),rgba(20,16,12,.6))}
+  .hero-demo .copy{position:relative;padding:60px 32px 72px;color:#fff}
+  .hero-demo .copy h2{color:#fff;font-size:2rem}
+  .demo .topbar{position:relative}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>Header &amp; navigation</h1>
+  <p class="muted">Wordmark, primary menu with a dropdown, a phone number and a Book-now CTA. Optional announcement bar above; transparent-over-hero and solid states below; mobile collapses to a drawer.</p>
+
+  <div class="cap">Announcement bar (optional)</div>
+  <div class="frame"><div class="topbar-announce">Spring rates are live · midweek from R2,210 — <a href="Specials.html">see offers</a></div></div>
+
+  <div class="cap">State A · transparent over a hero (light text)</div>
+  <div class="frame hero-demo">
+    <div class="bg"></div><div class="ov"></div>
+    <header class="topbar over-hero">
+      <div class="tb-in">
+        <a href="#" class="tb-brand">Atelier<b>.</b></a>
+        <nav class="tb-nav">
+          <a href="#" class="tb-link active">Home</a>
+          <a href="#" class="tb-link">Rooms</a>
+          <a href="#" class="tb-link">Rates</a>
+          <a href="#" class="tb-link">Explore ▾</a>
+          <a href="#" class="tb-link">Journal</a>
+          <a href="#" class="tb-link">Contact</a>
+        </nav>
+        <div class="tb-right"><a href="#" class="tb-phone">+27 21 424 0188</a><a href="#" class="btn btn-accent btn-sm">Book a room</a></div>
+        <button class="burger" aria-label="Menu" style="color:#fff"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      </div>
+    </header>
+    <div class="copy"><h2>Light text, no background</h2></div>
+  </div>
+
+  <div class="cap">State B · solid / scrolled (dark text on surface) + dropdown open</div>
+  <div class="frame">
+    <header class="topbar" style="background:var(--site-bg)">
+      <div class="tb-in">
+        <a href="#" class="tb-brand">Atelier<b>.</b></a>
+        <nav class="tb-nav">
+          <a href="#" class="tb-link active">Home</a>
+          <a href="#" class="tb-link">Rooms</a>
+          <a href="#" class="tb-link">Rates</a>
+          <!-- dropdown forced open to show the sub-menu; live it opens on hover/focus -->
+          <div class="tb-has-sub"><a href="#" class="tb-link">Explore ▾</a><div class="tb-sub" style="opacity:1;visibility:visible;transform:none"><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Offers</a></div></div>
+          <a href="#" class="tb-link">Journal</a>
+          <a href="#" class="tb-link">Contact</a>
+        </nav>
+        <div class="tb-right"><a href="#" class="tb-phone">+27 21 424 0188</a><a href="#" class="btn btn-accent btn-sm">Book a room</a></div>
+        <button class="burger" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      </div>
+    </header>
+    <div style="padding:90px 32px 40px;color:var(--site-mute)">Page content scrolls beneath the solid header.</div>
+  </div>
+
+  <div class="cap">Mobile drawer (burger → full-screen menu)</div>
+  <div class="frame" style="max-width:380px;position:relative;min-height:440px">
+    <header class="topbar" style="position:relative">
+      <div class="tb-in" style="padding:0 20px">
+        <a href="#" class="tb-brand">Atelier<b>.</b></a>
+        <button class="burger" aria-label="Menu" style="display:flex"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+    </header>
+    <nav class="tb-nav open" style="position:absolute;left:0;right:0;top:72px;opacity:1;visibility:visible;transform:none">
+      <a href="#" class="tb-link active">Home</a><a href="#" class="tb-link">Rooms</a><a href="#" class="tb-link">Rates</a><a href="#" class="tb-link">Experiences</a><a href="#" class="tb-link">Gallery</a><a href="#" class="tb-link">Offers</a><a href="#" class="tb-link">Journal</a><a href="#" class="tb-link">About</a><a href="#" class="tb-link">Contact</a>
+      <div class="tb-foot"><a href="#" class="btn btn-accent btn-block">Book a room</a><div class="tb-meta"><b>+27 21 424 0188</b>118 Loop Street, Cape Town</div></div>
+    </nav>
+  </div>
+</div>
+</body>
+</html>

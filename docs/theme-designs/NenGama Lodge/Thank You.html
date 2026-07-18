@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" data-theme="savanna" data-font="classic">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>You're booked — NenGama Lodge</title>
+<meta name="description" content="Your NenGama Lodge reservation is confirmed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="nengama.css" />
+<style>
+  .ty-hero{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:120px 0 80px}
+  .ty-hero .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .ty-hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,11,6,.62),rgba(12,9,5,.82))}
+  .ty-card{position:relative;z-index:2;width:min(640px,92vw);background:var(--surface);border-radius:6px;padding:clamp(34px,5vw,56px);text-align:center;box-shadow:0 50px 100px -40px rgba(0,0,0,.7)}
+  .ty-check{width:72px;height:72px;border-radius:50%;background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  .ty-ref{display:inline-flex;align-items:center;gap:10px;margin-top:22px;font-family:var(--sans);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);background:var(--bg-2);padding:9px 16px;border-radius:999px}
+  .ty-ref b{font-family:var(--sans);font-weight:600;color:var(--ink);letter-spacing:.06em}
+  .ty-summary{margin-top:30px;border:1px solid var(--line);border-radius:5px;overflow:hidden;text-align:left}
+  .ty-sum-top{display:flex;gap:16px;padding:20px;background:var(--bg-2)}
+  .ty-sum-top img{width:84px;height:84px;border-radius:4px;object-fit:cover;flex-shrink:0}
+  .ty-row{display:flex;justify-content:space-between;padding:15px 20px;border-top:1px solid var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft)}
+  .ty-row b{font-weight:500;color:var(--ink)}
+  .ty-total{padding:18px 20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+  .ty-total .amt{font-family:var(--serif);font-size:2rem;color:var(--ink)}
+  .ty-next{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;text-align:left}
+  .ty-next .n{padding:18px;background:var(--bg-2);border-radius:4px}
+  .ty-next .n .ic{color:var(--accent);margin-bottom:10px}
+  .ty-next .n h4{font-size:1.15rem}
+  .ty-next .n p{font-size:12.5px;color:var(--ink-soft);margin-top:5px;line-height:1.5}
+  @media(max-width:560px){.ty-next{grid-template-columns:1fr}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.NENGAMA_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"savanna","font":"classic"}/*EDITMODE-END*/;
+try{var d=window.NENGAMA_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('nengamaTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);document.documentElement.setAttribute('data-theme',t.theme);document.documentElement.setAttribute('data-font',t.font);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav over-hero" data-screen-label="Thank You">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama<small>Limpopo · Waterberg</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link">Suites</a>
+      <a href="Home.html#experiences" class="nav-link">Safari</a>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <a href="Home.html" class="btn btn-on-dark btn-sm"><span>Back to home</span></a>
+      <button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<section class="ty-hero">
+  <img class="bgimg" src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=2200&q=80" alt="Waterberg sunset" />
+  <div class="ty-card">
+    <div class="ty-check"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <span class="eyebrow center no-rule" style="margin-top:20px;display:inline-flex">Reservation confirmed</span>
+    <h1 class="display" style="font-size:clamp(2.2rem,5vw,3.4rem);margin-top:14px">You're booked, <span id="tyName">traveller</span></h1>
+    <p class="muted" style="margin-top:14px;max-width:46ch;margin-left:auto;margin-right:auto">A confirmation is on its way to <b id="tyEmail" style="color:var(--ink);font-weight:500">your inbox</b>. We can't wait to welcome you to the reserve.</p>
+    <div class="ty-ref">Booking reference <b id="tyRef">NG-204815</b></div>
+
+    <div class="ty-summary">
+      <div class="ty-sum-top">
+        <img id="tyImg" src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=300&q=80" alt="Your suite" />
+        <div>
+          <span class="muted" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase">NenGama Lodge · Limpopo</span>
+          <h3 id="tySuite" style="font-size:1.5rem;margin-top:4px">Marula Suite</h3>
+          <div class="rating-line" style="margin-top:6px"><span class="stars" style="font-size:12px">★★★★★</span><span class="muted" style="font-size:12.5px">Fully inclusive</span></div>
+        </div>
+      </div>
+      <div class="ty-row"><span>Check in</span><b id="tyIn">10 Jul 2026</b></div>
+      <div class="ty-row"><span>Check out</span><b id="tyOut">13 Jul 2026</b></div>
+      <div class="ty-row"><span>Guests · nights</span><b><span id="tyGuests">2</span> guests · <span id="tyNights">3</span> nights</b></div>
+      <div class="ty-total"><span style="font-family:var(--sans);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)">Total paid</span><span class="amt" id="tyTotal">R45,180</span></div>
+    </div>
+
+    <div class="ty-next">
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div><h4>Check your email</h4><p>Your itinerary and what to pack are on the way.</p></div>
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 4.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></div><h4>We'll arrange transfers</h4><p>Send your flights and we'll meet you at the airstrip.</p></div>
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></div><h4>Then, simply arrive</h4><p>The bush, the fire and your ranger will be ready.</p></div>
+    </div>
+
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:32px">
+      <a href="Home.html" class="btn btn-primary btn-lg"><span>Back to home</span></a>
+      <a href="Contact.html" class="btn btn-ghost btn-lg"><span>Send our team your flights</span></a>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:22px">Free cancellation up to 14 days before arrival · no booking fees were charged.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer" style="padding:48px 0 40px">
+  <div class="wrap">
+    <div class="footer-bottom" style="margin-top:0;border-top:none;padding-top:0">
+      <span>© 2026 NenGama Lodge · Limpopo, South Africa</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-socials">
+        <a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama</span></a>
+    <button class="nav-burger" data-mclose aria-label="Close menu" style="display:block"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Suites</a><a href="Home.html#experiences">Safari</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Rooms.html" class="btn btn-primary btn-lg btn-block"><span>Browse suites</span></a>
+</div>
+
+<script>
+(function(){
+  var b={};try{b=JSON.parse(localStorage.getItem('nengamaBooking')||'{}');}catch(e){}
+  var fmtMoney=function(n){return 'R'+Number(n).toLocaleString('en-ZA');};
+  var fmtDate=function(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return null;return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
+  var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!=='')el.textContent=v;};
+  set('tySuite',b.suite); 
+  set('tyName',b.firstName);
+  set('tyEmail',b.email);
+  set('tyRef',b.ref);
+  set('tyIn',fmtDate(b.checkin));
+  set('tyOut',fmtDate(b.checkout));
+  set('tyGuests',b.guests);
+  set('tyNights',b.nights);
+  if(b.total!=null) set('tyTotal',fmtMoney(b.total));
+  var imgs={'Marula Suite':'photo-1582719478250-c89cae4dc85b','Tamboti Suite':'photo-1566073771259-6a8506099945','Leadwood Tent':'photo-1504280390367-361c6d9f38f4'};
+  if(b.suite&&imgs[b.suite]){document.getElementById('tyImg').src='https://images.unsplash.com/'+imgs[b.suite]+'?w=300&q=80';}
+})();
+</script>
+<script src="nengama.js"></script>
+<script src="nengama-tweaks.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en" data-theme="savanna" data-font="classic">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marula Suite — NenGama Lodge, Limpopo</title>
+<meta name="description" content="The Marula Suite — NenGama Lodge's flagship: a glass-walled retreat above the waterhole with a private plunge pool and outdoor bath. Fully inclusive from R14,500/night." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="nengama.css" />
+<style>
+  /* room-detail specifics */
+  .suite-hero{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:clamp(420px,64vh,640px);padding-top:90px}
+  .suite-hero .sh{overflow:hidden;border-radius:3px;position:relative}
+  .suite-hero .sh img{width:100%;height:100%;object-fit:cover;transition:transform 1s cubic-bezier(.2,.8,.3,1)}
+  .suite-hero .sh:hover img{transform:scale(1.05)}
+  .suite-hero .sh.main{grid-row:span 2}
+  .gallery-more{display:none}
+  .room-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(40px,5vw,72px);align-items:start}
+  .spec-row{display:flex;gap:34px;flex-wrap:wrap;padding:26px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:34px 0}
+  .spec{display:flex;flex-direction:column;gap:4px}
+  .spec b{font-family:var(--serif);font-size:1.5rem;color:var(--ink);line-height:1}
+  .spec span{font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  .bk-card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:28px;position:sticky;top:108px;box-shadow:0 30px 60px -34px rgba(20,16,10,.4)}
+  .bk-rate{display:flex;align-items:baseline;gap:8px;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:20px}
+  .bk-rate .amt{font-family:var(--serif);font-size:2.6rem;font-weight:500;line-height:1}
+  .bk-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .lightbox{position:fixed;inset:0;z-index:90;background:rgba(12,9,5,.92);display:none;align-items:center;justify-content:center;padding:40px;cursor:zoom-out}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:92vw;max-height:88vh;object-fit:contain;border-radius:3px}
+  @media(max-width:860px){.suite-hero{grid-template-columns:1fr 1fr;height:auto;grid-template-rows:repeat(2,180px)}.suite-hero .sh.main{grid-column:span 2;grid-row:span 1;height:240px}.room-layout{grid-template-columns:1fr}.bk-card{position:static}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.NENGAMA_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"savanna","font":"classic"}/*EDITMODE-END*/;
+try{var d=window.NENGAMA_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('nengamaTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);document.documentElement.setAttribute('data-theme',t.theme);document.documentElement.setAttribute('data-font',t.font);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav solid" data-screen-label="Suite detail">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama<small>Limpopo · Waterberg</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link active">Suites</a>
+      <a href="Home.html#experiences" class="nav-link">Safari</a>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <a href="Booking.html?suite=Marula&rate=14500" class="btn btn-primary btn-sm"><span>Reserve</span></a>
+      <button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<!-- SUITE GALLERY HERO -->
+<section class="wrap">
+  <div class="suite-hero">
+    <div class="sh main"><img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1400&q=80" data-lb-src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=2000&q=80" alt="Marula Suite deck above the waterhole" /></div>
+    <div class="sh"><img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=900&q=80" data-lb-src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1600&q=80" alt="Suite bedroom" /></div>
+    <div class="sh"><img src="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=900&q=80" data-lb-src="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=1600&q=80" alt="Outdoor bath" /></div>
+  </div>
+</section>
+
+<!-- TITLE + BOOKING -->
+<section class="section" style="padding-top:clamp(48px,6vw,72px)">
+  <div class="wrap">
+    <div class="room-layout">
+      <!-- MAIN -->
+      <div>
+        <div class="reveal">
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <span class="eyebrow no-rule">Flagship Suite</span>
+            <span class="rating-line"><span class="stars">★★★★★</span><span class="muted">4.99 · 86 stays</span></span>
+          </div>
+          <h1 class="display" style="margin-top:16px;font-size:clamp(2.6rem,5.5vw,4.4rem)">Marula Suite</h1>
+          <p class="lead" style="margin-top:22px">Raised on stilts above the main waterhole, the Marula is NenGama's most private retreat — a glass-walled room that all but vanishes into the bush, with an outdoor stone bath, a plunge pool, and a deck where elephants are the morning view.</p>
+          <div class="spec-row">
+            <div class="spec"><b>2</b><span>Guests</span></div>
+            <div class="spec"><b>1</b><span>King bed</span></div>
+            <div class="spec"><b>78m²</b><span>Suite &amp; deck</span></div>
+            <div class="spec"><b>Big 5</b><span>From the bed</span></div>
+          </div>
+        </div>
+
+        <!-- THE SPACE -->
+        <div class="reveal" style="margin-top:48px">
+          <span class="eyebrow">The space</span>
+          <h2 class="display" style="margin-top:18px;font-size:clamp(1.8rem,3.4vw,2.6rem)">Built to disappear into the bush</h2>
+          <p class="muted" style="margin-top:20px;max-width:60ch">Floor-to-ceiling glass slides clean away so the room opens to the air. Inside: a hand-built leadwood bed dressed in linen, a deep freestanding tub, and a writing desk facing the plains. Outside: a private deck, a plunge pool cut into the stone, and a sala for afternoons spent doing gloriously little.</p>
+        </div>
+
+        <!-- DETAIL IMAGES -->
+        <div class="reveal" style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="frame-img img-wide"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80" data-lb-src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&q=80" alt="Bedroom interior" /></div>
+          <div class="frame-img img-wide"><img src="https://images.unsplash.com/photo-1502920514313-52581002a659?w=900&q=80" data-lb-src="https://images.unsplash.com/photo-1502920514313-52581002a659?w=1600&q=80" alt="Elephant at the waterhole below the deck" /></div>
+        </div>
+
+        <!-- AMENITIES -->
+        <div class="reveal" style="margin-top:52px">
+          <span class="eyebrow">In the suite</span>
+          <h2 class="display" style="margin-top:18px;font-size:clamp(1.8rem,3.4vw,2.6rem)">Everything, thought of</h2>
+          <div class="amenity-grid" style="margin-top:28px">
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M2 12a10 10 0 0 1 20 0"/></svg>Private plunge pool</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 6.5 3.5a1 1 0 0 0-1.4 0L3.5 5.1a1 1 0 0 0 0 1.4L6 9"/><path d="M3 21l6-6"/></svg>Outdoor stone bath</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>Climate control &amp; ceiling fan</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Private waterhole deck &amp; sala</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>24-hour butler service</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l8 4 8-4v14l-8-4z"/></svg>Mini bar &amp; espresso, restocked daily</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-9"/></svg>Eco toiletries &amp; sun kit</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M4 20V8l8-5 8 5v12"/></svg>Solar power &amp; Wi-Fi in the lodge</div>
+          </div>
+        </div>
+
+        <!-- INCLUDED -->
+        <div class="reveal" style="margin-top:52px;padding:32px;background:var(--bg-2);border-radius:4px">
+          <h3 style="font-size:1.6rem">Your rate includes</h3>
+          <div class="amenity-grid" style="margin-top:20px">
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>All meals, teas &amp; house wines</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Two daily safari activities</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Guided bush walks</div>
+            <div class="amenity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Return airstrip transfers</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKING CARD -->
+      <aside>
+        <div class="bk-card" data-booking data-rate="14500">
+          <div class="bk-rate"><span class="amt">R14,500</span><span class="muted">/ night · inclusive</span></div>
+          <div class="bk-grid">
+            <div class="field" style="margin-bottom:14px"><label>Check in</label><input type="date" name="checkin" value="2026-07-10" /></div>
+            <div class="field" style="margin-bottom:14px"><label>Check out</label><input type="date" name="checkout" value="2026-07-13" /></div>
+          </div>
+          <div class="field" style="margin-bottom:18px"><label>Guests</label>
+            <select name="guests"><option value="1">1 guest</option><option value="2" selected>2 guests</option></select>
+          </div>
+          <div class="sum-line" style="border-top:1px solid var(--line);padding-top:16px"><span data-rate-nights>R14,500 × 3 nights</span><b data-subtotal>R43,500</b></div>
+          <div class="sum-line"><span>Conservation levy</span><b data-levy>R1,680</b></div>
+          <div class="sum-total" style="margin-top:4px"><span class="lbl">Total</span><span class="amt" data-total>R45,180</span></div>
+          <div class="no-fee"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span><span data-nights>3 nights</span> · no booking fees, ever</span></div>
+          <a href="Booking.html?suite=Marula&rate=14500" class="btn btn-primary btn-lg btn-block" style="margin-top:22px"><span>Reserve this suite</span></a>
+          <p class="muted center" style="font-size:12.5px;margin-top:14px">No deposit to enquire · free cancellation up to 14 days before arrival</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- OTHER SUITES -->
+<section class="section bg-2">
+  <div class="wrap">
+    <div class="sec-head reveal" style="display:flex;justify-content:space-between;align-items:flex-end;max-width:none;gap:24px;flex-wrap:wrap;margin-bottom:44px">
+      <div><span class="eyebrow">Also at the lodge</span><h2 class="display" style="margin-top:20px;font-size:clamp(2rem,4vw,3.2rem)">The other two suites</h2></div>
+      <a href="Rooms.html" class="link-u">All suites <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="suites-grid" style="grid-template-columns:1fr 1fr">
+      <a href="Room.html" class="suite-card reveal">
+        <div class="sc-media"><span class="sc-tag">Sleeps 4 · Family</span><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80" alt="Tamboti Suite" /></div>
+        <div class="sc-body"><h3>Tamboti Suite</h3><div class="sc-meta"><span>Two bedrooms</span><span>Private guide</span></div><p class="sc-desc">Two connected rooms under one thatch, with a shaded family deck and a dedicated ranger.</p><div class="sc-foot"><div class="price">R18,900<small>/ night</small></div><span class="link-u">View</span></div></div>
+      </a>
+      <a href="Room.html" class="suite-card reveal" data-d="1">
+        <div class="sc-media"><span class="sc-tag">Sleeps 2 · Tented</span><img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=900&q=80" alt="Leadwood Tent" /></div>
+        <div class="sc-body"><h3>Leadwood Tent</h3><div class="sc-meta"><span>Canvas &amp; teak</span><span>Star bed</span></div><p class="sc-desc">A canvas-and-teak tented suite on the ridge, with a roll-back roof for clear Waterberg nights.</p><div class="sc-foot"><div class="price">R11,500<small>/ night</small></div><span class="link-u">View</span></div></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div>
+        <a href="Home.html" class="brand"><span class="brand-mark" style="color:var(--dark-ink)">N</span><span class="brand-name">NenGama</span></a>
+        <p class="footer-blurb">A luxury safari lodge on a 12,000-hectare private reserve in the Limpopo Waterberg. Three suites, the Big Five, and a slower way to be in the world.</p>
+      </div>
+      <div><div class="foot-head">Explore</div><div class="foot-col"><a href="Rooms.html">Suites &amp; rates</a><a href="Home.html#experiences">Safari days</a><a href="Journal.html">Journal</a><a href="About.html">Our story</a><a href="Contact.html">Contact</a></div></div>
+      <div><div class="foot-head">Visit</div><div class="foot-col"><a href="Contact.html">Getting here</a><a href="Contact.html">Transfers</a><a href="Rooms.html">Reserve a suite</a><a href="Contact.html">FAQ</a></div></div>
+      <div>
+        <div class="foot-head">The reserve, in your inbox</div>
+        <p class="footer-blurb" style="margin-top:0">Sightings, open dates and the occasional field note. Twice a season, never more.</p>
+        <form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-primary btn-sm" type="submit"><span>Join</span></button></form>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 NenGama Lodge · Limpopo, South Africa</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-socials">
+        <a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top">
+    <a href="Home.html" class="brand"><span class="brand-mark">N</span><span class="brand-name">NenGama</span></a>
+    <button class="nav-burger" data-mclose aria-label="Close menu" style="display:block"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Suites</a><a href="Home.html#experiences">Safari</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Booking.html?suite=Marula&rate=14500" class="btn btn-primary btn-lg btn-block"><span>Reserve</span></a>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" data-lightbox><img src="" alt="Suite photo enlarged" /></div>
+
+<script src="nengama.js"></script>
+<script src="nengama-tweaks.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="persimmon" data-font="grotesk" data-shape="round">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>You're booked — Atelier</title>
+<meta name="description" content="Your Atelier booking is confirmed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .tywrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:clamp(40px,6vw,80px) clamp(20px,4vw,40px)}
+  .tycard{width:min(600px,100%);background:var(--site-surface);border:1px solid var(--site-line);border-radius:var(--site-radius);padding:clamp(28px,4vw,46px);text-align:center}
+  .tychk{width:62px;height:62px;border-radius:var(--site-radius-pill);background:var(--site-accent);color:var(--site-accent-ink);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  .tyref{display:inline-flex;gap:8px;margin-top:18px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);background:var(--site-soft);padding:9px 16px;border-radius:var(--site-radius-pill)}
+  .tyref b{color:var(--site-ink)}
+  .tysum{margin-top:24px;border:1px solid var(--site-line);border-radius:var(--site-radius-sm);overflow:hidden;text-align:left}
+  .tysum-top{display:flex;gap:13px;padding:16px;background:var(--site-soft)}
+  .tysum-top img{width:74px;height:74px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid var(--site-line)}
+  .tyrow{display:flex;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--site-line);font-size:14px;color:var(--site-mute)}
+  .tyrow b{color:var(--site-ink);font-weight:700}
+  .tytot{display:flex;justify-content:space-between;align-items:baseline;padding:15px 16px;border-top:1px solid var(--site-line)}
+  .tytot .amt{font-family:var(--site-font-heading);font-weight:700;font-size:1.7rem}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.MER_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"persimmon","font":"grotesk","shape":"round"}/*EDITMODE-END*/;
+try{var d=window.MER_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('merTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar" data-screen-label="Thank You">
+    <div class="tb-in">
+      <a href="Home.html" class="tb-brand">Atelier<b>.</b></a>
+      <nav class="tb-nav">
+        <a href="Home.html" class="tb-link">Home</a>
+        <a href="Rooms.html" class="tb-link">Rooms</a>
+        <a href="Rates.html" class="tb-link">Rates</a>
+        <a href="Home.html#house" class="tb-link">The House</a>
+        <a href="Journal.html" class="tb-link">Journal</a>
+        <a href="About.html" class="tb-link">About</a>
+        <a href="Contact.html" class="tb-link">Contact</a>
+        <div class="tb-foot">
+          <a href="Booking.html" class="btn btn-accent btn-block">Book a room</a>
+          <div class="tb-meta"><b>+27 21 424 0188</b>118 Loop Street, Cape Town</div>
+        </div>
+      </nav>
+      <div class="tb-right">
+        <a href="tel:+27214240188" class="tb-phone">+27 21 424 0188</a>
+        <a href="Booking.html" class="btn btn-accent btn-sm">Book a room</a>
+      </div>
+      <button class="burger" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </header>
+  <main class="main bg-panel">
+    <div class="tywrap" data-section="hero">
+      <div class="tycard">
+        <div class="tychk"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <span class="eyebrow" style="justify-content:center;margin-top:16px">Booking confirmed</span>
+        <h1 class="big" style="font-size:clamp(2rem,5vw,3rem);margin-top:12px">See you soon,<br><span id="tyName">friend</span>.</h1>
+        <p class="muted" style="margin-top:12px;max-width:42ch;margin-inline:auto">A confirmation is on its way to <b id="tyEmail" style="color:var(--site-ink)">your inbox</b>. The front desk will be expecting you.</p>
+        <div class="tyref">Reference <b id="tyRef">AT-204815</b></div>
+        <div class="tysum">
+          <div class="tysum-top"><img id="tyImg" src="https://images.unsplash.com/photo-1631049035182-249067d7618e?w=300&q=80" alt="Your room" /><div><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--site-mute)">Atelier · Loop Street</span><h3 id="tyRoom" style="font-size:1.3rem;margin-top:4px">The Studio</h3><div style="display:flex;align-items:center;gap:6px;margin-top:5px"><span class="stars" style="font-size:12px">★★★★★</span><span class="muted" style="font-size:12.5px">Breakfast included</span></div></div></div>
+          <div class="tyrow"><span>Arrive</span><b id="tyIn">10 Jul 2026</b></div>
+          <div class="tyrow"><span>Depart</span><b id="tyOut">12 Jul 2026</b></div>
+          <div class="tyrow"><span>Guests · nights</span><b><span id="tyGuests">2</span> · <span id="tyNights">2</span> nights</b></div>
+          <div class="tytot"><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--site-mute)">Total paid</span><span class="amt" id="tyTotal">R5,200</span></div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px"><a href="Home.html" class="btn btn-accent">Back to home</a><a href="Contact.html" class="btn btn-line">Message us</a></div>
+        <p class="muted" style="font-size:12.5px;margin-top:18px">Free cancellation up to 48 hours before · no booking fees charged.</p>
+      </div>
+    </div>
+    <footer class="foot">
+      <div class="foot-bot" style="border-top:none"><span>© 2026 Atelier Hotel · Loop Street, Cape Town</span><span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span><div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div></div>
+    </footer>
+  </main>
+</div>
+<script>
+(function(){
+  var b={};try{b=JSON.parse(localStorage.getItem('merBooking')||'{}');}catch(e){}
+  var money=function(n){return 'R'+Number(n).toLocaleString('en-ZA');};
+  var fd=function(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return null;return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
+  var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!=='')el.textContent=v;};
+  set('tyRoom',b.room);set('tyName',b.firstName);set('tyEmail',b.email);set('tyRef',b.ref);set('tyIn',fd(b.checkin));set('tyOut',fd(b.checkout));set('tyGuests',b.guests);set('tyNights',b.nights);if(b.total!=null)set('tyTotal',money(b.total));
+  var imgs={'The Studio':'photo-1631049035182-249067d7618e','The Loft':'photo-1618773928121-c32242e63f39','The Penthouse':'photo-1578683010236-d716f9a3f461'};
+  if(b.room&&imgs[b.room])document.getElementById('tyImg').src='https://images.unsplash.com/'+imgs[b.room]+'?w=300&q=80';
+})();
+</script>
+<script src="hotel.js"></script>
+<script src="hotel-tweaks.js"></script>
+</body>
+</html>
