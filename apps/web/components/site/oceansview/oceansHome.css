@@ -554,6 +554,13 @@
   line-height: 1.55;
   margin-top: 14px;
   flex: 1;
+  /* Keep the cards uniform: clamp the blurb to three lines regardless of how
+     long the host's room description runs. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .ovhome .room-foot {
   display: flex;
