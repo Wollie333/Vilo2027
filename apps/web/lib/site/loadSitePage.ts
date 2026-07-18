@@ -2894,7 +2894,11 @@ export type RelatedPost = {
 };
 
 /**
- * Load related posts for a blog post (same category, limit 3, excluding current).
+ * Load related posts for a blog post. Prefers same-category posts (the founder's
+ * intent), then fills any remaining slots with the site's most recent OTHER
+ * published posts so a "keep reading" strip always has something to show when the
+ * site has more than one story — rather than leaving an empty band on posts that
+ * haven't been assigned a category. Limit 3, excluding the current post.
  */
 export async function loadRelatedPosts(
   ctx: SiteContext,
@@ -2902,7 +2906,7 @@ export async function loadRelatedPosts(
 ): Promise<RelatedPost[]> {
   const sb = createAdminClient();
 
-  // First, get the current post's category
+  // Current post — need its id to exclude it; category to prefer same-category picks.
   const { data: current } = await sb
     .from("website_blog_posts")
     .select("id, category_id")
@@ -2911,27 +2915,62 @@ export async function loadRelatedPosts(
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!current?.category_id) return [];
+  if (!current) return [];
 
-  // Then fetch posts in the same category, excluding the current one
-  const { data: posts } = await sb
-    .from("website_blog_posts")
-    .select("title, slug, cover_path")
-    .eq("website_id", ctx.websiteId)
-    .eq("category_id", current.category_id)
-    .eq("status", "published")
-    .neq("id", current.id)
-    .is("deleted_at", null)
-    .order("featured", { ascending: false, nullsFirst: true })
-    .order("publish_at", { ascending: false, nullsFirst: false })
-    .limit(3);
+  const toRelated = (p: unknown): RelatedPost => {
+    const row = p as { title: string; slug: string; cover_path: string | null };
+    return {
+      title: row.title,
+      slug: row.slug,
+      coverUrl: websiteAssetUrl(row.cover_path) ?? null,
+    };
+  };
 
-  return (posts ?? []).map((p) => ({
-    title: (p as { title: string }).title,
-    slug: (p as { slug: string }).slug,
-    coverUrl:
-      websiteAssetUrl((p as { cover_path: string | null }).cover_path) ?? null,
-  }));
+  const picks: RelatedPost[] = [];
+  const seen = new Set<string>();
+  const add = (rows: unknown[] | null) => {
+    for (const p of rows ?? []) {
+      if (picks.length >= 3) break;
+      const r = toRelated(p);
+      if (r.slug && !seen.has(r.slug)) {
+        seen.add(r.slug);
+        picks.push(r);
+      }
+    }
+  };
+
+  // Prefer posts in the same category (newest / featured first).
+  if (current.category_id) {
+    const { data: sameCat } = await sb
+      .from("website_blog_posts")
+      .select("title, slug, cover_path")
+      .eq("website_id", ctx.websiteId)
+      .eq("category_id", current.category_id)
+      .eq("status", "published")
+      .neq("id", current.id)
+      .is("deleted_at", null)
+      .order("featured", { ascending: false, nullsFirst: true })
+      .order("publish_at", { ascending: false, nullsFirst: false })
+      .limit(3);
+    add(sameCat);
+  }
+
+  // Fill remaining slots with the most recent other published posts.
+  if (picks.length < 3) {
+    const { data: recent } = await sb
+      .from("website_blog_posts")
+      .select("title, slug, cover_path")
+      .eq("website_id", ctx.websiteId)
+      .eq("status", "published")
+      .neq("id", current.id)
+      .is("deleted_at", null)
+      .order("featured", { ascending: false, nullsFirst: true })
+      .order("publish_at", { ascending: false, nullsFirst: false })
+      .limit(6);
+    add(recent);
+  }
+
+  return picks;
 }
 
 /**
