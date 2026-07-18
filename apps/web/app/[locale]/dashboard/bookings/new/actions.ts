@@ -81,7 +81,9 @@ export async function createManualBookingAction(
     return { ok: false, error: "Listing not found." };
   }
 
-  const currency = data.currency || listing.currency || "ZAR";
+  // Currency of record = the listing's settlement currency (Model 2). NEVER the
+  // client-supplied value — the server owns money/currency (security-first).
+  const currency = listing.currency || "ZAR";
   const nights = nightsBetween(data.check_in, data.check_out);
   if (nights.length === 0) {
     return { ok: false, error: "Check-out must be after check-in." };

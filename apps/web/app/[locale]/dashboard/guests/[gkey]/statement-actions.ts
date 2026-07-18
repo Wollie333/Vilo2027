@@ -62,6 +62,14 @@ async function mint(input: {
     return { ok: false, error: "Guest not found." };
   }
 
+  // Statement currency = the host's settlement currency (Model 2), not a
+  // hard-coded ZAR — a EUR/GBP host's statement must read in their currency.
+  const { data: hostRow } = await admin
+    .from("hosts")
+    .select("default_currency")
+    .eq("id", host.hostId)
+    .maybeSingle();
+
   const issuedAt = new Date().toISOString();
   const token: StatementToken = {
     v: 1,
@@ -71,7 +79,7 @@ async function mint(input: {
     from: parsed.data.from ?? null,
     to: parsed.data.to ?? issuedAt,
     issuedAt,
-    currency: "ZAR",
+    currency: hostRow?.default_currency ?? "ZAR",
   };
   // Locale-prefixed so an absolute open (window.open) / emailed link resolves —
   // the /statement route lives under [locale], so a bare /statement/… is a 404.
