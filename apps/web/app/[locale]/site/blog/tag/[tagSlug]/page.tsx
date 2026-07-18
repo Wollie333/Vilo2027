@@ -69,6 +69,7 @@ export default async function SiteBlogTagPage({
         websiteId={ctx.websiteId}
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+        preset={ctx.theme.preset}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
         pageHasHero={false}

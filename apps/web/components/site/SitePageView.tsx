@@ -227,6 +227,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -301,6 +302,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -375,6 +377,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -441,6 +444,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -514,6 +518,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -573,6 +578,7 @@ export async function SitePageView({
             bookHref={headerBookHref}
             darkChrome={siteSurfaceIsDark(ctx.theme)}
             analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
             header={ctx.theme.header}
             footer={ctx.theme.footer}
             preview={previewContext}
@@ -624,6 +630,7 @@ export async function SitePageView({
           bookHref={headerBookHref}
           darkChrome={siteSurfaceIsDark(ctx.theme)}
           analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+          preset={ctx.theme.preset}
           header={ctx.theme.header}
           footer={ctx.theme.footer}
           preview={previewContext}

@@ -74,6 +74,7 @@ export default async function SiteBlogIndexPage({
         websiteId={ctx.websiteId}
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+        preset={ctx.theme.preset}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
         preview={

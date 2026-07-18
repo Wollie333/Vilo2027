@@ -1,0 +1,424 @@
+/*
+ * Oceans View — bespoke HEADER + FOOTER, ported faithfully from the founder's
+ * reference (docs/themes/oceansview/header.html + footer.html + theme.css).
+ * Every selector is scoped to `.ovchrome`; all colour/type/shape comes from the
+ * theme's `--site-*` tokens (with the reference's own hard fallbacks) so it stays
+ * on-theme and host-editable. Rendered by SiteChrome for the oceansview preset.
+ */
+
+.ovchrome {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+}
+.ovchrome * {
+  box-sizing: border-box;
+}
+.ovchrome a {
+  text-decoration: none;
+  color: inherit;
+}
+.ovchrome .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.ovchrome .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    box-shadow 0.25s;
+}
+.ovchrome .btn:not(:disabled):hover {
+  transform: translateY(-3px);
+}
+.ovchrome .btn-coral {
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-secondary, #ff6b57) 60%, transparent);
+}
+.ovchrome .btn-coral:hover {
+  background: var(--site-secondary-deep, #e9523d);
+}
+.ovchrome .btn-sm {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 13px;
+}
+.ovchrome .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+.ovchrome .btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* -- header / nav -------------------------------------------------------- */
+.ovchrome .nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  transition:
+    background 0.35s,
+    box-shadow 0.35s;
+}
+.ovchrome .nav-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 84px;
+  gap: 24px;
+}
+.ovchrome .nav.solid {
+  background: color-mix(in srgb, var(--site-bg, #ffffff) 90%, transparent);
+  backdrop-filter: saturate(1.4) blur(16px);
+  box-shadow: 0 6px 30px -22px rgba(10, 34, 48, 0.6);
+}
+.ovchrome .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.ovchrome .brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--site-accent, #12a5b5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-family: var(--site-font-heading, "Bricolage Grotesque", sans-serif);
+  font-weight: 800;
+  font-size: 17px;
+}
+.ovchrome .brand-mark svg {
+  width: 22px;
+  height: 22px;
+}
+.ovchrome .brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ovchrome .brand-name {
+  font-family: var(--site-font-heading, "Bricolage Grotesque", sans-serif);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--site-ink, #0e2c3a);
+  min-width: 0;
+}
+.ovchrome .brand-name small {
+  display: block;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--site-mute, #5e7884);
+  margin-top: 3px;
+}
+.ovchrome .nav-links {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+.ovchrome .nav-link {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--site-ink, #0e2c3a);
+  opacity: 0.82;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.ovchrome .nav-link:hover,
+.ovchrome .nav-link.active {
+  opacity: 1;
+  color: var(--site-accent, #12a5b5);
+}
+.ovchrome .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ovchrome .nav-burger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--site-ink, #0e2c3a);
+  cursor: pointer;
+  padding: 6px;
+}
+/* over-image (transparent, before scroll) */
+.ovchrome .nav.over .brand-name,
+.ovchrome .nav.over .nav-link {
+  color: #fff;
+}
+.ovchrome .nav.over .brand-name small {
+  color: rgba(255, 255, 255, 0.75);
+}
+.ovchrome .nav.over .nav-link {
+  opacity: 0.92;
+}
+.ovchrome .nav.over .nav-burger {
+  color: #fff;
+}
+.ovchrome .nav.over.solid .brand-name,
+.ovchrome .nav.over.solid .nav-link {
+  color: var(--site-ink, #0e2c3a);
+}
+.ovchrome .nav.over.solid .brand-name small {
+  color: var(--site-mute, #5e7884);
+}
+.ovchrome .nav.over.solid .nav-burger {
+  color: var(--site-ink, #0e2c3a);
+}
+
+/* dropdown */
+.ovchrome .nav-has-sub {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ovchrome .nav-sub {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius, 16px);
+  box-shadow: 0 24px 50px -24px rgba(10, 34, 48, 0.4);
+  padding: 8px;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s,
+    transform 0.2s,
+    visibility 0.2s;
+  z-index: 70;
+}
+.ovchrome .nav-has-sub:hover .nav-sub,
+.ovchrome .nav-has-sub:focus-within .nav-sub {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%);
+}
+.ovchrome .nav-sub a {
+  padding: 10px 14px;
+  border-radius: var(--site-radius-sm, 11px);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--site-ink, #0e2c3a);
+  opacity: 1;
+  white-space: nowrap;
+}
+.ovchrome .nav-sub a:hover {
+  background: var(--site-soft, #f7f1e6);
+  color: var(--site-accent, #12a5b5);
+}
+/* keep the dropdown panel legible while the nav floats over a dark hero */
+.ovchrome .nav.over:not(.solid) .nav-sub a {
+  color: var(--site-ink, #0e2c3a);
+}
+
+/* -- mobile drawer ------------------------------------------------------- */
+.ovchrome .mnav {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--site-navy, #0a2330);
+  color: var(--site-navy-ink, #eaf4f5);
+  display: flex;
+  flex-direction: column;
+  padding: 26px 30px;
+  transform: translateX(100%);
+  transition: transform 0.45s cubic-bezier(0.7, 0, 0.2, 1);
+  visibility: hidden;
+}
+.ovchrome .mnav.open {
+  transform: none;
+  visibility: visible;
+}
+.ovchrome .mnav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ovchrome .mnav-top .brand-name {
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovchrome .mnav-top .nav-burger {
+  display: block;
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovchrome .mnav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.ovchrome .mnav-links a {
+  font-family: var(--site-font-heading, "Bricolage Grotesque", sans-serif);
+  font-weight: 800;
+  font-size: 2.4rem;
+  color: var(--site-navy-ink, #eaf4f5);
+  padding: 6px 0;
+}
+.ovchrome .mnav-links a:hover {
+  color: var(--site-secondary, #ff6b57);
+}
+
+/* -- footer -------------------------------------------------------------- */
+.ovchrome .footer {
+  background: var(--site-navy, #0a2330);
+  color: var(--site-navy-mute, #9fbcc4);
+  padding: clamp(60px, 8vw, 100px) 0 38px;
+}
+.ovchrome .footer .brand-name {
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovchrome .foot-top {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr 1.4fr;
+  gap: 40px;
+}
+.ovchrome .foot-blurb {
+  margin-top: 20px;
+  max-width: 34ch;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--site-navy-mute, #9fbcc4);
+}
+.ovchrome .foot-h {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--site-navy-ink, #eaf4f5);
+  margin-bottom: 20px;
+}
+.ovchrome .foot-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ovchrome .foot-col a {
+  font-size: 14.5px;
+  color: var(--site-navy-mute, #9fbcc4);
+  transition:
+    color 0.2s,
+    padding-left 0.2s;
+}
+.ovchrome .foot-col a:hover {
+  color: var(--site-secondary, #ff6b57);
+  padding-left: 4px;
+}
+.ovchrome .foot-cta {
+  margin-top: 16px;
+}
+.ovchrome .foot-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: clamp(44px, 6vw, 72px);
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+}
+.ovchrome .foot-vilo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.ovchrome .foot-soc {
+  display: flex;
+  gap: 12px;
+}
+.ovchrome .foot-soc a {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--site-navy-mute, #9fbcc4);
+  transition: all 0.2s;
+}
+.ovchrome .foot-soc a:hover {
+  color: var(--site-secondary, #ff6b57);
+  border-color: var(--site-secondary, #ff6b57);
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .ovchrome .foot-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+@media (max-width: 860px) {
+  .ovchrome .nav-links,
+  .ovchrome .nav-right .btn {
+    display: none;
+  }
+  .ovchrome .nav-burger {
+    display: block;
+  }
+}
+@media (max-width: 560px) {
+  .ovchrome .wrap {
+    padding: 0 20px;
+  }
+  .ovchrome .foot-top {
+    grid-template-columns: 1fr;
+  }
+  .ovchrome .foot-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

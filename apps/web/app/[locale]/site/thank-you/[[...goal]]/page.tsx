@@ -143,6 +143,7 @@ export default async function SiteFormThankYouPage({
           ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
         }
         darkChrome={siteSurfaceIsDark(ctx.theme)}
+        preset={ctx.theme.preset}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
         preview={

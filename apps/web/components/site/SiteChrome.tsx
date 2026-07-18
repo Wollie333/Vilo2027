@@ -15,6 +15,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { BurgerConfig } from "@/components/site/BurgerGlyph";
 import { siteImageUrl } from "@/lib/site/image";
 import { filterMenuForPage } from "@/lib/site/menuPage";
+import { buildNavHref, hrefToPageKey } from "@/lib/site/navHref";
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import {
   DEFAULT_FOOTER,
@@ -38,6 +39,8 @@ import type {
   SiteTopBar,
 } from "@/lib/site/types";
 
+import { OceansViewFooter } from "./oceansview/OceansViewFooter";
+import { OceansViewHeader } from "./oceansview/OceansViewHeader";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { SitePreviewBar } from "./SitePreviewBar";
 import { SiteAnalytics } from "./SiteAnalytics";
@@ -331,37 +334,6 @@ function TopBar({ bar }: { bar: SiteTopBar }) {
       </div>
     </div>
   );
-}
-
-/** Convert an internal href like "/" or "/about" to a page key. */
-function hrefToPageKey(href: string): string {
-  if (href === "/" || href === "") return "home";
-  // Strip leading slash and hash fragments
-  const clean = href.replace(/^\//, "").split("#")[0];
-  return clean || "home";
-}
-
-/** Build a preview-aware href for navigation links. */
-function buildNavHref(
-  href: string,
-  preview?: { subdomain: string; themeSlug?: string },
-): string {
-  // External links pass through unchanged
-  if (href.startsWith("http")) return href;
-  // No preview mode — use regular href
-  if (!preview) return href;
-
-  // In preview mode, build a URL that preserves preview params
-  const params = new URLSearchParams();
-  params.set("site", preview.subdomain);
-  params.set("preview", "1");
-  if (preview.themeSlug) params.set("theme", preview.themeSlug);
-
-  // Normalize path: "/" becomes "/site", "/about" becomes "/site/about"
-  const cleanPath = href.startsWith("/") ? href : `/${href}`;
-  const basePath = cleanPath === "/" ? "/site" : `/site${cleanPath}`;
-
-  return `${basePath}?${params.toString()}`;
 }
 
 function NavLinks({
@@ -1188,6 +1160,7 @@ export function SiteChrome({
   previewPages,
   chromeInert = false,
   pageHasHero = true,
+  preset,
   children,
 }: {
   brand: SiteBrand;
@@ -1226,6 +1199,9 @@ export function SiteChrome({
   /** Does this page open with a hero? Gates the transparent-over-hero header so
    * text-first pages (About/Contact) keep a solid, legible header. Default true. */
   pageHasHero?: boolean;
+  /** Theme preset — when "oceansview", the header/footer render the bespoke
+   * theme-scoped chrome instead of the generic token-driven layout. */
+  preset?: string;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -1301,6 +1277,10 @@ export function SiteChrome({
     mergedMenuStyle?.scrolledSubmenuBg,
   );
   const boxed = layout === "boxed";
+  // OceansView ships a bespoke, theme-scoped header + footer (rendered below in
+  // place of the generic token-driven chrome). Transparent-over-hero mirrors the
+  // generic rule (a top bar forces the header solid).
+  const isOceans = preset === "oceansview";
   // The shared Wielo theme-preview bar (single source of truth across all themes).
   const showBar = Boolean(
     preview && !hideBanner && previewPages && previewPages.length,
@@ -1353,73 +1333,93 @@ export function SiteChrome({
         target="header"
         label="Header"
       >
-        <style>
-          {menuStyleCss(mergedMenuStyle) +
-            menuItemStyleCss(menu, previewDevice) +
-            logoRdCss}
-        </style>
-        {topBar?.enabled ? <TopBar bar={topBar} /> : null}
+        {isOceans ? (
+          <OceansViewHeader
+            brand={brand}
+            menu={menu}
+            bookHref={effectiveBookHref}
+            bookLabel={bookLabel}
+            preview={preview}
+            currentPageKey={currentPageKey}
+            transparent={transparentOver || (pageHasHero && !topBar?.enabled)}
+            topOffset={showBar ? 44 : 0}
+            subtitle={
+              brand.tagline && brand.tagline.trim().length <= 42
+                ? brand.tagline.trim()
+                : null
+            }
+          />
+        ) : (
+          <>
+            <style>
+              {menuStyleCss(mergedMenuStyle) +
+                menuItemStyleCss(menu, previewDevice) +
+                logoRdCss}
+            </style>
+            {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
-        <StickyHeader
-          sticky={sticky}
-          transparent={transparentOver}
-          bgColor={pageBgColor}
-          scrolledBgColor={navigation.header?.scrolledBgColor}
-          scrolledBorderColor={navigation.header?.scrolledBorderColor}
-          scrolledShadow={navigation.header?.scrolledShadow}
-          scrolledShadowColor={navigation.header?.scrolledShadowColor}
-          scrolledShadowSize={navigation.header?.scrolledShadowSize}
-          borderColor={navigation.header?.borderColor}
-          borderWidth={navigation.header?.borderWidth}
-          trackScroll={hasScrolledStyle}
-          textColor={mergedMenuStyle?.color}
-          topOffset={showBar ? 44 : 0}
-        >
-          <div className="wielo-cq-d hidden md:block">
-            <HeaderInner
-              variant={navigation.header?.layout ?? header.desktop}
-              brand={brand}
-              menu={menu}
-              collapse={menuCollapse}
-              bookHref={effectiveBookHref}
-              bookLabel={bookLabel}
-              bookColor={navigation.header?.bookCtaColor}
-              showLogo={navigation.header?.showLogo}
-              logoStyle={navigation.header?.logoStyle}
-              logoHeight={navigation.header?.logoMaxHeight}
-              logoTablet={navigation.header?.logoTablet}
-              logoMobile={navigation.header?.logoMobile}
-              previewDevice={previewDevice}
-              menuAlign={navigation.menuStyle?.align}
-              dark={headerDark}
-              preview={preview}
-              burger={navigation.header?.burger}
-              mobileStyle={mergedMenuStyle?.mobile}
-            />
-          </div>
-          <div className="wielo-cq-m md:hidden">
-            <HeaderInner
-              variant={header.mobile}
-              brand={brand}
-              menu={menu}
-              collapse={menuCollapse}
-              bookHref={effectiveBookHref}
-              bookLabel={bookLabel}
-              bookColor={navigation.header?.bookCtaColor}
-              showLogo={navigation.header?.showLogo}
-              logoStyle={navigation.header?.logoStyle}
-              logoHeight={navigation.header?.logoMaxHeight}
-              logoTablet={navigation.header?.logoTablet}
-              logoMobile={navigation.header?.logoMobile}
-              previewDevice={previewDevice}
-              menuAlign={navigation.menuStyle?.align}
-              dark={headerDark}
-              preview={preview}
-              burger={navigation.header?.burger}
-              mobileStyle={mergedMenuStyle?.mobile}
-            />
-          </div>
-        </StickyHeader>
+            <StickyHeader
+              sticky={sticky}
+              transparent={transparentOver}
+              bgColor={pageBgColor}
+              scrolledBgColor={navigation.header?.scrolledBgColor}
+              scrolledBorderColor={navigation.header?.scrolledBorderColor}
+              scrolledShadow={navigation.header?.scrolledShadow}
+              scrolledShadowColor={navigation.header?.scrolledShadowColor}
+              scrolledShadowSize={navigation.header?.scrolledShadowSize}
+              borderColor={navigation.header?.borderColor}
+              borderWidth={navigation.header?.borderWidth}
+              trackScroll={hasScrolledStyle}
+              textColor={mergedMenuStyle?.color}
+              topOffset={showBar ? 44 : 0}
+            >
+              <div className="wielo-cq-d hidden md:block">
+                <HeaderInner
+                  variant={navigation.header?.layout ?? header.desktop}
+                  brand={brand}
+                  menu={menu}
+                  collapse={menuCollapse}
+                  bookHref={effectiveBookHref}
+                  bookLabel={bookLabel}
+                  bookColor={navigation.header?.bookCtaColor}
+                  showLogo={navigation.header?.showLogo}
+                  logoStyle={navigation.header?.logoStyle}
+                  logoHeight={navigation.header?.logoMaxHeight}
+                  logoTablet={navigation.header?.logoTablet}
+                  logoMobile={navigation.header?.logoMobile}
+                  previewDevice={previewDevice}
+                  menuAlign={navigation.menuStyle?.align}
+                  dark={headerDark}
+                  preview={preview}
+                  burger={navigation.header?.burger}
+                  mobileStyle={mergedMenuStyle?.mobile}
+                />
+              </div>
+              <div className="wielo-cq-m md:hidden">
+                <HeaderInner
+                  variant={header.mobile}
+                  brand={brand}
+                  menu={menu}
+                  collapse={menuCollapse}
+                  bookHref={effectiveBookHref}
+                  bookLabel={bookLabel}
+                  bookColor={navigation.header?.bookCtaColor}
+                  showLogo={navigation.header?.showLogo}
+                  logoStyle={navigation.header?.logoStyle}
+                  logoHeight={navigation.header?.logoMaxHeight}
+                  logoTablet={navigation.header?.logoTablet}
+                  logoMobile={navigation.header?.logoMobile}
+                  previewDevice={previewDevice}
+                  menuAlign={navigation.menuStyle?.align}
+                  dark={headerDark}
+                  preview={preview}
+                  burger={navigation.header?.burger}
+                  mobileStyle={mergedMenuStyle?.mobile}
+                />
+              </div>
+            </StickyHeader>
+          </>
+        )}
       </ChromeEditWrap>
 
       <main className="flex-1">{children}</main>
@@ -1430,54 +1430,67 @@ export function SiteChrome({
         target="footer"
         label="Footer"
       >
-        <footer
-          style={{
-            background: "var(--site-surface)",
-            borderColor: "var(--site-line)",
-          }}
-          className="border-t"
-        >
-          {footerColumns.length > 0 ? (
-            <FooterColumns
-              brand={brand}
-              columns={footerColumns}
-              copyright={navigation.footer?.copyright}
-              preview={preview}
-            />
-          ) : (
-            <>
-              <div className="wielo-cq-d hidden md:block">
-                <FooterInner
-                  variant={footer.desktop}
-                  brand={brand}
-                  nav={flatNav}
-                  preview={preview}
-                />
-              </div>
-              <div className="wielo-cq-m md:hidden">
-                <FooterInner
-                  variant={footer.mobile}
-                  brand={brand}
-                  nav={flatNav}
-                  preview={preview}
-                />
-              </div>
-            </>
-          )}
-          {navigation.footer?.showPoweredBy !== false ? (
-            <div
-              style={{ borderColor: "var(--site-line)" }}
-              className="border-t"
-            >
-              <p
-                style={{ color: "var(--site-mute)" }}
-                className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
+        {isOceans ? (
+          <OceansViewFooter
+            brand={brand}
+            menu={menu}
+            bookHref={effectiveBookHref}
+            bookLabel={bookLabel}
+            preview={preview}
+            copyright={navigation.footer?.copyright}
+            showPoweredBy={navigation.footer?.showPoweredBy !== false}
+            blurb={brand.tagline}
+          />
+        ) : (
+          <footer
+            style={{
+              background: "var(--site-surface)",
+              borderColor: "var(--site-line)",
+            }}
+            className="border-t"
+          >
+            {footerColumns.length > 0 ? (
+              <FooterColumns
+                brand={brand}
+                columns={footerColumns}
+                copyright={navigation.footer?.copyright}
+                preview={preview}
+              />
+            ) : (
+              <>
+                <div className="wielo-cq-d hidden md:block">
+                  <FooterInner
+                    variant={footer.desktop}
+                    brand={brand}
+                    nav={flatNav}
+                    preview={preview}
+                  />
+                </div>
+                <div className="wielo-cq-m md:hidden">
+                  <FooterInner
+                    variant={footer.mobile}
+                    brand={brand}
+                    nav={flatNav}
+                    preview={preview}
+                  />
+                </div>
+              </>
+            )}
+            {navigation.footer?.showPoweredBy !== false ? (
+              <div
+                style={{ borderColor: "var(--site-line)" }}
+                className="border-t"
               >
-                Powered by Wielo
-              </p>
-            </div>
-          ) : null}
-        </footer>
+                <p
+                  style={{ color: "var(--site-mute)" }}
+                  className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
+                >
+                  Powered by Wielo
+                </p>
+              </div>
+            ) : null}
+          </footer>
+        )}
       </ChromeEditWrap>
 
       <WhatsAppButton whatsapp={conversion.whatsapp} />
