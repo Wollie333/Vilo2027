@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatMoney } from "@/lib/format";
 
 import {
   copySeasonalRulesToListingAction,
@@ -162,9 +163,6 @@ function intersectsYear(rule: SeasonalRule, year: number): boolean {
   return rule.startDate <= `${year}-12-31` && rule.endDate >= `${year}-01-01`;
 }
 
-function formatZAR(amount: number): string {
-  return `R ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 function fmtDay(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-ZA", {
     day: "numeric",
@@ -415,6 +413,7 @@ function Kpis({
   rulesInYear: SeasonalRule[];
   year: number;
 }) {
+  const money = (n: number) => formatMoney(n, listing.currency);
   const minRoomBase = listing.rooms.length
     ? Math.min(...listing.rooms.map((r) => r.basePrice))
     : null;
@@ -432,9 +431,9 @@ function Kpis({
 
   const baseLabel =
     listing.basePrice != null
-      ? formatZAR(listing.basePrice)
+      ? money(listing.basePrice)
       : minRoomBase != null
-        ? `From ${formatZAR(minRoomBase)}`
+        ? `From ${money(minRoomBase)}`
         : "—";
 
   const total = daysInYear(year);
@@ -472,9 +471,7 @@ function Kpis({
         </div>
         <div className="mt-3 flex items-baseline gap-2">
           <span className="num font-display text-3xl font-bold text-brand-ink">
-            {listing.weekendPrice != null
-              ? formatZAR(listing.weekendPrice)
-              : "—"}
+            {listing.weekendPrice != null ? money(listing.weekendPrice) : "—"}
           </span>
           {weekendPct != null && weekendPct !== 0 ? (
             <span
@@ -565,7 +562,7 @@ function Kpis({
           >
             {cover.uplift == null
               ? "—"
-              : `${cover.uplift >= 0 ? "+" : "−"}${formatZAR(Math.abs(cover.uplift))}`}
+              : `${cover.uplift >= 0 ? "+" : "−"}${money(Math.abs(cover.uplift))}`}
           </span>
         </div>
         <div className="mt-1 text-xs text-brand-mute">
@@ -679,6 +676,7 @@ function Timeline({
   onYearChange: (y: number) => void;
   today: string;
 }) {
+  const money = (n: number) => formatMoney(n, listing.currency);
   const minRoomBase = listing.rooms.length
     ? Math.min(...listing.rooms.map((r) => r.basePrice))
     : null;
@@ -789,7 +787,7 @@ function Timeline({
               style={{ top: `${baseTop}%` }}
             >
               <span className="num absolute right-0 -translate-y-1/2 rounded border border-dashed border-status-draft bg-white px-1.5 py-px text-[10px] text-brand-mute">
-                Base · {base != null ? formatZAR(base) : "—"}
+                Base · {base != null ? money(base) : "—"}
               </span>
             </div>
           ) : null}
@@ -803,7 +801,7 @@ function Timeline({
           bars.map((b) => (
             <div
               key={b.id}
-              title={`${b.label} · ${formatZAR(b.price)}`}
+              title={`${b.label} · ${money(b.price)}`}
               className="absolute bottom-0 flex items-start justify-center rounded-t-md transition-[filter,transform] hover:-translate-y-0.5 hover:brightness-105"
               style={{
                 left: `${b.left}%`,
@@ -820,7 +818,7 @@ function Timeline({
                       : "text-white/95"
                   }`}
                 >
-                  {formatZAR(b.price)}
+                  {money(b.price)}
                 </span>
               ) : null}
             </div>
@@ -861,6 +859,7 @@ function PricingRules({
   rulesInYear: SeasonalRule[];
   year: number;
 }) {
+  const money = (n: number) => formatMoney(n, listing.currency);
   const minRoomBase = listing.rooms.length
     ? Math.min(...listing.rooms.map((r) => r.basePrice))
     : null;
@@ -885,7 +884,7 @@ function PricingRules({
     {
       label: "Base rate",
       sub: "Per night, no season active",
-      value: base != null ? formatZAR(base) : "—",
+      value: base != null ? money(base) : "—",
     },
     {
       label: "Weekend uplift",
@@ -894,7 +893,7 @@ function PricingRules({
         weekendPct != null
           ? `${weekendPct > 0 ? "+" : ""}${weekendPct}%`
           : listing.weekendPrice != null
-            ? formatZAR(listing.weekendPrice)
+            ? money(listing.weekendPrice)
             : "Not set",
     },
     {
@@ -902,7 +901,7 @@ function PricingRules({
       sub: "One-off per stay",
       value:
         listing.cleaningFee && listing.cleaningFee > 0
-          ? formatZAR(listing.cleaningFee)
+          ? money(listing.cleaningFee)
           : "None",
     },
     {
@@ -954,18 +953,18 @@ function PricingRules({
             <p className="mt-2 text-[12.5px] leading-relaxed text-brand-accent/90">
               Guests pay between{" "}
               <span className="num font-semibold text-white">
-                {formatZAR(cover.low)}
+                {money(cover.low)}
               </span>{" "}
               and{" "}
               <span className="num font-semibold text-white">
-                {formatZAR(cover.high)}
+                {money(cover.high)}
               </span>{" "}
               a night
               {cover.avgNight != null ? (
                 <>
                   , averaging{" "}
                   <span className="num font-semibold text-white">
-                    {formatZAR(cover.avgNight)}
+                    {money(cover.avgNight)}
                   </span>
                 </>
               ) : null}
@@ -1143,6 +1142,7 @@ function SeasonRowItem({
   onUpdated: (rule: SeasonalRule) => void;
   onDeleted: (id: string) => void;
 }) {
+  const money = (n: number) => formatMoney(n, listing.currency);
   const [pending, start] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1231,7 +1231,7 @@ function SeasonRowItem({
       </td>
       <td className="num px-5 py-3.5 text-xs text-brand-ink">{nights}</td>
       <td className="num px-5 py-3.5 text-right font-display font-bold text-brand-ink">
-        {formatZAR(rule.price)}
+        {money(rule.price)}
       </td>
       <td className="px-5 py-3.5 text-right">
         {pct == null || pct === 0 ? (
@@ -1337,6 +1337,7 @@ function GuestPreview({
   rulesInYear: SeasonalRule[];
   year: number;
 }) {
+  const money = (n: number) => formatMoney(n, listing.currency);
   const minRoomBase = listing.rooms.length
     ? Math.min(...listing.rooms.map((r) => r.basePrice))
     : null;
@@ -1394,7 +1395,7 @@ function GuestPreview({
             <span className="h-2 w-2 rounded-sm bg-status-draft" /> Standard
           </div>
           <div className="num mt-1.5 font-display text-lg font-bold text-brand-ink">
-            {base != null ? formatZAR(base) : "—"}
+            {base != null ? money(base) : "—"}
           </div>
           <div className="mt-0.5 text-[10px] text-brand-mute">Base rate</div>
         </div>
@@ -1418,7 +1419,7 @@ function GuestPreview({
                 <span className="truncate">{g.label}</span>
               </div>
               <div className="num mt-1.5 font-display text-lg font-bold text-brand-ink">
-                {formatZAR(g.price)}
+                {money(g.price)}
               </div>
               <div
                 className={`mt-0.5 text-[10px] font-medium ${
@@ -1442,7 +1443,7 @@ function GuestPreview({
           <BarChart3 className="h-4 w-4 text-brand-mute" />
           <div className="mt-1 text-[11px] text-brand-mute">Avg / night</div>
           <div className="num font-display text-base font-bold text-brand-secondary">
-            {cover.avgNight != null ? formatZAR(cover.avgNight) : "—"}
+            {cover.avgNight != null ? money(cover.avgNight) : "—"}
           </div>
         </div>
       </div>
@@ -1573,6 +1574,9 @@ function RuleDialog({
         };
 
   const [listingId, setListingId] = useState(initial.listingId);
+  const activeCurrency =
+    listings.find((l) => l.id === listingId)?.currency ?? "ZAR";
+  const money = (n: number) => formatMoney(n, activeCurrency);
   const [roomId, setRoomId] = useState<string | null>(initial.roomId);
   const [label, setLabel] = useState(initial.label);
   const [startDate, setStartDate] = useState(initial.startDate);
@@ -1861,9 +1865,9 @@ function RuleDialog({
 
         {adjustmentType === "percent" && refBase > 0 && valueNum !== 0 && (
           <p className="text-[11px] text-brand-mute">
-            ≈ {formatZAR(displayNightly)} / night against this{" "}
-            {roomId ? "room" : "listing"}&rsquo;s {formatZAR(refBase)} base. The
-            % scales your per-guest and extra-guest rates too.
+            ≈ {money(displayNightly)} / night against this{" "}
+            {roomId ? "room" : "listing"}&rsquo;s {money(refBase)} base. The %
+            scales your per-guest and extra-guest rates too.
           </p>
         )}
 
@@ -1886,9 +1890,9 @@ function RuleDialog({
         {nights > 0 && displayNightly > 0 ? (
           <div className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-xs text-brand-dark">
             <CalendarRange className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-            {formatZAR(displayNightly)} × {nights} night
+            {money(displayNightly)} × {nights} night
             {nights === 1 ? "" : "s"} ={" "}
-            <strong className="font-semibold">{formatZAR(total)}</strong>
+            <strong className="font-semibold">{money(total)}</strong>
           </div>
         ) : null}
 
