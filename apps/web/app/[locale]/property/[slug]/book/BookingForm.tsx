@@ -1483,13 +1483,21 @@ export function BookingForm({
                         </div>
                         {selected ? (
                           <div className="mt-1.5 text-right font-mono text-[11px] text-brand-secondary">
-                            × {nights} ={" "}
-                            <span className="font-semibold">
-                              {formatMoney(
-                                gv(nightly * nights + r.cleaningFee),
-                                currency,
-                              )}
-                            </span>
+                            {nights > 0 ? (
+                              <>
+                                {nights} {nights === 1 ? "night" : "nights"} ={" "}
+                                <span className="font-semibold">
+                                  {formatMoney(
+                                    gv(nightly * nights + r.cleaningFee),
+                                    currency,
+                                  )}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-brand-mute">
+                                Pick dates for a price
+                              </span>
+                            )}
                           </div>
                         ) : null}
                       </div>
@@ -2967,7 +2975,8 @@ export function BookingForm({
                             {listingName}
                           </div>
                           <div className="font-mono text-[10.5px] text-white/45">
-                            {formatMoney(basePrice, currency)} × {nights}n
+                            {formatMoney(basePrice, currency)}{" "}
+                            {nights > 0 ? `× ${nights}n` : "/ night"}
                           </div>
                         </div>
                         <div className="shrink-0 text-[13px] font-semibold text-white">
@@ -2999,8 +3008,8 @@ export function BookingForm({
                                 {r.name}
                               </div>
                               <div className="font-mono text-[10.5px] text-white/45">
-                                {formatMoney(roomNightly(r), currency)} ×{" "}
-                                {nights}n
+                                {formatMoney(roomNightly(r), currency)}{" "}
+                                {nights > 0 ? `× ${nights}n` : "/ night"}
                               </div>
                             </div>
                             <div className="shrink-0 text-[13px] font-semibold text-white">
