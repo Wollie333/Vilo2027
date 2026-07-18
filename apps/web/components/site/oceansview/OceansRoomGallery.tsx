@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type OceansGalleryImage = { url: string; alt?: string | null };
 
 /**
  * Oceans View room gallery — the reference mosaic (one tall main photo + two
- * stacked side photos) with a "View all N photos" pill and a click-to-zoom
- * lightbox. Falls back gracefully to whatever photos exist (1, 2 or 3+).
+ * stacked side photos) with a "View all N photos" pill and a full LIGHTBOX
+ * SLIDER: click any photo to open, then browse ALL the room's images with the
+ * on-screen ‹ › arrows, the keyboard (←/→, Esc) or the counter. Cycles wrap.
  */
 export function OceansRoomGallery({
   images,
@@ -16,12 +17,40 @@ export function OceansRoomGallery({
   images: OceansGalleryImage[];
   roomName: string;
 }) {
-  const [lightbox, setLightbox] = useState<string | null>(null);
   const shots = images.filter((i) => i.url);
+  const [idx, setIdx] = useState<number | null>(null);
+  const open = idx !== null;
+
+  const go = useCallback(
+    (delta: number) =>
+      setIdx((i) =>
+        i === null ? i : (i + delta + shots.length) % shots.length,
+      ),
+    [shots.length],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIdx(null);
+      else if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    // Lock body scroll while the lightbox is open.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, go]);
+
   if (shots.length === 0) return null;
 
   const [main, ...rest] = shots;
   const side = rest.slice(0, 2);
+  const multiple = shots.length > 1;
 
   return (
     <>
@@ -31,12 +60,12 @@ export function OceansRoomGallery({
           <img
             src={main.url}
             alt={main.alt ?? roomName}
-            onClick={() => setLightbox(main.url)}
+            onClick={() => setIdx(0)}
           />
           <button
             type="button"
             className="gcount"
-            onClick={() => setLightbox(main.url)}
+            onClick={() => setIdx(0)}
             aria-label="View all photos"
           >
             <svg
@@ -62,11 +91,10 @@ export function OceansRoomGallery({
             <img
               src={img.url}
               alt={img.alt ?? roomName}
-              onClick={() => setLightbox(img.url)}
+              onClick={() => setIdx(1 + i)}
             />
           </div>
         ))}
-        {/* Keep the mosaic shape when there are fewer than 3 photos. */}
         {side.length === 0 ? (
           <>
             <div className="g" aria-hidden style={{ opacity: 0 }} />
@@ -77,16 +105,91 @@ export function OceansRoomGallery({
         ) : null}
       </div>
 
-      <div
-        className={lightbox ? "ovroom-lightbox open" : "ovroom-lightbox"}
-        onClick={() => setLightbox(null)}
-        role="presentation"
-      >
-        {lightbox ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={lightbox} alt={`${roomName} — enlarged`} />
-        ) : null}
-      </div>
+      {open ? (
+        <div
+          className="ovroom-lightbox open"
+          onClick={() => setIdx(null)}
+          role="presentation"
+        >
+          <button
+            type="button"
+            className="ovlb-close"
+            onClick={() => setIdx(null)}
+            aria-label="Close"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          {multiple ? (
+            <button
+              type="button"
+              className="ovlb-arrow ovlb-prev"
+              onClick={(e) => {
+                e.stopPropagation();
+                go(-1);
+              }}
+              aria-label="Previous photo"
+            >
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          ) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={shots[idx].url}
+            alt={shots[idx].alt ?? `${roomName} — photo ${idx + 1}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {multiple ? (
+            <button
+              type="button"
+              className="ovlb-arrow ovlb-next"
+              onClick={(e) => {
+                e.stopPropagation();
+                go(1);
+              }}
+              aria-label="Next photo"
+            >
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          ) : null}
+          {multiple ? (
+            <div className="ovlb-count" onClick={(e) => e.stopPropagation()}>
+              {idx + 1} / {shots.length}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }

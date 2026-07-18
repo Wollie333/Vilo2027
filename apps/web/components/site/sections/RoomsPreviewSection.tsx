@@ -261,7 +261,7 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
               </h3>
               {room.description ? (
                 <p
-                  className="mt-4 max-w-[52ch] leading-relaxed"
+                  className="mt-4 line-clamp-3 max-w-[52ch] leading-relaxed"
                   style={{
                     color: "var(--el-desc-fg, var(--site-mute))",
                     fontSize: "var(--el-desc-size, 1rem)",
