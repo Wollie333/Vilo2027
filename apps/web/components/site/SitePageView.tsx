@@ -482,7 +482,7 @@ export async function SitePageView({
       assembleSiteDataByType(
         sbx,
         ctx,
-        new Set(["location", "rooms_preview"] as const),
+        new Set(["location", "rooms_preview", "policies"] as const),
       ),
     ]);
     const cp = parseContentProfileLoose(cpRow?.content_profile);
@@ -529,6 +529,7 @@ export async function SitePageView({
               address={loc?.address ?? null}
               mapEmbedUrl={loc?.mapEmbedUrl ?? null}
               faq={cp.contact?.faq ?? null}
+              policies={extras.policies ?? null}
               rooms={roomNames}
             />
           </SiteChrome>

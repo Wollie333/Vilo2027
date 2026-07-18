@@ -2,27 +2,52 @@ import "./oceansContact.css";
 
 import type { ReactNode } from "react";
 
+import type { RoomPolicies } from "@/lib/site/types";
+
 import { OceansContactForm } from "./OceansContactForm";
 
 type Faq = { q: string; a: string };
 
-// Always-true, brand-agnostic direct-booking answers — used only when the host
-// hasn't written their own FAQ. Never fabricates a property-specific claim
-// (check-in times, parking, inclusions), which we can't know.
-const GENERIC_FAQ: Faq[] = [
-  {
-    q: "How do I book?",
-    a: "Book directly here on this site — choose your dates and room and you'll pay exactly the rate shown. No agent, no marketplace, no booking fee.",
-  },
-  {
-    q: "Is it cheaper to book direct?",
-    a: "Yes. Booking straight with us means the price you see is the price you pay — there's never a commission added on top the way there is on the big travel sites.",
-  },
-  {
-    q: "How soon will I hear back?",
-    a: "A real person replies to every message, usually within a day. If your dates are tight, mention it and we'll prioritise getting back to you.",
-  },
-];
+// The standard fallback (per the `contact.faq` slot binding, `derive:
+// d.policiesFaq`): when the host hasn't written a wizard FAQ, pull the property's
+// REAL "things to know" — check-in/out, cancellation, house rules, child/pet
+// policy — into Q&A. Never fabricates generic prose; only renders the lines the
+// property actually sets. Empty in → empty out (the section then omits itself).
+function policiesToFaq(p?: RoomPolicies | null): Faq[] {
+  if (!p) return [];
+  const out: Faq[] = [];
+  if (p.checkIn || p.checkOut) {
+    const parts = [
+      p.checkIn ? `Check-in is from ${p.checkIn}` : "",
+      p.checkOut ? `check-out is by ${p.checkOut}` : "",
+    ].filter(Boolean);
+    out.push({
+      q: "What are the check-in and check-out times?",
+      a: `${parts.join(" and ")}.`,
+    });
+  }
+  if (p.cancellation)
+    out.push({ q: "What's your cancellation policy?", a: p.cancellation });
+  if (p.houseRules)
+    out.push({ q: "Are there any house rules?", a: p.houseRules });
+  if (p.children != null || p.pets != null) {
+    const bits = [
+      p.children != null
+        ? p.children
+          ? "Children are welcome."
+          : "This is an adults-only stay."
+        : "",
+      p.pets != null
+        ? p.pets
+          ? "Well-behaved pets are welcome."
+          : "Sorry, we can't accommodate pets."
+        : "",
+    ].filter(Boolean);
+    if (bits.length)
+      out.push({ q: "Are children and pets welcome?", a: bits.join(" ") });
+  }
+  return out;
+}
 
 // One contact-detail row. Rendered only when it has a value.
 function Row({
@@ -49,9 +74,10 @@ function Row({
  * Oceans View CONTACT page — the founder's bespoke reference design. The message
  * form (left) is a real lead-capture form posting to the host inbox; the details
  * card (right) is wired to LIVE establishment data (phone/email/address, with the
- * map embed when we can build one). The FAQ comes from the host's content_profile
- * (with brand-agnostic direct-booking answers as a fallback). Renders inside the
- * themed chrome. Scoped under `.ovcontact`.
+ * map embed when we can build one). The FAQ follows the standard content flow:
+ * the host's wizard `content_profile.contact.faq`, falling back to the property's
+ * real policies (never fabricated prose); it omits entirely when there's nothing
+ * real to show. Renders inside the themed chrome. Scoped under `.ovcontact`.
  */
 export function OceansViewContact({
   brandName,
@@ -65,6 +91,7 @@ export function OceansViewContact({
   localityLabel,
   mapEmbedUrl,
   faq,
+  policies,
   rooms,
 }: {
   brandName: string;
@@ -78,6 +105,7 @@ export function OceansViewContact({
   localityLabel?: string | null;
   mapEmbedUrl?: string | null;
   faq?: Faq[] | null;
+  policies?: RoomPolicies | null;
   rooms?: string[] | null;
 }) {
   const headImg =
@@ -87,8 +115,10 @@ export function OceansViewContact({
     subheadline?.trim() ||
     "Booking, transfers, a special request — a real person replies within a day.";
 
-  const items = (faq ?? []).filter((f) => f.q && f.a);
-  const faqList = items.length ? items : GENERIC_FAQ;
+  // Wizard FAQ first (host-authored), else the property's real policies. No
+  // hardcoded generic copy — an empty list omits the whole FAQ section below.
+  const authored = (faq ?? []).filter((f) => f.q && f.a);
+  const faqList = authored.length ? authored : policiesToFaq(policies);
   const hasDetails = Boolean(phone || email || address);
 
   return (
@@ -243,43 +273,45 @@ export function OceansViewContact({
         </section>
       ) : null}
 
-      {/* FAQ */}
-      <section className="section sand">
-        <div className="wrap-read">
-          <div className="sec-head center" style={{ marginBottom: 36 }}>
-            <span className="tag" style={{ justifyContent: "center" }}>
-              Good to know
-            </span>
-            <h2 className="lg" style={{ marginTop: 16 }}>
-              Frequently asked
-            </h2>
+      {/* FAQ — only when the wizard or the property's policies provide real items */}
+      {faqList.length ? (
+        <section className="section sand">
+          <div className="wrap-read">
+            <div className="sec-head center" style={{ marginBottom: 36 }}>
+              <span className="tag" style={{ justifyContent: "center" }}>
+                Good to know
+              </span>
+              <h2 className="lg" style={{ marginTop: 16 }}>
+                Frequently asked
+              </h2>
+            </div>
+            <div>
+              {faqList.map((f, i) => (
+                <details className="faq" key={i} open={i === 0}>
+                  <summary>
+                    {f.q}
+                    <span className="pm">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        aria-hidden
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </span>
+                  </summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
+            </div>
           </div>
-          <div>
-            {faqList.map((f, i) => (
-              <details className="faq" key={i} open={i === 0}>
-                <summary>
-                  {f.q}
-                  <span className="pm">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      aria-hidden
-                    >
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </span>
-                </summary>
-                <p>{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }
