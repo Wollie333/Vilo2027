@@ -409,11 +409,11 @@ const safari = {
     }),
 };
 
-// ── Sabela Lodge — dark-first editorial safari lodge (ebony ground, brand-gold)
+// ── Hotel — dark-first editorial safari lodge (ebony ground, brand-gold)
 // The founder's second theme. Voice: intimate, design-led, the reserve at dusk.
 // Most home bands carry tone "dark" to match the ebony-first design; the scoped
-// .wielo-sabela render layer + Ebony base supply the look.
-const sabela = {
+// .wielo-hotel render layer + Ebony base supply the look.
+const hotel = {
   heroFull: () =>
     build("hero", (s) => {
       s.tone = "dark";
@@ -450,7 +450,7 @@ const sabela = {
     }),
   story: () =>
     build("intro", (s) => {
-      s.props.eyebrow = "The Sabela experience";
+      s.props.eyebrow = "The Hotel experience";
       s.props.heading = "A safari measured in moments, not checklists";
       s.props.body =
         "Some places you pass through. This one stays with you. Days here move to the rhythm of the reserve — first light on the riverbed, long drives, the slow hush of the afternoon, and a fire under more stars than you have ever seen.\n\nReplace this with your own story: the land, the welcome, and why guests make the journey.";
@@ -474,7 +474,7 @@ const sabela = {
       s.props.eyebrow = "Our story";
       s.props.heading = "The land came first";
       s.props.body =
-        "Sabela began with a single idea: take the fences down and let the bush decide what it wanted to be. Fifteen years on, those squares are one unbroken wilderness — the grass came back, then the antelope, then the predators that follow them.";
+        "Hotel began with a single idea: take the fences down and let the bush decide what it wanted to be. Fifteen years on, those squares are one unbroken wilderness — the grass came back, then the antelope, then the predators that follow them.";
       s.props.badge_value = "12,000";
       s.props.badge_label = "Hectares rewilded";
       s.props.variant = "lead";
@@ -491,7 +491,7 @@ const sabela = {
   aboutHost: () =>
     build("host_bio", (s) => {
       s.props.heading = "Your team in the bush";
-      s.props.name = "Themba Nkosi & the Sabela guides";
+      s.props.name = "Themba Nkosi & the Hotel guides";
       s.props.body =
         "A few warm lines about the people who will share the reserve with you, and what they love most about this corner of the bush. Born of the Waterberg, their knowledge is not trained — it is inherited.";
     }),
@@ -611,7 +611,7 @@ const sabela = {
     build("map", (s) => {
       s.props.heading = "Find us";
       s.props.address =
-        "Sabela Private Reserve · Waterberg Biosphere, Vaalwater, Limpopo";
+        "Hotel Private Reserve · Waterberg Biosphere, Vaalwater, Limpopo";
     }),
   faq: () =>
     build("faq", (s) => {
@@ -689,99 +689,99 @@ const sabela = {
     }),
 };
 
-const SABELA_PRESETS: ThemeSectionPreset[] = [
+const HOTEL_PRESETS: ThemeSectionPreset[] = [
   {
-    key: "sabela_hero_full",
+    key: "hotel_hero_full",
     label: "Hero — fullscreen",
-    make: sabela.heroFull,
+    make: hotel.heroFull,
   },
-  { key: "sabela_hero_split", label: "Hero — split", make: sabela.heroSplit },
-  { key: "sabela_story", label: "Story", make: sabela.story },
+  { key: "hotel_hero_split", label: "Hero — split", make: hotel.heroSplit },
+  { key: "hotel_story", label: "Story", make: hotel.story },
   {
-    key: "sabela_experiences",
+    key: "hotel_experiences",
     label: "Experiences",
-    make: sabela.experiences,
+    make: hotel.experiences,
   },
-  { key: "sabela_gallery", label: "Gallery", make: sabela.gallery },
-  { key: "sabela_reviews", label: "Reviews", make: sabela.reviews },
-  { key: "sabela_location", label: "Location", make: sabela.location },
-  { key: "sabela_cta", label: "Booking CTA", make: sabela.ctaBanner },
+  { key: "hotel_gallery", label: "Gallery", make: hotel.gallery },
+  { key: "hotel_reviews", label: "Reviews", make: hotel.reviews },
+  { key: "hotel_location", label: "Location", make: hotel.location },
+  { key: "hotel_cta", label: "Booking CTA", make: hotel.ctaBanner },
   {
-    key: "sabela_contact_form",
+    key: "hotel_contact_form",
     label: "Contact form",
-    make: sabela.contactForm,
+    make: hotel.contactForm,
   },
-  { key: "sabela_faq", label: "FAQ", make: sabela.faq },
-  { key: "sabela_amenities", label: "At the lodge", make: sabela.amenities },
-  { key: "sabela_pricing", label: "Rates", make: sabela.pricing },
-  { key: "sabela_blog", label: "Journal", make: sabela.blog },
+  { key: "hotel_faq", label: "FAQ", make: hotel.faq },
+  { key: "hotel_amenities", label: "At the lodge", make: hotel.amenities },
+  { key: "hotel_pricing", label: "Rates", make: hotel.pricing },
+  { key: "hotel_blog", label: "Journal", make: hotel.blog },
 ];
 
-const SABELA_TEMPLATES: ThemeTemplate[] = [
+const HOTEL_TEMPLATES: ThemeTemplate[] = [
   {
-    key: "sabela_home",
+    key: "hotel_home",
     label: "Home",
     description:
       "Fullscreen hero, the experience, suites, gallery, reviews, location and a booking CTA.",
     make: () => [
-      sabela.heroFull(),
-      sabela.story(),
-      sabela.experiences(),
-      sabela.rooms(),
-      sabela.gallery(),
-      sabela.reviews(),
-      sabela.location(),
-      sabela.ctaBanner(),
+      hotel.heroFull(),
+      hotel.story(),
+      hotel.experiences(),
+      hotel.rooms(),
+      hotel.gallery(),
+      hotel.reviews(),
+      hotel.location(),
+      hotel.ctaBanner(),
     ],
   },
   {
-    key: "sabela_about",
+    key: "hotel_about",
     label: "About",
     description:
       "Page-header banner, your story, the stats band, your team, your commitments and a CTA.",
     make: () => [
-      sabela.aboutHero(),
-      sabela.aboutStory(),
-      sabela.aboutStats(),
-      sabela.aboutHost(),
-      sabela.aboutValues(),
-      sabela.ctaBanner(),
+      hotel.aboutHero(),
+      hotel.aboutStory(),
+      hotel.aboutStats(),
+      hotel.aboutHost(),
+      hotel.aboutValues(),
+      hotel.ctaBanner(),
     ],
   },
   {
-    key: "sabela_rooms",
+    key: "hotel_rooms",
     label: "Suites",
     description:
       "Page-header banner, what's included, your suites as full-width showcases, rates and a CTA.",
     make: () => [
-      sabela.roomsHero(),
-      sabela.roomsIncluded(),
-      sabela.roomsShowcase(),
-      sabela.pricing(),
-      sabela.ctaBanner(),
+      hotel.roomsHero(),
+      hotel.roomsIncluded(),
+      hotel.roomsShowcase(),
+      hotel.pricing(),
+      hotel.ctaBanner(),
     ],
   },
   {
-    key: "sabela_journal",
+    key: "hotel_journal",
     label: "Journal",
     description:
       "Page-header banner, your posts (featured + grid) and a newsletter sign-up.",
     make: () => [
-      sabela.journalHero(),
-      sabela.journalPosts(),
-      sabela.newsletterCta(),
+      hotel.journalHero(),
+      hotel.journalPosts(),
+      hotel.newsletterCta(),
     ],
   },
   {
-    key: "sabela_contact",
+    key: "hotel_contact",
     label: "Contact",
     description:
       "Page-header banner, enquiry form + details, a map and the good-to-know FAQ.",
     make: () => [
-      sabela.contactHero(),
-      sabela.contactForm(),
-      sabela.contactMap(),
-      sabela.faq(),
+      hotel.contactHero(),
+      hotel.contactForm(),
+      hotel.contactMap(),
+      hotel.faq(),
     ],
   },
 ];
@@ -1656,13 +1656,13 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
 // ── Registry (keyed by theme slug = SiteThemeConfig.preset) ───────────────
 const PRESETS: Record<string, ThemeSectionPreset[]> = {
   safari: SAFARI_PRESETS,
-  sabela: SABELA_PRESETS,
+  hotel: HOTEL_PRESETS,
   oceansview: OCEANSVIEW_PRESETS,
   marmalade: MARMALADE_PRESETS,
 };
 const TEMPLATES: Record<string, ThemeTemplate[]> = {
   safari: SAFARI_TEMPLATES,
-  sabela: SABELA_TEMPLATES,
+  hotel: HOTEL_TEMPLATES,
   oceansview: OCEANSVIEW_TEMPLATES,
   marmalade: MARMALADE_TEMPLATES,
 };
@@ -1675,7 +1675,7 @@ const TEMPLATES: Record<string, ThemeTemplate[]> = {
 // gets no theme blocks.
 const ACTIVE_THEME_SLUGS = new Set<string>([
   "safari",
-  "sabela",
+  "hotel",
   "oceansview",
   "marmalade",
 ]);
@@ -1755,7 +1755,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.location(),
     safari.ctaBanner(),
   ],
-  sabela: () => [
+  hotel: () => [
     roomDetail.gallery(),
     roomDetail.overview(),
     roomDetail.amenities(),
@@ -1763,9 +1763,9 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.rates(),
     roomDetail.seasonal(),
     roomDetail.policies(),
-    sabela.reviews(),
+    hotel.reviews(),
     roomDetail.location(),
-    sabela.ctaBanner(),
+    hotel.ctaBanner(),
   ],
   oceansview: () => [
     roomDetail.gallery(),

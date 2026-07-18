@@ -387,13 +387,13 @@
 }
 
 /* ======================================================================
- * SABELA LODGE — dark-first editorial safari lodge (ebony · warm bone · gold)
- * Ref: docs/themes/sabela/{theme.source.css, base.md, pages/*.html}
+ * HOTEL — dark-first editorial safari lodge (ebony · warm bone · gold)
+ * Ref: docs/themes/hotel/{theme.source.css, base.md, pages/*.html}
  * Complete skin: tokens, hero display scale, and section skins — the editorial
  * gold eyebrow rule, hero rhythm, soft-dark fact chips, surface review cards,
- * sharp imagery — matching the reference recipe. Scope: `.wielo-sabela`.
+ * sharp imagery — matching the reference recipe. Scope: `.wielo-hotel`.
  * ==================================================================== */
-.wielo-sabela {
+.wielo-hotel {
   /* Extra tokens the dark lodge look derives from (Ebony defaults from base.md),
      beyond the core --site-* palette. Additive — brand-safe fallbacks elsewhere. */
   --site-soft: #1a1710; /* raised dark band */
@@ -407,7 +407,7 @@
   --site-cta-accent: #c9a24a; /* brand gold */
   --site-ring: rgba(201, 162, 74, 0.24);
   --site-accent-deep: #b08a34; /* darker gold (hover) */
-  /* Dark-first bands: sabela has no bright "sand"; the sand tone degrades to the
+  /* Dark-first bands: hotel has no bright "sand"; the sand tone degrades to the
      raised dark soft fill, and navy anchors deeper still. */
   --site-navy: #0c0a06;
   --site-navy-2: #1a1710;
@@ -431,10 +431,10 @@
 }
 
 /* Reference fidelity (descendant beats the root's inline modular scale, no
-   !important, host edits still win) — sabela's editorial display recipe from
+   !important, host edits still win) — hotel's editorial display recipe from
    theme.source.css: Cormorant 700 @ tracking 0, tight 1.07 leading, 17px body,
    pill CTAs, sharp cards with a deep soft shadow, near-sharp imagery. */
-.wielo-sabela [data-section-type] {
+.wielo-hotel [data-section-type] {
   --site-weight-heading: 700;
   --site-tracking-heading: 0;
   --site-leading-heading: 1.07;
@@ -454,7 +454,7 @@
 /* The reference precedes each section heading with a gold uppercase tag and a
    short rule (not a dot). `.site-eyebrow` carries no inline background, so this
    styles cleanly; per-element edits still win. */
-.wielo-sabela .site-eyebrow {
+.wielo-hotel .site-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -464,7 +464,7 @@
   text-transform: uppercase;
   font-size: 12px;
 }
-.wielo-sabela .site-eyebrow::before {
+.wielo-hotel .site-eyebrow::before {
   content: "";
   width: 26px;
   height: 1.5px;
@@ -475,21 +475,21 @@
 /* --- HERO --------------------------------------------------------------- */
 /* Structural rhythm only (type stays host-editable via the el/site-hero vars).
    Wide editorial measure per the reference hero. */
-.wielo-sabela [data-section-type="hero"] .site-hero-title {
+.wielo-hotel [data-section-type="hero"] .site-hero-title {
   max-width: 18ch;
   margin-top: 22px;
 }
-.wielo-sabela [data-section-type="hero"] .site-hero-sub {
+.wielo-hotel [data-section-type="hero"] .site-hero-sub {
   max-width: 56ch;
   margin-top: 22px;
 }
-.wielo-sabela [data-section-type="hero"] .site-hero-cta {
+.wielo-hotel [data-section-type="hero"] .site-hero-cta {
   gap: 14px;
   margin-top: 34px;
 }
 /* Hero eyebrow reads as the editorial tag over the photo: white text + a short
    white rule before it. */
-.wielo-sabela [data-section-type="hero"] .site-hero-eyebrow {
+.wielo-hotel [data-section-type="hero"] .site-hero-eyebrow {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
@@ -497,13 +497,13 @@
 }
 /* Hero stat row: a thin gold-tinted rule over the photo, wide gaps, serif
    numerals + small uppercase labels. */
-.wielo-sabela [data-section-type="hero"] .site-hero-stats {
+.wielo-hotel [data-section-type="hero"] .site-hero-stats {
   margin-top: 40px;
   padding-top: 26px;
   border-top: 1px solid rgba(255, 255, 255, 0.24);
   gap: 44px;
 }
-.wielo-sabela [data-section-type="hero"] .site-hero-stat-label {
+.wielo-hotel [data-section-type="hero"] .site-hero-stat-label {
   letter-spacing: 0.14em;
   font-size: 11px;
 }
@@ -511,33 +511,33 @@
 /* --- SUITE CARDS + SHOWCASE --------------------------------------------- */
 /* Fact chips: soft-dark pill with a hairline border + ink text (reference
    `.chip`). Restrained editorial hover-lift on the cards. */
-.wielo-sabela [data-section-type="rooms_preview"] .rounded-pill {
+.wielo-hotel [data-section-type="rooms_preview"] .rounded-pill {
   color: var(--site-ink);
   background: var(--site-soft);
   border-color: var(--site-line);
 }
-.wielo-sabela .site-room-card {
+.wielo-hotel .site-room-card {
   transition:
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
     box-shadow 0.4s;
 }
-.wielo-sabela .site-room-card:hover {
+.wielo-hotel .site-room-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.7);
 }
-.wielo-sabela .site-room-frame {
+.wielo-hotel .site-room-frame {
   transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
-.wielo-sabela .site-room-row:hover .site-room-frame {
+.wielo-hotel .site-room-row:hover .site-room-frame {
   transform: scale(1.02);
 }
-.wielo-sabela .site-room-badge {
+.wielo-hotel .site-room-badge {
   box-shadow: 0 24px 50px -22px rgba(0, 0, 0, 0.6);
 }
 
 /* --- EXPERIENCE / FEATURE TILES (highlights) ---------------------------- */
 /* Gold-tint icon box (when an icon is present). */
-.wielo-sabela [data-section-type="highlights"] .text-2xl {
+.wielo-hotel [data-section-type="highlights"] .text-2xl {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -547,15 +547,15 @@
   background: var(--site-tint);
   color: var(--site-accent);
 }
-.wielo-sabela .site-hl-tile {
+.wielo-hotel .site-hl-tile {
   transition: box-shadow 0.35s;
 }
-.wielo-sabela .site-hl-tile:hover {
+.wielo-hotel .site-hl-tile:hover {
   box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.65);
 }
 
 /* --- INCLUDED PILL BAR (amenities inline) ------------------------------- */
-.wielo-sabela .site-amen-pill {
+.wielo-hotel .site-amen-pill {
   color: var(--site-ink);
   background: var(--site-soft);
   border: 1px solid var(--site-line);
@@ -565,54 +565,54 @@
 }
 
 /* --- GALLERY MOSAIC (sharp corners) ------------------------------------- */
-.wielo-sabela [data-section-type="gallery"] .overflow-hidden {
+.wielo-hotel [data-section-type="gallery"] .overflow-hidden {
   border-radius: var(--site-img-radius);
 }
 
 /* --- TESTIMONIALS (surface cards, sharp radius, editorial hover) --------- */
-.wielo-sabela [data-section-type="reviews"] .grid > * {
+.wielo-hotel [data-section-type="reviews"] .grid > * {
   border-radius: var(--site-radius-lg, 6px);
   transition: box-shadow 0.4s;
 }
-.wielo-sabela [data-section-type="reviews"] .grid > *:hover {
+.wielo-hotel [data-section-type="reviews"] .grid > *:hover {
   box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.7);
 }
 
 /* --- LOCATION (round the embedded map to the theme radius) -------------- */
-.wielo-sabela [data-section-type="location"] iframe {
+.wielo-hotel [data-section-type="location"] iframe {
   border-radius: var(--site-img-radius);
 }
 
 /* --- FAQ (airier rows) -------------------------------------------------- */
-.wielo-sabela [data-section-type="faq"] details {
+.wielo-hotel [data-section-type="faq"] details {
   padding-top: 16px;
   padding-bottom: 16px;
 }
 
 /* --- HOST BIO (tighten the display name tracking) ----------------------- */
-.wielo-sabela [data-section-type="host_bio"] h3 {
+.wielo-hotel [data-section-type="host_bio"] h3 {
   letter-spacing: -0.01em;
 }
 
 /* --- AMENITIES (facilities grid — soft hover lift) ---------------------- */
-.wielo-sabela [data-section-type="amenities"] .grid > div {
+.wielo-hotel [data-section-type="amenities"] .grid > div {
   transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
-.wielo-sabela [data-section-type="amenities"] .grid > div:hover {
+.wielo-hotel [data-section-type="amenities"] .grid > div:hover {
   transform: translateY(-4px);
 }
 
 /* --- ROOM DETAIL (sticky rate card + sharp imagery) --------------------- */
-.wielo-sabela [data-section-type="room_rate"] {
+.wielo-hotel [data-section-type="room_rate"] {
   position: sticky;
   top: 100px;
 }
-.wielo-sabela [data-section-type="room_rate"] a[href] {
+.wielo-hotel [data-section-type="room_rate"] a[href] {
   display: flex;
   width: 100%;
 }
-.wielo-sabela [data-section-type="room_gallery"] .overflow-hidden,
-.wielo-sabela [data-section-type="room_gallery"] [class*="rounded"] {
+.wielo-hotel [data-section-type="room_gallery"] .overflow-hidden,
+.wielo-hotel [data-section-type="room_gallery"] [class*="rounded"] {
   border-radius: var(--site-img-radius);
 }
 
@@ -830,7 +830,7 @@
  * themeSections.ts) and the default preset, but shipped with NO skin — so it
  * rendered as bare generic blocks. This skin brings it to the same quality bar
  * as Oceans View using its own warm palette (no external reference design dir
- * exists for Safari, unlike sabela/oceansview/marmalade). Scope: `.wielo-safari`.
+ * exists for Safari, unlike hotel/oceansview/marmalade). Scope: `.wielo-safari`.
  * ==================================================================== */
 .wielo-safari {
   /* Extra tokens the warm-lodge look derives from, beyond the core --site-*

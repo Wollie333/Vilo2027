@@ -12,7 +12,7 @@ import "@/components/site/themes/theme-skins.css";
 // ?theme=<slug>.
 export const dynamic = "force-dynamic";
 
-const THEMES = ["oceansview", "safari", "sabela", "marmalade"] as const;
+const THEMES = ["oceansview", "safari", "hotel", "marmalade"] as const;
 
 function widget(
   id: string,

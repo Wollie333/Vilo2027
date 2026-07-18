@@ -103,13 +103,13 @@ export const SITE_PRESETS = {
     font: "grotesk",
     radius: "lg",
   },
-  // Sabela Lodge — dark-first editorial safari lodge (Ebony default). Deep ebony
+  // Hotel — dark-first editorial safari lodge (Ebony default). Deep ebony
   // ground, warm-bone ink, brand-gold accent; editorial serif display, sharp
   // corners. Fallback for when the DB theme base is unavailable (else it
   // collapses to "warm", the wrong palette); the dark bands + gold details come
-  // from the .wielo-sabela skin.
-  sabela: {
-    label: "Sabela Lodge",
+  // from the .wielo-hotel skin.
+  hotel: {
+    label: "Hotel",
     palette: {
       bg: "#14120D",
       surface: "#1C1913",

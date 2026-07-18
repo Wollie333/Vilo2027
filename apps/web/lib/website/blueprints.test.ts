@@ -6,7 +6,7 @@ import { getThemeBlueprints, getThemeTemplatePageDoc } from "./themeSections";
 import { newSection } from "./sectionDefaults";
 import type { WebsiteSection } from "./sections.schema";
 
-const THEMES = ["safari", "sabela", "oceansview", "marmalade"] as const;
+const THEMES = ["safari", "hotel", "oceansview", "marmalade"] as const;
 
 // A designed section like the theme templates build: a composite with tone +
 // variant carried in props.

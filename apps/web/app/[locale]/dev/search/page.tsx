@@ -8,7 +8,7 @@ import "@/components/site/themes/theme-skins.css";
 // VISUALLY VERIFIED on the live render path locally (Principle #9). ?theme=<slug>.
 export const dynamic = "force-dynamic";
 
-const THEMES = ["oceansview", "safari", "sabela", "marmalade"] as const;
+const THEMES = ["oceansview", "safari", "hotel", "marmalade"] as const;
 
 export default async function DevSearchPage({
   searchParams,

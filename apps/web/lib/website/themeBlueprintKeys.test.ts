@@ -7,7 +7,7 @@ import { isPageDoc, pageDocLeaves } from "./pageDoc.schema";
 // (themeTemplateKeyForKind: `<slug>_<kind>`, blog → "journal"). If a theme
 // renames or drops one of these page templates, wizard seeding would silently
 // fall back to the generic spine — this test catches that.
-const ACTIVE_THEMES = ["safari", "sabela", "oceansview", "marmalade"] as const;
+const ACTIVE_THEMES = ["safari", "hotel", "oceansview", "marmalade"] as const;
 // Canonical page kinds a theme art-directs, mapped to its template key suffix.
 const KINDS: Array<[kind: string, keySuffix: string]> = [
   ["home", "home"],

@@ -13,7 +13,7 @@ const U = (id, w = 2400) => `https://images.unsplash.com/${id}?w=${w}&q=80`;
 // Per-theme HOME hero background photo (from the deleted <Theme>Sections.tsx).
 const HERO = {
   safari: U("photo-1516426122078-c23e76319801"),
-  sabela: U("photo-1516426122078-c23e76319801"),
+  hotel: U("photo-1516426122078-c23e76319801"),
   oceansview: U("photo-1507525428034-b723cf961d3e"),
   marmalade: U("photo-1505691938895-1758d7feb511"),
 };
@@ -21,7 +21,7 @@ const HERO = {
 // HOME "story" intro band → 2-col photo + floating stat badge (variant "story").
 const STORY = {
   safari: { img: U("photo-1582719478250-c89cae4dc85b", 1200), badge_value: "2009", badge_label: "Family-run since" },
-  sabela: { img: U("photo-1504280390367-361c6d9f38f4", 1200), badge_value: "12,000", badge_label: "Hectares rewilded" },
+  hotel: { img: U("photo-1504280390367-361c6d9f38f4", 1200), badge_value: "12,000", badge_label: "Hectares rewilded" },
   oceansview: { img: U("photo-1520250497591-112f2f40a3f4", 1200), badge_value: "3", badge_label: "Ocean pools" },
   marmalade: { img: U("photo-1505693416388-ac5ce068fe85", 1200), badge_value: "1873", badge_label: "A restored parsonage" },
 };
@@ -29,7 +29,7 @@ const STORY = {
 // HOME closing CTA band → full-bleed photo band + scrim (banner variant).
 const CTA = {
   safari: U("photo-1469474968028-56623f02e42e", 2000),
-  sabela: U("photo-1516426122078-c23e76319801", 2000),
+  hotel: U("photo-1516426122078-c23e76319801", 2000),
   oceansview: U("photo-1507525428034-b723cf961d3e", 2000),
   marmalade: U("photo-1505691938895-1758d7feb511", 2000),
 };
@@ -39,7 +39,7 @@ const CTA = {
 const galleryImgs = (ids) => ids.map((id) => ({ url: U(id, 1100) }));
 const GALLERY = {
   safari: galleryImgs(["photo-1547721064-da6cfb341d50", "photo-1546182990-dffeafbe841d", "photo-1501706362039-c06b2d715385", "photo-1611892440504-42a792e24d32", "photo-1500382017468-9049fed747ef", "photo-1469474968028-56623f02e42e", "photo-1502920514313-52581002a659"]),
-  sabela: galleryImgs(["photo-1547721064-da6cfb341d50", "photo-1546182990-dffeafbe841d", "photo-1501706362039-c06b2d715385", "photo-1611892440504-42a792e24d32", "photo-1500382017468-9049fed747ef", "photo-1469474968028-56623f02e42e", "photo-1502920514313-52581002a659"]),
+  hotel: galleryImgs(["photo-1547721064-da6cfb341d50", "photo-1546182990-dffeafbe841d", "photo-1501706362039-c06b2d715385", "photo-1611892440504-42a792e24d32", "photo-1500382017468-9049fed747ef", "photo-1469474968028-56623f02e42e", "photo-1502920514313-52581002a659"]),
   oceansview: galleryImgs(["photo-1505228395891-9a51e7e86bf6", "photo-1519046904884-53103b34b206", "photo-1507525428034-b723cf961d3e", "photo-1535262412227-85541e910204", "photo-1473116763249-2faaef81ccda", "photo-1468413253725-0d5181091126", "photo-1519046904884-53103b34b206"]),
   marmalade: galleryImgs(["photo-1522708323590-d24dbb6b0267", "photo-1470337458703-46ad1756a187", "photo-1505691938895-1758d7feb511", "photo-1416879595882-3373a0480b5b", "photo-1502602898657-3e91760cbb34", "photo-1466692476868-aef1dfb1e735", "photo-1560185007-cde436f6a4d0"]),
 };
@@ -122,5 +122,5 @@ async function enrich(slug) {
 }
 
 console.log("Enriching theme templates with stock images…");
-for (const slug of ["safari", "sabela", "oceansview", "marmalade"]) await enrich(slug);
+for (const slug of ["safari", "hotel", "oceansview", "marmalade"]) await enrich(slug);
 console.log("Done.");

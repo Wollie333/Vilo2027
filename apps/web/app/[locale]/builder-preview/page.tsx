@@ -29,7 +29,7 @@ import type {
 // Remove at cutover (Phase 6).
 export const dynamic = "force-dynamic";
 
-const THEME_SLUGS = ["safari", "sabela", "oceansview", "marmalade"] as const;
+const THEME_SLUGS = ["safari", "hotel", "oceansview", "marmalade"] as const;
 
 // Display webfonts the four themes use, so the blueprint preview reads faithfully
 // even without each theme's bespoke shell (which normally loads them).

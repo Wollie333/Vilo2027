@@ -10,14 +10,14 @@ import type { SiteNavigation } from "@/lib/site/types";
 // render path locally (BUSINESS_PRINCIPLES.md Principle #9). Not linked anywhere.
 //
 // Query params (all optional):
-//   ?theme=oceansview|safari|sabela|marmalade   theme tokens (default oceansview)
+//   ?theme=oceansview|safari|hotel|marmalade   theme tokens (default oceansview)
 //   &transparent=1                              transparent-over-hero header
 //   &scrolledBg=%230E2C3A  &scrolledColor=%23fff  &scrolledBorder=%23...
 //   &shadow=1                                   drop-shadow on scroll
 //   &bg=%23ffffff                               solid header background
 export const dynamic = "force-dynamic";
 
-const THEMES = ["oceansview", "safari", "sabela", "marmalade"] as const;
+const THEMES = ["oceansview", "safari", "hotel", "marmalade"] as const;
 
 export default async function DevChromePage({
   searchParams,
