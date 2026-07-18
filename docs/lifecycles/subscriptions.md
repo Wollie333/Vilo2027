@@ -80,13 +80,17 @@ yes.**
   two held memberships → the trigger blocks the host. It is unit-tested
   (`currentMembership.test.ts`, 17 tests) precisely because of this.
 
-### Step 5 — Renewal / expiry warnings (system) ⚠️ not verified
+### Step 5 — Renewal / expiry warnings (system) ✅ dispatch proven live
 - Trigger: cron · Actor: system
-- `subscription-expiry-warnings` — daily `0 8 * * *`: queues a
-  `subscription_expiring` notification (`days_remaining: 7`) for every `active` sub
-  whose `current_period_end` is within 7 days and which is **not** already set to
-  `cancel_at_period_end`.
-- DB writes: `notification_queue`.
+- `subscription-expiry-warnings` — daily `0 8 * * *`: for every `active`/`trialing`
+  sub whose `current_period_end` is within 7 days and which is **not** already
+  `cancel_at_period_end`, calls `notify_subscription_event(..., 'subscription_expiring',
+  {days_remaining})`. Reports the **real** days remaining (was hardcoded 7), dedupes
+  on `(subscription, period_end)` so it fires **once per period** (was one email every
+  day for 7 days), and routes through the SSOT → host email **+ host in-app + admin
+  finance feed** (was email-only). Rewritten in `20260718100000`.
+- DB writes: `notification_queue`, `in_app_notifications`, `admin_notifications`,
+  `notification_delivery_log` (the dedupe ledger).
 - ⚠️ There is **no auto-renew charge**. Renewal happens when a payment settles
   through Step 2 (which re-opens the period), not on a timer.
 
@@ -97,10 +101,26 @@ yes.**
 - Logic: applies plan changes that were scheduled for the period boundary
   (e.g. an admin downgrade that must not take effect mid-period).
 
-### Step 7 — Overdue → restricted (system) ⚠️ not verified
-- Trigger: cron `restrict-overdue-subscriptions`, hourly · Actor: system
-- Logic: `UPDATE subscriptions SET status='restricted' WHERE status='past_due' AND
-  grace_period_ends_at < now()`.
+### Step 7 — Payment failed → grace → restricted (system) ✅ dispatch proven live
+This is the **"disable, never delete"** path. A failed charge never touches host
+data — it only walks the status ladder, and feature-gating + the booking gate read
+that status. See [Failed payments & disabling](#failed-payments--disabling-never-delete).
+
+- **On `charge.failed`** (paystack-webhook): the pending checkout ledger row → `failed`,
+  or (auto-renewal, no pre-created row) a `failed` `platform_ledger` row is inserted
+  so the admin revenue view reflects the attempt (idempotent on `provider_reference`).
+  The sub moves `active/trialing → past_due` with a **5-day grace**; an already-`past_due`
+  sub keeps its **original** deadline (a repeatedly-failing card can't reset grace and
+  dodge restriction); a `restricted` sub stays restricted. `failed_payment_count` always
+  bumps. A `subscription_history` row records the transition, and
+  `notify_subscription_event(..., 'subscription_failed')` alerts host + admin
+  (deduped per attempt). Added in the `20260718100000` batch.
+- **On grace expiry** — cron `restrict-overdue-subscriptions`, hourly: moves
+  `past_due → restricted`, writes a `subscription_history` row, and notifies host +
+  admin via `subscription_restricted`. Rewritten in `20260718100000`.
+- **Recovery**: a later `charge.success` on a `past_due`/`restricted` sub sets it back
+  to `active`, resets `failed_payment_count` + `grace_period_ends_at` — features and
+  booking intake auto-restore (both read the live status). No manual step.
 - Note: `past_due` **still holds** the membership slot; `restricted` does not.
 
 ### Step 8 — Pause ✅
@@ -170,6 +190,39 @@ four times their entitlement, on a paid meter.
 
 `trialing` · `active` · `past_due` · `restricted` · `paused` · `cancelled` ·
 `expired` (`subscriptions_status_check`). **Held** = the first three.
+
+## Failed payments & disabling (never delete)
+
+A subscription failure **disables**, it never deletes. Data (bookings, invoices,
+guests, listings) is always retained; deletion is *only* the manual admin 30-day
+purge (`account-deletion.md`), which nothing in the billing path calls. The status
+drives a capability ladder, read live at each gate:
+
+| Status | Paid features | Receive **new** bookings | Manage existing | Data |
+|---|---|---|---|---|
+| `trialing` / `active` | ✅ | ✅ | ✅ | kept |
+| `past_due` (in grace) | ✅ | ✅ | ✅ | kept |
+| `restricted` (grace lapsed) | ❌ → free floor | ❌ **blocked** | ✅ | kept |
+| `paused` / `cancelled` / `expired` | ❌ | ❌ | ✅ | kept |
+
+- **Features** fall to the free floor via `check_feature_permission` (resolves paid
+  allowances only for `status IN ('trialing','active')`; everything else → the free
+  plan). No data touched.
+- **Booking intake** is gated by `hostAcceptsBookings()`
+  (`lib/subscriptions/hostAccess.ts`): allowed only when a sub exists with
+  `status IN ('trialing','active','past_due')` — `past_due` keeps intake ON through
+  the grace window on purpose. Enforced server-side at three choke points that a
+  client cannot bypass: `persistBookingAndPay` (the authoritative backstop for app
+  checkout + marketplace deal + website special), `priceBooking` (early UX block),
+  and `acceptAndConvertQuote` (quote → booking). Host-manual entry is intentionally
+  NOT gated. Fails **closed** on a definitive "no active membership", **open** only on
+  an infra error (a paying host is never denied by a DB blip).
+- **Notifications** (`notify_subscription_event`, `20260718100000`) reach **both host
+  and admin** for: renewal upcoming (Step 5), payment failed, and restricted (Step 7).
+  service_role-only; `p_kind` whitelisted; payload carries only `subscription_id`.
+
+⚠️ The status set that permits **booking intake** (`+past_due`) is deliberately WIDER
+than the set that unlocks **paid features** (no `past_due`). Keep them distinct.
 
 ## Credits
 

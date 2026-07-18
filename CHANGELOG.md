@@ -5,6 +5,53 @@
 
 ---
 
+## 2026-07-18 (pt21) — Subscription failure = disable, never delete + lifecycle notifications.
+
+Founder directive: a subscription failure must **disable** a host (block new bookings,
+drop paid features to the free floor) and **retain all data** — never delete — plus
+notify **host and admin** when payments are coming up, fail, or lapse. Verified against
+the live DB with `RAISE`-to-rollback rehearsals (nothing actually sent/changed).
+
+### 🔔 Lifecycle notifications now actually fire (`20260718100000`)
+The four events (`subscription_expiring/failed/restricted/welcome`) + their email
+templates existed but **nothing dispatched them**. Added `notify_subscription_event()`
+— one SSOT that fans a lifecycle event to **host email** (`notification_queue`) **+ host
+in-app** (`enqueue_in_app_notification`) **+ admin finance feed** (`admin_notifications`),
+deduped per billing period. Security: `SECURITY DEFINER`, pinned `search_path`, REVOKEd
+from public/anon/authenticated, `service_role`-only; `p_kind` whitelisted so it can't be
+coerced into an arbitrary email type or forged admin rows; payload carries only
+`subscription_id`. Proven live: all 3 channels + dedupe-ledger fire on first call, a
+repeat call is a no-op, an unknown kind raises.
+- `subscription-expiry-warnings` cron rewritten → routes through the SSOT (was
+  email-only), reports **real** days remaining (was hardcoded 7), dedupes on
+  `(sub, period_end)` so it fires **once per period** (was daily spam for 7 days),
+  covers trials.
+- `restrict-overdue-subscriptions` cron rewritten → on `past_due → restricted` it now
+  writes a `subscription_history` audit row **and** notifies host + admin.
+
+### 💳 Money + auto-status correctness on failure (paystack-webhook, deployed)
+`charge.failed` now: records a `failed` `platform_ledger` row for auto-renewal failures
+that have no pre-created row (idempotent on `provider_reference`); guards the state
+machine so only `active/trialing` enters grace (a repeatedly-failing card can't reset
+the 5-day clock and dodge restriction; `restricted` stays restricted); writes a
+`subscription_payment_failed` history row; and fires `subscription_failed` to host +
+admin (deduped per attempt). Recovery (`charge.success`) already auto-returns to
+`active` + resets counters — features and booking intake auto-restore.
+
+### 🚫 Booking intake blocked for disabled hosts (data retained)
+New `hostAcceptsBookings()` (`lib/subscriptions/hostAccess.ts`): a host receives new
+bookings only while a sub is `trialing/active/past_due`. Enforced server-side at three
+choke points a client can't bypass — `persistBookingAndPay` (authoritative backstop:
+app checkout + marketplace deal + website special), `priceBooking` (early UX block),
+`acceptAndConvertQuote` (quote→booking). Host-manual entry not gated. Fails closed on a
+definitive "no membership", open only on infra error. Proven live: `active` allowed,
+fully-`restricted` denied (rolled back). Listings stay visible; the block is at checkout.
+
+Docs: `docs/lifecycles/subscriptions.md` Steps 5 & 7 + new "Failed payments & disabling
+(never delete)" section. `pnpm build` / `lint` / `tsc` green; types regenerated.
+
+---
+
 ## 2026-07-17 (pt17) — The founder's "fix these 4" open-items batch.
 
 ### 🔴 IDOR fix (`d7bd44b4`)

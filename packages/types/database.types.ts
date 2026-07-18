@@ -11883,6 +11883,16 @@ export type Database = {
       next_quote_number: { Args: { p_business_id: string }; Returns: string }
       next_receipt_number: { Args: { p_business_id: string }; Returns: string }
       next_refund_number: { Args: { p_business_id: string }; Returns: string }
+      notify_subscription_event: {
+        Args: {
+          p_dedupe_key?: string
+          p_extra?: Json
+          p_host_id: string
+          p_kind: string
+          p_subscription_id: string
+        }
+        Returns: undefined
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

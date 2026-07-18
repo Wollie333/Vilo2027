@@ -625,7 +625,7 @@ async function findHostSubscription(
   if (productId) {
     const { data } = await supabase
       .from("subscriptions")
-      .select("id, failed_payment_count")
+      .select("id, failed_payment_count, status")
       .eq("host_id", hostId)
       .eq("product_id", productId)
       .maybeSingle();
@@ -633,7 +633,7 @@ async function findHostSubscription(
   }
   const { data: rows } = await supabase
     .from("subscriptions")
-    .select("id, failed_payment_count, product_id")
+    .select("id, failed_payment_count, product_id, status")
     .eq("host_id", hostId);
   if (!rows || rows.length === 0) return null;
   // deno-lint-ignore no-explicit-any
@@ -818,24 +818,76 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
   }
 
   if (event.event === "charge.failed") {
+    // ── Ledger correctness ────────────────────────────────────────────────
+    // A pre-created checkout row → mark it failed. An auto-renewal failure has
+    // NO pre-created row, so record the failed attempt so the admin revenue view
+    // reflects it. Idempotent on provider_reference (a retried webhook finds the
+    // row already present and does nothing).
     if (row && row.status === "pending") {
       await supabase
         .from("platform_ledger")
         .update({ status: "failed" })
         .eq("id", row.id);
+    } else if (!row) {
+      await supabase.from("platform_ledger").insert({
+        user_id: userId,
+        host_id: hostId,
+        subscription_id: sub?.id ?? null,
+        plan,
+        billing_cycle: cycle,
+        type: "charge",
+        status: "failed",
+        amount,
+        currency,
+        provider: "paystack",
+        provider_reference: ref,
+        environment,
+        reason: "Subscription renewal (failed)",
+      });
     }
+
     if (sub) {
       const fails = Number(sub.failed_payment_count ?? 0) + 1;
-      // 5-day grace before the account is restricted (see subscriptions schema).
-      const graceEnds = new Date(now.getTime() + 5 * 86_400_000).toISOString();
-      await supabase
-        .from("subscriptions")
-        .update({
-          status: "past_due",
-          failed_payment_count: fails,
-          grace_period_ends_at: graceEnds,
-        })
-        .eq("id", sub.id);
+      const cur = sub.status as string | null;
+
+      // State-machine guard: only active/trialing enters grace (and starts the
+      // 5-day clock). An already-past_due sub keeps its ORIGINAL deadline — a
+      // repeatedly-failing card can't perpetually reset grace and dodge
+      // restriction. A restricted sub stays restricted. We always bump the
+      // failed-payment counter.
+      const update: Record<string, unknown> = { failed_payment_count: fails };
+      if (cur === "active" || cur === "trialing") {
+        update.status = "past_due";
+        update.grace_period_ends_at = new Date(
+          now.getTime() + 5 * 86_400_000,
+        ).toISOString();
+      }
+      await supabase.from("subscriptions").update(update).eq("id", sub.id);
+
+      // Audit the transition (only when we actually moved into grace).
+      if (cur === "active" || cur === "trialing") {
+        await supabase.from("subscription_history").insert({
+          subscription_id: sub.id,
+          host_id: hostId,
+          event: "subscription_payment_failed",
+          to_status: "past_due",
+          amount_charged: amount,
+          currency,
+          notes: `Charge failed (attempt ${fails}) — grace started`,
+        });
+      }
+
+      // Notify the host + admin (deduped per distinct attempt so a retried
+      // webhook doesn't double-send). Best-effort — never break the money path.
+      if (hostId) {
+        await supabase.rpc("notify_subscription_event", {
+          p_host_id: hostId,
+          p_subscription_id: sub.id,
+          p_kind: "subscription_failed",
+          p_extra: { amount },
+          p_dedupe_key: `subscription_failed:${sub.id}:${fails}`,
+        });
+      }
     }
     return;
   }

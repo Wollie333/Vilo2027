@@ -28,6 +28,10 @@ import {
   type PricingUnit,
   type SeasonalRule,
 } from "@/lib/pricing";
+import {
+  hostAcceptsBookings,
+  HOST_NOT_ACCEPTING_MESSAGE,
+} from "@/lib/subscriptions/hostAccess";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -195,6 +199,13 @@ export async function priceBooking(
 
   if (!listing || !listing.is_published) {
     return { ok: false, error: "This listing isn't available." };
+  }
+
+  // Block intake early (good UX) when the host's membership has lapsed — the
+  // booking widget shows "not accepting bookings" instead of pricing a stay the
+  // guest can't complete. persistBookingAndPay re-checks as the hard backstop.
+  if (!(await hostAcceptsBookings(admin, listing.host_id))) {
+    return { ok: false, error: HOST_NOT_ACCEPTING_MESSAGE };
   }
 
   const nights = nightsBetween(d.check_in!, d.check_out!);

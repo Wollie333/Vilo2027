@@ -1,6 +1,10 @@
 import { formatMoney } from "@/lib/format";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
+import {
+  hostAcceptsBookings,
+  HOST_NOT_ACCEPTING_MESSAGE,
+} from "@/lib/subscriptions/hostAccess";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Accept a quote AND auto-create the booking it becomes — left in 'pending'
@@ -158,6 +162,13 @@ export async function acceptAndConvertQuote(
       .ilike("email", quote.guest_email)
       .maybeSingle();
     acceptGuestId = acct?.id ?? null;
+  }
+
+  // Subscription gate: a quote converts into a real booking, so a host whose
+  // membership has lapsed can't take one this way either. The quote itself is
+  // retained — the guest can accept once the host reactivates.
+  if (!(await hostAcceptsBookings(admin, quote.host_id))) {
+    return { ok: false, error: HOST_NOT_ACCEPTING_MESSAGE };
   }
 
   // Booking stays PENDING + unpaid — the guest pays from the thread/pay page,

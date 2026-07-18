@@ -9,6 +9,10 @@ import {
   startBookingPayment,
   type PayableBooking,
 } from "@/lib/payments/pay-booking";
+import {
+  hostAcceptsBookings,
+  HOST_NOT_ACCEPTING_MESSAGE,
+} from "@/lib/subscriptions/hostAccess";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -96,6 +100,17 @@ export async function persistBookingAndPay(
   input: PersistBookingInput,
 ): Promise<PersistBookingResult> {
   const { admin } = input;
+
+  // 0. Subscription gate (authoritative backstop). EVERY guest booking-creating
+  // surface — app checkout, marketplace deal, website special — funnels through
+  // here, so a host whose membership has lapsed (restricted/paused/cancelled/
+  // expired) can never receive a new booking through any channel. Host-manual
+  // entry uses a different path and is intentionally not gated here.
+  const gateHostId =
+    (input.bookingInsert.host_id as string | null | undefined) ?? null;
+  if (!(await hostAcceptsBookings(admin, gateHostId))) {
+    return { ok: false, error: HOST_NOT_ACCEPTING_MESSAGE };
+  }
 
   // 1. Insert the booking row. Read back the total/deposit AFTER insert — the
   // BEFORE INSERT VAT trigger (apply_booking_vat) grosses up total_amount when
