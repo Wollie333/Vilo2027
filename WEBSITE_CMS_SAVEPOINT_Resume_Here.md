@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f83f0d0` · **Vercel: auto-deploys on push**
-**Updated:** 2026-07-18 (pt4)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `c957d00` · **Vercel: auto-deploys on push**
+**Updated:** 2026-07-18 (pt5)
 
 > This file is COMMITTED (the previous savepoint was lost because it was never committed —
 > don't let that happen again: commit + push before ending a session).
@@ -112,6 +112,22 @@ header/footer. Built the founder's bespoke chrome (scoped `.ovchrome`, ported fr
 - **NOTE:** the builder/brand-preview canvases still render the GENERIC chrome (not wired) — only the live
   /site routes got the bespoke chrome. Also the blog `[postSlug]` route passes no `bookHref`, so the
   article header shows no "Book a stay" CTA (pre-existing route data, not a chrome bug).
+
+### ✅ ALL THREE designed themes now have bespoke chrome (commit `c957d00`)
+Same pattern applied to the other two designed themes; `SiteChrome` dispatches via a
+`THEME_CHROME` registry (`preset → {Header, Footer}`, uniform prop interface). Verified live on
+mana via `?site=mana&preview=1&theme=<slug>`:
+- **Marmalade** (`preset: marmalade`, scope `.mmchrome`) — floating cream **pill nav** (fixed, blurred,
+  subtle lift on scroll, NO colour inversion — `transparent` governs only the spacer), CSS dropdown,
+  mobile drawer; footer cols Explore / Stay / "Notes from the kitchen". `components/site/marmalade/`.
+- **Sabela** (`preset: hotel`, scope `.sbchrome`) — dark-first editorial nav: transparent over hero →
+  solid ebony/warm-bone on scroll, GOLD accents + gold-underline active; top-sliding drawer; footer cols
+  Explore / Stay / "From the bush". `components/site/sabela/`.
+- Presets with NO reference design (`warm`/`coastal`/`safari`) fall through to the generic chrome.
+- Built by two subagents (ported class-by-class from `docs/themes/<slug>/`), wired + live-verified by me.
+- **NOTE:** when previewing mana with a non-oceansview theme, the PAGE CONTENT is generic (mana's
+  bespoke content only renders under `preset===oceansview`) — but the CHROME is the bespoke theme chrome,
+  which is what we verified. A real marmalade/hotel SITE would have its own content + this chrome.
 
 **NEXT: founder smoke test of the wizard→content pull-through, then remaining generic pages
 (experiences, gallery, booking flow).**
