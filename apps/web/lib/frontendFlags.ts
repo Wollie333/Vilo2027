@@ -7,5 +7,5 @@
 // so hiding the language switcher is all that's needed there.
 //
 // See CHANGELOG 2026-07-02.
-export const CURRENCY_SWITCHER_ENABLED = false;
+export const CURRENCY_SWITCHER_ENABLED = true;
 export const LANGUAGE_SWITCHER_ENABLED = false;

@@ -96,6 +96,25 @@ while its restrictive state is on, with a stateful tooltip. **Verified live:** t
 Public directory visible→hidden→visible in the header (red state + toast + DB write),
 host restored.
 
+### 💱 Guest currency switcher + currency-gated checkout (PayPal via USD)
+Re-enabled the built-but-pinned currency system so guests browse in ZAR/USD/EUR/GBP,
+and hardened the checkout so PayPal (the international, USD-only rail) can be used.
+- **Money model (unchanged, verified secure):** ZAR is the single source of truth for
+  every stored amount + ledger + VAT + payout. USD is presentment only — the CHARGE
+  currency is a pure function of the payment METHOD (Paystack/EFT charge the ZAR total;
+  PayPal charges `convertZarToUsd()` at a server-fetched rate), never the client's
+  currency cookie. The booking schema accepts no client price/currency; server re-prices.
+- Enabled `CURRENCY_SWITCHER_ENABLED`; added the `CurrencySwitcher` to `SiteHeader`
+  (desktop + mobile) so it's reachable on listing/booking pages, not just the home bar.
+- `BookingForm`: reads `useCurrency()`, converts every displayed price to the selected
+  currency, and **gates payment methods by currency** — ZAR → card (Paystack) + EFT;
+  USD → PayPal; EUR/GBP → browse-only with a "pay in ZAR or USD" quick-switch. Method
+  auto-resets when the currency changes.
+- **Verified live end-to-end:** header switcher shows 4 currencies; USD converts the
+  whole site + booking; the payment step shows **PayPal only** on USD ("≈ $2,008.72",
+  "charged in USD at today's rate") and **card+EFT only** on ZAR ("R 33 150"), PayPal
+  gone. No test booking submitted. Build/lint/tsc green.
+
 ---
 
 ## 2026-07-17 (pt17) — The founder's "fix these 4" open-items batch.

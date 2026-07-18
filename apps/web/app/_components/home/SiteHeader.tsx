@@ -18,6 +18,7 @@ import { Link } from "@/i18n/navigation";
 
 import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
+import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
 import { createClient } from "@/lib/supabase/client";
 
 import { UtilityBar } from "./UtilityBar";
@@ -176,6 +177,9 @@ export function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {/* Display-currency picker — self-hides when the flag is off. Lets a
+                guest browse (and, on USD, pay via PayPal) in their currency. */}
+            <CurrencySwitcher className="hidden sm:inline-flex" />
             {session ? (
               <UserMenu
                 session={session}
@@ -238,6 +242,15 @@ export function SiteHeader() {
                   {t(item.key)}
                 </Link>
               ))}
+
+              {/* Currency picker for phones (the header one is sm+). Self-hides
+                  when the flag is off. */}
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-brand-line px-2 pt-3 sm:hidden">
+                <span className="text-[13px] font-medium text-brand-mute">
+                  Currency
+                </span>
+                <CurrencySwitcher />
+              </div>
 
               {!session ? (
                 <div className="mt-2 flex flex-col gap-2 border-t border-brand-line pt-3 sm:hidden">
