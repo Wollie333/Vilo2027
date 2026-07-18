@@ -87,6 +87,46 @@ export async function sendGuestMessageAction(
       .eq("id", parsed.data.conversation_id);
   }
 
+  // Notify the host of the guest's new message (push + in-app; deduped per
+  // thread). Platform (guest↔Wielo) threads have no host_id — the admin inbox is
+  // realtime, so we skip those. Best-effort; never fails the send.
+  try {
+    const admin = createAdminClient();
+    const { data: convRow } = await admin
+      .from("conversations")
+      .select("host_id, host:hosts ( user_id )")
+      .eq("id", parsed.data.conversation_id)
+      .maybeSingle();
+    const hostUserId = (
+      convRow as unknown as { host: { user_id: string } | null } | null
+    )?.host?.user_id;
+    const hostId = (convRow as { host_id: string | null } | null)?.host_id;
+    if (hostUserId && hostId) {
+      const { data: prof } = await admin
+        .from("user_profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const firstName =
+        prof?.full_name?.trim().split(/\s+/)[0] || "New message";
+      const { dispatchEvent } = await import("@/lib/notifications/dispatch");
+      await dispatchEvent({
+        kind: "new_message",
+        recipientUserId: hostUserId,
+        hostId,
+        refs: {
+          conversation_id: parsed.data.conversation_id,
+          sender_first_name: firstName,
+          message_body: parsed.data.body,
+          unread_count: 1,
+        },
+        supabase: admin,
+      });
+    }
+  } catch {
+    // best-effort notification
+  }
+
   revalidatePath(`/portal/inbox/${parsed.data.conversation_id}`);
   revalidatePath("/portal/inbox");
   return { ok: true, data: { id: row.id } };

@@ -66,6 +66,40 @@ export async function sendMessageAction(
     return { ok: false, error: "Could not send message. Try again." };
   }
 
+  // Notify the guest of the new message (push + in-app; deduped per thread).
+  // Best-effort — a notification failure must never fail the send.
+  try {
+    const admin = createAdminClient();
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("guest_id, unread_guest")
+      .eq("id", v.conversation_id)
+      .maybeSingle();
+    if (conv?.guest_id) {
+      const { data: hostRow } = await admin
+        .from("hosts")
+        .select("display_name")
+        .eq("id", host.hostId)
+        .maybeSingle();
+      const { dispatchEvent } = await import("@/lib/notifications/dispatch");
+      await dispatchEvent({
+        kind: "new_message",
+        recipientUserId: conv.guest_id,
+        guestId: conv.guest_id,
+        hostId: host.hostId,
+        refs: {
+          conversation_id: v.conversation_id,
+          sender_first_name: hostRow?.display_name ?? "New message",
+          message_body: v.body,
+          unread_count: conv.unread_guest ?? 1,
+        },
+        supabase: admin,
+      });
+    }
+  } catch {
+    // best-effort notification
+  }
+
   revalidatePath("/dashboard/inbox");
   return { ok: true, data: { id: row.id } };
 }
