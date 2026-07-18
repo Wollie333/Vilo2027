@@ -207,9 +207,12 @@ export function OceansViewRooms({
           );
 
           return (
-            <section className={`section${reversed ? "sand" : ""}`} key={r.id}>
+            <section
+              className={reversed ? "section sand" : "section"}
+              key={r.id}
+            >
               <div className="wrap">
-                <div className={`split w-left${reversed ? "rev" : ""}`}>
+                <div className={reversed ? "split w-left rev" : "split w-left"}>
                   {reversed ? (
                     <>
                       {detail}
