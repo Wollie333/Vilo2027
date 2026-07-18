@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `ec79150` · **Vercel: auto-deploys on push**
-**Updated:** 2026-07-18
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `16706c7` · **Vercel: auto-deploys on push**
+**Updated:** 2026-07-18 (pt3)
 
 > This file is COMMITTED (the previous savepoint was lost because it was never committed —
 > don't let that happen again: commit + push before ending a session).
@@ -70,27 +70,33 @@ Hazyview map, policy FAQ). Contact form correctly DISABLED in preview.
 
 ---
 
-## 🔧 IN PROGRESS — Journal (NEXT SESSION STARTS HERE)
+## ✅ Journal — DONE + LIVE-VERIFIED on mana (this session)
 
-**Pushed `ec79150` (WIP): `pnpm lint` GREEN, but tsc + live render NOT yet verified.**
+**`OceansViewJournal` (index) + `OceansViewArticle` (article) + `oceansJournal.css`, both /site/blog
+routes behind the oceansview guard.** tsc green, Vercel READY, both surfaces screenshotted live:
+- **Index** (`…/site/blog?site=mana&preview=1`): gradient page-head "The journal", featured split,
+  3-up grid. Founder's 2 posts (`first-timers-guide-bush-safari`, `five-reasons-book-lodge-directly`,
+  author "Wollie Steenkamp") now HAVE cover images.
+- **Article** (`…/site/blog/<slug>?...`): full-bleed hero, prose, author block, "keep reading" strip.
 
-- Built `OceansViewJournal` (index: featured split + 3-up grid, gradient-monogram fallback for
-  cover-less posts) + `OceansViewArticle` (hero + prose + author/share + "keep reading") +
-  `oceansJournal.css` (scoped `.ovjournal`), ported from `Journal*.html`.
-- Hooked into both blog routes behind the oceansview guard (generic layout still serves other themes).
-- Seed script `apps/web/scripts/seed-mana-journal.mjs` exists (3 Field Notes posts) but the FOUNDER
-  seeded **2 posts himself** to the DB (author "Wollie Steenkamp") — those are live on the Journal now.
+### Fix made (commit `1b06a95`): article "keep reading" was empty
+`loadRelatedPosts` (in `lib/site/loadSitePage.ts`) returned `[]` whenever a post had no `category_id`
+(the seeded posts have none), so the strip was omitted and left a ~260px void before the CTA. Now:
+prefer same-category, then FILL from the site's most-recent other published posts (limit 3, excl.
+current). Verified live — the strip shows the sibling post. Also benefits the generic-theme article.
 
-### FIRST steps next session
-1. **Verify:** run `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` (from `apps/web`) OR just
-   let the Vercel deploy of `ec79150` finish and check it built green (get_deployment on the branch
-   alias). Then open `…/site/blog?site=mana&preview=1` + click into a post `…/site/blog/<slug>?...`.
-2. **Fix anything** the live render shows (this is the "FIX DESIGN" task — user judges on the branch).
-3. Known design gaps to consider: the **category filter chips** in the reference aren't built (need
-   client filtering + category on `BlogIndexPost` — not currently selected by `loadSiteBlogIndex`);
-   the **newsletter** block is a CTA button to Contact (not a real signup); the seeded posts have **no
-   cover images** (cards use the gradient-monogram fallback — founder can add covers in the blog
-   editor, or seed with cover URLs — `websiteAssetUrl` passes absolute URLs through).
+### Still-open Journal design ideas (not blocking; founder judges on the branch)
+- **Category filter chips** in the reference aren't built (need client filtering + category on
+  `BlogIndexPost`, not currently selected by `loadSiteBlogIndex`).
+- **Newsletter** block is a CTA button to Contact (not a real signup).
+
+## ✅ Contact — follow-up fixes DONE + LIVE-VERIFIED on mana (commit `16706c7`)
+- **Empty phone row removed:** the phone `.drow` in `OceansViewContact.tsx` rendered unconditionally,
+  so mana (address, no phone) showed a lone phone icon. Now guarded like email/address.
+- **Founder flagged the empty band** in the right info column beside the tall form → filled it with a
+  real **guest review** testimonial card (`.qcard`: 5 stars + quote + author monogram), top-rated item
+  from live `reviews`. Added `"reviews"` to the contact `assembleSiteDataByType` set + a `review` prop.
+  Omitted when a site has no reviews (never fabricated).
 
 ---
 
