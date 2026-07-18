@@ -9,7 +9,7 @@ import {
 } from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
-import { formatMoney } from "@/lib/format";
+import { getServerMoneyFormatter } from "@/lib/fx";
 import { recordQuoteView } from "@/lib/quotes/tracking";
 import { effectiveVatRate, grossVat, vatOf } from "@/lib/pricing/vat";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -103,6 +103,10 @@ export default async function PublicQuotePage({
     quoteBusinessId,
   );
   const c = quote.currency;
+  // A quote is a pre-acceptance offer (the guest is still deciding), so its
+  // amounts follow the display-currency switcher as "≈" estimates — like the
+  // booking form. The actual charge on acceptance is still the ZAR total.
+  const fmt = await getServerMoneyFormatter();
 
   const expired =
     !!quote.valid_until && new Date(quote.valid_until) < new Date();
@@ -129,20 +133,20 @@ export default async function PublicQuotePage({
         !isCustomQuote && nights
           ? `${nights} night${nights === 1 ? "" : "s"}`
           : null,
-      amount: formatMoney(quote.base_amount, c),
+      amount: fmt(quote.base_amount, c),
     },
   ];
   if (quote.cleaning_fee > 0) {
     lineRows.push({
       title: "Cleaning",
-      amount: formatMoney(quote.cleaning_fee, c),
+      amount: fmt(quote.cleaning_fee, c),
     });
   }
   for (const a of addons ?? []) {
     lineRows.push({
       title: a.label,
       mid: a.quantity > 1 ? `× ${a.quantity}` : null,
-      amount: formatMoney(a.subtotal, c),
+      amount: fmt(a.subtotal, c),
     });
   }
 
@@ -199,17 +203,17 @@ export default async function PublicQuotePage({
       totals={
         vatRate > 0
           ? [
-              { label: "Subtotal", value: formatMoney(exVatTotal, c) },
+              { label: "Subtotal", value: fmt(exVatTotal, c) },
               {
                 label: `VAT (${vatRate}%)`,
-                value: formatMoney(vatAmount, c),
+                value: fmt(vatAmount, c),
               },
             ]
           : []
       }
       grandTotal={{
         label: vatRate > 0 ? "Total (incl. VAT)" : "Total",
-        value: formatMoney(vatRate > 0 ? grossTotal : exVatTotal, c),
+        value: fmt(vatRate > 0 ? grossTotal : exVatTotal, c),
       }}
       banking={expired || decided ? null : party.banking}
       pdfHref={`/${params.locale}/q/${quote.id}/${quote.accept_token}/pdf`}

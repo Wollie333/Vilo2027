@@ -43,11 +43,18 @@ import {
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
-import { composePhone, splitDialCode } from "@/lib/phone/dialCodes";
+import { CountrySelect } from "@/components/form/CountrySelect";
+import { CurrencySelect } from "@/components/form/CurrencySelect";
+import { type DisplayCurrency } from "@/lib/currency";
+import { countryToSettlementCurrency } from "@/lib/geo/countryCurrency";
+import {
+  composePhone,
+  countryByIso,
+  splitDialCode,
+} from "@/lib/phone/dialCodes";
 import { combineName, splitName } from "@/lib/profile/name";
 
 import {
-  COUNTRIES,
   LANGUAGE_OPTIONS,
   PLANS,
   SA_REGIONS,
@@ -96,6 +103,15 @@ type WizardData = {
   // is composed as "+{dial} {national}" at submit time.
   phoneCountry: string;
   country: string;
+  // ISO-3166 alpha-2 of the host's country (drives the settlement-currency
+  // default + the business's stored country).
+  countryIso: string;
+  // Host's settlement currency (the currency of record for their listings,
+  // bookings, invoices and payouts). Pre-filled from country, overridable.
+  settlementCurrency: DisplayCurrency;
+  // True once the host manually changes the currency — stops country from
+  // re-pre-filling it.
+  currencyTouched: boolean;
   bio: string;
   languages: string[];
   avatarUrl: string;
@@ -147,6 +163,9 @@ function initialData(prefilled: Prefilled): WizardData {
     phone: splitDialCode(prefilled.phone).national,
     phoneCountry: splitDialCode(prefilled.phone).iso2,
     country: prefilled.country ?? "South Africa",
+    countryIso: "ZA",
+    settlementCurrency: "ZAR",
+    currencyTouched: false,
     bio: prefilled.bio ?? "",
     languages:
       prefilled.languages && prefilled.languages.length > 0
@@ -533,6 +552,8 @@ export function Wizard({
         full_name: data.fullName,
         phone: composePhone(data.phoneCountry, data.phone),
         country: data.country,
+        country_iso: data.countryIso,
+        settlement_currency: data.settlementCurrency,
         bio: data.bio,
         languages: data.languages,
         avatar_url: data.avatarUrl,
@@ -1267,16 +1288,34 @@ function StepAbout({
           </FormField>
 
           <FormField label="Country">
-            <SelectInput
-              value={data.country}
-              onChange={(e) => patch({ country: e.target.value })}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </SelectInput>
+            <CountrySelect
+              iso2={data.countryIso}
+              onChange={(iso2) =>
+                patch({
+                  countryIso: iso2,
+                  country: countryByIso(iso2)?.name ?? data.country,
+                  // Pre-fill the currency from the country unless the host has
+                  // already chosen one themselves.
+                  ...(data.currencyTouched
+                    ? {}
+                    : {
+                        settlementCurrency: countryToSettlementCurrency(iso2),
+                      }),
+                })
+              }
+            />
+          </FormField>
+
+          <FormField
+            label="Payout currency"
+            hint="The currency you're paid in — your prices, invoices and payouts all use it. Pre-filled from your country; change it if you bill guests in another currency."
+          >
+            <CurrencySelect
+              value={data.settlementCurrency}
+              onChange={(c) =>
+                patch({ settlementCurrency: c, currencyTouched: true })
+              }
+            />
           </FormField>
         </div>
 

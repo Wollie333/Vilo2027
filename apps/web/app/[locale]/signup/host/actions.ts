@@ -408,6 +408,9 @@ export async function finalizeOnboardingAction(
     .insert({
       user_id: user.id,
       display_name: d.full_name,
+      // Host settlement currency (Model 2 — currency of record). Mirrored onto
+      // the default business below, which is what listings actually inherit.
+      default_currency: d.settlement_currency,
       bio: d.bio && d.bio.length > 0 ? d.bio : null,
       languages_spoken: d.languages,
       // Mirror avatar onto hosts so the public host page + listing cards
@@ -439,6 +442,11 @@ export async function finalizeOnboardingAction(
         d.business_name && d.business_name.length > 0
           ? d.business_name
           : d.full_name,
+      // Country + settlement currency (Model 2). The default business is the
+      // SSOT for currency; new listings inherit default_currency via the
+      // trg_property_currency trigger, so this runs BEFORE the listing insert.
+      country: d.country_iso,
+      default_currency: d.settlement_currency,
       address_line1: d.address_line1,
       address_line2:
         d.address_line2 && d.address_line2.length > 0 ? d.address_line2 : null,

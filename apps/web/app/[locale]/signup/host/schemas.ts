@@ -200,6 +200,10 @@ export const finalizeOnboardingSchema = z
       .min(6, "Phone is required.")
       .max(40, "Phone is too long."),
     country: z.string().trim().min(2).max(60),
+    // ISO-3166 alpha-2 of the host's country + their chosen settlement currency
+    // (Model 2 — the currency of record for this host's listings/bookings).
+    country_iso: z.string().trim().length(2).toUpperCase().default("ZA"),
+    settlement_currency: z.enum(["ZAR", "USD", "EUR", "GBP"]).default("ZAR"),
     bio: z.string().trim().max(240).optional(),
     languages: z.array(z.string().min(1).max(40)).max(20).default([]),
     avatar_url: z.string().url().optional().or(z.literal("")),
