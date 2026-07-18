@@ -1,5 +1,10 @@
 # Wielo — MVP readiness & deep-audit backlog
 
+> ⛔ **SUPERSEDED (2026-07-18) by [`BETA_LAUNCH_READINESS.md`](BETA_LAUNCH_READINESS.md)** —
+> the current go/no-go standard, folded forward against the code as of HEAD `5de7286c`.
+> This file is kept as the 2026-07-13 historical save point. Read the new one.
+
+
 > **Save point: 2026-07-13.** A founder-facing map of (1) what is **shipped and
 > MVP-ready for beta testers**, and (2) the **deep in-depth audits still owed** on
 > the remaining features. "MVP-ready" here means: built, `build`/`lint` green,
