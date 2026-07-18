@@ -90,6 +90,8 @@
 }
 .ovspecials .btn-primary:hover {
   background: var(--site-accent-deep, #0c8694);
+  box-shadow: 0 20px 40px -14px
+    color-mix(in srgb, var(--site-accent, #12a5b5) 75%, transparent);
 }
 .ovspecials .btn-ghost {
   background: transparent;

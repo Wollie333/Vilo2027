@@ -121,6 +121,30 @@
   font-size: 15px;
 }
 
+/* -- section head -------------------------------------------------------- */
+.ovexp .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-secondary, #ff6b57);
+}
+.ovexp .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-secondary, #ff6b57);
+}
+.ovexp .sec-head {
+  max-width: 680px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+
 /* -- experiences grid ---------------------------------------------------- */
 .ovexp .exps {
   display: grid;
@@ -210,7 +234,7 @@
 /* -- page header --------------------------------------------------------- */
 .ovexp .phead {
   position: relative;
-  min-height: clamp(380px, 50vh, 500px);
+  min-height: clamp(440px, 58vh, 560px);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
@@ -264,7 +288,7 @@
 .ovexp .phead p {
   color: rgba(255, 255, 255, 0.88);
   margin-top: 16px;
-  max-width: 56ch;
+  max-width: 52ch;
   font-size: 1.1rem;
 }
 

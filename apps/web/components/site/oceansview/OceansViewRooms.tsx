@@ -232,7 +232,10 @@ export function OceansViewRooms({
       )}
 
       {/* CTA */}
-      <section className="section-sm" style={{ paddingBottom: 130 }}>
+      <section
+        className="section-sm"
+        style={{ paddingBottom: "clamp(70px, 9vw, 130px)" }}
+      >
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}

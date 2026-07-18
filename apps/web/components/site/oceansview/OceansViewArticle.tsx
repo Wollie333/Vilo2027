@@ -109,7 +109,7 @@ export function OceansViewArticle({
             <span>·</span>
             <a href="/blog">Journal</a>
           </div>
-          <h1 style={{ maxWidth: "20ch" }}>{post.title}</h1>
+          <h1 style={{ maxWidth: "18ch" }}>{post.title}</h1>
           <div className="pmeta">
             {post.authorName ? <span>{post.authorName}</span> : null}
             {post.authorName && post.date ? <span className="dot" /> : null}

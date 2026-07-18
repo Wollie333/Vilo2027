@@ -313,7 +313,13 @@ export function OceansViewContact({
               <span className="tag" style={{ justifyContent: "center" }}>
                 Good to know
               </span>
-              <h2 className="lg" style={{ marginTop: 16 }}>
+              <h2
+                className="lg"
+                style={{
+                  marginTop: 16,
+                  fontSize: "clamp(1.9rem, 4vw, 2.8rem)",
+                }}
+              >
                 Frequently asked
               </h2>
             </div>

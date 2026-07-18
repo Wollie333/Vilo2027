@@ -208,7 +208,7 @@
 .ovjournal .phead p {
   color: rgba(255, 255, 255, 0.88);
   margin-top: 16px;
-  max-width: 54ch;
+  max-width: 52ch;
   font-size: 1.1rem;
 }
 .ovjournal .phead .pmeta {
@@ -440,6 +440,9 @@
   border: none;
   margin: 0;
 }
+.ovjournal .article hr {
+  margin: 44px 0;
+}
 
 /* -- author + share ------------------------------------------------------ */
 .ovjournal .auth {
@@ -464,6 +467,7 @@
     sans-serif
   );
   font-weight: 800;
+  font-size: 18px;
   flex-shrink: 0;
 }
 .ovjournal .auth .av img {
@@ -500,7 +504,7 @@
   align-items: flex-end;
   gap: 24px;
   flex-wrap: wrap;
-  margin-bottom: clamp(28px, 4vw, 44px);
+  margin-bottom: clamp(38px, 5vw, 60px);
 }
 
 /* -- CTA banner ---------------------------------------------------------- */
@@ -555,18 +559,20 @@
 }
 
 /* -- responsive ---------------------------------------------------------- */
-@media (max-width: 960px) {
+@media (max-width: 1040px) {
+  .ovjournal .posts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 860px) {
   .ovjournal .feat-post {
     grid-template-columns: 1fr;
   }
   .ovjournal .fp-img {
     order: -1;
   }
-  .ovjournal .posts {
-    grid-template-columns: 1fr 1fr;
-  }
 }
-@media (max-width: 620px) {
+@media (max-width: 560px) {
   .ovjournal .wrap {
     padding: 0 20px;
   }

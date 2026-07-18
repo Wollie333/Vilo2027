@@ -12,9 +12,11 @@ export type OceansMosaicImage = { url: string; caption?: string | null };
 export function OceansMosaicGallery({
   images,
   brandName,
+  limit = 6,
 }: {
   images: OceansMosaicImage[];
   brandName: string;
+  limit?: number;
 }) {
   const shots = images.filter((i) => i.url);
   const [idx, setIdx] = useState<number | null>(null);
@@ -46,14 +48,15 @@ export function OceansMosaicGallery({
 
   if (shots.length === 0) return null;
 
-  // Feature the first tile large; give one mid-row tile double width for rhythm
-  // (mirrors the reference mosaic). Falls out cleanly for any photo count.
+  // Feature the first tile large; scatter a double-width accent every fifth tile
+  // for rhythm (mirrors the reference mosaic's periodic wide tiles). The 6-item
+  // home case keeps its single wide accent at index 5. Any photo count works.
   const spanClass = (i: number) => {
     if (i === 0) return "m w2 h2";
-    if (shots.length >= 6 && i === 5) return "m w2";
+    if (i % 5 === 0) return "m w2";
     return "m";
   };
-  const tiles = shots.slice(0, 6);
+  const tiles = shots.slice(0, limit);
   const multiple = shots.length > 1;
 
   return (

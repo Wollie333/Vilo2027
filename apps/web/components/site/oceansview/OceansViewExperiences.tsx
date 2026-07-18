@@ -72,31 +72,39 @@ export function OceansViewExperiences({
               </div>
             </div>
           ) : (
-            <div className="exps">
-              {list.map((e, i) => {
-                const img = e.imageUrl
-                  ? (asset(e.imageUrl) ?? e.imageUrl)
-                  : null;
-                return (
-                  <article className="exp" key={`${e.title}-${i}`}>
-                    {img ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img} alt={e.title} />
-                      </>
-                    ) : (
-                      <div className="exp-ph" aria-hidden>
-                        <span>{(e.title[0] ?? "•").toUpperCase()}</span>
+            <>
+              <div className="sec-head">
+                <span className="tag">The resort</span>
+                <h2 className="lg" style={{ marginTop: 18 }}>
+                  On the property
+                </h2>
+              </div>
+              <div className="exps">
+                {list.map((e, i) => {
+                  const img = e.imageUrl
+                    ? (asset(e.imageUrl) ?? e.imageUrl)
+                    : null;
+                  return (
+                    <article className="exp" key={`${e.title}-${i}`}>
+                      {img ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img} alt={e.title} />
+                        </>
+                      ) : (
+                        <div className="exp-ph" aria-hidden>
+                          <span>{(e.title[0] ?? "•").toUpperCase()}</span>
+                        </div>
+                      )}
+                      <div className="exp-b">
+                        <h3>{e.title}</h3>
+                        {e.body ? <p>{e.body}</p> : null}
                       </div>
-                    )}
-                    <div className="exp-b">
-                      <h3>{e.title}</h3>
-                      {e.body ? <p>{e.body}</p> : null}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </section>

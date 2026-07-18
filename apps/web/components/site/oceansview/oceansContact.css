@@ -202,12 +202,8 @@
   padding: 18px 0;
   border-bottom: 1px solid var(--site-line, #e9e1d1);
 }
-.ovcontact .drow:first-child {
-  padding-top: 0;
-}
 .ovcontact .drow:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 .ovcontact .drow .ic {
   width: 42px;
@@ -369,7 +365,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--site-surface, #fff);
+  background: var(--site-soft, #f7f1e6);
   color: var(--site-ink, #0e2c3a);
   display: flex;
   align-items: center;

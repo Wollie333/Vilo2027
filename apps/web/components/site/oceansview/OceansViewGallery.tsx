@@ -80,7 +80,11 @@ export function OceansViewGallery({
               </div>
             </div>
           ) : (
-            <OceansMosaicGallery images={shots} brandName={brandName} />
+            <OceansMosaicGallery
+              images={shots}
+              brandName={brandName}
+              limit={shots.length}
+            />
           )}
         </div>
       </section>
