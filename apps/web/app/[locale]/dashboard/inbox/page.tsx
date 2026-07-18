@@ -200,7 +200,7 @@ export default async function InboxPage({
       supabase
         .from("messages")
         .select(
-          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, quote_id, quote_version_no, read_by_host, read_by_guest, read_at, created_at",
+          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, quote_id, quote_version_no, booking_id, read_by_host, read_by_guest, read_at, created_at",
         )
         .eq("conversation_id", selectedId)
         .order("created_at", { ascending: true }),
@@ -229,6 +229,7 @@ export default async function InboxPage({
       quoteId: (m as { quote_id: string | null }).quote_id ?? null,
       quoteVersionNo:
         (m as { quote_version_no: number | null }).quote_version_no ?? null,
+      bookingId: (m as { booking_id: string | null }).booking_id ?? null,
       readByHost: m.read_by_host,
       readByGuest: m.read_by_guest,
       createdAt: m.created_at,
@@ -318,18 +319,26 @@ export default async function InboxPage({
           requestMessage,
         );
       }
+    }
 
-      const bookingIds = Object.values(quotesById)
-        .map((q) => q.convertedBookingId)
-        .filter((id): id is string => !!id);
-      if (bookingIds.length > 0) {
-        const { data: bRows } = await supabase
-          .from("bookings")
-          .select(BOOKING_CARD_COLUMNS)
-          .in("id", bookingIds);
-        for (const b of bRows ?? []) {
-          bookingsById[b.id] = mapBookingRow(b);
-        }
+    // Bookings referenced by a converted quote OR directly by a booking
+    // system-card (payment received) — resolved OUTSIDE the quote block so a
+    // direct booking (no quote) still gets its rich card.
+    const bookingIds = Array.from(
+      new Set(
+        [
+          ...Object.values(quotesById).map((q) => q.convertedBookingId),
+          ...messages.map((m) => m.bookingId),
+        ].filter((id): id is string => !!id),
+      ),
+    );
+    if (bookingIds.length > 0) {
+      const { data: bRows } = await supabase
+        .from("bookings")
+        .select(BOOKING_CARD_COLUMNS)
+        .in("id", bookingIds);
+      for (const b of bRows ?? []) {
+        bookingsById[b.id] = mapBookingRow(b);
       }
     }
 

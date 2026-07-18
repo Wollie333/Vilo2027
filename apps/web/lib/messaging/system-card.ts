@@ -88,6 +88,9 @@ export async function postGuestSystemCard(
       is_system_message: true,
       system_event: card.systemEvent,
       body: card.body,
+      // Link the card to its booking so the thread can render a rich, self-
+      // contained booking card (payment received, etc.).
+      booking_id: booking.id,
       read_by_host: card.readByHost ?? false,
       read_by_guest: card.readByGuest ?? true,
     });

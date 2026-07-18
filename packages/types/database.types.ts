@@ -5373,6 +5373,7 @@ export type Database = {
           attachment_type: string | null
           attachment_url: string | null
           body: string | null
+          booking_id: string | null
           conversation_id: string
           created_at: string
           id: string
@@ -5390,6 +5391,7 @@ export type Database = {
           attachment_type?: string | null
           attachment_url?: string | null
           body?: string | null
+          booking_id?: string | null
           conversation_id: string
           created_at?: string
           id?: string
@@ -5407,6 +5409,7 @@ export type Database = {
           attachment_type?: string | null
           attachment_url?: string | null
           body?: string | null
+          booking_id?: string | null
           conversation_id?: string
           created_at?: string
           id?: string
@@ -5420,6 +5423,13 @@ export type Database = {
           system_event?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]

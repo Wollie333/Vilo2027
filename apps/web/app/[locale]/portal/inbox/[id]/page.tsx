@@ -70,7 +70,7 @@ export default async function GuestThreadPage({
   const { data: msgs } = await supabase
     .from("messages")
     .select(
-      "id, sender_id, body, attachment_url, is_system_message, system_event, quote_id, quote_version_no, read_by_host, read_by_guest, created_at",
+      "id, sender_id, body, attachment_url, is_system_message, system_event, quote_id, quote_version_no, booking_id, read_by_host, read_by_guest, created_at",
     )
     .eq("conversation_id", params.id)
     .order("created_at", { ascending: true });
@@ -86,6 +86,7 @@ export default async function GuestThreadPage({
     quoteId: (m as { quote_id: string | null }).quote_id ?? null,
     quoteVersionNo:
       (m as { quote_version_no: number | null }).quote_version_no ?? null,
+    bookingId: (m as { booking_id: string | null }).booking_id ?? null,
     readByHost: (m as { read_by_host: boolean }).read_by_host,
     readByGuest: (m as { read_by_guest: boolean }).read_by_guest,
     createdAt: m.created_at,
@@ -161,9 +162,14 @@ export default async function GuestThreadPage({
 
   // Bookings the quotes became (once accepted) — drives the later card states.
   const bookingsById: Record<string, ThreadBooking> = {};
-  const bookingIds = Object.values(quotesById)
-    .map((q) => q.convertedBookingId)
-    .filter((id): id is string => !!id);
+  const bookingIds = Array.from(
+    new Set(
+      [
+        ...Object.values(quotesById).map((q) => q.convertedBookingId),
+        ...messages.map((m) => m.bookingId),
+      ].filter((id): id is string => !!id),
+    ),
+  );
   if (bookingIds.length > 0) {
     const admin = createAdminClient();
     const { data: bRows } = await admin

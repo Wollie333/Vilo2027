@@ -12,9 +12,10 @@ import type {
 export const QUOTE_CARD_COLUMNS =
   "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token, converted_booking_id, property_id";
 
-// Columns to render the booking half of the card (once a quote is accepted).
+// Columns to render the booking half of the card (once a quote is accepted) plus
+// the stay/party/host details the richer booking system-cards need.
 export const BOOKING_CARD_COLUMNS =
-  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency";
+  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency, check_in, check_out, guests_count, listing:properties(name), host:hosts(display_name)";
 
 type QuoteRow = {
   id: string;
@@ -42,6 +43,12 @@ export type QuoteSubject = {
   detail?: string | null;
 };
 
+type Named = { name: string } | { name: string }[] | null;
+type DisplayNamed =
+  | { display_name: string }
+  | { display_name: string }[]
+  | null;
+
 type BookingRow = {
   id: string;
   reference: string;
@@ -52,10 +59,20 @@ type BookingRow = {
   deposit_amount: string | number | null;
   balance_due: string | number | null;
   currency: string;
+  check_in?: string | null;
+  check_out?: string | null;
+  guests_count?: number | null;
+  listing?: Named;
+  host?: DisplayNamed;
 };
 
 const num = (v: string | number | null): number | null =>
   v == null ? null : Number(v);
+
+// Supabase embeds a to-one relation as an object, but the typed client can widen
+// it to an array — unwrap either shape.
+const one = <T>(v: T | T[] | null | undefined): T | null =>
+  Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
 
 export function mapQuoteRow(
   q: QuoteRow,
@@ -99,6 +116,11 @@ export function mapBookingRow(b: BookingRow): ThreadBooking {
     depositAmount: num(b.deposit_amount),
     balanceDue: num(b.balance_due),
     currency: b.currency,
+    checkIn: b.check_in ?? null,
+    checkOut: b.check_out ?? null,
+    headcount: b.guests_count ?? null,
+    listingName: one(b.listing)?.name ?? null,
+    hostName: one(b.host)?.display_name ?? null,
   };
 }
 

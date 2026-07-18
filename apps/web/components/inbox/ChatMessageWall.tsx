@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef } from "react";
 
 import { InboxSystemCard } from "./InboxSystemCard";
+import { PaymentReceivedCard } from "./PaymentReceivedCard";
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
 import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
 import { WebsiteEnquiryCard } from "./WebsiteEnquiryCard";
@@ -32,6 +33,8 @@ export type ChatMessage = {
   systemEvent: string | null;
   quoteId: string | null;
   quoteVersionNo: number | null;
+  /** Booking this (booking) system-card belongs to — drives the rich card. */
+  bookingId?: string | null;
   readByHost: boolean;
   readByGuest: boolean;
   createdAt: string;
@@ -318,20 +321,32 @@ export function ChatMessageWall({
 
             // Payment received — the pay card's final state once the order
             // settles (card / PayPal captured, or the EFT is marked received).
+            // When we can resolve the booking, render the rich, self-contained
+            // confirmation card; otherwise fall back to the simple note.
             if (m.isSystem && m.systemEvent === "payment_received") {
+              const paidBooking = m.bookingId
+                ? bookingsById[m.bookingId]
+                : null;
               return (
                 <div key={m.id}>
                   {dayPill}
-                  <InboxSystemCard
-                    tone="brand"
-                    icon={<CheckCheck className="h-5 w-5" />}
-                    title="Payment received"
-                    footer={fmtClock(m.createdAt)}
-                  >
-                    <p className="text-[13px] leading-relaxed text-brand-ink">
-                      Thank you — your payment is confirmed.
-                    </p>
-                  </InboxSystemCard>
+                  {paidBooking ? (
+                    <PaymentReceivedCard
+                      booking={paidBooking}
+                      viewer={viewer}
+                    />
+                  ) : (
+                    <InboxSystemCard
+                      tone="brand"
+                      icon={<CheckCheck className="h-5 w-5" />}
+                      title="Payment received"
+                      footer={fmtClock(m.createdAt)}
+                    >
+                      <p className="text-[13px] leading-relaxed text-brand-ink">
+                        Thank you — your payment is confirmed.
+                      </p>
+                    </InboxSystemCard>
+                  )}
                 </div>
               );
             }

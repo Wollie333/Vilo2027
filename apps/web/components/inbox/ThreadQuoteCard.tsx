@@ -73,6 +73,13 @@ export type ThreadBooking = {
   depositAmount: number | null;
   balanceDue: number | null;
   currency: string;
+  // Stay + party details, so a booking system-card (e.g. payment received) can
+  // render a rich, self-contained summary without a linked quote.
+  checkIn: string | null;
+  checkOut: string | null;
+  headcount: number | null;
+  listingName: string | null;
+  hostName: string | null;
 };
 
 function fmtDate(iso: string | null): string {
