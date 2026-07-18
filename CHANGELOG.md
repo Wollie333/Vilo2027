@@ -50,6 +50,21 @@ fully-`restricted` denied (rolled back). Listings stay visible; the block is at 
 Docs: `docs/lifecycles/subscriptions.md` Steps 5 & 7 + new "Failed payments & disabling
 (never delete)" section. `pnpm build` / `lint` / `tsc` green; types regenerated.
 
+### 👁️ Manual admin "Hide host from public" kill-switch (`20260718110000`)
+A one-click admin toggle (user record → *Account type & access* → **Public directory**)
+that removes ALL of a host's listings **and** specials from every public surface at
+once — directory, search, listing detail, specials, sitemap — independent of
+subscription status, reversible instantly. Nothing deleted or unpublished; the host
+keeps their data + published state, and owner/staff/admin access is untouched.
+Enforced at the **RLS layer** (not per-query, so no surface can be missed): new
+`hosts.hidden_from_directory` flag + a `SECURITY DEFINER` `host_hidden_from_directory()`
+helper wired into the `properties.public_read_published` + `specials.specials_public_read`
+policies (mirrors the existing per-listing `is_suspended` gate at host level). Admin
+action `setHostDirectoryVisibilityAction` (audited, gated on `users.suspend`).
+**Verified live end-to-end:** clicked Hide → DB flag + timestamp set, control shows
+"Hidden", proven via `SET ROLE anon` that the listing goes visible→invisible; clicked
+Unhide → flag cleared, host restored. Test host left exactly as found.
+
 ---
 
 ## 2026-07-17 (pt17) — The founder's "fix these 4" open-items batch.

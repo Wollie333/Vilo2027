@@ -478,6 +478,57 @@ export const setHostAccessAction = withAdminAudit<
   },
 );
 
+// ─── Hide host from public directory (manual admin kill-switch) ────────────
+// Removes ALL of a host's listings + specials from every public surface at once
+// (enforced by RLS via hosts.hidden_from_directory — see 20260718110000).
+// Nothing is deleted or unpublished; the host keeps their data + published state
+// and their own/staff/admin access. Reversible instantly. Moderation action, so
+// gated on users.suspend.
+const directoryVisibilitySchema = z.object({
+  userId: z.string().uuid(),
+  hidden: z.boolean(),
+  reason: z.string().trim().max(300).optional(),
+});
+
+export const setHostDirectoryVisibilityAction = withAdminAudit<
+  z.infer<typeof directoryVisibilitySchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.suspend",
+    actionName: "host.directory_visibility",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = directoryVisibilitySchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const d = parsed.data;
+    const { data, error } = await service
+      .from("hosts")
+      .update({
+        hidden_from_directory: d.hidden,
+        hidden_from_directory_at: d.hidden ? new Date().toISOString() : null,
+        hidden_from_directory_reason: d.hidden ? (d.reason ?? null) : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", d.userId)
+      .is("deleted_at", null)
+      .select("id, hidden_from_directory")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    // No host row → nothing to hide; don't report success on a no-op.
+    if (!data) {
+      throw new Error(
+        "This account has no active host profile — nothing to hide from the directory.",
+      );
+    }
+    revalidatePath(`/admin/users/${d.userId}`);
+    revalidatePath("/admin/users");
+    return { result: { ok: true }, after: { hidden: d.hidden } };
+  },
+);
+
 // ─── Delete user (soft delete + 30-day hold) ──────────────────
 // SOFT delete only — the absolute rule (CLAUDE.md / AGENT_RULES §2.1) is that
 // user_profiles / hosts / listings / bookings are NEVER hard-deleted here. We
@@ -2698,6 +2749,25 @@ export async function setHostAccess(input: {
     return {
       ok: false as const,
       error: e instanceof Error ? e.message : "Could not update access.",
+    };
+  }
+}
+
+export async function setHostDirectoryVisibility(input: {
+  userId: string;
+  hidden: boolean;
+  reason?: string;
+}) {
+  try {
+    await setHostDirectoryVisibilityAction(input);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Could not update directory visibility.",
     };
   }
 }

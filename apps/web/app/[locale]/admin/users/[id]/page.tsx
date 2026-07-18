@@ -41,7 +41,7 @@ export default async function AdminUserDetailPage({
   const { data: host } = await service
     .from("hosts")
     .select(
-      "id, handle, display_name, is_verified, total_bookings, avg_rating, total_reviews, account_kind, quote_access, platform_access",
+      "id, handle, display_name, is_verified, total_bookings, avg_rating, total_reviews, account_kind, quote_access, platform_access, hidden_from_directory",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -674,6 +674,9 @@ export default async function AdminUserDetailPage({
           platform_access:
             (host as { platform_access?: boolean | null }).platform_access ??
             true,
+          hidden_from_directory:
+            (host as { hidden_from_directory?: boolean | null })
+              .hidden_from_directory ?? false,
         }
       : null,
     subscription: sub,

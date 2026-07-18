@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { setHostAccess } from "./actions";
+import { setHostAccess, setHostDirectoryVisibility } from "./actions";
 
 // Admin controls for the quote-only account class + the two block switches.
 // Compact card on the user record — flips account_kind and the quote_access /
@@ -15,13 +15,30 @@ export function HostAccessControls({
   accountKind,
   quoteAccess,
   platformAccess,
+  hiddenFromDirectory,
 }: {
   userId: string;
   accountKind: string;
   quoteAccess: boolean;
   platformAccess: boolean;
+  hiddenFromDirectory: boolean;
 }) {
   const [pending, start] = useTransition();
+
+  function toggleDirectory(hidden: boolean) {
+    start(async () => {
+      const r = await setHostDirectoryVisibility({ userId, hidden });
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success(
+        hidden
+          ? "Host hidden from the public directory."
+          : "Host restored to the public directory.",
+      );
+    });
+  }
 
   function apply(
     patch: Partial<{
@@ -112,6 +129,24 @@ export function HostAccessControls({
               }
             >
               {platformAccess ? "Restrict" : "Restore"}
+            </Button>
+          }
+        />
+        <Row
+          label="Public directory"
+          value={
+            hiddenFromDirectory
+              ? "Hidden — no listings/specials shown publicly"
+              : "Visible to the public"
+          }
+          action={
+            <Button
+              size="sm"
+              variant={hiddenFromDirectory ? "default" : "outline"}
+              disabled={pending}
+              onClick={() => toggleDirectory(!hiddenFromDirectory)}
+            >
+              {hiddenFromDirectory ? "Unhide" : "Hide from public"}
             </Button>
           }
         />

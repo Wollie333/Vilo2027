@@ -199,6 +199,7 @@ export type UserRecordData = {
     account_kind: string;
     quote_access: boolean;
     platform_access: boolean;
+    hidden_from_directory: boolean;
   } | null;
   subscription: {
     plan: string;
@@ -813,6 +814,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                 accountKind={data.host.account_kind}
                 quoteAccess={data.host.quote_access}
                 platformAccess={data.host.platform_access}
+                hiddenFromDirectory={data.host.hidden_from_directory}
               />
             </div>
           ) : null}
