@@ -104,7 +104,10 @@ export async function markGuestConversationReadAction(
     return { ok: false, error: "Not your conversation." };
   }
 
-  await supabase
+  // Message rows are no longer client-updatable (messages RLS blocks UPDATE to
+  // stop in-thread tampering); mark-as-read runs via the service role AFTER the
+  // ownership assert above.
+  await createAdminClient()
     .from("messages")
     .update({ read_by_guest: true, read_at: new Date().toISOString() })
     .eq("conversation_id", conversationId)

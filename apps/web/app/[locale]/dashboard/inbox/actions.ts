@@ -262,7 +262,10 @@ export async function markConversationReadAction(
   }
 
   const supabase = createServerClient();
-  const { error: msgErr } = await supabase
+  // Message rows are no longer client-updatable (messages RLS blocks UPDATE to
+  // stop in-thread tampering); mark-as-read runs via the service role AFTER the
+  // ownership assert above.
+  const { error: msgErr } = await createAdminClient()
     .from("messages")
     .update({ read_by_host: true, read_at: new Date().toISOString() })
     .eq("conversation_id", conversationId)
