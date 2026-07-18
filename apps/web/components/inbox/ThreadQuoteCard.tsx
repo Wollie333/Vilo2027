@@ -80,6 +80,12 @@ export type ThreadBooking = {
   headcount: number | null;
   listingName: string | null;
   hostName: string | null;
+  // Financial documents for the transaction, downloadable from a booking card:
+  // the paid invoice (the bill) + the payment receipt (proof of payment).
+  invoiceToken: string | null;
+  invoiceNumber: string | null;
+  receiptToken: string | null;
+  receiptNumber: string | null;
 };
 
 function fmtDate(iso: string | null): string {

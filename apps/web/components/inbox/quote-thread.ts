@@ -13,9 +13,10 @@ export const QUOTE_CARD_COLUMNS =
   "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token, converted_booking_id, property_id";
 
 // Columns to render the booking half of the card (once a quote is accepted) plus
-// the stay/party/host details the richer booking system-cards need.
+// the stay/party/host details AND the financial documents (paid invoice + payment
+// receipt) the richer booking system-cards let you download.
 export const BOOKING_CARD_COLUMNS =
-  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency, check_in, check_out, guests_count, listing:properties(name), host:hosts(display_name)";
+  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency, check_in, check_out, guests_count, listing:properties(name), host:hosts(display_name), invoices(kind, status, hosted_token, invoice_number), payments(status, receipt_token, receipt_number, captured_at)";
 
 type QuoteRow = {
   id: string;
@@ -49,6 +50,19 @@ type DisplayNamed =
   | { display_name: string }[]
   | null;
 
+type InvoiceEmbed = {
+  kind: string | null;
+  status: string | null;
+  hosted_token: string | null;
+  invoice_number: string | null;
+};
+type PaymentEmbed = {
+  status: string | null;
+  receipt_token: string | null;
+  receipt_number: string | null;
+  captured_at: string | null;
+};
+
 type BookingRow = {
   id: string;
   reference: string;
@@ -64,7 +78,28 @@ type BookingRow = {
   guests_count?: number | null;
   listing?: Named;
   host?: DisplayNamed;
+  invoices?: InvoiceEmbed[] | null;
+  payments?: PaymentEmbed[] | null;
 };
+
+// The booking's primary invoice — prefer the main "booking" invoice; fall back to
+// any issued invoice that has a public token.
+function pickInvoice(
+  invoices: InvoiceEmbed[] | null | undefined,
+): InvoiceEmbed | null {
+  const withToken = (invoices ?? []).filter((i) => i.hosted_token);
+  return withToken.find((i) => i.kind === "booking") ?? withToken[0] ?? null;
+}
+
+// The most recent settled payment's receipt (proof of the transaction).
+function pickReceipt(
+  payments: PaymentEmbed[] | null | undefined,
+): PaymentEmbed | null {
+  const settled = (payments ?? [])
+    .filter((p) => p.receipt_token && p.status === "completed")
+    .sort((a, b) => (b.captured_at ?? "").localeCompare(a.captured_at ?? ""));
+  return settled[0] ?? null;
+}
 
 const num = (v: string | number | null): number | null =>
   v == null ? null : Number(v);
@@ -121,6 +156,10 @@ export function mapBookingRow(b: BookingRow): ThreadBooking {
     headcount: b.guests_count ?? null,
     listingName: one(b.listing)?.name ?? null,
     hostName: one(b.host)?.display_name ?? null,
+    invoiceToken: pickInvoice(b.invoices)?.hosted_token ?? null,
+    invoiceNumber: pickInvoice(b.invoices)?.invoice_number ?? null,
+    receiptToken: pickReceipt(b.payments)?.receipt_token ?? null,
+    receiptNumber: pickReceipt(b.payments)?.receipt_number ?? null,
   };
 }
 

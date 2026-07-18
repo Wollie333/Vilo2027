@@ -2,6 +2,8 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  Download,
+  FileText,
   Home,
   PartyPopper,
   Receipt,
@@ -60,6 +62,27 @@ export function PaymentReceivedCard({
   const methodLabel = booking.paymentMethod
     ? (METHOD_LABEL[booking.paymentMethod] ?? booking.paymentMethod)
     : null;
+
+  // Downloadable financial docs for this transaction — the payment receipt (proof
+  // of payment) and the paid invoice (the bill). Both are public tokenised PDFs.
+  const docs = [
+    booking.receiptToken
+      ? {
+          href: `/receipt/${booking.receiptToken}/pdf`,
+          label: "Receipt",
+          number: booking.receiptNumber,
+          Icon: Receipt,
+        }
+      : null,
+    booking.invoiceToken
+      ? {
+          href: `/invoice/${booking.invoiceToken}/pdf`,
+          label: "Invoice",
+          number: booking.invoiceNumber,
+          Icon: FileText,
+        }
+      : null,
+  ].filter((d): d is NonNullable<typeof d> => d !== null);
 
   return (
     <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-card border border-status-confirmed/30 bg-white shadow-card">
@@ -156,6 +179,30 @@ export function PaymentReceivedCard({
             </div>
           )}
         </div>
+
+        {/* Financial documents — one-tap download of the receipt / invoice. */}
+        {docs.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            {docs.map((d) => (
+              <a
+                key={d.label}
+                href={d.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:border-brand-primary/50 hover:bg-brand-light"
+              >
+                <d.Icon className="h-3.5 w-3.5 text-brand-mute" />
+                {d.label}
+                {d.number ? (
+                  <span className="font-normal text-brand-mute">
+                    {d.number}
+                  </span>
+                ) : null}
+                <Download className="h-3 w-3 text-brand-primary" />
+              </a>
+            ))}
+          </div>
+        ) : null}
 
         {/* CTA */}
         <Link
