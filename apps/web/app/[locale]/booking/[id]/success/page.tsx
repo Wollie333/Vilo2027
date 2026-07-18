@@ -87,7 +87,13 @@ export default async function BookingSuccessPage({
 }: {
   params: { id: string };
   // reference = Paystack return; token = PayPal return (?token=<orderId>).
-  searchParams?: { reference?: string; token?: string };
+  // PayPal also sends PayerID on approval and `paypal=cancel` on cancel.
+  searchParams?: {
+    reference?: string;
+    token?: string;
+    PayerID?: string;
+    paypal?: string;
+  };
 }) {
   const supabase = createServerClient();
   const brandName = await getBrandName();
@@ -116,12 +122,21 @@ export default async function BookingSuccessPage({
   const reference = searchParams?.reference;
   const paypalToken = searchParams?.token;
   const hostId = (booking.listing as unknown as { host_id: string }).host_id;
+  // The confirm/capture helpers deliberately THROW when a captured payment can't
+  // be confirmed (e.g. the confirm-time availability guard on a concurrent
+  // confirm). We must NOT let that 500 the guest's page — they've been charged.
+  // Catch it, log, and fall through to re-render whatever state the booking is
+  // in; the reconcile worker finalises it. Idempotent on refresh either way.
   if (booking.status === "pending" && reference && reference.length > 0) {
-    await confirmHostCardPaymentByReference({
-      reference,
-      hostId,
-      bookingId: booking.id,
-    });
+    try {
+      await confirmHostCardPaymentByReference({
+        reference,
+        hostId,
+        bookingId: booking.id,
+      });
+    } catch (err) {
+      console.error("success: card confirm failed after capture", err);
+    }
     // Re-fetch the latest row.
     const { data: refreshed } = await supabase
       .from("bookings")
@@ -136,14 +151,23 @@ export default async function BookingSuccessPage({
     booking.status === "pending" &&
     booking.payment_method === "paypal" &&
     paypalToken &&
-    paypalToken.length > 0
+    paypalToken.length > 0 &&
+    // Only capture on an APPROVED return: PayPal adds PayerID on approval and
+    // sends `paypal=cancel` (with the token) on cancel. Without this we'd fire a
+    // capture attempt on every cancelled order.
+    searchParams?.paypal !== "cancel" &&
+    !!searchParams?.PayerID
   ) {
     // PayPal return — capture the approved order on the host's app + settle.
-    await capturePayPalOrderForBooking({
-      orderId: paypalToken,
-      hostId,
-      bookingId: booking.id,
-    });
+    try {
+      await capturePayPalOrderForBooking({
+        orderId: paypalToken,
+        hostId,
+        bookingId: booking.id,
+      });
+    } catch (err) {
+      console.error("success: paypal capture failed after approval", err);
+    }
     const { data: refreshed } = await supabase
       .from("bookings")
       .select("status, payment_status")

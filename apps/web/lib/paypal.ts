@@ -116,6 +116,30 @@ export async function createPayPalOrder(input: {
 }
 
 /**
+ * Read a PayPal order's current state WITHOUT capturing. Used by reconciliation
+ * to tell an already-CAPTURED (COMPLETED) order — whose local flip was lost — apart
+ * from a still-APPROVED order that needs capturing. Returns null on failure.
+ */
+export async function getPayPalOrder(
+  orderId: string,
+  creds: PayPalCreds,
+): Promise<{ status: string } | null> {
+  const token = await getPayPalAccessToken(creds);
+  if (!token) return null;
+  const res = await fetch(
+    `${BASE_URL[creds.env]}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) return null;
+  const json = (await res.json()) as { status?: string };
+  if (!json.status) return null;
+  return { status: json.status };
+}
+
+/**
  * Capture an approved PayPal order on the host's account. Returns the capture
  * status (e.g. "COMPLETED") or null on failure.
  */

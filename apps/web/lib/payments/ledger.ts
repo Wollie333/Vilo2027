@@ -114,14 +114,11 @@ export async function recomputeBookingPaymentState(
   else status = "completed";
 
   // Don't clobber terminal money states (refunded / voided / forfeited) that the
-  // refund or forfeiture flow set.
-  const terminal = [
-    "refunded",
-    "partially_refunded",
-    "voided",
-    "failed",
-    "forfeited",
-  ];
+  // refund or forfeiture flow set. NOTE: 'failed' is deliberately NOT terminal —
+  // a failed card is recoverable (the guest retries + pays), and treating it as
+  // terminal left a fully-paid retry stuck showing payment_status='failed' with
+  // balance_due=0, so the guest saw a "pay now" page for a paid, confirmed stay.
+  const terminal = ["refunded", "partially_refunded", "voided", "forfeited"];
   const patch: Record<string, unknown> = { balance_due: balance };
   if (!terminal.includes(booking.payment_status as string)) {
     patch.payment_status = status;

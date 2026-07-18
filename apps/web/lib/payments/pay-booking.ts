@@ -2,7 +2,11 @@ import "server-only";
 
 import { round2 } from "@/lib/format";
 import { convertZarToUsd } from "@/lib/fx";
-import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
+import {
+  createPayPalOrder,
+  capturePayPalOrder,
+  getPayPalOrder,
+} from "@/lib/paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
 import {
@@ -307,12 +311,35 @@ export async function confirmHostCardPaymentByReference(opts: {
   );
   if (!verification || verification.status !== "success") return false;
 
-  // Flip the existing pending row (created at init) — never insert a duplicate.
-  await admin
+  // The reference MUST belong to THIS booking. Payment rows are keyed on both
+  // provider_reference AND booking_id at init, so a guest replaying another
+  // booking's (or their own past booking's) successful reference finds no row
+  // for this booking here and cannot confirm it. Without this, a replayed
+  // reference verified 'success' on the host's account and the booking was
+  // flipped to confirmed with paid=0 / balance owing — a free confirmed stay.
+  const { data: payRow } = await admin
     .from("payments")
-    .update({ status: "completed", captured_at: new Date().toISOString() })
+    .select("id, status, amount")
     .eq("provider_reference", opts.reference)
-    .eq("status", "pending");
+    .eq("booking_id", opts.bookingId)
+    .limit(1)
+    .maybeSingle();
+  if (!payRow) return false;
+
+  // Defence in depth: the verified amount (lowest unit / cents) must cover what
+  // this payment row expects (Rands → cents), allowing a 1-cent rounding slack.
+  if (verification.amount + 1 < Math.round(Number(payRow.amount) * 100)) {
+    return false;
+  }
+
+  // Flip THIS booking's existing pending row (created at init) — never a dup.
+  if (payRow.status === "pending") {
+    await admin
+      .from("payments")
+      .update({ status: "completed", captured_at: new Date().toISOString() })
+      .eq("id", payRow.id)
+      .eq("status", "pending");
+  }
 
   // Ledger owns balance_due + payment_status.
   await recomputeBookingPaymentState(admin, opts.bookingId);
@@ -321,6 +348,21 @@ export async function confirmHostCardPaymentByReference(opts: {
   // an 'issued' invoice otherwise (the confirm trigger only marks it paid when it
   // was paid in full up front).
   await markBookingInvoicesPaidIfSettled(admin, opts.bookingId);
+
+  // Only confirm a booking the ledger now shows as genuinely paid. Guards the
+  // prior bug where the booking was flipped to confirmed even though the
+  // recompute left payment_status='pending' (paid=0) — a confirmed, unpaid stay.
+  const { data: bkState } = await admin
+    .from("bookings")
+    .select("payment_status")
+    .eq("id", opts.bookingId)
+    .maybeSingle();
+  if (
+    bkState?.payment_status !== "completed" &&
+    bkState?.payment_status !== "partial"
+  ) {
+    return false;
+  }
 
   // Confirm the booking (pending → confirmed) so the invoice + date-blocking
   // triggers run. The invoice is created already-paid because payment_status is
@@ -410,7 +452,16 @@ export async function capturePayPalOrderForBooking(opts: {
 
   if (paymentRow?.status === "pending") {
     const cap = await capturePayPalOrder(opts.orderId, creds);
-    if (!cap || cap.status !== "COMPLETED") return false;
+    if (!cap || cap.status !== "COMPLETED") {
+      // The capture may have failed BECAUSE the order was already captured on a
+      // prior return whose local flip was lost (process died between PayPal's
+      // COMPLETED and the row update). Confirm read-only before giving up — the
+      // guest's money may already be on the host's account. Without this, the
+      // reconcile worker can't recover it and the expire cron cancels a paid
+      // booking → captured-money loss.
+      const order = await getPayPalOrder(opts.orderId, creds);
+      if (order?.status !== "COMPLETED") return false;
+    }
     // Flip the existing pending row — never insert a duplicate.
     await admin
       .from("payments")

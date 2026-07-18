@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
+import {
+  capturePayPalOrderForBooking,
+  confirmHostCardPaymentByReference,
+} from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -116,6 +119,50 @@ export async function POST(req: Request) {
         stuck += 1;
         console.error(
           `booking-reconcile: booking ${row.booking_id} captured but not confirmed:`,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
+
+    // ── PayPal: same problem, no webhook. A guest can approve + have their
+    // order captured, then die before the local flip → money on the host's
+    // PayPal, booking stuck pending → the expire cron would cancel a paid stay.
+    // capturePayPalOrderForBooking is idempotent and now settles an
+    // already-captured order (read-only GET fallback), so it recovers both the
+    // "approved-not-captured" and "captured-not-flipped" cases.
+    const { data: ppRows, error: ppError } = await admin
+      .from("payments")
+      .select("provider_reference, booking_id, bookings!inner(host_id)")
+      .eq("status", "pending")
+      .eq("method", "paypal")
+      .not("provider_reference", "is", null)
+      .eq("bookings.status", "pending")
+      .eq("bookings.payment_method", "paypal")
+      .lt("bookings.created_at", minAge)
+      .gt("bookings.created_at", maxAge)
+      .limit(BATCH_SIZE);
+    if (ppError) throw new Error(ppError.message);
+
+    for (const row of (ppRows ?? []) as Row[]) {
+      if (!row.provider_reference) continue;
+      if (seen.has(row.booking_id)) continue;
+      seen.add(row.booking_id);
+      const booking = Array.isArray(row.bookings)
+        ? row.bookings[0]
+        : row.bookings;
+      if (!booking) continue;
+      try {
+        const ok = await capturePayPalOrderForBooking({
+          orderId: row.provider_reference,
+          hostId: booking.host_id,
+          bookingId: row.booking_id,
+        });
+        if (ok) settled += 1;
+        else unpaid += 1; // Not approved/captured at PayPal — leave for expiry.
+      } catch (err) {
+        stuck += 1;
+        console.error(
+          `booking-reconcile: PayPal booking ${row.booking_id} captured but not confirmed:`,
           err instanceof Error ? err.message : String(err),
         );
       }
