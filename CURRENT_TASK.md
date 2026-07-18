@@ -2,6 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢🟢 SAVE POINT / RESUME ANCHOR (2026-07-18) — OceansView Rooms · Offers · Contact bespoke pages
+
+**Branch `feature/website-cms-10min-wizard`, pushed `b075eb2`, Vercel deploy READY.** Built the 3 remaining
+OceansView bespoke public pages (see CHANGELOG top). All new files under
+`apps/web/components/site/oceansview/` + routing in `SitePageView.tsx`.
+
+### ✅ Done + verified this arc
+- Rooms / Offers / Contact bespoke pages — component + scoped CSS each, wired to `content_profile` + live `SiteData`.
+- Contact form is a real `use client` form → `/api/website-enquiry` (host inbox); FAQ from `content_profile.contact.faq`.
+- compile + tsc + eslint green; **full prod build green on Vercel**; all 3 pages **visually verified faithful** to the
+  founder's reference via a static harness (real CSS + sample data). Fixed a prettier-tailwind className space-strip bug.
+
+### 🔧 REMAINING — true live verification (Principle #9)
+The real data-path + live contact-form submit are **NOT yet driven end-to-end**: no OceansView site exists in the
+deployment's DB and this worktree has no `.env.local`. To finish: EITHER (a) add Supabase keys to `apps/web/.env.local`
++ run `pnpm dev` + `node --env-file=.env.local scripts/seed-oceansview-qa.mjs`, then open
+`localhost:3000/en/site/rooms?site=vilotest` (+ /specials, /contact); OR (b) publish a real OceansView site and open
+`/en/site/<slug>/rooms` etc. on the branch deploy. Then verify render + submit an enquiry lands in the host inbox.
+See memory `oceansview-cms-worktree-env` + `oceansview-bespoke-pages-status`.
+
+---
+
 ## 🟢🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt5) — REMAINING-FIXES BATCH (1 item left + 1 ops check)
 
 **Repo clean + pushed at `fc220c11`. Green: `pnpm build` + `pnpm lint` (web).** Full detail in memory

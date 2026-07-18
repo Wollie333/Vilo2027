@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-18 — OceansView bespoke Rooms · Offers · Contact pages (wired to live data).
+
+- **Three more bespoke OceansView public pages**, completing the reference theme alongside home + about. Each is a
+  scoped component + CSS routed in `SitePageView.tsx`, fed by `content_profile` + live `SiteData`, demo copy as fallback:
+  - **Rooms** (`OceansViewRooms` + `oceansRooms.css`, `kind === "rooms"`): live `rooms_preview` as alternating
+    image/detail splits with a floating price badge, live facts and real book/view links; honest direct-booking
+    "included" bar; empty-state placeholder (never demo rooms); CTA banner.
+  - **Offers** (`OceansViewSpecials` + `oceansSpecials.css`, `kind === "specials"`): live `specials_preview` grid with
+    the host's badge, now/was price + savings, remaining-count pill and a booking deep-link; empty-state; CTA.
+  - **Contact** (`OceansViewContact` + `OceansContactForm` client form + `oceansContact.css`, `kind === "contact"`):
+    real lead-capture form → `/api/website-enquiry` (host inbox) with the design's fuller field set folded into the
+    message; live establishment details card + map (iframe when available, striped placeholder otherwise); FAQ from
+    `content_profile.contact.faq` with brand-agnostic direct-booking answers as fallback.
+- **Verified:** compile + `tsc` + `eslint` green; **full production build green on Vercel** (branch deploy READY).
+  All three pages **visually confirmed faithful to the founder's reference** via a static harness (real ported CSS +
+  representative data). Caught + fixed a real bug: `prettier-plugin-tailwindcss` stripped the leading space inside a
+  `className` template literal (`section${x?" sand":""}` → dead class `sectionsand`), killing the alternating sand band
+  + reverse layout on odd rooms — switched to plain-string ternaries.
+- **NOT yet verified (Principle #9 gap):** the real `SitePageView`→component data path at runtime and the live
+  contact-form submit → inbox — there is no OceansView site in the deployment's DB and no local `.env.local` in this
+  worktree. Needs the founder's Supabase keys (run local + `seed-oceansview-qa.mjs`) OR a real published OceansView site.
+
+---
+
 ## 2026-07-16 — Credits notification · booking-confirmation email fix · email-flow audit.
 
 - **Admin credit grant now notifies the user.** When an admin tops up a user's Wielo Credits, the user gets an in-app
