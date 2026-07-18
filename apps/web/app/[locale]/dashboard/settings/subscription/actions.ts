@@ -459,9 +459,13 @@ export async function requestCancellationAction(): Promise<ActionResult> {
   const subId = await membershipSubId(supabase, host.hostId);
   if (!subId) return { ok: false, error: "No subscription on file." };
 
+  // A cancellation REQUEST must NOT strip the host's paid features on the spot —
+  // they've paid through current_period_end and a human handles the real close
+  // (timing + credit-note/refund). Flag cancel_at_period_end and leave the
+  // membership live; the admin/period-end flow performs the terminal transition.
   const { error } = await supabase
     .from("subscriptions")
-    .update({ status: "paused" })
+    .update({ cancel_at_period_end: true })
     .eq("id", subId);
   if (error) return { ok: false, error: error.message };
 
@@ -476,7 +480,7 @@ export async function requestCancellationAction(): Promise<ActionResult> {
       category: "support",
       kind: "cancellation_request",
       title: "Cancellation requested",
-      body: "A host asked to cancel their membership (now paused).",
+      body: "A host asked to cancel their membership (set to end at period end).",
       userId: host.userId,
       hostId: host.hostId,
       href: `/admin/users/${host.userId}?tab=products`,
