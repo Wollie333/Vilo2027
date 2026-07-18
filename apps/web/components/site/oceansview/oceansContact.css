@@ -231,25 +231,6 @@
   color: var(--site-mute, #5e7884);
   margin-top: 3px;
 }
-.ovcontact .reassure {
-  margin-top: 16px;
-  padding: 20px 22px;
-  background: var(--site-soft, #f7f1e6);
-  border-radius: var(--site-radius-lg, 22px);
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.ovcontact .reassure .ic {
-  color: var(--site-accent, #12a5b5);
-  flex-shrink: 0;
-}
-.ovcontact .reassure p {
-  font-size: 14px;
-  color: var(--site-mute, #5e7884);
-  line-height: 1.55;
-}
-
 /* -- guest review (fills the info column beside the form) ---------------- */
 .ovcontact .qcard {
   margin-top: 16px;

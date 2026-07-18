@@ -532,8 +532,14 @@ export async function SitePageView({
               }
               phone={loc?.phone ?? ctx.brand.contactPhone ?? null}
               email={loc?.email ?? ctx.brand.contactEmail ?? null}
-              address={loc?.address ?? null}
-              mapEmbedUrl={loc?.mapEmbedUrl ?? null}
+              address={loc?.fullAddress ?? loc?.address ?? null}
+              mapEmbedUrl={
+                loc?.fullAddress
+                  ? `https://maps.google.com/maps?q=${encodeURIComponent(
+                      loc.fullAddress,
+                    )}&z=15&output=embed`
+                  : (loc?.mapEmbedUrl ?? null)
+              }
               faq={cp.contact?.faq ?? null}
               policies={extras.policies ?? null}
               rooms={roomNames}

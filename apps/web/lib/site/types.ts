@@ -394,7 +394,14 @@ export type LocationData = {
   name?: string | null;
   phone?: string | null;
   email?: string | null;
+  /** City / province / country only — privacy-limited locality for the home
+   * page + map pin (keeps the exact address private on the marketplace side). */
   address?: string | null;
+  /** The COMPLETE street address (line1/line2 + city/province/postal/country),
+   * for the host's own contact page where a full business address belongs.
+   * Null when the property hasn't set a street line (then callers fall back to
+   * the locality `address`). */
+  fullAddress?: string | null;
   mapEmbedUrl?: string | null;
   pois: Poi[];
 };

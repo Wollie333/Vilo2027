@@ -1665,14 +1665,19 @@ export async function assembleSiteDataByType(
   const slugByProperty = new Map<string, string>();
   let primaryProperty: {
     id: string;
+    addressLine1: string | null;
+    addressLine2: string | null;
     city: string | null;
     province: string | null;
+    postalCode: string | null;
     country: string | null;
   } | null = null;
   if (needsSlugs) {
     const { data: props } = await sb
       .from("properties")
-      .select("id, slug, city, province, country")
+      .select(
+        "id, slug, address_line1, address_line2, city, province, postal_code, country",
+      )
       .in("id", ids);
     for (const p of props ?? []) {
       slugByProperty.set(p.id, (p as { slug: string | null }).slug ?? "");
@@ -1683,8 +1688,11 @@ export async function assembleSiteDataByType(
     if (first)
       primaryProperty = {
         id: first.id,
+        addressLine1: (first as { address_line1: string | null }).address_line1,
+        addressLine2: (first as { address_line2: string | null }).address_line2,
         city: (first as { city: string | null }).city,
         province: (first as { province: string | null }).province,
+        postalCode: (first as { postal_code: string | null }).postal_code,
         country: (first as { country: string | null }).country,
       };
   }
@@ -1916,6 +1924,21 @@ export async function assembleSiteDataByType(
       ]
         .filter(Boolean)
         .join(", ");
+      // Complete street address for the host's own contact page (line1/line2 +
+      // locality + postal). Null when no street line is set → callers fall back
+      // to the locality `address` above.
+      const fullAddress = primaryProperty.addressLine1
+        ? [
+            primaryProperty.addressLine1,
+            primaryProperty.addressLine2,
+            primaryProperty.city,
+            primaryProperty.province,
+            primaryProperty.postalCode,
+            primaryProperty.country,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : null;
       // Keyless Google Maps embed (same approach as the free-form MapSection).
       // City/province/country only — keeps the exact address private pre-booking.
       const mapEmbedUrl = address
@@ -1926,6 +1949,7 @@ export async function assembleSiteDataByType(
         phone: ctx.brand?.contactPhone ?? null,
         email: ctx.brand?.contactEmail ?? null,
         address: address || null,
+        fullAddress,
         mapEmbedUrl,
         pois,
       };

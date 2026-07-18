@@ -233,26 +233,6 @@ export function OceansViewContact({
                   ) : null}
                 </div>
               ) : null}
-              <div className="reassure">
-                <span className="ic">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    aria-hidden
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                </span>
-                <p>
-                  Book direct and you pay exactly what we quote — no agents, no
-                  booking fees, no surprises at checkout.
-                </p>
-              </div>
 
               {/* A real guest review — fills the column and adds social proof
                   next to the enquiry form. Omitted when the site has no reviews. */}
