@@ -173,7 +173,7 @@ export function OceansViewRooms({
               <h2 className="lg room-name">{r.name}</h2>
               {r.description ? (
                 <p
-                  className="muted"
+                  className="muted room-blurb"
                   style={{ marginTop: 18, maxWidth: "52ch" }}
                 >
                   {r.description}
