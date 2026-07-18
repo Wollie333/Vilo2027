@@ -7,8 +7,17 @@
 The end goal: wizard → pick one of the designed themes → a **professional site** where EVERY page is a
 pixel-perfect mirror of that theme's reference design, header/footer included, populated with the host's
 details + the **AI content from the relevant page's wizard step**. Track order:
-1. **Specials DETAIL pages** (like room detail) + auto "Specials" sub-menu — *in progress this session*
-   (see below). Applies to ALL themes going forward (oceansview bespoke + generic fallback now).
+1. **Specials DETAIL pages** (like room detail) + auto "Specials" sub-menu — ✅ **DONE (commit `930bd2f`),
+   live-verified on mana** (DOM — screenshots were failing that session). Route
+   `app/[locale]/site/specials/[specialSlug]` → `SiteSpecialView` → `OceansViewSpecialDetail` (`.ovsd`,
+   bespoke) + `GenericSpecialDetail` fallback for other themes. `loadSiteSpecialPage` loads the offer +
+   other offers (same guards as the listing → 404 if expired/sold-out). Listing cards now say **"View
+   offer"** → `/specials/<slug>` (`SpecialCard.detailHref`, preview-aware `siteSpecialHref`); the detail's
+   "Book this offer" keeps the special-locked checkout href (`data-wielo-book`). Auto "Specials" dropdown:
+   `autoSpecials` flag + `expandAutoSpecials` + `specialMenuLinks`, INFERRED onto the specials nav item at
+   load (so existing sites like mana get it without a menu rebuild). Verified on mana: 3 cards → "View
+   offer", nav dropdown lists all 3 offers, detail renders (breadcrumb/hero/facts/sticky Book→checkout/more
+   offers). Applies to ALL themes (bespoke oceansview + generic fallback).
 2. **Thank-you pages** — the dynamic/action-aware/tracking LOGIC ALREADY EXISTS:
    `app/[locale]/site/book/thank-you` (booking → Purchase) + `app/[locale]/site/thank-you/[[...goal]]`
    with GOAL templates `contact`/`quote`/`custom` (each fires `Lead`, host per-form copy overrides).
