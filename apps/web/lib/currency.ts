@@ -144,9 +144,9 @@ export function formatCurrency(
  * Display an `amount` held in `sourceCurrency` in the viewer's `display`
  * currency, cross-converting via the USD pivot. A source outside the curated set
  * renders natively (via formatMoney) — never a false conversion. `converted` is
- * true only when a real cross-currency conversion happened, so callers can add
- * an "≈" estimate marker. This is the single place the source→display rule lives
- * (used by <Money>, formatFrom and the server formatter).
+ * true only when a real cross-currency conversion happened (callers may use it to
+ * distinguish an estimate from a native amount). This is the single place the
+ * source→display rule lives (used by <Money>, formatFrom and the server formatter).
  */
 export function displayAmount(
   amount: number,

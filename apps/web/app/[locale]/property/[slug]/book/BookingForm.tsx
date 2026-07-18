@@ -370,7 +370,7 @@ export function BookingForm({
   // ── Display currency ──────────────────────────────────────────
   // The guest's selected DISPLAY currency (ZAR/USD/EUR/GBP). Every price in this
   // form is a ZAR (host-base) amount; `formatMoney` is shadowed to route through
-  // formatFrom, which converts ZAR→display + prefixes ≈ for a converted estimate.
+  // formatFrom, which converts the source amount into the display currency.
   // CRITICAL: display is cosmetic — the CHARGE currency is fixed by the payment
   // method (Paystack/EFT = ZAR, PayPal = USD, converted server-side), never by
   // this choice. See `paymentMethods` (currency-gated) below.

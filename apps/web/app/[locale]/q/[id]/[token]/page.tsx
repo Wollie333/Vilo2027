@@ -104,8 +104,8 @@ export default async function PublicQuotePage({
   );
   const c = quote.currency;
   // A quote is a pre-acceptance offer (the guest is still deciding), so its
-  // amounts follow the display-currency switcher as "≈" estimates — like the
-  // booking form. The actual charge on acceptance is still the ZAR total.
+  // amounts follow the display-currency switcher (a converted estimate) — like
+  // the booking form. The actual charge on acceptance is still the host total.
   const fmt = await getServerMoneyFormatter();
 
   const expired =

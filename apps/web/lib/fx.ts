@@ -172,9 +172,9 @@ export type ServerMoneyFormatter = (
  * then returns a synchronous formatter. Non-reactive: the value updates on the
  * next page load after the guest switches currency.
  *
- * A converted estimate is prefixed "≈", mirroring <Money>. For transactional/
- * legal amounts that must NEVER convert (the exact charge, invoices, receipts,
- * real balance due/paid), keep using formatMoney() from lib/format.ts instead.
+ * Mirrors <Money>: cross-converts the amount into the display currency. For
+ * transactional/legal amounts that must NEVER convert (the exact charge,
+ * invoices, receipts, real balance due/paid), keep using formatMoney() instead.
  */
 export async function getServerMoneyFormatter(): Promise<ServerMoneyFormatter> {
   const raw = cookies().get(DISPLAY_CCY_COOKIE)?.value;
@@ -184,12 +184,7 @@ export async function getServerMoneyFormatter(): Promise<ServerMoneyFormatter> {
   const rates = await getDisplayRates();
   return (amount, sourceCurrency = "ZAR") => {
     if (amount == null) return "—";
-    const { text, converted } = displayAmount(
-      amount,
-      sourceCurrency,
-      display,
-      rates,
-    );
-    return converted ? `≈ ${text}` : text;
+    const { text } = displayAmount(amount, sourceCurrency, display, rates);
+    return text;
   };
 }

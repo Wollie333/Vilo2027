@@ -51,8 +51,8 @@ function Chip({
 
 export function SuitabilityChips({ s }: { s: Suitability }) {
   const t = useTranslations("listing");
-  // Browse-context prices → show in the viewer's display currency (≈ estimate for
-  // a converted ZAR amount). formatFrom mirrors <Money> for string interpolation.
+  // Browse-context prices → show in the viewer's display currency (an estimate
+  // for a converted amount). formatFrom mirrors <Money> for string interpolation.
   const { formatFrom } = useCurrency();
   const price = (amount: number) => formatFrom(amount, s.currency);
   const childLabel = s.allowChildren
