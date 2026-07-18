@@ -34,6 +34,7 @@ import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { railSupportsCurrency } from "@/lib/currency";
 import { PolicyDialog } from "@/components/policy/PolicyDialog";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { grossVat, vatOf } from "@/lib/pricing/vat";
@@ -373,7 +374,7 @@ export function BookingForm({
   // CRITICAL: display is cosmetic — the CHARGE currency is fixed by the payment
   // method (Paystack/EFT = ZAR, PayPal = USD, converted server-side), never by
   // this choice. See `paymentMethods` (currency-gated) below.
-  const { currency: displayCcy, setCurrency, formatFrom } = useCurrency();
+  const { formatFrom } = useCurrency();
   // Accept (amount, currency) like the base helper so the ~30 existing call sites
   // are unchanged, but ignore the ZAR currency arg and convert to the display one.
   const formatMoney = (amount: number, ...rest: unknown[]) => {
@@ -485,27 +486,61 @@ export function BookingForm({
   }
 
   // ── Payment method state ──────────────────────────────────────
-  // Card is only available when the host has connected their own Paystack;
-  // otherwise the guest pays by EFT. Default to whichever the host offers.
-  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
-    hasPaystack ? "paystack" : hasPaypal ? "paypal" : "eft",
-  );
-  // Snap the selected method to one valid for the current currency whenever the
-  // guest switches currency (USD → PayPal/EFT, ZAR → card/EFT). Mirrors the
-  // paymentMethods gating; EUR/GBP leave it unchanged (no rail → pay-step prompt).
-  // EFT is a ZAR bank transfer, so it's valid in both ZAR and USD.
-  useEffect(() => {
-    const valid: ("paystack" | "eft" | "paypal")[] = [];
-    if (displayCcy === "ZAR") {
-      if (hasPaystack) valid.push("paystack");
-      if (hasEftBanking) valid.push("eft");
-    } else if (displayCcy === "USD") {
-      if (hasPaypal) valid.push("paypal");
-      if (hasEftBanking) valid.push("eft");
+  // Model 2: payment rails are gated by the HOST's settlement currency (the
+  // listing `currency`), NOT the guest's display currency (which is cosmetic).
+  //   • Paystack settles ZAR/USD — shown only for those host currencies.
+  //   • PayPal is shown whenever connected (it charges the host currency
+  //     natively for USD/EUR/GBP, or USD-converted for a ZAR host).
+  //   • EFT is a manual transfer in the host currency — always available.
+  const paymentMethods = useMemo(() => {
+    const list: {
+      id: "paystack" | "paypal" | "eft";
+      label: string;
+      sub: string;
+      Icon: typeof CreditCard;
+      cards?: readonly ("visa" | "mc")[];
+    }[] = [];
+    if (hasPaystack && railSupportsCurrency("paystack", currency)) {
+      list.push({
+        id: "paystack",
+        label: "Pay with card",
+        sub: "Visa, Mastercard & instant EFT · secured by Paystack",
+        Icon: CreditCard,
+        cards: ["visa", "mc"],
+      });
     }
-    if (valid.length > 0 && !valid.includes(method)) setMethod(valid[0]);
+    if (hasPaypal) {
+      list.push({
+        id: "paypal",
+        label: "PayPal",
+        sub: "Pay with your PayPal account or card",
+        Icon: Wallet,
+      });
+    }
+    if (hasEftBanking) {
+      list.push({
+        id: "eft",
+        label: "EFT bank transfer",
+        sub: "Manual transfer · verified by the host",
+        Icon: Building2,
+      });
+    }
+    return list;
+  }, [hasPaystack, hasPaypal, hasEftBanking, currency]);
+
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
+    paymentMethods[0]?.id ?? "eft",
+  );
+  // Keep the selection valid if the available rails change.
+  useEffect(() => {
+    if (
+      paymentMethods.length > 0 &&
+      !paymentMethods.some((m) => m.id === method)
+    ) {
+      setMethod(paymentMethods[0].id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayCcy, hasPaystack, hasPaypal, hasEftBanking]);
+  }, [paymentMethods]);
   // Meta AddPaymentInfo — fires once on the first payment-method pick. This is
   // the DIRECTORY (Wielo) checkout, so it reaches the Wielo pixel.
   const apiFiredRef = useRef(false);
@@ -1218,71 +1253,16 @@ export function BookingForm({
   const sectionHead =
     "px-5 py-4 border-b border-brand-line flex items-center justify-between gap-3";
 
-  // Payment rails are currency-bound: Paystack + EFT settle in ZAR; PayPal is the
-  // international rail and charges USD (SA hosts can't hold a ZAR PayPal balance).
-  // So the methods OFFERED depend on the guest's selected currency — ZAR shows
-  // card/EFT, USD shows PayPal, and EUR/GBP are browse-only (the guest switches to
-  // ZAR or USD to pay; see the pay-step prompt).
-  const zarRail = displayCcy === "ZAR";
-  const usdRail = displayCcy === "USD";
-  const paymentMethods = [
-    ...(zarRail && hasPaystack
-      ? [
-          {
-            id: "paystack" as const,
-            label: "Pay with card",
-            sub: "Visa, Mastercard & instant EFT · secured by Paystack",
-            Icon: CreditCard,
-            cards: ["visa", "mc"] as const,
-          },
-        ]
-      : []),
-    ...(usdRail && hasPaypal
-      ? [
-          {
-            id: "paypal" as const,
-            label: "PayPal",
-            sub: "Pay in USD with your PayPal account or card",
-            Icon: Wallet,
-            cards: undefined,
-          },
-        ]
-      : []),
-    ...((zarRail || usdRail) && hasEftBanking
-      ? [
-          {
-            id: "eft" as const,
-            label: "EFT bank transfer",
-            // EFT is a South African bank transfer — always settled in ZAR — so it's
-            // offered in any operational currency; the transfer amount is shown in
-            // ZAR post-reserve regardless of the display currency.
-            sub: usdRail
-              ? "Manual transfer in ZAR · verified by the host"
-              : "Manual transfer · verified by the host",
-            Icon: Building2,
-            cards: undefined,
-          },
-        ]
-      : []),
-  ];
-
   // The guest can only pay when there's a real, available, priced stay AND the
-  // host offers at least one payment rail. Guards the R0 / room-just-became-
-  // unavailable / host-has-no-payment-method cases so we never charge nothing.
+  // host offers at least one payment rail (paymentMethods, gated by the host
+  // currency above). Guards the R0 / room-just-became-unavailable /
+  // host-has-no-payment-method cases so we never charge nothing.
   const noPriceableStay =
     !datesValid ||
     total <= 0 ||
     (scope === "rooms" && selectedRooms.length === 0);
   const canPay =
     !noPriceableStay && paymentMethods.length > 0 && !dealDateError;
-
-  // The host CAN take payment (in some currency), but not in the guest's current
-  // one — e.g. viewing EUR/GBP (browse-only) or USD without a host PayPal. Offer a
-  // one-click switch to a payable currency instead of a dead "no payment" wall.
-  const hostHasZarRail = hasPaystack || hasEftBanking;
-  const hostHasUsdRail = hasPaypal;
-  const needsCurrencySwitchToPay =
-    paymentMethods.length === 0 && (hostHasZarRail || hostHasUsdRail);
 
   /* ── Step 1 · Rooms (dates, guests, room selection) ────────── */
   const roomsBody = (
@@ -2331,45 +2311,8 @@ export function BookingForm({
         </p>
       </header>
 
-      {/* Currency has no rail, but the host takes payment in another → offer a
-          one-click switch (EUR/GBP are browse-only; pay in ZAR or USD). */}
-      {needsCurrencySwitchToPay ? (
-        <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-brand-light p-4">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-mute" />
-          <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-brand-ink">
-            Bookings are charged in{" "}
-            {hostHasZarRail && hostHasUsdRail
-              ? "ZAR or USD"
-              : hostHasZarRail
-                ? "ZAR"
-                : "USD"}
-            . Choose how you’d like to pay:
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {hostHasZarRail ? (
-                <button
-                  type="button"
-                  onClick={() => setCurrency("ZAR")}
-                  className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light"
-                >
-                  Pay in ZAR (card / EFT)
-                </button>
-              ) : null}
-              {hostHasUsdRail ? (
-                <button
-                  type="button"
-                  onClick={() => setCurrency("USD")}
-                  className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light"
-                >
-                  Pay in USD (PayPal)
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {/* Can't-pay guard — nothing is created or charged in these states. */}
-      {!canPay && !needsCurrencySwitchToPay ? (
+      {!canPay ? (
         <div className="flex items-start gap-2.5 rounded-card border border-amber-200 bg-amber-50 p-4">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
           <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-amber-800">
