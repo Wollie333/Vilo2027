@@ -1,7 +1,23 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `c957d00` · **Vercel: auto-deploys on push**
-**Updated:** 2026-07-18 (pt5)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `8dffc19` · **Vercel: auto-deploys on push**
+**Updated:** 2026-07-19 (pt6)
+
+## 🗺️ FOUNDER ROADMAP (captured 2026-07-19) — the big picture
+The end goal: wizard → pick one of the designed themes → a **professional site** where EVERY page is a
+pixel-perfect mirror of that theme's reference design, header/footer included, populated with the host's
+details + the **AI content from the relevant page's wizard step**. Track order:
+1. **Specials DETAIL pages** (like room detail) + auto "Specials" sub-menu — *in progress this session*
+   (see below). Applies to ALL themes going forward (oceansview bespoke + generic fallback now).
+2. **Thank-you pages** — the dynamic/action-aware/tracking LOGIC ALREADY EXISTS:
+   `app/[locale]/site/book/thank-you` (booking → Purchase) + `app/[locale]/site/thank-you/[[...goal]]`
+   with GOAL templates `contact`/`quote`/`custom` (each fires `Lead`, host per-form copy overrides).
+   MISSING = the bespoke pixel-perfect DESIGN per theme (a `Thank You.html` exists in every theme folder).
+   → build `OceansViewThankYou` over the existing goal/event/copy logic; skin the others.
+3. **All-themes pixel-perfect PAGES + AI content** — OceansView pages + all-3 chrome done. Marmalade/Sabela
+   PAGES reach pixel-perfect via the SKIN model (`theme-skins.css` over generic blocks, per
+   `docs/themes/THEME_SKIN_STANDARD.md`), each page pulling its wizard AI content. Largest track.
+   (Founder said "4 themes" — only 3 have reference designs: oceansview, marmalade, sabela → confirm a 4th.)
 
 > This file is COMMITTED (the previous savepoint was lost because it was never committed —
 > don't let that happen again: commit + push before ending a session).

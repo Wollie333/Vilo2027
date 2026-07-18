@@ -140,11 +140,10 @@ export function OceansViewSpecials({
                         </div>
                       ) : null}
                       <a
-                        href={s.bookHref}
-                        data-wielo-book
+                        href={s.detailHref ?? s.bookHref}
                         className="btn btn-primary btn-block"
                       >
-                        Book this offer
+                        View offer
                       </a>
                     </div>
                   </article>

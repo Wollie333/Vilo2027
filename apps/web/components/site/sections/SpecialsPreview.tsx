@@ -139,8 +139,7 @@ function SpecialCardView({
         ) : null}
         <div className="mt-4 flex items-center justify-end pt-2">
           <a
-            href={s.bookHref}
-            data-wielo-book
+            href={s.detailHref ?? s.bookHref}
             style={{
               background: "var(--el-button-bg, var(--site-btn-primary-bg))",
               color: "var(--el-button-fg, var(--site-btn-primary-color))",

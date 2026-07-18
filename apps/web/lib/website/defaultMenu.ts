@@ -28,6 +28,11 @@ function isRoomsPage(p: { kind: string; slug: string }): boolean {
   return p.kind === "rooms" || p.slug === "rooms";
 }
 
+/** Is this the specials/offers listing (so offer detail links nest under it)? */
+function isSpecialsPage(p: { kind: string; slug: string }): boolean {
+  return p.kind === "specials" || p.slug === "specials";
+}
+
 /**
  * Build a default header menu from a site's in-nav pages (Home first, then the
  * rest by nav_order). Excludes the room_detail template (rendered only via the
@@ -48,6 +53,10 @@ export function buildDefaultMenu(pages: PageRow[]): SiteMenuItem[] {
       if (isRoomsPage(p)) {
         item.autoRooms = true;
         item.hiddenRoomIds = [];
+      }
+      if (isSpecialsPage(p)) {
+        item.autoSpecials = true;
+        item.hiddenSpecialIds = [];
       }
       return item;
     });

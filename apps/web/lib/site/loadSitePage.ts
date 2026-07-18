@@ -395,14 +395,26 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     policyHiddenTypes,
   };
 
-  // Auto-rooms menu: fill the flagged item's dropdown with the site's current
-  // rooms (minus hidden) so the menu is always up to date — public + preview.
-  if (navigation.menu?.some((i) => i.autoRooms)) {
-    const links = await roomMenuLinks(ctx);
-    ctx.navigation = {
-      ...navigation,
-      menu: expandAutoRooms(navigation.menu, links),
-    };
+  // Auto menus: fill the flagged Rooms / Specials items' dropdowns with the
+  // site's current rooms / specials (minus hidden) so the menu is always up to
+  // date — public + preview. Each detail link nests under its listing item.
+  let menu = navigation.menu ?? [];
+  // The Specials listing item opts into its auto-dropdown even when the stored
+  // menu predates the flag (so existing sites get the offers dropdown too, the
+  // same way the Rooms item is flagged at build time). A host who built a manual
+  // Specials submenu (own children) keeps it — we never override that.
+  menu = menu.map((i) =>
+    i.autoSpecials || i.children?.length || !/(^|\/)specials$/.test(i.href)
+      ? i
+      : { ...i, autoSpecials: true },
+  );
+  const hasAutoRooms = menu.some((i) => i.autoRooms);
+  const hasAutoSpecials = menu.some((i) => i.autoSpecials);
+  if (hasAutoRooms || hasAutoSpecials) {
+    if (hasAutoRooms) menu = expandAutoRooms(menu, await roomMenuLinks(ctx));
+    if (hasAutoSpecials)
+      menu = expandAutoSpecials(menu, await specialMenuLinks(ctx));
+    ctx.navigation = { ...navigation, menu };
   }
 
   return ctx;
@@ -787,6 +799,20 @@ export function siteRoomHref(
   return `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
 }
 
+/** Preview-aware link to a special's detail page (`/specials/<slug>`). Twin of
+ *  `siteRoomHref` — carries `?site=` on the app-domain affordance + `&preview=1`
+ *  when previewing, so the offer card + auto-menu resolve in both modes. */
+export function siteSpecialHref(
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+  slug: string,
+): string {
+  const qs = new URLSearchParams();
+  if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
+  if (ctx.preview) qs.set("preview", "1");
+  const q = qs.toString();
+  return `${ctx.bookBasePath}/specials/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
+}
+
 /**
  * Link to the system search-results page (`/search-results`), relative to the
  * site root (keeps the guest on the host's own domain); carries `?site=` on the
@@ -962,6 +988,9 @@ async function loadSpecialsPreview(
           r.savings_amount == null ? null : Number(r.savings_amount),
         savingsPct: r.savings_pct,
         remaining,
+        // The card links here so the guest browses the offer first; the booking
+        // action lives on the detail page (preview-aware, like room cards).
+        detailHref: r.slug ? siteSpecialHref(ctx, r.slug) : null,
         // Route the offer's "Book" to THIS themed checkout, preloaded + locked to
         // the special (special-rate pricing + redemption + website attribution).
         // Fixed-date specials pin their dates; flexible ones let the guest pick.
@@ -989,6 +1018,171 @@ async function loadSpecialsPreview(
   });
 
   return { specials: mapped.map((m) => m.card) };
+}
+
+/** One special/offer as a full detail page (mirrors the room-detail loader). */
+export type SiteSpecialDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  badge: string | null;
+  /** Hero image + the property's gallery photos (hero first, de-duped). */
+  imageUrl: string | null;
+  images: string[];
+  priceMode: "flat" | "per_night";
+  price: number | null;
+  currency: string;
+  wasPrice: number | null;
+  savingsAmount: number | null;
+  savingsPct: number | null;
+  remaining: number;
+  /** Stay window — fixed dates pin check-in/out; flexible offers a window. */
+  dateMode: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  windowStart: string | null;
+  windowEnd: string | null;
+  bookBy: string | null;
+  isEvergreen: boolean;
+  minNights: number | null;
+  maxNights: number | null;
+  maxGuests: number | null;
+  /** The offer's applicable room + property, for context (name only). */
+  roomName: string | null;
+  propertyName: string | null;
+  /** THIS offer's checkout link — preloaded + locked to the special (rate +
+   *  redemption + website attribution), exactly like the listing card's book. */
+  bookHref: string;
+};
+
+export type SiteSpecialResult = {
+  special: SiteSpecialDetail;
+  otherSpecials: SpecialCard[];
+  specialsHref: string;
+};
+
+/**
+ * Load ONE special by slug as a detail page — the offer's full data (copy, hero
+ * + gallery, price/was/save, validity, applicable room) plus the site's OTHER
+ * live offers for the "more offers" strip. Applies the same live/still-bookable
+ * guards as the listing, so an expired or sold-out offer 404s. Returns null when
+ * the slug matches no visible offer. Mirrors `loadSiteRoomPage`.
+ */
+export async function loadSiteSpecialPage(
+  ctx: SiteContext,
+  specialSlug: string,
+): Promise<SiteSpecialResult | null> {
+  const sb = createAdminClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await sb
+    .from("specials")
+    .select(
+      "id, slug, title, description, hero_image_path, badge, property_id, room_id, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, is_evergreen, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, min_nights, max_nights, max_guests, property:properties!inner ( name, deleted_at, photos:property_photos ( url, sort_order ) )",
+    )
+    .eq("business_id", ctx.businessId)
+    .eq("status", "active")
+    .eq("show_on_website", true)
+    .eq("slug", specialSlug)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!data) return null;
+
+  type PropShape = {
+    name: string | null;
+    deleted_at: string | null;
+    photos: Array<{ url: string; sort_order: number }> | null;
+  };
+  const r = data as unknown as Omit<SpecialPreviewRow, "property"> & {
+    window_start: string | null;
+    is_evergreen: boolean;
+    min_nights: number | null;
+    max_nights: number | null;
+    max_guests: number | null;
+    property: PropShape | PropShape[] | null;
+  };
+  const property = Array.isArray(r.property) ? r.property[0] : r.property;
+  if (!property || property.deleted_at) return null;
+
+  // Same live / still-bookable / not-sold-out guards as the listing.
+  if (r.go_live_at && r.go_live_at > today) return null;
+  if (r.book_by && r.book_by < today) return null;
+  const stayEnd = r.date_mode === "fixed" ? r.fixed_check_out : r.window_end;
+  if (stayEnd && stayEnd <= today) return null;
+  const remaining = Math.max(0, r.quantity - r.redemptions_used);
+  if (remaining <= 0) return null;
+
+  const photoUrls = [...(property.photos ?? [])]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((p) => p.url);
+  const hero =
+    websiteAssetUrl(r.hero_image_path ?? undefined) ?? photoUrls[0] ?? null;
+  const images = hero
+    ? [hero, ...photoUrls.filter((u) => u !== hero)]
+    : photoUrls;
+  const priceMode = r.price_mode === "per_night" ? "per_night" : "flat";
+  const price =
+    priceMode === "flat"
+      ? r.flat_total == null
+        ? null
+        : Number(r.flat_total)
+      : r.per_night_price == null
+        ? null
+        : Number(r.per_night_price);
+
+  // Applicable room name — a safe standalone lookup (room_id may reference a
+  // property/room row; a miss just leaves the name null, never throws).
+  let roomName: string | null = null;
+  if (r.room_id) {
+    const { data: rm } = await sb
+      .from("properties")
+      .select("name")
+      .eq("id", r.room_id)
+      .maybeSingle<{ name: string | null }>();
+    roomName = rm?.name ?? null;
+  }
+
+  const special: SiteSpecialDetail = {
+    id: r.id,
+    slug: r.slug ?? specialSlug,
+    title: r.title,
+    description: r.description,
+    badge: r.badge,
+    imageUrl: hero,
+    images,
+    priceMode,
+    price,
+    currency: r.currency,
+    wasPrice: r.was_price == null ? null : Number(r.was_price),
+    savingsAmount: r.savings_amount == null ? null : Number(r.savings_amount),
+    savingsPct: r.savings_pct,
+    remaining,
+    dateMode: r.date_mode,
+    checkIn: r.fixed_check_in,
+    checkOut: r.fixed_check_out,
+    windowStart: r.window_start,
+    windowEnd: r.window_end,
+    bookBy: r.book_by,
+    isEvergreen: r.is_evergreen,
+    minNights: r.min_nights,
+    maxNights: r.max_nights,
+    maxGuests: r.max_guests,
+    roomName,
+    propertyName: property.name ?? null,
+    bookHref: siteBookHref(ctx, {
+      propertyId: r.property_id,
+      roomId: r.room_id ?? undefined,
+      from:
+        r.date_mode === "fixed" ? (r.fixed_check_in ?? undefined) : undefined,
+      to:
+        r.date_mode === "fixed" ? (r.fixed_check_out ?? undefined) : undefined,
+      special: r.id,
+    }),
+  };
+
+  const preview = await loadSpecialsPreview(sb, ctx);
+  const otherSpecials = preview.specials.filter((s) => s.id !== r.id);
+  return { special, otherSpecials, specialsHref: "/specials" };
 }
 
 const SUPA_STORAGE_URL =
@@ -2489,6 +2683,87 @@ export function expandAutoRooms(
       visible.length >= 2
         ? visible.map((l) => ({
             id: `room-${l.roomId}`,
+            label: l.label,
+            href: l.href,
+          }))
+        : undefined;
+    return { ...item, children };
+  });
+}
+
+export type SpecialMenuLink = {
+  specialId: string;
+  label: string;
+  href: string;
+};
+
+/**
+ * The site's live specials as menu links — label = the offer title, href = its
+ * detail page (`/specials/<slug>`, run through buildNavHref by the header like
+ * every other item). Applies the SAME date/inventory guards as the specials
+ * listing so the dropdown only shows currently-bookable offers. Drives the
+ * auto-specials dropdown so the menu is always current.
+ */
+export async function specialMenuLinks(
+  ctx: SiteContext,
+): Promise<SpecialMenuLink[]> {
+  const sb = createAdminClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await sb
+    .from("specials")
+    .select(
+      "id, slug, title, date_mode, fixed_check_out, window_end, quantity, redemptions_used, go_live_at, book_by, is_featured, sort_order",
+    )
+    .eq("business_id", ctx.businessId)
+    .eq("status", "active")
+    .eq("show_on_website", true)
+    .is("deleted_at", null)
+    .order("is_featured", { ascending: false })
+    .order("sort_order", { ascending: true });
+  const out: SpecialMenuLink[] = [];
+  for (const row of data ?? []) {
+    const r = row as {
+      id: string;
+      slug: string | null;
+      title: string;
+      date_mode: string;
+      fixed_check_out: string | null;
+      window_end: string | null;
+      quantity: number;
+      redemptions_used: number;
+      go_live_at: string | null;
+      book_by: string | null;
+    };
+    if (!r.slug) continue;
+    if (r.go_live_at && r.go_live_at > today) continue;
+    if (r.book_by && r.book_by < today) continue;
+    const stayEnd = r.date_mode === "fixed" ? r.fixed_check_out : r.window_end;
+    if (stayEnd && stayEnd <= today) continue;
+    if (Math.max(0, r.quantity - r.redemptions_used) <= 0) continue;
+    out.push({ specialId: r.id, label: r.title, href: `/specials/${r.slug}` });
+  }
+  return out;
+}
+
+/**
+ * Replace any auto-specials menu item's children with the live special links
+ * (minus the host's hidden special ids). Mirrors `expandAutoRooms`. Pure —
+ * returns the same array when nothing is auto.
+ */
+export function expandAutoSpecials(
+  menu: SiteMenuItem[],
+  links: SpecialMenuLink[],
+): SiteMenuItem[] {
+  if (!menu.some((i) => i.autoSpecials)) return menu;
+  return menu.map((item) => {
+    if (!item.autoSpecials) return item;
+    const hidden = new Set(item.hiddenSpecialIds ?? []);
+    const visible = links.filter((l) => !hidden.has(l.specialId));
+    // A dropdown only makes sense with 2+ offers; otherwise it's a plain link.
+    const children =
+      visible.length >= 2
+        ? visible.map((l) => ({
+            id: `special-${l.specialId}`,
             label: l.label,
             href: l.href,
           }))

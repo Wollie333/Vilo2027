@@ -87,6 +87,10 @@ export type SiteMenuItem = {
   autoRooms?: boolean;
   /** Room ids excluded from the auto-rooms dropdown (host-hidden). */
   hiddenRoomIds?: string[];
+  /** Auto-fill this item's dropdown with the site's current specials/offers (live). */
+  autoSpecials?: boolean;
+  /** Special ids excluded from the auto-specials dropdown (host-hidden). */
+  hiddenSpecialIds?: string[];
   /** Per-link responsive style override (the selected-link Style controls). */
   style?: MenuItemStyle;
   /** Page keys this link is HIDDEN on ("home" or a slug) — per-page show/hide. */
@@ -445,6 +449,9 @@ export type SpecialCard = {
   /** Remaining redemptions (drives the scarcity hint). */
   remaining?: number | null;
   bookHref: string; // deep-link into the booking engine (?booked_via=website)
+  /** The offer's own detail page (`/specials/<slug>`) — where the card links so
+   *  the guest browses the offer before the booking action lives on the detail. */
+  detailHref?: string | null;
 };
 export type SpecialsPreviewData = { specials: SpecialCard[] };
 

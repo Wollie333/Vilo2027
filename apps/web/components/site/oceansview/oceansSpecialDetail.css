@@ -1,0 +1,501 @@
+/*
+ * Oceans View — bespoke SPECIAL/offer-detail design, adapted from the founder's
+ * room-detail reference to a single offer. Every selector is scoped to `.ovsd`
+ * (offer/special-detail) so the ported base classes (.wrap/.section/.btn/.tag/…)
+ * never collide with `.ovroom`/`.ovspecials` or the app; all colour/type/shape
+ * comes from the theme's `--site-*` tokens (with the reference's own hard
+ * fallbacks), so it stays on-theme and host-editable.
+ */
+
+/* ── base (ported from the reference theme.css) ─────────────────────────── */
+.ovsd {
+  color: var(--site-ink, #0e2c3a);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+}
+.ovsd * {
+  box-sizing: border-box;
+}
+.ovsd img {
+  display: block;
+  max-width: 100%;
+}
+.ovsd p {
+  margin: 0;
+}
+.ovsd .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.ovsd .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.ovsd .sand {
+  background: var(--site-soft, #f7f1e6);
+}
+.ovsd .muted {
+  color: var(--site-mute, #5e7884);
+}
+.ovsd .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-secondary, #ff6b57);
+}
+.ovsd .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-secondary, #ff6b57);
+}
+.ovsd .lead {
+  font-size: clamp(1.08rem, 1.5vw, 1.32rem);
+  line-height: 1.55;
+  color: var(--site-mute, #5e7884);
+  font-weight: 400;
+  max-width: 60ch;
+  margin-top: 18px;
+}
+.ovsd h1.xl {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  color: var(--site-ink, #0e2c3a);
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 0.99;
+  margin: 14px 0 0;
+  text-wrap: balance;
+}
+.ovsd h2.lg {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  color: var(--site-ink, #0e2c3a);
+  font-size: clamp(2.1rem, 4.4vw, 3.7rem);
+  line-height: 1.02;
+  margin: 0;
+}
+.ovsd h3 {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  color: var(--site-ink, #0e2c3a);
+  margin: 0;
+}
+.ovsd .place {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+}
+.ovsd .sec-head {
+  max-width: 680px;
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+.ovsd .alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--site-accent, #12a5b5);
+  margin-top: 18px;
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+.ovsd .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.ovsd .btn:hover {
+  transform: translateY(-3px);
+}
+.ovsd .btn-coral {
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-secondary, #ff6b57) 60%, transparent);
+}
+.ovsd .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+.ovsd .btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ── breadcrumbs ────────────────────────────────────────────────────────── */
+.ovsd .crumbs {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+  flex-wrap: wrap;
+  padding-top: 28px;
+}
+.ovsd .crumbs a {
+  color: var(--site-mute, #5e7884);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.ovsd .crumbs a:hover {
+  color: var(--site-accent, #12a5b5);
+}
+.ovsd .crumbs .sep {
+  opacity: 0.45;
+}
+.ovsd .crumbs .cur {
+  color: var(--site-ink, #0e2c3a);
+}
+
+/* ── hero ───────────────────────────────────────────────────────────────── */
+.ovsd .hero {
+  position: relative;
+  margin-top: 16px;
+  border-radius: var(--site-radius-img, 24px);
+  overflow: hidden;
+  aspect-ratio: 16 / 7;
+  max-height: clamp(360px, 52vh, 560px);
+}
+.ovsd .hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ovsd .hero-badge {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 1;
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px -14px rgba(10, 34, 48, 0.5);
+}
+
+/* ── title + facts + booking layout ─────────────────────────────────────── */
+.ovsd .olayout {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: clamp(36px, 5vw, 68px);
+  align-items: start;
+}
+
+/* ── offer facts ────────────────────────────────────────────────────────── */
+.ovsd .ofacts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  border-radius: var(--site-radius, 14px);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e9e1d1);
+  margin-top: 22px;
+  background: var(--site-line, #e9e1d1);
+}
+.ovsd .ofacts .k {
+  background: var(--site-surface, #ffffff);
+  padding: 20px 22px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.ovsd .ofacts .k svg {
+  color: var(--site-accent, #12a5b5);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ovsd .ofacts .k b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--site-ink, #0e2c3a);
+}
+.ovsd .ofacts .k span {
+  display: block;
+  font-size: 13.5px;
+  color: var(--site-mute, #5e7884);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+/* ── booking card (sticky) ──────────────────────────────────────────────── */
+/* The booking column is the sticky element (the grid item, not the card inside),
+   anchored below the app's sticky header via --wielo-sticky-top (SiteChrome). */
+.ovsd .olayout > aside {
+  position: sticky;
+  top: calc(var(--wielo-sticky-top, 96px) + 20px);
+  align-self: start;
+}
+.ovsd .bkcard {
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius-lg, 22px);
+  padding: 26px;
+  box-shadow: 0 30px 60px -32px rgba(10, 34, 48, 0.36);
+}
+.ovsd .bkleft {
+  display: inline-flex;
+  align-self: flex-start;
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+.ovsd .bkrate {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ovsd .bkrate .amt {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--site-ink, #0e2c3a);
+}
+.ovsd .bkrate .per {
+  font-size: 13px;
+  color: var(--site-mute, #5e7884);
+  font-weight: 600;
+}
+.ovsd .bksave {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ovsd .bksave .was {
+  font-size: 15px;
+  color: var(--site-mute, #5e7884);
+  text-decoration: line-through;
+  font-weight: 600;
+}
+.ovsd .bksave .save {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--site-secondary, #ff6b57);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.ovsd .bkperk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+  margin-top: 16px;
+  line-height: 1.45;
+}
+.ovsd .bkperk svg {
+  color: var(--site-accent, #12a5b5);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── more offers grid (ported from the specials listing) ────────────────── */
+.ovsd .spx {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+}
+.ovsd .spcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 22px));
+  overflow: hidden;
+  text-decoration: none;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.ovsd .spcard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
+}
+.ovsd .spcard .spi {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--site-soft, #f7f1e6);
+}
+.ovsd .spcard .spi img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.ovsd .spcard:hover .spi img {
+  transform: scale(1.06);
+}
+.ovsd .sp-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 13px;
+  border-radius: 999px;
+}
+.ovsd .sp-left {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  background: var(--site-surface, #fff);
+  color: var(--site-ink, #0e2c3a);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px -10px rgba(10, 34, 48, 0.4);
+}
+.ovsd .spcard .spb {
+  padding: 24px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.ovsd .spcard h3 {
+  font-size: 1.5rem;
+}
+.ovsd .spcard .spd {
+  font-size: 14.5px;
+  color: var(--site-mute, #5e7884);
+  line-height: 1.55;
+  margin-top: 12px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ovsd .sp-px {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.ovsd .sp-now {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 1.7rem;
+  color: var(--site-ink, #0e2c3a);
+  line-height: 1;
+}
+.ovsd .sp-per {
+  font-size: 12.5px;
+  color: var(--site-mute, #5e7884);
+}
+.ovsd .sp-was {
+  font-size: 1rem;
+  color: var(--site-mute, #5e7884);
+  text-decoration: line-through;
+}
+.ovsd .sp-save {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--site-accent-deep, #0c8694);
+}
+.ovsd .spcard .alink {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 1040px) {
+  .ovsd .spx {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 860px) {
+  .ovsd .olayout {
+    grid-template-columns: 1fr;
+  }
+  .ovsd .olayout > aside {
+    position: static;
+  }
+  .ovsd .ofacts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .ovsd .wrap {
+    padding: 0 20px;
+  }
+  .ovsd .spx {
+    grid-template-columns: 1fr;
+  }
+}
