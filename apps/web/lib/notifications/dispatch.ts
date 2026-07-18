@@ -104,16 +104,21 @@ async function dispatchEventInner<K extends EventKind>(
       : (event.dedupeKey?.(input.refs as never) ?? null);
 
   // ─── Digest routing (low-priority bundleable)
-  if (
+  // Only EMAIL + the individual IN-APP get bundled into the daily/weekly digest;
+  // PUSH still fires immediately (or quiet-deferred) per the channel contract.
+  // The earlier `return` here dropped push entirely for digest-eligible events
+  // (e.g. new_review_host / review_request_guest) — a 100% push loss for any
+  // user who opted a reviews/marketing_tips category into digest.
+  const deferToDigest =
     event.severity !== "critical" &&
     event.severity !== "high" &&
     CATEGORIES_SUPPORTING_DIGEST.has(event.category) &&
     prefs.digest_mode !== "off" &&
-    !prefs.is_locked
-  ) {
+    !prefs.is_locked;
+  if (deferToDigest) {
     const ia = event.inApp?.(refs as never);
     if (ia) {
-      await supabase.from("pending_digest_items").insert({
+      const { error } = await supabase.from("pending_digest_items").insert({
         user_id: input.recipientUserId,
         category_id: event.category,
         event_kind: input.kind,
@@ -122,8 +127,14 @@ async function dispatchEventInner<K extends EventKind>(
         link: ia.link ?? null,
         payload: input.refs as Record<string, unknown>,
       });
+      if (error) {
+        console.error("[dispatchEvent] pending_digest_items insert failed", {
+          kind: input.kind,
+          error: error.message,
+        });
+      }
     }
-    return;
+    // fall through — push is still queued below.
   }
 
   const override = input.overrideChannels;
@@ -135,13 +146,13 @@ async function dispatchEventInner<K extends EventKind>(
     return prefs.in_app_enabled;
   };
 
-  // ─── Email
-  if (event.emailTemplate && channelEnabled("email")) {
+  // ─── Email (bundled into the digest instead when deferToDigest)
+  if (event.emailTemplate && !deferToDigest && channelEnabled("email")) {
     const skip =
       settings.dedupe_enabled &&
       (await shouldSkipEmail(supabase, input.recipientUserId, dedupeKey));
     if (!skip) {
-      await supabase.from("notification_queue").insert({
+      const { error } = await supabase.from("notification_queue").insert({
         type: event.emailTemplate,
         payload: input.refs as Record<string, unknown>,
         host_id: input.hostId ?? null,
@@ -150,6 +161,12 @@ async function dispatchEventInner<K extends EventKind>(
         category_id: event.category,
         dedupe_key: dedupeKey,
       });
+      if (error) {
+        console.error("[dispatchEvent] notification_queue insert failed", {
+          kind: input.kind,
+          error: error.message,
+        });
+      }
       await logDelivery(supabase, {
         user_id: input.recipientUserId,
         event_kind: input.kind,
@@ -184,9 +201,9 @@ async function dispatchEventInner<K extends EventKind>(
     }
   }
 
-  // ─── In-app
+  // ─── In-app (bundled into the digest instead when deferToDigest)
   const inAppPayload = event.inApp?.(refs as never) ?? null;
-  if (inAppPayload && channelEnabled("in_app")) {
+  if (inAppPayload && !deferToDigest && channelEnabled("in_app")) {
     await supabase.rpc("enqueue_in_app_notification", {
       p_user_id: input.recipientUserId,
       p_kind: input.kind,

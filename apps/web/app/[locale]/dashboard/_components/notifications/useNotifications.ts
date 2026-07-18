@@ -24,6 +24,18 @@ export function useNotifications() {
   const [items, setItems] = React.useState<AppNotification[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  // Authoritative unread count — a separate `WHERE read_at IS NULL` count, NOT
+  // filtered by unread within the 30-row list window (which undercounts once a
+  // user has >30 recent or >30 unread notifications).
+  const [unreadTotal, setUnreadTotal] = React.useState(0);
+
+  const fetchUnreadTotal = React.useCallback(async () => {
+    const { count } = await supabase
+      .from("in_app_notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null);
+    setUnreadTotal(count ?? 0);
+  }, [supabase]);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -41,8 +53,9 @@ export function useNotifications() {
     } else {
       setItems(data as AppNotification[]);
     }
+    await fetchUnreadTotal();
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, fetchUnreadTotal]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -58,6 +71,10 @@ export function useNotifications() {
           setItems((prev) =>
             [msg.new as AppNotification, ...prev].slice(0, LIST_LIMIT),
           );
+          // A new in-app notification is unread by definition.
+          if (!(msg.new as AppNotification).read_at) {
+            setUnreadTotal((n) => n + 1);
+          }
         },
       )
       .on(
@@ -69,6 +86,9 @@ export function useNotifications() {
           setItems((prev) =>
             prev.map((item) => (item.id === updated.id ? updated : item)),
           );
+          // A read-state change (mark read/unread) can move the authoritative
+          // count in either direction — recount rather than guess.
+          void fetchUnreadTotal();
         },
       )
       .subscribe();
@@ -77,9 +97,9 @@ export function useNotifications() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, [refresh, supabase]);
+  }, [refresh, supabase, fetchUnreadTotal]);
 
-  const unreadCount = items.filter((item) => !item.read_at).length;
+  const unreadCount = unreadTotal;
 
   // Derive the category tabs from the loaded items, preserving order and
   // showing per-category unread counts. The "all" tab is always present.
