@@ -8,6 +8,7 @@ import { PageHeadCode } from "@/components/site/PageHeadCode";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { OceansViewArticle } from "@/components/site/oceansview/OceansViewArticle";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
   buildSitePreviewPages,
@@ -143,164 +144,174 @@ export default async function SiteBlogPostPage({
               : undefined
           }
           previewPages={previewPages}
-          pageHasHero={false}
+          pageHasHero={ctx.theme.preset === "oceansview"}
         >
-          <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
-            <a
-              href="/"
-              style={{ color: "var(--site-accent)" }}
-              className="text-sm font-medium hover:opacity-80"
-            >
-              ← {ctx.brand.name}
-            </a>
-            <h1
-              style={{
-                fontFamily: "var(--site-font-heading)",
-                color: "var(--site-ink)",
-              }}
-              className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl"
-            >
-              {post.title}
-            </h1>
-            <div
-              style={{ color: "var(--site-mute)" }}
-              className="mt-2 flex items-center gap-2 text-sm"
-            >
-              {post.authorName ? <span>{post.authorName}</span> : null}
-              {post.authorName && post.date ? <span>·</span> : null}
-              {post.date ? <span>{post.date}</span> : null}
-            </div>
-            {cover ? (
-              <SiteImg
-                src={cover}
-                alt={post.title}
-                priority
-                sizes="(min-width: 768px) 768px, 100vw"
-                widths={[480, 768, 1024, 1280]}
-                style={{ borderRadius: "var(--site-radius)" }}
-                className="mt-6 aspect-[16/9] w-full object-cover"
-              />
-            ) : null}
-            <div
-              style={{ color: "var(--site-ink)" }}
-              className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:rounded [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
-              // body_html is sanitised in loadSiteBlogPost
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+          {ctx.theme.preset === "oceansview" ? (
+            <OceansViewArticle
+              brandName={ctx.brand.name}
+              post={post}
+              related={relatedPosts}
+              socials={ctx.brand.socials}
+              asset={siteAsset}
             />
-
-            {post.tags.length > 0 ? (
-              <div className="mt-8 flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <a
-                    key={tag.slug}
-                    href={`/blog/tag/${tag.slug}`}
-                    style={{
-                      background: "var(--site-surface)",
-                      borderColor: "var(--site-line)",
-                      color: "var(--site-mute)",
-                      borderRadius: "var(--site-radius)",
-                    }}
-                    className="border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
-                  >
-                    #{tag.name}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-
-            {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
-              <div
-                style={{
-                  borderColor: "var(--site-line)",
-                  background: "var(--site-surface)",
-                  borderRadius: "var(--site-radius)",
-                }}
-                className="mt-12 flex items-start gap-4 border p-5"
+          ) : (
+            <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
+              <a
+                href="/"
+                style={{ color: "var(--site-accent)" }}
+                className="text-sm font-medium hover:opacity-80"
               >
-                {post.authorAvatarUrl ? (
-                  <SiteImg
-                    src={post.authorAvatarUrl}
-                    alt={post.authorName}
-                    sizes="56px"
-                    widths={[56, 112]}
-                    className="h-14 w-14 shrink-0 rounded-full object-cover"
-                  />
-                ) : null}
-                <div>
-                  <p
-                    style={{ color: "var(--site-ink)" }}
-                    className="font-semibold"
-                  >
-                    {post.authorName}
-                  </p>
-                  {post.authorBio ? (
-                    <p
-                      style={{ color: "var(--site-mute)" }}
-                      className="mt-1 text-sm leading-relaxed"
-                    >
-                      {post.authorBio}
-                    </p>
-                  ) : null}
-                </div>
+                ← {ctx.brand.name}
+              </a>
+              <h1
+                style={{
+                  fontFamily: "var(--site-font-heading)",
+                  color: "var(--site-ink)",
+                }}
+                className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl"
+              >
+                {post.title}
+              </h1>
+              <div
+                style={{ color: "var(--site-mute)" }}
+                className="mt-2 flex items-center gap-2 text-sm"
+              >
+                {post.authorName ? <span>{post.authorName}</span> : null}
+                {post.authorName && post.date ? <span>·</span> : null}
+                {post.date ? <span>{post.date}</span> : null}
               </div>
-            ) : null}
+              {cover ? (
+                <SiteImg
+                  src={cover}
+                  alt={post.title}
+                  priority
+                  sizes="(min-width: 768px) 768px, 100vw"
+                  widths={[480, 768, 1024, 1280]}
+                  style={{ borderRadius: "var(--site-radius)" }}
+                  className="mt-6 aspect-[16/9] w-full object-cover"
+                />
+              ) : null}
+              <div
+                style={{ color: "var(--site-ink)" }}
+                className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:rounded [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
+                // body_html is sanitised in loadSiteBlogPost
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+              />
 
-            {relatedPosts.length > 0 ? (
-              <div className="mt-16">
-                <h2
-                  style={{
-                    fontFamily: "var(--site-font-heading)",
-                    color: "var(--site-ink)",
-                  }}
-                  className="text-xl font-semibold"
-                >
-                  Related posts
-                </h2>
-                <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                  {relatedPosts.map((related) => (
+              {post.tags.length > 0 ? (
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {post.tags.map((tag) => (
                     <a
-                      key={related.slug}
-                      href={`/blog/${related.slug}`}
-                      className="group block"
+                      key={tag.slug}
+                      href={`/blog/tag/${tag.slug}`}
+                      style={{
+                        background: "var(--site-surface)",
+                        borderColor: "var(--site-line)",
+                        color: "var(--site-mute)",
+                        borderRadius: "var(--site-radius)",
+                      }}
+                      className="border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                     >
-                      <article
-                        style={{
-                          background: "var(--site-surface)",
-                          borderColor: "var(--site-line)",
-                          borderRadius: "var(--site-radius)",
-                        }}
-                        className="flex h-full flex-col overflow-hidden border"
-                      >
-                        {related.coverUrl ? (
-                          <SiteImg
-                            src={
-                              siteAsset(related.coverUrl) ?? related.coverUrl
-                            }
-                            alt={related.title}
-                            sizes="(min-width: 640px) 33vw, 100vw"
-                            widths={[320, 480, 640]}
-                            className="aspect-[16/9] w-full object-cover"
-                          />
-                        ) : null}
-                        <div className="p-4">
-                          <h3
-                            style={{
-                              fontFamily: "var(--site-font-heading)",
-                              color: "var(--site-ink)",
-                            }}
-                            className="line-clamp-2 text-sm font-semibold transition-opacity group-hover:opacity-80"
-                          >
-                            {related.title}
-                          </h3>
-                        </div>
-                      </article>
+                      #{tag.name}
                     </a>
                   ))}
                 </div>
-              </div>
-            ) : null}
-          </article>
+              ) : null}
+
+              {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
+                <div
+                  style={{
+                    borderColor: "var(--site-line)",
+                    background: "var(--site-surface)",
+                    borderRadius: "var(--site-radius)",
+                  }}
+                  className="mt-12 flex items-start gap-4 border p-5"
+                >
+                  {post.authorAvatarUrl ? (
+                    <SiteImg
+                      src={post.authorAvatarUrl}
+                      alt={post.authorName}
+                      sizes="56px"
+                      widths={[56, 112]}
+                      className="h-14 w-14 shrink-0 rounded-full object-cover"
+                    />
+                  ) : null}
+                  <div>
+                    <p
+                      style={{ color: "var(--site-ink)" }}
+                      className="font-semibold"
+                    >
+                      {post.authorName}
+                    </p>
+                    {post.authorBio ? (
+                      <p
+                        style={{ color: "var(--site-mute)" }}
+                        className="mt-1 text-sm leading-relaxed"
+                      >
+                        {post.authorBio}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {relatedPosts.length > 0 ? (
+                <div className="mt-16">
+                  <h2
+                    style={{
+                      fontFamily: "var(--site-font-heading)",
+                      color: "var(--site-ink)",
+                    }}
+                    className="text-xl font-semibold"
+                  >
+                    Related posts
+                  </h2>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    {relatedPosts.map((related) => (
+                      <a
+                        key={related.slug}
+                        href={`/blog/${related.slug}`}
+                        className="group block"
+                      >
+                        <article
+                          style={{
+                            background: "var(--site-surface)",
+                            borderColor: "var(--site-line)",
+                            borderRadius: "var(--site-radius)",
+                          }}
+                          className="flex h-full flex-col overflow-hidden border"
+                        >
+                          {related.coverUrl ? (
+                            <SiteImg
+                              src={
+                                siteAsset(related.coverUrl) ?? related.coverUrl
+                              }
+                              alt={related.title}
+                              sizes="(min-width: 640px) 33vw, 100vw"
+                              widths={[320, 480, 640]}
+                              className="aspect-[16/9] w-full object-cover"
+                            />
+                          ) : null}
+                          <div className="p-4">
+                            <h3
+                              style={{
+                                fontFamily: "var(--site-font-heading)",
+                                color: "var(--site-ink)",
+                              }}
+                              className="line-clamp-2 text-sm font-semibold transition-opacity group-hover:opacity-80"
+                            >
+                              {related.title}
+                            </h3>
+                          </div>
+                        </article>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          )}
         </SiteChrome>
       </SiteThemeRoot>
     </>
