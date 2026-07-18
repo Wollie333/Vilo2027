@@ -13,7 +13,7 @@ import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
 import { BrandName } from "@/components/brand/BrandProvider";
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 import { recordQuoteView } from "@/lib/quotes/tracking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -217,14 +217,14 @@ export default async function PortalQuotePage({
                 {isCustomQuote ? (quote.title ?? "Quote") : "Stay — base"}
               </td>
               <td className="py-2 text-right font-medium text-brand-ink">
-                {formatMoney(quote.base_amount, quote.currency)}
+                {<Money amount={quote.base_amount} />}
               </td>
             </tr>
             {quote.cleaning_fee > 0 ? (
               <tr>
                 <td className="py-2 text-brand-ink">Cleaning</td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {formatMoney(quote.cleaning_fee, quote.currency)}
+                  {<Money amount={quote.cleaning_fee} />}
                 </td>
               </tr>
             ) : null}
@@ -235,7 +235,7 @@ export default async function PortalQuotePage({
                   <span className="ml-1 text-brand-mute">× {a.quantity}</span>
                 </td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {formatMoney(a.subtotal, quote.currency)}
+                  {<Money amount={a.subtotal} />}
                 </td>
               </tr>
             ))}
@@ -246,7 +246,7 @@ export default async function PortalQuotePage({
                 Total
               </td>
               <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                {formatMoney(quote.total_amount, quote.currency)}
+                {<Money amount={quote.total_amount} />}
               </td>
             </tr>
           </tfoot>

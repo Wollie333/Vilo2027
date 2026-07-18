@@ -1,7 +1,9 @@
-import { Baby, Check, Dog, Users, X } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+"use client";
 
-import { formatMoney } from "@/lib/format";
+import { Baby, Check, Dog, Users, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 
 // Surfaces the host's children / infants / pets settings (allowed + per-night
 // price + age bands) as small chips. Purely presentational; drops into existing
@@ -47,25 +49,25 @@ function Chip({
   );
 }
 
-export async function SuitabilityChips({ s }: { s: Suitability }) {
-  const t = await getTranslations("listing");
+export function SuitabilityChips({ s }: { s: Suitability }) {
+  const t = useTranslations("listing");
+  // Browse-context prices → show in the viewer's display currency (≈ estimate for
+  // a converted ZAR amount). formatFrom mirrors <Money> for string interpolation.
+  const { formatFrom } = useCurrency();
+  const price = (amount: number) => formatFrom(amount, s.currency);
   const childLabel = s.allowChildren
     ? s.childPrice > 0
-      ? t("suitChildrenPriced", {
-          price: formatMoney(s.childPrice, s.currency),
-        })
+      ? t("suitChildrenPriced", { price: price(s.childPrice) })
       : t("suitChildren")
     : t("suitAdultsOnly");
   const infantLabel = s.allowInfants
     ? s.infantPrice > 0
-      ? t("suitInfantsPriced", {
-          price: formatMoney(s.infantPrice, s.currency),
-        })
+      ? t("suitInfantsPriced", { price: price(s.infantPrice) })
       : t("suitInfantsFree")
     : t("suitNoInfants");
   const petLabel = s.allowPets
     ? s.petFee > 0
-      ? t("suitPetsPriced", { price: formatMoney(s.petFee, s.currency) })
+      ? t("suitPetsPriced", { price: price(s.petFee) })
       : t("suitPets")
     : t("suitNoPets");
 

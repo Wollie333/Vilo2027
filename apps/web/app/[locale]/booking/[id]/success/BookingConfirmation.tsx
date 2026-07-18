@@ -32,7 +32,7 @@ import { useEffect, useMemo, useState } from "react";
 import { firePurchase } from "@/lib/analytics/purchase";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 
 import { AddTripGuestModal } from "./AddTripGuestModal";
 import { EftProofUploader } from "./EftProofUploader";
@@ -645,14 +645,13 @@ function RoomsCard({ data }: { data: ConfirmationData }) {
               <div className="mt-2 flex items-baseline justify-between">
                 {room.perNight != null && data.stay.nights ? (
                   <div className="font-mono text-xs text-brand-mute">
-                    {formatMoney(room.perNight, data.currency)} ×{" "}
-                    {data.stay.nights}n
+                    {<Money amount={room.perNight} />} × {data.stay.nights}n
                   </div>
                 ) : (
                   <span />
                 )}
                 <div className="text-sm font-semibold text-brand-ink">
-                  {formatMoney(room.total, data.currency)}
+                  {<Money amount={room.total} />}
                 </div>
               </div>
             </div>
@@ -687,12 +686,12 @@ function AddOnsCard({ data }: { data: ConfirmationData }) {
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-brand-ink">{a.name}</div>
               <div className="font-mono text-[11px] text-brand-mute">
-                {formatMoney(a.unitPrice, data.currency)} · {a.unitLabel}
+                {<Money amount={a.unitPrice} />} · {a.unitLabel}
                 {a.qty > 1 ? ` × ${a.qty}` : ""}
               </div>
             </div>
             <div className="shrink-0 text-sm font-semibold text-brand-ink">
-              {formatMoney(a.total, data.currency)}
+              {<Money amount={a.total} />}
             </div>
           </div>
         ))}
@@ -913,7 +912,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                   </span>
                 ) : null}
               </span>
-              <span>{formatMoney(r.total, data.currency)}</span>
+              <span>{<Money amount={r.total} />}</span>
             </div>
           ))
         ) : data.accommodationTotal != null ? (
@@ -927,7 +926,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                 </span>
               ) : null}
             </span>
-            <span>{formatMoney(data.accommodationTotal, data.currency)}</span>
+            <span>{<Money amount={data.accommodationTotal} />}</span>
           </div>
         ) : null}
 
@@ -947,7 +946,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                     </span>
                   ) : null}
                 </span>
-                <span>{formatMoney(a.total, data.currency)}</span>
+                <span>{<Money amount={a.total} />}</span>
               </div>
             ))}
           </div>
@@ -956,7 +955,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
         {data.cleaningFee > 0 ? (
           <div className="flex items-center justify-between border-t border-brand-line/70 pt-2 text-brand-ink">
             <span>Cleaning fee</span>
-            <span>{formatMoney(data.cleaningFee, data.currency)}</span>
+            <span>{<Money amount={data.cleaningFee} />}</span>
           </div>
         ) : null}
         <div className="flex items-center justify-between text-brand-mute">
@@ -967,10 +966,10 @@ function PriceCard({ data }: { data: ConfirmationData }) {
       <div className="px-5 pb-5">
         <div className="flex items-baseline justify-between border-t border-brand-line pt-4">
           <span className="font-display font-semibold text-brand-ink">
-            Total {data.isConfirmed ? "paid" : "due"} · {data.currency}
+            Total {data.isConfirmed ? "paid" : "due"}
           </span>
           <span className="font-display text-2xl font-bold text-brand-ink">
-            {formatMoney(data.totalAmount, data.currency)}
+            {<Money amount={data.totalAmount} />}
           </span>
         </div>
         {data.cancellationDeadlineLabel ? (
@@ -1014,7 +1013,7 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-brand-mute">Amount due</span>
           <span className="font-display text-xl font-bold text-brand-ink">
-            {formatMoney(data.totalAmount, data.currency)}
+            {<Money amount={data.totalAmount} />}
           </span>
         </div>
 
