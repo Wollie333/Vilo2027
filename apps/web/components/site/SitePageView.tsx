@@ -32,6 +32,8 @@ import { OceansViewAbout } from "./oceansview/OceansViewAbout";
 import { OceansViewHome } from "./oceansview/OceansViewHome";
 import { OceansViewRooms } from "./oceansview/OceansViewRooms";
 import { OceansViewContact } from "./oceansview/OceansViewContact";
+import { OceansViewExperiences } from "./oceansview/OceansViewExperiences";
+import { OceansViewGallery } from "./oceansview/OceansViewGallery";
 import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
@@ -549,6 +551,117 @@ export async function SitePageView({
               policies={extras.policies ?? null}
               rooms={roomNames}
               review={topReview}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — bespoke EXPERIENCES design. The experience cards come from the
+  // host's wizard `content_profile.experiences` (title/body/image); empty → a
+  // tasteful "on the way" state (never fabricated). Same chrome + CTA as the
+  // other bespoke pages.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "experiences") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <OceansViewExperiences
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={cp.experiences?.intro ?? null}
+              experiences={experiences}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — bespoke GALLERY design. A mosaic of the property's LIVE photos
+  // (assembleSiteDataByType "gallery") with a lightbox; empty → "photos coming
+  // soon" (never fabricated). Same chrome + CTA as the other bespoke pages.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "gallery") {
+    const sbx = createAdminClient();
+    const [extras, roomsHrefRaw] = await Promise.all([
+      assembleSiteDataByType(sbx, ctx, new Set(["gallery"] as const)),
+      findRoomsIndexHref(ctx),
+    ]);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <OceansViewGallery
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={null}
+              images={extras.gallery?.images ?? []}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
             />
           </SiteChrome>
         </SiteThemeRoot>
