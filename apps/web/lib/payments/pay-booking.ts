@@ -1,5 +1,6 @@
 import "server-only";
 
+import { railSupportsCurrency } from "@/lib/currency";
 import { round2 } from "@/lib/format";
 import { convertZarToUsd } from "@/lib/fx";
 import {
@@ -159,10 +160,13 @@ export async function startBookingPayment(opts: {
   }
 
   // PayPal — create a CAPTURE-intent order on the BUSINESS's own PayPal app.
-  // Charged in USD (converted from the ZAR total via the cached FX rate); the
-  // order is captured when the payer returns (see capturePayPalOrderForBooking,
-  // called from the thank-you page). The payment row stays in ZAR so the ledger
-  // is consistent; the USD amount + rate live in provider_response for audit.
+  // Model 2: PayPal settles the host's currency NATIVELY when it can (USD/EUR/
+  // GBP), so no conversion. A ZAR host can't hold a ZAR PayPal balance, so we
+  // present in USD (converted from the ZAR total via the cached FX rate). The
+  // `payments` row keeps the host-currency amount so the ledger stays in the
+  // currency of record; the actual charge amount + currency live in
+  // provider_response for audit. The order is captured (currency-agnostic, by
+  // order status = COMPLETED) when the payer returns.
   if (method === "paypal") {
     const businessId = await bookingBusinessId(admin, booking.id);
     const creds = businessId
@@ -170,12 +174,18 @@ export async function startBookingPayment(opts: {
       : await getHostPayPal(booking.host_id);
     try {
       if (!creds) throw new Error("Host has no connected PayPal.");
-      const usd = await convertZarToUsd(payNow);
-      if (!(usd > 0)) throw new Error("Could not convert the amount to USD.");
+      const settleNative = railSupportsCurrency("paypal", booking.currency);
+      const chargeCurrency = settleNative ? booking.currency : "USD";
+      const chargeAmount = settleNative
+        ? payNow
+        : await convertZarToUsd(payNow);
+      if (!(chargeAmount > 0)) {
+        throw new Error("Could not determine the PayPal charge amount.");
+      }
       const sep = returnTo.includes("?") ? "&" : "?";
       const order = await createPayPalOrder({
-        amount: usd,
-        currency: "USD",
+        amount: chargeAmount,
+        currency: chargeCurrency,
         description: `${booking.listing_name} · ${booking.reference}`,
         returnUrl: `${origin}${returnTo}`,
         cancelUrl: `${origin}${returnTo}${sep}paypal=cancel`,
@@ -187,9 +197,10 @@ export async function startBookingPayment(opts: {
         .update({
           provider_reference: order.orderId,
           provider_response: {
-            usd_amount: usd,
-            zar_amount: payNow,
-            currency: "USD",
+            charge_amount: chargeAmount,
+            charge_currency: chargeCurrency,
+            source_amount: payNow,
+            source_currency: booking.currency,
           },
         })
         .eq("id", payment.id);
