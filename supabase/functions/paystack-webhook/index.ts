@@ -385,7 +385,9 @@ async function accrueCommissionByReference(supabase: any, ref: string) {
 // ─── Wielo product order handler ───────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 async function processProductEvent(event: PaystackEvent, supabase: any) {
-  if (event.event !== "charge.success") return;
+  if (event.event !== "charge.success" && event.event !== "charge.failed") {
+    return;
+  }
   const ref = event.data.reference;
   const { data: order } = await supabase
     .from("product_orders")
@@ -394,14 +396,41 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
     )
     .eq("provider_reference", ref)
     .maybeSingle();
-  if (!order || order.status === "paid") return;
+  if (!order) return;
+
+  // Failed/abandoned product charge — resolve the order + its pending revenue
+  // row so neither lingers as unresolved 'pending' forever, and the host sees a
+  // failed state (mirrors the subscription + booking branches).
+  if (event.event === "charge.failed") {
+    if (order.status !== "pending") return;
+    await supabase
+      .from("product_orders")
+      .update({ status: "failed" })
+      .eq("id", order.id)
+      .eq("status", "pending");
+    await supabase
+      .from("platform_ledger")
+      .update({ status: "failed" })
+      .eq("provider_reference", ref)
+      .neq("status", "completed");
+    return;
+  }
+
+  if (order.status === "paid") return;
 
   const now = new Date().toISOString();
   const environment = order.environment ?? "live";
-  await supabase
+  // Compare-and-set: only the path that flips pending→paid proceeds to activate,
+  // so the webhook and the pay-page return can't both insert a service
+  // subscription (no unique host_id+product_id constraint) → duplicate active
+  // sub that breaks the host's future subscription reads.
+  const { data: claimed } = await supabase
     .from("product_orders")
     .update({ status: "paid", paid_at: now, method: "paystack" })
-    .eq("id", order.id);
+    .eq("id", order.id)
+    .eq("status", "pending")
+    .select("id");
+  if (!claimed || claimed.length === 0) return;
 
   // A pending platform_ledger row is seeded at checkout init — flip it to
   // completed. Insert only if it's missing (idempotent on provider_reference).

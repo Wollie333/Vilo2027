@@ -31,19 +31,41 @@ export default async function ProductPayPage({
 }: {
   params: { token: string };
   // reference/trxref = Paystack return; token = PayPal return (?token=<orderId>).
-  searchParams: { reference?: string; trxref?: string; token?: string };
+  // PayPal also sends PayerID on approval and `paypal=cancel` on cancel.
+  searchParams: {
+    reference?: string;
+    trxref?: string;
+    token?: string;
+    PayerID?: string;
+    paypal?: string;
+  };
 }) {
   const service = createAdminClient();
 
   // Primary settle path: Paystack redirects back with ?reference=…&trxref=…;
   // PayPal returns with ?token=<orderId>. Settle server-side BEFORE reading the
   // order so the page renders the paid state immediately (the webhook is only an
-  // idempotent backstop for Paystack).
+  // idempotent backstop for Paystack). Wrapped in try/catch: the settle helpers
+  // can throw if activation fails after capture, and a charged host must not get
+  // a 500 — the paid state still renders and settlement can be re-driven.
   const reference = searchParams.reference ?? searchParams.trxref;
   if (reference) {
-    await confirmProductOrderByReference(reference);
-  } else if (searchParams.token) {
-    await capturePayPalProductOrder(searchParams.token);
+    try {
+      await confirmProductOrderByReference(reference);
+    } catch (err) {
+      console.error("pay/product: paystack settle failed", err);
+    }
+  } else if (
+    searchParams.token &&
+    // Only capture on an APPROVED PayPal return (PayerID present, not a cancel).
+    searchParams.paypal !== "cancel" &&
+    !!searchParams.PayerID
+  ) {
+    try {
+      await capturePayPalProductOrder(searchParams.token);
+    } catch (err) {
+      console.error("pay/product: paypal settle failed", err);
+    }
   }
 
   const { data: order } = await service

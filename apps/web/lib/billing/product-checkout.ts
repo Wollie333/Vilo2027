@@ -12,7 +12,11 @@ import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { convertZarToUsd } from "@/lib/fx";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
-import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
+import {
+  createPayPalOrder,
+  capturePayPalOrder,
+  getPayPalOrder,
+} from "@/lib/paypal";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { isProductSoldOut } from "@/lib/products/stock";
@@ -1286,7 +1290,13 @@ export async function confirmProductOrderByReference(
   const now = new Date();
   const nowIso = now.toISOString();
 
-  await admin
+  // Compare-and-set: only the path that actually flips pending→paid proceeds to
+  // activation. The webhook and this return page fire near-simultaneously for a
+  // platform charge; both reading status='pending' and both inserting a service
+  // subscription (no unique constraint on host_id+product_id for services) would
+  // create TWO active subs → activateMappedPlan's .maybeSingle() then throws for
+  // that host forever. If we didn't win the flip, another path is settling it.
+  const { data: claimed } = await admin
     .from("product_orders")
     .update({
       status: "paid",
@@ -1294,7 +1304,17 @@ export async function confirmProductOrderByReference(
       method: "paystack",
       environment,
     })
-    .eq("id", order.id);
+    .eq("id", order.id)
+    .eq("status", "pending")
+    .select("id");
+  if (!claimed || claimed.length === 0) {
+    return {
+      ok: true,
+      status: "paid",
+      payToken: order.pay_token,
+      alreadyPaid: true,
+    };
+  }
 
   // Flip the pending revenue row to completed (or insert if it's missing —
   // e.g. an EFT-seeded order that never got a pending row).
@@ -1407,14 +1427,23 @@ export async function capturePayPalProductOrder(
 
   const cap = await capturePayPalOrder(orderId, creds);
   if (!cap || cap.status !== "COMPLETED") {
-    return { ok: false, error: "Payment not confirmed yet." };
+    // The capture may have failed BECAUSE the order was already captured on a
+    // prior return whose local flip was lost. Confirm read-only before giving
+    // up — the host's money may already be on Wielo's account. Without this,
+    // there's no webhook or product reconcile to recover it → paid-no-plan.
+    const paypalOrder = await getPayPalOrder(orderId, creds);
+    if (paypalOrder?.status !== "COMPLETED") {
+      return { ok: false, error: "Payment not confirmed yet." };
+    }
   }
 
   const environment = order.environment ?? creds.env;
   const now = new Date();
   const nowIso = now.toISOString();
 
-  await admin
+  // Compare-and-set: only the path that flips pending→paid activates, so a
+  // concurrent return + reconcile can't insert two active service subscriptions.
+  const { data: claimed } = await admin
     .from("product_orders")
     .update({
       status: "paid",
@@ -1422,7 +1451,17 @@ export async function capturePayPalProductOrder(
       method: "paypal",
       environment,
     })
-    .eq("id", order.id);
+    .eq("id", order.id)
+    .eq("status", "pending")
+    .select("id");
+  if (!claimed || claimed.length === 0) {
+    return {
+      ok: true,
+      status: "paid",
+      payToken: order.pay_token,
+      alreadyPaid: true,
+    };
+  }
 
   // Flip the pending revenue row to completed (or insert if it's missing).
   const { data: led } = await admin
