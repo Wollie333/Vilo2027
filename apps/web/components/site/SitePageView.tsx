@@ -482,7 +482,7 @@ export async function SitePageView({
       assembleSiteDataByType(
         sbx,
         ctx,
-        new Set(["location", "rooms_preview", "policies"] as const),
+        new Set(["location", "rooms_preview", "policies", "reviews"] as const),
       ),
     ]);
     const cp = parseContentProfileLoose(cpRow?.content_profile);
@@ -490,6 +490,12 @@ export async function SitePageView({
     const roomNames = (extras.rooms_preview?.rooms ?? [])
       .map((r) => r.name)
       .filter(Boolean);
+    // Best guest review for the contact info column (highest rating, real body).
+    const topReview =
+      (extras.reviews?.items ?? [])
+        .filter((r) => r.body?.trim())
+        .slice()
+        .sort((a, b) => b.rating - a.rating)[0] ?? null;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -531,6 +537,7 @@ export async function SitePageView({
               faq={cp.contact?.faq ?? null}
               policies={extras.policies ?? null}
               rooms={roomNames}
+              review={topReview}
             />
           </SiteChrome>
         </SiteThemeRoot>

@@ -2,11 +2,18 @@ import "./oceansContact.css";
 
 import type { ReactNode } from "react";
 
-import type { RoomPolicies } from "@/lib/site/types";
+import type { ReviewCard, RoomPolicies } from "@/lib/site/types";
 
 import { OceansContactForm } from "./OceansContactForm";
 
 type Faq = { q: string; a: string };
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return "•";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
 
 // The standard fallback (per the `contact.faq` slot binding, `derive:
 // d.policiesFaq`): when the host hasn't written a wizard FAQ, pull the property's
@@ -93,6 +100,7 @@ export function OceansViewContact({
   faq,
   policies,
   rooms,
+  review,
 }: {
   brandName: string;
   websiteId?: string;
@@ -107,6 +115,7 @@ export function OceansViewContact({
   faq?: Faq[] | null;
   policies?: RoomPolicies | null;
   rooms?: string[] | null;
+  review?: ReviewCard | null;
 }) {
   const headImg =
     heroImageUrl ||
@@ -157,25 +166,27 @@ export function OceansViewContact({
             <div>
               {hasDetails ? (
                 <div className="dcard">
-                  <Row
-                    icon={
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden
-                      >
-                        <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
-                      </svg>
-                    }
-                    title={phone ?? ""}
-                    detail={phone ? "Reservations" : null}
-                  />
+                  {phone ? (
+                    <Row
+                      icon={
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                        </svg>
+                      }
+                      title={phone}
+                      detail="Reservations"
+                    />
+                  ) : null}
                   {email ? (
                     <Row
                       icon={
@@ -242,6 +253,47 @@ export function OceansViewContact({
                   booking fees, no surprises at checkout.
                 </p>
               </div>
+
+              {/* A real guest review — fills the column and adds social proof
+                  next to the enquiry form. Omitted when the site has no reviews. */}
+              {review?.body?.trim() ? (
+                <figure className="qcard">
+                  <div
+                    className="qstars"
+                    aria-label={`${review.rating} out of 5`}
+                  >
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <svg
+                        key={i}
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill={
+                          i < Math.round(review.rating)
+                            ? "currentColor"
+                            : "none"
+                        }
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <blockquote>&ldquo;{review.body}&rdquo;</blockquote>
+                  <figcaption>
+                    <span className="qav">{initials(review.author)}</span>
+                    <span>
+                      <span className="qnm">{review.author}</span>
+                      {review.date ? (
+                        <span className="qdt">{review.date}</span>
+                      ) : null}
+                    </span>
+                  </figcaption>
+                </figure>
+              ) : null}
             </div>
           </div>
         </div>

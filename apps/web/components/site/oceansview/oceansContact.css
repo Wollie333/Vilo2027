@@ -250,6 +250,65 @@
   line-height: 1.55;
 }
 
+/* -- guest review (fills the info column beside the form) ---------------- */
+.ovcontact .qcard {
+  margin-top: 16px;
+  padding: 28px 26px;
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius-lg, 22px);
+  box-shadow: 0 24px 50px -34px rgba(10, 34, 48, 0.3);
+}
+.ovcontact .qcard .qstars {
+  display: flex;
+  gap: 3px;
+  color: var(--site-secondary, #ff6b57);
+  margin-bottom: 16px;
+}
+.ovcontact .qcard blockquote {
+  margin: 0;
+  font-family: var(--site-font-heading);
+  font-weight: 600;
+  font-size: 1.16rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #0e2c3a);
+  text-wrap: pretty;
+}
+.ovcontact .qcard figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+.ovcontact .qcard .qav {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--site-tint, #d7eef1);
+  color: var(--site-accent-deep, #0c8694);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.ovcontact .qcard .qnm {
+  display: block;
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--site-ink, #0e2c3a);
+}
+.ovcontact .qcard .qdt {
+  display: block;
+  font-size: 13px;
+  color: var(--site-mute, #5e7884);
+  margin-top: 2px;
+}
+
 /* -- map ----------------------------------------------------------------- */
 .ovcontact .mapframe {
   position: relative;
