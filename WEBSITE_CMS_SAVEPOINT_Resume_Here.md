@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `16706c7` · **Vercel: auto-deploys on push**
-**Updated:** 2026-07-18 (pt3)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f83f0d0` · **Vercel: auto-deploys on push**
+**Updated:** 2026-07-18 (pt4)
 
 > This file is COMMITTED (the previous savepoint was lost because it was never committed —
 > don't let that happen again: commit + push before ending a session).
@@ -90,13 +90,44 @@ current). Verified live — the strip shows the sibling post. Also benefits the 
   `BlogIndexPost`, not currently selected by `loadSiteBlogIndex`).
 - **Newsletter** block is a CTA button to Contact (not a real signup).
 
-## ✅ Contact — follow-up fixes DONE + LIVE-VERIFIED on mana (commit `16706c7`)
+## ✅ Theme-scoped HEADER + FOOTER — DONE + LIVE-VERIFIED on mana (commit `f83f0d0`)
+
+The OceansView pages rendered bespoke CONTENT but still used the generic token-driven `SiteChrome`
+header/footer. Built the founder's bespoke chrome (scoped `.ovchrome`, ported from
+`docs/themes/oceansview/header.html` + `footer.html` + `theme.css`):
+- **`OceansViewHeader.tsx`** (client) — fixed bar, transparent over the hero → solid/blurred + dark
+  text on scroll; monogram/logo + wordmark; nav-links with active state; **CSS hover "Suites" dropdown
+  (auto-populated with the live rooms)**; coral "Book a stay" CTA; full-screen burger drawer. Reserves
+  84px on hero-less pages. Own scroll listener (doesn't use StickyHeader).
+- **`OceansViewFooter.tsx`** (server) — dark-navy 4-col: brand (+blurb when tagline set), "Explore"
+  (live menu), "Stay" (book + contact), "Keep in touch" (→ contact CTA), legal row (© + Powered-by-Wielo
+  + socials). Blurb/socials omitted when unset (mana has neither).
+- Rendered by `SiteChrome` behind `preset === "oceansview"` (new `preset` prop); **every public /site
+  route now passes `preset={ctx.theme.preset}`**. Nav-href helpers moved to `lib/site/navHref.ts` so the
+  client header imports them without SiteChrome's server graph.
+- ⚠️ prettier-tailwind bit us AGAIN: it stripped the space in `className={`nav-link${a?" active":""}`}` →
+  `nav-linkactive`. Fixed with a plain-string ternary (folded into `f83f0d0`). Verified post-hook.
+- Live-verified on Home/Rooms/Contact/Article: transparent→solid header, dropdown (3 live rooms), coral
+  CTA, dark-navy footer. Mobile drawer structure verified via DOM (burger + 11 links + book).
+- **NOTE:** the builder/brand-preview canvases still render the GENERIC chrome (not wired) — only the live
+  /site routes got the bespoke chrome. Also the blog `[postSlug]` route passes no `bookHref`, so the
+  article header shows no "Book a stay" CTA (pre-existing route data, not a chrome bug).
+
+**NEXT: founder smoke test of the wizard→content pull-through, then remaining generic pages
+(experiences, gallery, booking flow).**
+
+## ✅ Contact — follow-up fixes DONE + LIVE-VERIFIED on mana (commits `16706c7`, `c1814b2`)
 - **Empty phone row removed:** the phone `.drow` in `OceansViewContact.tsx` rendered unconditionally,
   so mana (address, no phone) showed a lone phone icon. Now guarded like email/address.
 - **Founder flagged the empty band** in the right info column beside the tall form → filled it with a
   real **guest review** testimonial card (`.qcard`: 5 stars + quote + author monogram), top-rated item
   from live `reviews`. Added `"reviews"` to the contact `assembleSiteDataByType` set + a `review` prop.
   Omitted when a site has no reviews (never fabricated).
+- **`c1814b2`:** removed the tan "reassurance" card; the info card now shows the **COMPLETE business
+  address** ("Portion 14, Kiepersol Road, Hazyview, Mpumalanga, 1242, ZA") + a street-level map. Shared
+  `location.address` stays city/province only (privacy); `LocationData` gained `fullAddress`
+  (address_line1/2 + city/province/postal/country) which ONLY the contact page reads. Falls back to the
+  locality when no street line is set.
 
 ---
 
