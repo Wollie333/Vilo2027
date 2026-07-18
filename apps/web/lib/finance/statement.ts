@@ -64,6 +64,16 @@ export type StatementData = {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+// Effective VAT rate implied by a period's VAT-inclusive charges, derived from the
+// ACTUAL vat_amount on the rows — never a hard-coded 15%, so a non-SA host's
+// statement reads their real rate (and 0-VAT periods imply none). `gross` is the
+// net VAT-inclusive base, `vat` the VAT portion within it. Returns 1-dp, or null.
+function deriveVatRate(vat: number, gross: number): number | null {
+  const base = r2(gross - vat);
+  if (base <= 0) return null;
+  return Math.round((vat / base) * 1000) / 10;
+}
+
 // ── Host → Guest ────────────────────────────────────────────────────────
 // The guest ledger already models payments as their own rows, so each Txn is a
 // single signed movement (owedEffect * amount) and the running balance follows
@@ -87,6 +97,7 @@ async function buildHostGuestStatement(
   let totalCharges = 0;
   let totalPayments = 0;
   let vatIncluded = 0;
+  let vatGross = 0; // net VAT-inclusive base of VAT-bearing rows (for the rate)
   let sawVat = false;
 
   for (const e of asc) {
@@ -106,9 +117,11 @@ async function buildHostGuestStatement(
     if (e.vatAmount) {
       if (e.type === "charge") {
         vatIncluded = r2(vatIncluded + e.vatAmount);
+        vatGross = r2(vatGross + delta);
         sawVat = true;
       } else if (e.type === "credit" && e.category === "booking") {
         vatIncluded = r2(vatIncluded - e.vatAmount);
+        vatGross = r2(vatGross + delta); // delta is negative for a credit
         sawVat = true;
       }
     }
@@ -157,7 +170,7 @@ async function buildHostGuestStatement(
     totalCharges,
     totalPayments,
     vatIncluded: sawVat ? vatIncluded : null,
-    vatRate: sawVat ? 15 : null,
+    vatRate: sawVat ? deriveVatRate(vatIncluded, vatGross) : null,
     balanceLabel: closing > 0.5 ? "Balance due" : "Balance carried forward",
     outstanding: closing > 0.5,
   };

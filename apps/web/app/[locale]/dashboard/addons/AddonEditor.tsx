@@ -1167,7 +1167,7 @@ export function AddonEditor({
                         VAT included
                       </div>
                       <div className="text-[11px] text-brand-mute">
-                        Price shown to guests already includes 15% VAT
+                        Price shown to guests already includes VAT
                       </div>
                     </div>
                   </div>

@@ -163,7 +163,7 @@ export function StatementDocument({ stmt }: { stmt: StatementPdfProps }) {
           {stmt.vatIncluded != null ? (
             <View style={[styles.totalsRow, { marginTop: 6 }]}>
               <Text style={styles.totalsLabel}>
-                VAT included ({stmt.vatRate ?? 15}%)
+                VAT included{stmt.vatRate != null ? ` (${stmt.vatRate}%)` : ""}
               </Text>
               <Text style={styles.totalsValue}>
                 {formatMoney(stmt.vatIncluded, stmt.currency)}
