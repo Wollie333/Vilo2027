@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { gkeyFor } from "@/lib/guests/gkey";
+import { formatMoney } from "@/lib/format";
+import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -144,6 +146,25 @@ export async function createCreditNoteAction(input: {
         booking_id: invoice.booking_id,
         created_by: user.id,
       });
+  }
+
+  // Post a rich "refund issued" card into the guest's thread (unread for them),
+  // with the credit note to download — mirrors the payment-received card.
+  if (invoice.booking_id && invoice.guest_id) {
+    const admin = createAdminClient();
+    const { data: bk } = await admin
+      .from("bookings")
+      .select("id, host_id, guest_id, property_id, quote_id, reference")
+      .eq("id", invoice.booking_id)
+      .maybeSingle();
+    if (bk) {
+      await postGuestSystemCard(admin, bk, {
+        systemEvent: "payment_refunded",
+        body: `A refund of ${formatMoney(amount, invoice.currency)} has been issued on booking ${bk.reference}.`,
+        readByHost: true,
+        readByGuest: false,
+      });
+    }
   }
 
   revalidatePath("/dashboard/credit-notes");

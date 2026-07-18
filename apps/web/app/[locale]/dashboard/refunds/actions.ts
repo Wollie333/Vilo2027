@@ -6,6 +6,8 @@ import { z } from "zod";
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
 import { assertFullHost as getMyHostId } from "@/lib/host/current";
+import { formatMoney } from "@/lib/format";
+import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -94,7 +96,7 @@ export async function approveRefundAction(input: {
 
   const { data: refund } = await supabase
     .from("refund_requests")
-    .select("id, host_id, status, requested_amount, payment_id")
+    .select("id, host_id, status, requested_amount, payment_id, booking_id")
     .eq("id", parsed.data.refundId)
     .maybeSingle();
   if (!refund || refund.host_id !== host.hostId) {
@@ -158,9 +160,36 @@ export async function approveRefundAction(input: {
 
   if (completeErr) return { ok: false, error: completeErr.message };
 
+  // Rich "refund issued" card into the guest's thread (with the credit note the
+  // completion trigger just minted). Best-effort — never fails the refund.
+  if (refund.booking_id) {
+    await postBookingRefundCard(refund.booking_id, parsed.data.amount);
+  }
+
   revalidatePath("/dashboard/refunds");
   revalidatePath("/dashboard/bookings");
   return { ok: true };
+}
+
+// Post a rich "refund issued" system card into the guest's booking thread, with
+// the credit note available to download. Best-effort — mirrors the payment card.
+async function postBookingRefundCard(
+  bookingId: string,
+  amount: number,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: bk } = await admin
+    .from("bookings")
+    .select("id, host_id, guest_id, property_id, quote_id, reference, currency")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!bk || !bk.guest_id) return;
+  await postGuestSystemCard(admin, bk, {
+    systemEvent: "payment_refunded",
+    body: `A refund of ${formatMoney(amount, bk.currency)} has been issued on booking ${bk.reference}.`,
+    readByHost: true,
+    readByGuest: false,
+  });
 }
 
 export async function declineRefundAction(input: {
@@ -342,6 +371,10 @@ export async function hostInitiatedRefundAction(input: {
     reason: parsed.data.reason,
     metadata: { method: parsed.data.method },
   });
+
+  // Rich "refund issued" card into the guest's thread (with the credit note).
+  await postBookingRefundCard(booking.id, parsed.data.amount);
+
   revalidatePath("/dashboard/refunds");
   revalidatePath(`/dashboard/bookings/${booking.id}`);
   return { ok: true };

@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { BookingTxnCard } from "./BookingTxnCard";
 import { InboxSystemCard } from "./InboxSystemCard";
-import { PaymentReceivedCard } from "./PaymentReceivedCard";
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
 import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
 import { WebsiteEnquiryCard } from "./WebsiteEnquiryCard";
@@ -286,35 +286,46 @@ export function ChatMessageWall({
             // can still complete or switch method.
             if (m.isSystem && m.systemEvent === "payment_pending") {
               const payerView = platformThread || viewer !== "host";
+              const pendingBooking = m.bookingId
+                ? bookingsById[m.bookingId]
+                : null;
               return (
                 <div key={m.id}>
                   {dayPill}
-                  <InboxSystemCard
-                    tone="amber"
-                    icon={<Clock className="h-5 w-5" />}
-                    title={payerView ? "Payment pending" : "Awaiting payment"}
-                    action={
-                      m.attachmentUrl
-                        ? {
-                            href: m.attachmentUrl,
-                            label: payerView ? "Complete payment" : "View",
-                            icon: <CreditCard className="h-4 w-4" />,
-                          }
-                        : undefined
-                    }
-                    footer={fmtClock(m.createdAt)}
-                  >
-                    <p className="text-[13px] leading-relaxed text-brand-ink">
-                      {payerView
-                        ? "We're awaiting your EFT — it'll be confirmed here once it reflects."
-                        : "The buyer chose EFT — awaiting the transfer."}
-                    </p>
-                    {m.body ? (
-                      <p className="mt-1 text-[12px] text-brand-mute">
-                        {m.body}
+                  {pendingBooking && !platformThread ? (
+                    <BookingTxnCard
+                      booking={pendingBooking}
+                      viewer={viewer}
+                      variant="pending"
+                    />
+                  ) : (
+                    <InboxSystemCard
+                      tone="amber"
+                      icon={<Clock className="h-5 w-5" />}
+                      title={payerView ? "Payment pending" : "Awaiting payment"}
+                      action={
+                        m.attachmentUrl
+                          ? {
+                              href: m.attachmentUrl,
+                              label: payerView ? "Complete payment" : "View",
+                              icon: <CreditCard className="h-4 w-4" />,
+                            }
+                          : undefined
+                      }
+                      footer={fmtClock(m.createdAt)}
+                    >
+                      <p className="text-[13px] leading-relaxed text-brand-ink">
+                        {payerView
+                          ? "We're awaiting your EFT — it'll be confirmed here once it reflects."
+                          : "The buyer chose EFT — awaiting the transfer."}
                       </p>
-                    ) : null}
-                  </InboxSystemCard>
+                      {m.body ? (
+                        <p className="mt-1 text-[12px] text-brand-mute">
+                          {m.body}
+                        </p>
+                      ) : null}
+                    </InboxSystemCard>
+                  )}
                 </div>
               );
             }
@@ -331,9 +342,10 @@ export function ChatMessageWall({
                 <div key={m.id}>
                   {dayPill}
                   {paidBooking ? (
-                    <PaymentReceivedCard
+                    <BookingTxnCard
                       booking={paidBooking}
                       viewer={viewer}
+                      variant="paid"
                     />
                   ) : (
                     <InboxSystemCard
@@ -344,6 +356,38 @@ export function ChatMessageWall({
                     >
                       <p className="text-[13px] leading-relaxed text-brand-ink">
                         Thank you — your payment is confirmed.
+                      </p>
+                    </InboxSystemCard>
+                  )}
+                </div>
+              );
+            }
+
+            // Payment refunded — a refund/credit note was issued on the booking.
+            // Renders the rich refunded card (with the credit note to download)
+            // when the booking resolves; otherwise a simple note.
+            if (m.isSystem && m.systemEvent === "payment_refunded") {
+              const refundedBooking = m.bookingId
+                ? bookingsById[m.bookingId]
+                : null;
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  {refundedBooking ? (
+                    <BookingTxnCard
+                      booking={refundedBooking}
+                      viewer={viewer}
+                      variant="refunded"
+                    />
+                  ) : (
+                    <InboxSystemCard
+                      tone="brand"
+                      icon={<CheckCheck className="h-5 w-5" />}
+                      title="Refund issued"
+                      footer={fmtClock(m.createdAt)}
+                    >
+                      <p className="text-[13px] leading-relaxed text-brand-ink">
+                        {m.body || "A refund has been issued for this booking."}
                       </p>
                     </InboxSystemCard>
                   )}

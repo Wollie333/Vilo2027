@@ -16,7 +16,7 @@ export const QUOTE_CARD_COLUMNS =
 // the stay/party/host details AND the financial documents (paid invoice + payment
 // receipt) the richer booking system-cards let you download.
 export const BOOKING_CARD_COLUMNS =
-  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency, check_in, check_out, guests_count, listing:properties(name), host:hosts(display_name), invoices(kind, status, hosted_token, invoice_number), payments(status, receipt_token, receipt_number, captured_at)";
+  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency, check_in, check_out, guests_count, listing:properties(name), host:hosts(display_name), invoices(kind, status, hosted_token, invoice_number), payments(status, receipt_token, receipt_number, captured_at), credit_notes(hosted_token, credit_note_number, total_amount, created_at)";
 
 type QuoteRow = {
   id: string;
@@ -62,6 +62,12 @@ type PaymentEmbed = {
   receipt_number: string | null;
   captured_at: string | null;
 };
+type CreditNoteEmbed = {
+  hosted_token: string | null;
+  credit_note_number: string | null;
+  total_amount: string | number | null;
+  created_at: string | null;
+};
 
 type BookingRow = {
   id: string;
@@ -80,6 +86,7 @@ type BookingRow = {
   host?: DisplayNamed;
   invoices?: InvoiceEmbed[] | null;
   payments?: PaymentEmbed[] | null;
+  credit_notes?: CreditNoteEmbed[] | null;
 };
 
 // The booking's primary invoice — prefer the main "booking" invoice; fall back to
@@ -99,6 +106,16 @@ function pickReceipt(
     .filter((p) => p.receipt_token && p.status === "completed")
     .sort((a, b) => (b.captured_at ?? "").localeCompare(a.captured_at ?? ""));
   return settled[0] ?? null;
+}
+
+// The most recent credit note (the document for a refund).
+function pickCreditNote(
+  creditNotes: CreditNoteEmbed[] | null | undefined,
+): CreditNoteEmbed | null {
+  const withToken = (creditNotes ?? [])
+    .filter((c) => c.hosted_token)
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  return withToken[0] ?? null;
 }
 
 const num = (v: string | number | null): number | null =>
@@ -160,6 +177,13 @@ export function mapBookingRow(b: BookingRow): ThreadBooking {
     invoiceNumber: pickInvoice(b.invoices)?.invoice_number ?? null,
     receiptToken: pickReceipt(b.payments)?.receipt_token ?? null,
     receiptNumber: pickReceipt(b.payments)?.receipt_number ?? null,
+    creditNoteToken: pickCreditNote(b.credit_notes)?.hosted_token ?? null,
+    creditNoteNumber:
+      pickCreditNote(b.credit_notes)?.credit_note_number ?? null,
+    refundedTotal: (() => {
+      const cn = pickCreditNote(b.credit_notes);
+      return cn ? Number(cn.total_amount ?? 0) : null;
+    })(),
   };
 }
 

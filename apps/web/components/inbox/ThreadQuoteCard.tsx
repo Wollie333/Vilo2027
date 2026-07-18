@@ -81,11 +81,16 @@ export type ThreadBooking = {
   listingName: string | null;
   hostName: string | null;
   // Financial documents for the transaction, downloadable from a booking card:
-  // the paid invoice (the bill) + the payment receipt (proof of payment).
+  // the paid invoice (the bill), the payment receipt (proof of payment), and the
+  // credit note (the document for a refund).
   invoiceToken: string | null;
   invoiceNumber: string | null;
   receiptToken: string | null;
   receiptNumber: string | null;
+  creditNoteToken: string | null;
+  creditNoteNumber: string | null;
+  /** Amount of the most recent credit note (a refund), for the refunded card. */
+  refundedTotal: number | null;
 };
 
 function fmtDate(iso: string | null): string {
