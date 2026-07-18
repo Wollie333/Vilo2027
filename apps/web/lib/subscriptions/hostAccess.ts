@@ -35,6 +35,17 @@ export async function hostAcceptsBookings(
 ): Promise<boolean> {
   if (!hostId) return false; // no host → nothing to book against (fail closed)
 
+  // Publicly suppressed (admin HID them, or SUSPENDED them) → never bookable,
+  // regardless of subscription. priceBooking/persist run on the service-role
+  // client which bypasses RLS, so a direct booking call with a hidden/suspended
+  // host's property id must be blocked here explicitly. Uses the same DB
+  // predicate that drives the public-read RLS (single source of truth).
+  const { data: suppressed, error: supErr } = await admin.rpc(
+    "host_public_suppressed",
+    { p_host_id: hostId },
+  );
+  if (!supErr && suppressed === true) return false;
+
   const { data, error } = await admin
     .from("subscriptions")
     .select("id")

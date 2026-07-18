@@ -47,7 +47,7 @@ export default async function PortalLayout({
       .maybeSingle(),
     supabase
       .from("user_profiles")
-      .select("full_name, avatar_url, role, email_verified_at")
+      .select("full_name, avatar_url, role, email_verified_at, is_active")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -56,6 +56,15 @@ export default async function PortalLayout({
       .eq("user_id", user.id)
       .is("read_at", null),
   ]);
+
+  // Suspended (admin "blocked from all features") → wall the app behind the
+  // suspended notice. Platform staff are never walled.
+  if (
+    (profile as { is_active?: boolean | null } | null)?.is_active === false &&
+    staff?.is_active !== true
+  ) {
+    redirect("/suspended");
+  }
 
   const displayName = profile?.full_name ?? user.email ?? "Guest";
   // canHost = hosts row OR user_profiles.role='host'. Lets the switcher

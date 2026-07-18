@@ -1,15 +1,25 @@
 "use client";
 
+import {
+  Briefcase,
+  Eye,
+  EyeOff,
+  FileText,
+  LayoutDashboard,
+  Lock,
+  MessageSquareText,
+  type LucideIcon,
+} from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-
 import { setHostAccess, setHostDirectoryVisibility } from "./actions";
 
-// Admin controls for the quote-only account class + the two block switches.
-// Compact card on the user record — flips account_kind and the quote_access /
-// platform_access switches (audited via setHostAccessAction).
+// Host access + visibility controls, rendered as a compact row of icon toggles
+// in the user-record header (same icon-button style as the admin Control Centre).
+// Each toggle flips one switch and shows a red tint while the RESTRICTIVE state is
+// on, so an admin reads a host's restrictions at a glance. All calls are audited
+// (setHostAccessAction / setHostDirectoryVisibilityAction).
 export function HostAccessControls({
   userId,
   accountKind,
@@ -24,21 +34,6 @@ export function HostAccessControls({
   hiddenFromDirectory: boolean;
 }) {
   const [pending, start] = useTransition();
-
-  function toggleDirectory(hidden: boolean) {
-    start(async () => {
-      const r = await setHostDirectoryVisibility({ userId, hidden });
-      if (!r.ok) {
-        toast.error(r.error);
-        return;
-      }
-      toast.success(
-        hidden
-          ? "Host hidden from the public directory."
-          : "Host restored to the public directory.",
-      );
-    });
-  }
 
   function apply(
     patch: Partial<{
@@ -58,119 +53,125 @@ export function HostAccessControls({
     });
   }
 
+  function toggleDirectory(hidden: boolean) {
+    start(async () => {
+      const r = await setHostDirectoryVisibility({ userId, hidden });
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success(
+        hidden
+          ? "Host hidden from the public directory."
+          : "Host restored to the public directory.",
+      );
+    });
+  }
+
   const isQuoteOnly = accountKind === "quote_only";
 
   return (
-    <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-      <div className="text-[13px] font-bold text-brand-ink">
-        Account type & access
+    <div>
+      <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+        Access & visibility
       </div>
-      <p className="mt-1 text-[12px] text-brand-mute">
-        A quote-only account only sees the quote surfaces. The switches block
-        quote sending or the whole platform.
-      </p>
-
-      <div className="mt-3 space-y-2.5">
-        <Row
-          label="Account type"
-          value={isQuoteOnly ? "Quote-only" : "Full host"}
-          action={
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() =>
-                apply(
-                  { accountKind: isQuoteOnly ? "host" : "quote_only" },
-                  isQuoteOnly ? "Set to full host." : "Set to quote-only.",
-                )
-              }
-            >
-              {isQuoteOnly ? "Make full host" : "Make quote-only"}
-            </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <IconToggle
+          icon={isQuoteOnly ? FileText : Briefcase}
+          active={isQuoteOnly}
+          disabled={pending}
+          title={
+            isQuoteOnly
+              ? "Quote-only account — click to make a full host"
+              : "Full host account — click to make quote-only"
+          }
+          onClick={() =>
+            apply(
+              { accountKind: isQuoteOnly ? "host" : "quote_only" },
+              isQuoteOnly ? "Set to full host." : "Set to quote-only.",
+            )
           }
         />
-        <Row
-          label="Quote sending"
-          value={quoteAccess ? "Allowed" : "Blocked"}
-          action={
-            <Button
-              size="sm"
-              variant={quoteAccess ? "outline" : "default"}
-              disabled={pending}
-              onClick={() =>
-                apply(
-                  { quoteAccess: !quoteAccess },
-                  quoteAccess
-                    ? "Quote sending blocked."
-                    : "Quote sending restored.",
-                )
-              }
-            >
-              {quoteAccess ? "Block" : "Unblock"}
-            </Button>
+        <IconToggle
+          icon={MessageSquareText}
+          active={!quoteAccess}
+          disabled={pending}
+          title={
+            quoteAccess
+              ? "Quote sending allowed — click to block"
+              : "Quote sending blocked — click to allow"
+          }
+          onClick={() =>
+            apply(
+              { quoteAccess: !quoteAccess },
+              quoteAccess
+                ? "Quote sending blocked."
+                : "Quote sending restored.",
+            )
           }
         />
-        <Row
-          label="Platform access"
-          value={platformAccess ? "Full" : "Quotes-only shell"}
-          action={
-            <Button
-              size="sm"
-              variant={platformAccess ? "outline" : "default"}
-              disabled={pending}
-              onClick={() =>
-                apply(
-                  { platformAccess: !platformAccess },
-                  platformAccess
-                    ? "Bounced to the quotes-only shell."
-                    : "Full platform access restored.",
-                )
-              }
-            >
-              {platformAccess ? "Restrict" : "Restore"}
-            </Button>
+        <IconToggle
+          icon={platformAccess ? LayoutDashboard : Lock}
+          active={!platformAccess}
+          disabled={pending}
+          title={
+            platformAccess
+              ? "Full platform access — click to restrict to the quotes-only shell"
+              : "Restricted to the quotes-only shell — click to restore full access"
+          }
+          onClick={() =>
+            apply(
+              { platformAccess: !platformAccess },
+              platformAccess
+                ? "Bounced to the quotes-only shell."
+                : "Full platform access restored.",
+            )
           }
         />
-        <Row
-          label="Public directory"
-          value={
+        <IconToggle
+          icon={hiddenFromDirectory ? EyeOff : Eye}
+          active={hiddenFromDirectory}
+          disabled={pending}
+          title={
             hiddenFromDirectory
-              ? "Hidden — no listings/specials shown publicly"
-              : "Visible to the public"
+              ? "Hidden from the public directory — click to show"
+              : "Visible to the public — click to hide all listings & specials"
           }
-          action={
-            <Button
-              size="sm"
-              variant={hiddenFromDirectory ? "default" : "outline"}
-              disabled={pending}
-              onClick={() => toggleDirectory(!hiddenFromDirectory)}
-            >
-              {hiddenFromDirectory ? "Unhide" : "Hide from public"}
-            </Button>
-          }
+          onClick={() => toggleDirectory(!hiddenFromDirectory)}
         />
       </div>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  action,
+function IconToggle({
+  icon: Icon,
+  active,
+  title,
+  onClick,
+  disabled,
 }: {
-  label: string;
-  value: string;
-  action: React.ReactNode;
+  icon: LucideIcon;
+  active: boolean;
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <div className="text-[12px] font-semibold text-brand-ink">{label}</div>
-        <div className="text-[11.5px] text-brand-mute">{value}</div>
-      </div>
-      {action}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-[10px] border shadow-card transition disabled:opacity-50 ${
+        active
+          ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+          : "border-brand-line bg-white text-brand-secondary hover:border-[#CDE6D8] hover:bg-[#FAFCFB] hover:text-brand-primary"
+      }`}
+    >
+      <Icon className="h-[18px] w-[18px]" />
+    </button>
   );
 }

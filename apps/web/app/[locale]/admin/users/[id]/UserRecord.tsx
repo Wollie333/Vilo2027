@@ -807,17 +807,6 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             }
             pending={pending}
           />
-          {data.host ? (
-            <div className="mt-4">
-              <HostAccessControls
-                userId={user.id}
-                accountKind={data.host.account_kind}
-                quoteAccess={data.host.quote_access}
-                platformAccess={data.host.platform_access}
-                hiddenFromDirectory={data.host.hidden_from_directory}
-              />
-            </div>
-          ) : null}
         </aside>
 
         {/* Working column */}
@@ -1611,6 +1600,16 @@ function Dossier({
             userId={user.id}
             label="View as host"
             className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+          />
+        ) : null}
+
+        {host ? (
+          <HostAccessControls
+            userId={user.id}
+            accountKind={host.account_kind}
+            quoteAccess={host.quote_access}
+            platformAccess={host.platform_access}
+            hiddenFromDirectory={host.hidden_from_directory}
           />
         ) : null}
 

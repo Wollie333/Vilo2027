@@ -11841,10 +11841,7 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
-      host_hidden_from_directory: {
-        Args: { p_host_id: string }
-        Returns: boolean
-      }
+      host_public_suppressed: { Args: { p_host_id: string }; Returns: boolean }
       import_ical_blocks: {
         Args: {
           p_dates: string[]

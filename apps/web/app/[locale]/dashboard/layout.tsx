@@ -50,7 +50,7 @@ export default async function DashboardLayout({
         .maybeSingle(),
       supabase
         .from("user_profiles")
-        .select("role, avatar_url, email_verified_at")
+        .select("role, avatar_url, email_verified_at, is_active")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -63,6 +63,17 @@ export default async function DashboardLayout({
   const role = (profileRow?.role as string | undefined) ?? "guest";
   const isPlatformStaff = staffRow?.is_active === true;
   const isHostByRole = role === "host";
+
+  // Suspended (admin "blocked from all features") → wall the whole app behind the
+  // suspended notice. Platform staff are never walled. Server actions are blocked
+  // independently in requireHost/assertFullHost, so this is the UI half.
+  if (
+    (profileRow as { is_active?: boolean | null } | null)?.is_active ===
+      false &&
+    !isPlatformStaff
+  ) {
+    redirect("/suspended");
+  }
 
   // Quote-only accounts (or any host an admin bounced off the platform) get a
   // scoped shell — only the quote surfaces, everything else gated off.

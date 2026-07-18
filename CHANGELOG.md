@@ -65,6 +65,37 @@ action `setHostDirectoryVisibilityAction` (audited, gated on `users.suspend`).
 "Hidden", proven via `SET ROLE anon` that the listing goes visible→invisible; clicked
 Unhide → flag cleared, host restored. Test host left exactly as found.
 
+### 🚫 Suspend = hidden + blocked from all features (`20260718120000`)
+Suspending a host was a near no-op (`user_profiles.is_active=false` wasn't checked
+anywhere). Now it means what the founder specified — **hidden AND walled**, data always
+retained:
+- Unified the public-suppression predicate → `host_public_suppressed()` (hidden **OR**
+  suspended), wired into the `properties` + `specials` public-read RLS. A suspended
+  host's listings/specials vanish from every public surface exactly like a hidden host.
+  Supersedes `host_hidden_from_directory`.
+- **Server-side feature block:** `requireHost()` + `assertFullHost()` (the chokepoints
+  every host Server Action uses) reject a suspended user — a crafted action call is
+  blocked even without the UI.
+- **UI wall:** dashboard + portal layouts redirect a suspended (non-staff) user to a new
+  `/[locale]/suspended` notice page ("Your account is suspended", contact support, sign
+  out). Reinstating (`is_active=true`) restores everything instantly.
+- **Booking block:** `hostAcceptsBookings()` now also calls `host_public_suppressed`
+  (the booking path runs on the service-role client, which bypasses RLS), so a
+  hidden/suspended host can't take bookings via a direct call either.
+- Chose a **login wall** over a hard auth-ban (founder decision) so a suspended host can
+  see why + reach support.
+**Verified live end-to-end:** proved via `SET ROLE anon` that suspending hides the
+listing (visible→invisible); logged in as a suspended host → dashboard redirects to the
+suspended wall; reinstated → dashboard loads again. Test host restored.
+
+### 🎛️ Admin user-record access controls → header icon row
+Moved the *Account type & access* card into a compact **Access & visibility** row of
+icon toggles in the user-record header (same icon-button style as the Control Centre):
+account type, quote sending, platform access, public directory. Each shows a red tint
+while its restrictive state is on, with a stateful tooltip. **Verified live:** toggled
+Public directory visible→hidden→visible in the header (red state + toast + DB write),
+host restored.
+
 ---
 
 ## 2026-07-17 (pt17) — The founder's "fix these 4" open-items batch.

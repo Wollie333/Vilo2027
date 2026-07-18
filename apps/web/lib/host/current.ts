@@ -11,6 +11,28 @@ import { resolveAccountScope } from "@/lib/host/accountScope";
 export const FULL_HOST_ONLY_ERROR =
   "This is a full host account feature. Upgrade to a full host account to use it.";
 
+// The error a SUSPENDED account (user_profiles.is_active = false) gets on any
+// host action. Suspension is the admin "blocked from all features" state — the
+// dashboard/portal layouts wall the UI, and this is the SERVER-SIDE boundary so a
+// scripted/crafted action call is rejected even though the wall never rendered.
+export const ACCOUNT_SUSPENDED_ERROR =
+  "Your account is suspended. Contact support to restore access.";
+
+/** True when the signed-in user's profile is suspended (is_active = false). */
+async function isSuspended(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+  // Only a definitive `false` suspends — a missing row / read hiccup must not
+  // lock a legitimate host out of their own actions.
+  return data?.is_active === false;
+}
+
 /**
  * The `host_id` owned by the currently signed-in user, or null if they aren't a
  * host. Use this to scope EVERY host-dashboard read to the owner's own records.
@@ -56,6 +78,9 @@ export async function requireHost(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
+  if (await isSuspended(supabase, user.id)) {
+    return { ok: false, error: ACCOUNT_SUSPENDED_ERROR };
+  }
   const { data } = await supabase
     .from("hosts")
     .select("id")
@@ -84,6 +109,9 @@ export async function assertFullHost(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
+  if (await isSuspended(supabase, user.id)) {
+    return { ok: false, error: ACCOUNT_SUSPENDED_ERROR };
+  }
   const { data } = await supabase
     .from("hosts")
     .select("id, account_kind, quote_access, platform_access")
