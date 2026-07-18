@@ -57,7 +57,10 @@ export function LocationSection({
       ) : null}
 
       {hasMap ? (
-        <div className="relative mt-5 overflow-hidden rounded-card border border-brand-line">
+        // `isolate` contains Leaflet's internal z-indexes (panes/controls up to
+        // ~1000) + the z-[500] label inside their own stacking context, so they
+        // can't render over the sticky header (z-40) when the page scrolls.
+        <div className="relative isolate mt-5 overflow-hidden rounded-card border border-brand-line">
           <div className="aspect-[16/9] sm:aspect-[16/7]">
             <LocationMap lat={lat} lng={lng} />
           </div>

@@ -491,8 +491,9 @@ export function BookingForm({
     hasPaystack ? "paystack" : hasPaypal ? "paypal" : "eft",
   );
   // Snap the selected method to one valid for the current currency whenever the
-  // guest switches currency (USD → PayPal, ZAR → card/EFT). Mirrors the
+  // guest switches currency (USD → PayPal/EFT, ZAR → card/EFT). Mirrors the
   // paymentMethods gating; EUR/GBP leave it unchanged (no rail → pay-step prompt).
+  // EFT is a ZAR bank transfer, so it's valid in both ZAR and USD.
   useEffect(() => {
     const valid: ("paystack" | "eft" | "paypal")[] = [];
     if (displayCcy === "ZAR") {
@@ -500,6 +501,7 @@ export function BookingForm({
       if (hasEftBanking) valid.push("eft");
     } else if (displayCcy === "USD") {
       if (hasPaypal) valid.push("paypal");
+      if (hasEftBanking) valid.push("eft");
     }
     if (valid.length > 0 && !valid.includes(method)) setMethod(valid[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1246,12 +1248,17 @@ export function BookingForm({
           },
         ]
       : []),
-    ...(zarRail && hasEftBanking
+    ...((zarRail || usdRail) && hasEftBanking
       ? [
           {
             id: "eft" as const,
             label: "EFT bank transfer",
-            sub: "Manual transfer · verified by the host",
+            // EFT is a South African bank transfer — always settled in ZAR — so it's
+            // offered in any operational currency; the transfer amount is shown in
+            // ZAR post-reserve regardless of the display currency.
+            sub: usdRail
+              ? "Manual transfer in ZAR · verified by the host"
+              : "Manual transfer · verified by the host",
             Icon: Building2,
             cards: undefined,
           },
