@@ -1,0 +1,1005 @@
+/*
+ * Oceans View - bespoke home-page design, ported faithfully from the founder's
+ * reference (docs/theme-designs/Ocean Lodge/theme.css + Home.html inline styles).
+ * Every selector is scoped to `.ovhome` so the ported base classes
+ * (.wrap/.section/.btn/.tag/...) never collide with the app; all colour/type/shape
+ * comes from the theme's `--site-*` tokens (with the reference's own hard
+ * fallbacks), so it stays on-theme and host-editable.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.ovhome {
+  color: var(--site-ink, #0e2c3a);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+}
+.ovhome * {
+  box-sizing: border-box;
+}
+.ovhome img {
+  display: block;
+  max-width: 100%;
+}
+.ovhome p {
+  margin: 0;
+}
+.ovhome h1,
+.ovhome h2,
+.ovhome h3,
+.ovhome h4 {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: var(--site-weight-heading, 800);
+  letter-spacing: var(--site-tracking-heading, -0.02em);
+  line-height: 1.02;
+  margin: 0;
+  color: var(--site-ink, #0e2c3a);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.ovhome .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.ovhome .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.ovhome .section-sm {
+  padding: clamp(48px, 6vw, 84px) 0;
+}
+.ovhome .sand {
+  background: var(--site-soft, #f7f1e6);
+}
+.ovhome .navy {
+  background: var(--site-navy, #0a2330);
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovhome .navy h1,
+.ovhome .navy h2,
+.ovhome .navy h3,
+.ovhome .navy h4 {
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovhome .center {
+  text-align: center;
+}
+
+.ovhome .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-secondary, #ff6b57);
+}
+.ovhome .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-secondary, #ff6b57);
+}
+.ovhome .navy .tag {
+  color: var(--site-secondary, #ff6b57);
+}
+.ovhome h1.xl {
+  font-size: clamp(2.8rem, 7vw, 6rem);
+  line-height: 0.98;
+}
+.ovhome h2.lg {
+  font-size: clamp(2.1rem, 4.4vw, 3.7rem);
+  line-height: 1.02;
+}
+.ovhome h3 {
+  font-size: var(--site-h3, 1.5rem);
+}
+.ovhome .lead {
+  font-size: clamp(1.08rem, 1.5vw, 1.32rem);
+  line-height: 1.55;
+  color: var(--site-mute, #5e7884);
+  font-weight: 400;
+  max-width: 60ch;
+}
+.ovhome .navy .lead {
+  color: var(--site-navy-mute, #9fbcc4);
+}
+.ovhome .muted {
+  color: var(--site-mute, #5e7884);
+}
+.ovhome .navy .muted {
+  color: var(--site-navy-mute, #9fbcc4);
+}
+.ovhome .sec-head {
+  max-width: 680px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.ovhome .sec-head.center {
+  margin-inline: auto;
+}
+.ovhome .sec-head .tag {
+  margin-bottom: 20px;
+}
+.ovhome .sec-head h2 {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+}
+.ovhome .sec-head p {
+  margin-top: 18px;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.ovhome .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.ovhome .btn:hover {
+  transform: translateY(-3px);
+}
+.ovhome .btn-primary {
+  background: var(--site-accent, #12a5b5);
+  color: var(--site-accent-ink, #ffffff);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #12a5b5) 70%, transparent);
+}
+.ovhome .btn-primary:hover {
+  background: var(--site-accent-deep, #0c8694);
+  box-shadow: 0 20px 40px -14px
+    color-mix(in srgb, var(--site-accent, #12a5b5) 75%, transparent);
+}
+.ovhome .btn-coral {
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-secondary, #ff6b57) 60%, transparent);
+}
+.ovhome .btn-coral:hover {
+  background: var(--site-secondary-deep, #e9523d);
+}
+.ovhome .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #0e2c3a);
+  border-color: var(--site-line, #e9e1d1);
+}
+.ovhome .btn-ghost:hover {
+  border-color: var(--site-accent, #12a5b5);
+  color: var(--site-accent, #12a5b5);
+}
+.ovhome .btn-on-img {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+}
+.ovhome .btn-on-img:hover {
+  background: #fff;
+  color: var(--site-ink, #0e2c3a);
+  border-color: #fff;
+}
+.ovhome .btn-white {
+  background: #fff;
+  color: var(--site-ink, #0e2c3a);
+}
+.ovhome .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+.ovhome .btn-sm {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 13px;
+}
+.ovhome .btn-block {
+  display: flex;
+  width: 100%;
+}
+.ovhome .alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--site-accent, #12a5b5);
+}
+.ovhome .alink svg {
+  transition: transform 0.25s;
+}
+.ovhome .alink:hover svg {
+  transform: translateX(5px);
+}
+.ovhome .navy .alink {
+  color: var(--site-secondary, #ff6b57);
+}
+
+/* -- shared bits (chip / stars / frame) ---------------------------------- */
+.ovhome .chip {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-accent-deep, #0c8694);
+  background: var(--site-tint, #d7eef1);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.ovhome .stars {
+  color: #ffb44c;
+  letter-spacing: 2px;
+  font-size: 14px;
+}
+.ovhome .frame {
+  position: relative;
+  border-radius: var(--site-radius-img, 24px);
+  overflow: hidden;
+}
+.ovhome .frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.ovhome .frame:hover img {
+  transform: scale(1.05);
+}
+.ovhome .ar-32 {
+  aspect-ratio: 3/2;
+}
+.ovhome .ar-45 {
+  aspect-ratio: 4/5;
+}
+
+/* -- hero ---------------------------------------------------------------- */
+.ovhome .hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.ovhome .hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.ovhome .hero-bg img {
+  width: 100%;
+  height: 118%;
+  object-fit: cover;
+  will-change: transform;
+}
+.ovhome .hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 28, 40, 0.34) 0%,
+    rgba(8, 28, 40, 0.12) 38%,
+    rgba(8, 28, 40, 0.55) 100%
+  );
+}
+.ovhome .hero-in {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  color: #fff;
+  padding-top: 96px;
+  padding-bottom: clamp(150px, 18vh, 210px);
+}
+.ovhome .hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.ovhome .hero-chip .star {
+  color: #ffd27a;
+  letter-spacing: 1px;
+}
+.ovhome .hero h1 {
+  color: #fff;
+  font-size: clamp(3rem, 8vw, 7rem);
+  line-height: 0.95;
+  max-width: 15ch;
+  margin-top: 24px;
+}
+.ovhome .hero-sub {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  font-weight: 400;
+  max-width: 46ch;
+  margin-top: 24px;
+}
+.ovhome .hero-cta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+
+/* -- floating availability bar ------------------------------------------- */
+.ovhome .availbar {
+  position: relative;
+  z-index: 5;
+  margin-top: -86px;
+  margin-bottom: 0;
+}
+.ovhome .availbar-in {
+  background: var(--site-surface, #ffffff);
+  border-radius: var(--site-radius-lg, 22px);
+  box-shadow: 0 30px 70px -30px rgba(10, 34, 48, 0.4);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: 0;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e9e1d1);
+}
+.ovhome .ab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 20px 24px;
+  border-right: 1px solid var(--site-line, #e9e1d1);
+}
+.ovhome .ab-field label {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--site-mute, #5e7884);
+}
+.ovhome .ab-field input,
+.ovhome .ab-field select {
+  border: none;
+  background: none;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--site-ink, #0e2c3a);
+  padding: 0;
+  outline: none;
+}
+.ovhome .ab-go {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+}
+.ovhome .ab-go .btn {
+  height: 100%;
+  border-radius: calc(var(--site-radius-lg, 22px) - 8px);
+}
+
+/* -- stats strip --------------------------------------------------------- */
+.ovhome .stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.ovhome .stat b {
+  display: block;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  color: var(--site-accent, #12a5b5);
+  line-height: 1;
+}
+.ovhome .stat span {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+  margin-top: 8px;
+  display: block;
+}
+
+/* -- split --------------------------------------------------------------- */
+.ovhome .split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(36px, 5vw, 80px);
+  align-items: center;
+}
+.ovhome .split.w-left {
+  grid-template-columns: 1.1fr 0.9fr;
+}
+.ovhome .float-badge {
+  position: absolute;
+  background: var(--site-surface, #ffffff);
+  border-radius: var(--site-radius, 16px);
+  padding: 18px 22px;
+  box-shadow: 0 24px 50px -22px rgba(10, 34, 48, 0.4);
+}
+.ovhome .float-badge b {
+  display: block;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 2rem;
+  color: var(--site-secondary, #ff6b57);
+  line-height: 1;
+}
+.ovhome .float-badge span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+  margin-top: 5px;
+  display: block;
+}
+
+/* -- room cards ---------------------------------------------------------- */
+.ovhome .rooms {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+}
+.ovhome .room {
+  background: var(--site-surface, #ffffff);
+  border-radius: var(--site-radius-lg, 22px);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e9e1d1);
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.ovhome .room:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
+}
+.ovhome .room-img {
+  position: relative;
+  aspect-ratio: 3/2;
+  overflow: hidden;
+}
+.ovhome .room-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.ovhome .room:hover .room-img img {
+  transform: scale(1.06);
+}
+.ovhome .room-price {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: var(--site-surface, #ffffff);
+  color: var(--site-ink, #0e2c3a);
+  border-radius: 999px;
+  padding: 8px 15px;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 10px 24px -10px rgba(10, 34, 48, 0.4);
+}
+.ovhome .room-price small {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--site-mute, #5e7884);
+}
+.ovhome .room-body {
+  padding: 24px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.ovhome .room-body h3 {
+  font-size: 1.5rem;
+}
+.ovhome .room-feat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ovhome .room-body p {
+  font-size: 14.5px;
+  color: var(--site-mute, #5e7884);
+  line-height: 1.55;
+  margin-top: 14px;
+  flex: 1;
+}
+.ovhome .room-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--site-line, #e9e1d1);
+}
+
+/* -- amenity / feature tiles --------------------------------------------- */
+.ovhome .tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.ovhome .tile {
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius-lg, 22px);
+  padding: 30px 26px;
+  transition:
+    transform 0.35s,
+    box-shadow 0.35s,
+    background 0.35s;
+}
+.ovhome .tile:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 50px -28px rgba(10, 34, 48, 0.3);
+}
+.ovhome .tile .ic {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--site-tint, #d7eef1);
+  color: var(--site-accent-deep, #0c8694);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.ovhome .tile h3 {
+  font-size: 1.3rem;
+}
+.ovhome .tile p {
+  font-size: 14px;
+  color: var(--site-mute, #5e7884);
+  line-height: 1.55;
+  margin-top: 10px;
+}
+.ovhome .sand .tile {
+  background: var(--site-bg, #ffffff);
+}
+
+/* -- experiences big tiles ----------------------------------------------- */
+.ovhome .exps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.ovhome .exp {
+  position: relative;
+  border-radius: var(--site-radius-img, 24px);
+  overflow: hidden;
+  min-height: 380px;
+  display: flex;
+  align-items: flex-end;
+  padding: 28px;
+  color: #fff;
+}
+.ovhome .exp img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.ovhome .exp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 28, 40, 0) 35%,
+    rgba(8, 28, 40, 0.82)
+  );
+}
+.ovhome .exp:hover img {
+  transform: scale(1.06);
+}
+.ovhome .exp-b {
+  position: relative;
+  z-index: 2;
+}
+.ovhome .exp-b h3 {
+  color: #fff;
+  font-size: 1.6rem;
+}
+.ovhome .exp-b p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* -- gallery mosaic ------------------------------------------------------ */
+.ovhome .mosaic {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 190px;
+  gap: 14px;
+}
+.ovhome .mosaic .m {
+  overflow: hidden;
+  border-radius: var(--site-radius-img, 24px);
+}
+.ovhome .mosaic .m img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.ovhome .mosaic .m:hover img {
+  transform: scale(1.07);
+}
+.ovhome .m.w2 {
+  grid-column: span 2;
+}
+.ovhome .m.h2 {
+  grid-row: span 2;
+}
+
+/* -- testimonials -------------------------------------------------------- */
+.ovhome .quotes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.ovhome .quote {
+  background: var(--site-surface, #ffffff);
+  border-radius: var(--site-radius-lg, 22px);
+  padding: 30px 28px;
+  border: 1px solid var(--site-line, #e9e1d1);
+}
+.ovhome .navy .quote {
+  background: var(--site-navy-2, #123040);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.ovhome .quote .qm {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-size: 3rem;
+  line-height: 0.6;
+  color: var(--site-secondary, #ff6b57);
+  height: 24px;
+  display: block;
+}
+.ovhome .quote p {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--site-ink, #0e2c3a);
+  margin-top: 18px;
+}
+.ovhome .navy .quote p {
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovhome .quote .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+.ovhome .quote .av {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--site-accent, #12a5b5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 15px;
+}
+.ovhome .quote .nm {
+  font-weight: 700;
+  font-size: 14px;
+}
+.ovhome .quote .loc {
+  font-size: 12.5px;
+  color: var(--site-mute, #5e7884);
+}
+.ovhome .navy .quote .loc {
+  color: var(--site-navy-mute, #9fbcc4);
+}
+
+/* -- review category breakdown (navy testimonials) ----------------------- */
+.ovhome .hcats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(16px, 2.4vw, 32px);
+  margin-bottom: clamp(40px, 5vw, 58px);
+  padding: clamp(24px, 3vw, 32px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ovhome .hcat .hct {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ovhome .hcat .hct span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-navy-mute, #9fbcc4);
+}
+.ovhome .hcat .hct b {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--site-navy-ink, #eaf4f5);
+}
+.ovhome .htrack {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  margin-top: 11px;
+  overflow: hidden;
+}
+.ovhome .hfill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--site-secondary, #ff6b57);
+}
+
+/* -- CTA banner ---------------------------------------------------------- */
+.ovhome .banner {
+  position: relative;
+  border-radius: var(--site-radius-xl, 30px);
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 96px) clamp(30px, 6vw, 80px);
+  text-align: center;
+  color: #fff;
+}
+.ovhome .banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.ovhome .banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    120deg,
+    rgba(8, 28, 40, 0.7),
+    rgba(8, 28, 40, 0.45)
+  );
+}
+.ovhome .banner-in {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.ovhome .banner-in h2 {
+  color: #fff;
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+}
+.ovhome .banner-in p {
+  color: rgba(255, 255, 255, 0.88);
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.ovhome .banner-in .hero-cta {
+  justify-content: center;
+  margin-top: 30px;
+}
+
+/* -- accolades / press strip --------------------------------------------- */
+.ovhome .acc-sec {
+  padding: clamp(30px, 4vw, 44px) 0;
+  border-bottom: 1px solid var(--site-line, #e9e1d1);
+}
+.ovhome .acc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 4vw, 56px);
+  flex-wrap: wrap;
+}
+.ovhome .acc .lbl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--site-mute, #5e7884);
+  white-space: nowrap;
+}
+.ovhome .acc .row {
+  display: flex;
+  align-items: center;
+  gap: clamp(22px, 4vw, 50px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ovhome .acc .row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: 700;
+  font-size: clamp(15px, 1.6vw, 19px);
+  color: var(--site-ink, #0e2c3a);
+  opacity: 0.6;
+  white-space: nowrap;
+  transition: opacity 0.3s;
+}
+.ovhome .acc .row span:hover {
+  opacity: 1;
+}
+.ovhome .acc .row svg {
+  color: var(--site-secondary, #ff6b57);
+  flex-shrink: 0;
+}
+
+/* -- component token wiring (home classes) ------------------------------- */
+.ovhome .tag {
+  font-size: var(--site-text-accent, 12px);
+}
+.ovhome .btn-primary {
+  background: var(--site-btn-primary-bg, #12a5b5);
+  color: var(--site-btn-primary-color, #fff);
+  border-radius: var(--site-btn-primary-radius, 999px);
+}
+.ovhome .btn-ghost {
+  border-color: var(--site-btn-secondary-border, var(--site-line, #e9e1d1));
+  border-radius: var(--site-btn-secondary-radius, 999px);
+}
+.ovhome .room,
+.ovhome .tile,
+.ovhome .quote {
+  border-color: var(--site-card-border, var(--site-line, #e9e1d1));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 22px));
+}
+.ovhome .frame,
+.ovhome .mosaic .m,
+.ovhome .exp {
+  border-radius: var(--site-img-radius, var(--site-radius-img, 24px));
+}
+.ovhome .tile .ic {
+  color: var(--site-icon-color, var(--site-accent-deep, #0c8694));
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .ovhome .rooms,
+  .ovhome .exps,
+  .ovhome .quotes {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ovhome .tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ovhome .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+  }
+}
+@media (max-width: 860px) {
+  .ovhome .split {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .ovhome .split.rev .frame-wrap {
+    order: -1;
+  }
+  .ovhome .mosaic {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 150px;
+  }
+  .ovhome .availbar {
+    margin-top: -40px;
+  }
+  .ovhome .availbar-in {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ovhome .ab-field:nth-child(3) {
+    border-right: none;
+  }
+  .ovhome .ab-go {
+    grid-column: span 2;
+  }
+  .ovhome .ab-go .btn {
+    width: 100%;
+    height: 54px;
+  }
+}
+@media (max-width: 720px) {
+  .ovhome .hcats {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 26px;
+  }
+}
+@media (max-width: 560px) {
+  .ovhome .wrap {
+    padding: 0 20px;
+  }
+  .ovhome .rooms,
+  .ovhome .exps,
+  .ovhome .quotes,
+  .ovhome .tiles {
+    grid-template-columns: 1fr;
+  }
+  .ovhome .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ovhome .mosaic {
+    grid-template-columns: 1fr 1fr;
+  }
+}

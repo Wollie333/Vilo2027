@@ -7,7 +7,9 @@ import { notFound } from "next/navigation";
 import "./themes/theme-skins.css";
 
 import {
+  assembleSiteDataByType,
   buildSitePreviewPages,
+  findRoomsIndexHref,
   loadSiteContext,
   loadSitePage,
   siteBookHref,
@@ -16,7 +18,9 @@ import { pageKeyFor } from "@/lib/site/menuPage";
 import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import { parseContentProfileLoose } from "@/lib/website/contentProfile.schema";
 import {
   pageStartsWithHero,
   sectionsStartWithHero,
@@ -24,6 +28,7 @@ import {
 
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
+import { OceansViewHome } from "./oceansview/OceansViewHome";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
@@ -167,6 +172,92 @@ export async function SitePageView({
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)
     : undefined;
+
+  // Oceans View — the founder's bespoke HOME design. Rendered by a dedicated
+  // component wired to the host's content_profile (hero copy, story, experiences)
+  // + live listing data (rooms, reviews, gallery, booking funnel), inside the
+  // themed chrome. Content stays put on theme change: the profile is the SSOT, so
+  // switching to/from Oceans View re-skins without touching the host's copy.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "home") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set([
+          "rooms_preview",
+          "reviews",
+          "gallery",
+          "booking_search",
+        ] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const roomsHref = roomsHrefRaw ?? "/rooms";
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            // The bespoke home opens with a full-bleed hero, so the header can
+            // ride transparent-over-hero like the other themes' home pages.
+            pageHasHero
+          >
+            <OceansViewHome
+              brandName={ctx.brand.name}
+              roomsHref={roomsHref}
+              bookHref={headerBookHref ?? roomsHref}
+              interactive={!ctx.preview}
+              heroHeadline={cp.home?.hero?.headline ?? null}
+              heroSubheadline={
+                cp.home?.hero?.subheadline ?? cp.brand?.tagline ?? null
+              }
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              experiences={experiences}
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+              bookingData={extras.booking_search}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
 
   // Builder V2 (v:2) pages render through the ONE token renderer inside the
   // generic chrome — bypassing the bespoke per-theme layers (deleted at cutover).
