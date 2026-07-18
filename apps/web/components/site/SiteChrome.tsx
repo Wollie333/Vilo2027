@@ -39,8 +39,12 @@ import type {
   SiteTopBar,
 } from "@/lib/site/types";
 
+import { MarmaladeFooter } from "./marmalade/MarmaladeFooter";
+import { MarmaladeHeader } from "./marmalade/MarmaladeHeader";
 import { OceansViewFooter } from "./oceansview/OceansViewFooter";
 import { OceansViewHeader } from "./oceansview/OceansViewHeader";
+import { SabelaFooter } from "./sabela/SabelaFooter";
+import { SabelaHeader } from "./sabela/SabelaHeader";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { SitePreviewBar } from "./SitePreviewBar";
 import { SiteAnalytics } from "./SiteAnalytics";
@@ -60,6 +64,23 @@ const SOCIAL_ICONS = {
   linkedin: Linkedin,
   website: Globe,
 } as const;
+
+/**
+ * Per-theme bespoke chrome (header + footer). A theme with a full reference
+ * design ships its own header/footer components (fixed nav, dropdowns, mobile
+ * drawer, multi-column footer) keyed by its `preset`. Every entry shares the
+ * OceansView prop interface so SiteChrome dispatches uniformly. Presets without
+ * a bespoke design (warm/coastal/safari) fall through to the generic chrome.
+ * Note: the Sabela design ships as the `hotel` preset (its Ebony palette).
+ */
+const THEME_CHROME: Record<
+  string,
+  { Header: typeof OceansViewHeader; Footer: typeof OceansViewFooter }
+> = {
+  oceansview: { Header: OceansViewHeader, Footer: OceansViewFooter },
+  marmalade: { Header: MarmaladeHeader, Footer: MarmaladeFooter },
+  hotel: { Header: SabelaHeader, Footer: SabelaFooter },
+};
 
 /** Builder-only chrome editing: click the header/footer to select + edit it. */
 export type ChromeTarget = "header" | "footer";
@@ -1277,10 +1298,10 @@ export function SiteChrome({
     mergedMenuStyle?.scrolledSubmenuBg,
   );
   const boxed = layout === "boxed";
-  // OceansView ships a bespoke, theme-scoped header + footer (rendered below in
-  // place of the generic token-driven chrome). Transparent-over-hero mirrors the
-  // generic rule (a top bar forces the header solid).
-  const isOceans = preset === "oceansview";
+  // A designed theme ships bespoke, theme-scoped header + footer (rendered below
+  // in place of the generic token-driven chrome). Transparent-over-hero mirrors
+  // the generic rule (a top bar forces the header solid).
+  const bespokeChrome = preset ? THEME_CHROME[preset] : undefined;
   // The shared Wielo theme-preview bar (single source of truth across all themes).
   const showBar = Boolean(
     preview && !hideBanner && previewPages && previewPages.length,
@@ -1333,8 +1354,8 @@ export function SiteChrome({
         target="header"
         label="Header"
       >
-        {isOceans ? (
-          <OceansViewHeader
+        {bespokeChrome ? (
+          <bespokeChrome.Header
             brand={brand}
             menu={menu}
             bookHref={effectiveBookHref}
@@ -1430,8 +1451,8 @@ export function SiteChrome({
         target="footer"
         label="Footer"
       >
-        {isOceans ? (
-          <OceansViewFooter
+        {bespokeChrome ? (
+          <bespokeChrome.Footer
             brand={brand}
             menu={menu}
             bookHref={effectiveBookHref}

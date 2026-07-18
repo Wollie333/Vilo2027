@@ -1,0 +1,444 @@
+/*
+ * Marmalade House — bespoke HEADER + FOOTER, ported faithfully from the founder's
+ * reference (docs/themes/marmalade/header.html + footer.html + theme.css).
+ * Every selector is scoped to `.mmchrome` (marmalade's OWN scope, so it never
+ * collides with `.ovchrome`); all colour / type / shape comes from the theme's
+ * `--site-*` tokens (with the reference's own hard fallbacks) so it stays
+ * on-theme and host-editable. Rendered by SiteChrome for the marmalade preset.
+ *
+ * Marmalade's nav is a single FLOATING PILL (a solid, blurred surface pill that
+ * floats centred over the page — over photo heroes and over cream alike). It has
+ * no transparent→solid colour inversion; the only scroll effect is a subtle lift
+ * (top: 16px → 8px). The `transparent` prop therefore governs ONLY the spacer:
+ * when the page has no opening hero (`transparent === false`) a spacer reserves
+ * the pill's height so content doesn't start underneath it.
+ */
+
+.mmchrome {
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+}
+.mmchrome * {
+  box-sizing: border-box;
+}
+.mmchrome a {
+  text-decoration: none;
+  color: inherit;
+}
+.mmchrome .wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.mmchrome .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.mmchrome .btn:hover {
+  transform: translateY(-2px);
+}
+.mmchrome .btn-accent {
+  background: var(--site-accent, #c8702e);
+  color: var(--site-accent-ink, #fff);
+}
+.mmchrome .btn-accent:hover {
+  background: var(--site-accent-deep, #a85820);
+}
+.mmchrome .btn-sm {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 13.5px;
+}
+.mmchrome .btn-lg {
+  height: 58px;
+  padding: 0 34px;
+  font-size: 16px;
+}
+.mmchrome .btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* -- floating pill nav --------------------------------------------------- */
+.mmchrome .nav {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  transition: top 0.3s;
+}
+.mmchrome .pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: color-mix(in srgb, var(--site-surface, #ffffff) 96%, transparent);
+  backdrop-filter: saturate(1.3) blur(8px);
+  border: 1px solid var(--site-line, #e4d6be);
+  border-radius: 999px;
+  padding: 7px 7px 7px 8px;
+  box-shadow: 0 18px 38px -18px rgba(44, 38, 32, 0.5);
+  max-width: 100%;
+}
+.mmchrome .pill .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-size: 18px;
+  color: var(--site-ink, #2c2620);
+  padding: 0 10px 0 4px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.mmchrome .bmark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--site-accent, #c8702e);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-size: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.mmchrome .bmark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mmchrome .brand-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  min-width: 0;
+}
+.mmchrome .brand-name small {
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6f6354);
+  margin-top: 3px;
+}
+.mmchrome .pill-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.mmchrome .pill-links a,
+.mmchrome .pill-links .pill-trigger {
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--site-ink, #2c2620);
+  opacity: 0.82;
+  padding: 10px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+.mmchrome .pill-links .pill-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.mmchrome .pill-links a:hover,
+.mmchrome .pill-links .pill-trigger:hover {
+  background: var(--site-soft, #fbf4e6);
+  opacity: 1;
+}
+.mmchrome .pill-links a.active,
+.mmchrome .pill-links .pill-trigger.active {
+  background: var(--site-soft, #fbf4e6);
+  color: var(--site-accent, #c8702e);
+  opacity: 1;
+}
+.mmchrome .pill .book {
+  background: var(--site-accent, #c8702e);
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-left: 4px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.mmchrome .pill .book:hover {
+  background: var(--site-accent-deep, #a85820);
+}
+.mmchrome .pill .burger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--site-ink, #2c2620);
+  cursor: pointer;
+  padding: 9px 11px;
+}
+
+/* dropdown */
+.mmchrome .has-sub {
+  position: relative;
+  display: flex;
+}
+.mmchrome .pill-sub {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-line, #e4d6be);
+  border-radius: var(--site-radius, 16px);
+  box-shadow: 0 24px 50px -24px rgba(44, 38, 32, 0.4);
+  padding: 8px;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s,
+    transform 0.2s,
+    visibility 0.2s;
+  z-index: 70;
+}
+.mmchrome .has-sub:hover .pill-sub,
+.mmchrome .has-sub:focus-within .pill-sub {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%);
+}
+.mmchrome .pill-sub a {
+  padding: 10px 14px;
+  border-radius: var(--site-radius-sm, 10px);
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--site-ink, #2c2620);
+  opacity: 1;
+  white-space: nowrap;
+}
+.mmchrome .pill-sub a:hover {
+  background: var(--site-soft, #fbf4e6);
+  color: var(--site-accent, #c8702e);
+}
+
+/* -- mobile drawer ------------------------------------------------------- */
+.mmchrome .mnav {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--site-ink, #2c2620);
+  color: var(--site-bg, #f4ecdb);
+  display: flex;
+  flex-direction: column;
+  padding: 26px 30px;
+  transform: translateY(-100%);
+  transition: transform 0.4s cubic-bezier(0.7, 0, 0.2, 1);
+  visibility: hidden;
+}
+.mmchrome .mnav.open {
+  transform: none;
+  visibility: visible;
+}
+.mmchrome .mnav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mmchrome .mnav-top .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-size: 21px;
+  color: var(--site-bg, #f4ecdb);
+}
+.mmchrome .mnav-top .brand-name {
+  color: var(--site-bg, #f4ecdb);
+}
+.mmchrome .mnav-top .bmark {
+  width: 36px;
+  height: 36px;
+}
+.mmchrome .mnav-top .mnav-close {
+  background: none;
+  border: none;
+  color: var(--site-bg, #f4ecdb);
+  cursor: pointer;
+  padding: 4px;
+}
+.mmchrome .mnav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: auto 0;
+}
+.mmchrome .mnav-links a {
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-size: 2.1rem;
+  color: var(--site-bg, #f4ecdb);
+  padding: 6px 0;
+}
+.mmchrome .mnav-links a:hover {
+  color: var(--site-accent, #c8702e);
+}
+
+/* -- footer -------------------------------------------------------------- */
+.mmchrome .footer {
+  background: var(--site-foot, #2c2620);
+  color: var(--site-foot-ink, rgba(244, 236, 219, 0.62));
+  padding: clamp(54px, 7vw, 92px) 0 36px;
+}
+.mmchrome .footer .brand,
+.mmchrome .footer .foot-h {
+  color: var(--site-foot-head, #f4ecdb);
+}
+.mmchrome .footer .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-size: 23px;
+}
+.mmchrome .footer .brand .bmark {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+}
+.mmchrome .footer .brand .brand-name {
+  color: var(--site-foot-head, #f4ecdb);
+}
+.mmchrome .foot-top {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr 1.4fr;
+  gap: 40px;
+}
+.mmchrome .foot-blurb {
+  margin-top: 18px;
+  max-width: 34ch;
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+.mmchrome .foot-h {
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.mmchrome .foot-col {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.mmchrome .foot-col a {
+  font-size: 14.5px;
+  transition:
+    color 0.2s,
+    padding-left 0.2s;
+}
+.mmchrome .foot-col a:hover {
+  color: var(--site-accent, #c8702e);
+  padding-left: 4px;
+}
+.mmchrome .foot-cta {
+  margin-top: 15px;
+}
+.mmchrome .foot-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: clamp(40px, 5vw, 68px);
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+}
+.mmchrome .foot-vilo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.mmchrome .foot-soc {
+  display: flex;
+  gap: 11px;
+}
+.mmchrome .foot-soc a {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--site-foot-ink, rgba(244, 236, 219, 0.62));
+  transition: all 0.2s;
+}
+.mmchrome .foot-soc a:hover {
+  color: var(--site-accent, #c8702e);
+  border-color: var(--site-accent, #c8702e);
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .mmchrome .foot-top {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+@media (max-width: 860px) {
+  .mmchrome .pill-links,
+  .mmchrome .pill .book {
+    display: none;
+  }
+  .mmchrome .pill .burger {
+    display: block;
+  }
+}
+@media (max-width: 560px) {
+  .mmchrome .wrap {
+    padding: 0 20px;
+  }
+  .mmchrome .foot-top {
+    grid-template-columns: 1fr;
+  }
+  .mmchrome .foot-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
