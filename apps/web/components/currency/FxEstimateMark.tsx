@@ -1,6 +1,7 @@
 "use client";
 
 import { Info } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   formatCurrency,
@@ -11,9 +12,10 @@ import {
 import { useCurrency } from "./CurrencyProvider";
 
 // A small superscript info marker placed next to a CONVERTED display total (used
-// on the final checkout step). Explains, on hover/focus, that the shown price is
-// an estimate in the viewer's display currency and states the EXACT amount that
-// will be charged in the host's settlement currency.
+// on the final checkout step). CLICK it to reveal a note explaining the shown
+// price is an estimate in the viewer's display currency, and stating the EXACT
+// amount that will be charged in the host's settlement currency. Click again,
+// click outside, or press Escape to dismiss.
 //
 // Renders nothing when there's nothing to clarify — i.e. the viewer is already
 // displaying the host's settlement currency (shown == charged), or the source
@@ -33,6 +35,26 @@ export function FxEstimateMark({
   className?: string;
 }) {
   const { currency: display } = useCurrency();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   if (
     !isDisplayCurrency(settlementCurrency) ||
     display === settlementCurrency
@@ -42,26 +64,33 @@ export function FxEstimateMark({
   const exact = formatCurrency(amount, settlementCurrency as DisplayCurrency);
   return (
     <span
-      className={`group/fx relative inline-flex align-super ${className ?? ""}`}
+      ref={ref}
+      className={`relative inline-flex align-super ${className ?? ""}`}
     >
       <button
         type="button"
         aria-label="Why is this price an estimate?"
-        className="inline-flex cursor-help text-current opacity-70 transition hover:opacity-100 focus:opacity-100 focus:outline-none"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={`inline-flex cursor-pointer text-current transition ${
+          open ? "opacity-100" : "opacity-70 hover:opacity-100"
+        } focus:opacity-100 focus:outline-none`}
       >
         <Info className="h-3 w-3" />
       </button>
-      <span
-        role="tooltip"
-        className={`pointer-events-none absolute bottom-full z-30 mb-1.5 w-60 rounded-lg bg-white px-3 py-2 text-left text-[11.5px] font-normal leading-snug text-brand-ink opacity-0 shadow-card ring-1 ring-brand-line transition-opacity group-focus-within/fx:opacity-100 group-hover/fx:opacity-100 ${
-          align === "left" ? "left-0" : "right-0"
-        }`}
-      >
-        Shown in {display} as an estimate. You&rsquo;ll be charged{" "}
-        <span className="font-semibold">{exact}</span> in {settlementCurrency}{" "}
-        (the host&rsquo;s currency) — the exact amount can vary slightly with
-        the exchange rate.
-      </span>
+      {open ? (
+        <span
+          role="tooltip"
+          className={`absolute bottom-full z-30 mb-1.5 w-60 rounded-lg bg-white px-3 py-2 text-left text-[11.5px] font-normal leading-snug text-brand-ink shadow-card ring-1 ring-brand-line ${
+            align === "left" ? "left-0" : "right-0"
+          }`}
+        >
+          Shown in {display} as an estimate. You&rsquo;ll be charged{" "}
+          <span className="font-semibold">{exact}</span> in {settlementCurrency}{" "}
+          (the host&rsquo;s currency) — the exact amount can vary slightly with
+          the exchange rate.
+        </span>
+      ) : null}
     </span>
   );
 }
