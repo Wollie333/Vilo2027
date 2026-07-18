@@ -34,6 +34,7 @@ import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { FxEstimateMark } from "@/components/currency/FxEstimateMark";
 import { railSupportsCurrency } from "@/lib/currency";
 import { PolicyDialog } from "@/components/policy/PolicyDialog";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
@@ -368,19 +369,17 @@ export function BookingForm({
   const gv = (n: number) => grossVat(n, vatRate);
 
   // ── Display currency ──────────────────────────────────────────
-  // The guest's selected DISPLAY currency (ZAR/USD/EUR/GBP). Every price in this
-  // form is a ZAR (host-base) amount; `formatMoney` is shadowed to route through
-  // formatFrom, which converts the source amount into the display currency.
-  // CRITICAL: display is cosmetic — the CHARGE currency is fixed by the payment
-  // method (Paystack/EFT = ZAR, PayPal = USD, converted server-side), never by
-  // this choice. See `paymentMethods` (currency-gated) below.
+  // Every price in this form is a HOST-currency (settlement) amount; `formatMoney`
+  // is shadowed to route through formatFrom, converting from the host currency
+  // into the guest's chosen DISPLAY currency. CRITICAL: display is cosmetic — the
+  // CHARGE currency is the host's settlement currency (Model 2), fixed server-side,
+  // never this choice. See `paymentMethods` (host-currency-gated) below.
   const { formatFrom } = useCurrency();
-  // Accept (amount, currency) like the base helper so the ~30 existing call sites
-  // are unchanged, but ignore the ZAR currency arg and convert to the display one.
-  const formatMoney = (amount: number, ...rest: unknown[]) => {
-    void rest;
-    return formatFrom(amount);
-  };
+  // Accept (amount, sourceCurrency) like the base helper so the ~30 existing call
+  // sites are unchanged; the source defaults to the host settlement currency so a
+  // non-ZAR host's amounts convert correctly (not mis-read as ZAR).
+  const formatMoney = (amount: number, sourceCurrency: string = currency) =>
+    formatFrom(amount, sourceCurrency);
 
   // ── Wizard step ───────────────────────────────────────────────
   // 0 = Rooms (dates/guests/room selection), 1 = Details (contact/add-ons),
@@ -3176,6 +3175,13 @@ export function BookingForm({
                 </div>
                 <div className="font-display text-[28px] font-extrabold leading-none text-white">
                   {formatMoney(gv(total), currency)}
+                  {step === 2 ? (
+                    <FxEstimateMark
+                      amount={gv(total)}
+                      settlementCurrency={currency}
+                      className="ml-1"
+                    />
+                  ) : null}
                 </div>
               </div>
 
@@ -3253,6 +3259,14 @@ export function BookingForm({
             <div className="min-w-0">
               <div className="font-display text-base font-bold text-brand-ink">
                 {formatMoney(gv(total), currency)}
+                {step === 2 ? (
+                  <FxEstimateMark
+                    amount={gv(total)}
+                    settlementCurrency={currency}
+                    align="left"
+                    className="ml-0.5"
+                  />
+                ) : null}
                 {vatRate > 0 ? (
                   <span className="ml-1 text-[10px] font-normal text-brand-mute">
                     incl. VAT
