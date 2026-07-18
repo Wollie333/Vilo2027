@@ -30,6 +30,9 @@ import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { OceansViewAbout } from "./oceansview/OceansViewAbout";
 import { OceansViewHome } from "./oceansview/OceansViewHome";
+import { OceansViewRooms } from "./oceansview/OceansViewRooms";
+import { OceansViewContact } from "./oceansview/OceansViewContact";
+import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
@@ -327,6 +330,206 @@ export async function SitePageView({
               rooms={extras.rooms_preview?.rooms}
               reviews={extras.reviews}
               gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — the founder's bespoke ROOMS design. The room list comes LIVE
+  // from the site's published rooms (`rooms_preview`); each renders as an
+  // alternating split with a floating price badge, live facts and real book/view
+  // links. Empty → the design's placeholder (never demo rooms). Gallery images
+  // feed the page-head + CTA imagery. Same content-persistence contract as home.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "rooms") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "gallery"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            // Opens with a full-bleed page-head image → header can ride
+            // transparent-over-hero like the home page.
+            pageHasHero
+          >
+            <OceansViewRooms
+              brandName={ctx.brand.name}
+              bookHref={headerBookHref ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — the founder's bespoke OFFERS design. The offer cards come LIVE
+  // from the site's active specials (`specials_preview`) with the host's badge,
+  // live now/was price + savings, and a real booking deep-link. Empty → the
+  // design's "no offers yet" placeholder (never demo cards). Gallery feeds the
+  // page-head + CTA imagery. Same content-persistence contract as home.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "specials") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["specials_preview", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <OceansViewSpecials
+              brandName={ctx.brand.name}
+              contactHref="/contact"
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              specials={extras.specials_preview?.specials}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — the founder's bespoke CONTACT design. The message form (left)
+  // is a real lead-capture form → host inbox (/api/website-enquiry); the details
+  // card + map (right) are wired to LIVE establishment data; the FAQ comes from
+  // content_profile (brand-agnostic direct-booking answers as fallback). Rooms
+  // feed the form's room selector. Same content-persistence contract as home.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "contact") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["location", "rooms_preview"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const loc = extras.location;
+    const roomNames = (extras.rooms_preview?.rooms ?? [])
+      .map((r) => r.name)
+      .filter(Boolean);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <OceansViewContact
+              brandName={ctx.brand.name}
+              websiteId={ctx.websiteId}
+              interactive={!ctx.preview}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              phone={loc?.phone ?? ctx.brand.contactPhone ?? null}
+              email={loc?.email ?? ctx.brand.contactEmail ?? null}
+              address={loc?.address ?? null}
+              mapEmbedUrl={loc?.mapEmbedUrl ?? null}
+              faq={cp.contact?.faq ?? null}
+              rooms={roomNames}
             />
           </SiteChrome>
         </SiteThemeRoot>

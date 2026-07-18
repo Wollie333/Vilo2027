@@ -1,0 +1,434 @@
+/*
+ * Oceans View - bespoke Contact-page design, ported faithfully from the founder's
+ * reference (docs/themes/oceansview/pages/Contact.html + theme.css). Every
+ * selector is scoped to `.ovcontact`; all colour/type/shape comes from the
+ * theme's `--site-*` tokens (with the reference's own hard fallbacks), so it
+ * stays on-theme and host-editable.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.ovcontact {
+  color: var(--site-ink, #0e2c3a);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+}
+.ovcontact * {
+  box-sizing: border-box;
+}
+.ovcontact img {
+  display: block;
+  max-width: 100%;
+}
+.ovcontact p {
+  margin: 0;
+}
+.ovcontact h1,
+.ovcontact h2,
+.ovcontact h3 {
+  font-family: var(
+    --site-font-heading,
+    "Bricolage Grotesque",
+    system-ui,
+    sans-serif
+  );
+  font-weight: var(--site-weight-heading, 800);
+  letter-spacing: var(--site-tracking-heading, -0.02em);
+  line-height: 1.02;
+  margin: 0;
+  color: var(--site-ink, #0e2c3a);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.ovcontact .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.ovcontact .wrap-read {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.ovcontact .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.ovcontact .section-sm {
+  padding: clamp(48px, 6vw, 84px) 0;
+}
+.ovcontact .sand {
+  background: var(--site-soft, #f7f1e6);
+}
+.ovcontact .center {
+  text-align: center;
+}
+.ovcontact h2.lg {
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  line-height: 1.02;
+}
+.ovcontact .muted {
+  color: var(--site-mute, #5e7884);
+  line-height: 1.55;
+}
+.ovcontact .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-secondary, #ff6b57);
+}
+.ovcontact .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-secondary, #ff6b57);
+}
+.ovcontact .sec-head {
+  max-width: 680px;
+}
+.ovcontact .sec-head.center {
+  margin-inline: auto;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.ovcontact .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    box-shadow 0.25s;
+}
+.ovcontact .btn:not(:disabled):hover {
+  transform: translateY(-3px);
+}
+.ovcontact .btn-coral {
+  background: var(--site-secondary, #ff6b57);
+  color: #fff;
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-secondary, #ff6b57) 60%, transparent);
+}
+.ovcontact .btn-coral:not(:disabled):hover {
+  background: var(--site-secondary-deep, #e9523d);
+}
+.ovcontact .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+
+/* -- contact grid -------------------------------------------------------- */
+.ovcontact .cgrid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: clamp(34px, 5vw, 64px);
+  align-items: start;
+}
+
+/* -- form fields --------------------------------------------------------- */
+.ovcontact .frow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.ovcontact .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.ovcontact .field label {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #5e7884);
+}
+.ovcontact .field input,
+.ovcontact .field select,
+.ovcontact .field textarea {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 15px;
+  color: var(--site-ink, #0e2c3a);
+  background: var(--site-surface, #ffffff);
+  border: 1.5px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius-sm, 11px);
+  padding: 14px 15px;
+  width: 100%;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.ovcontact .field input:focus,
+.ovcontact .field select:focus,
+.ovcontact .field textarea:focus {
+  outline: none;
+  border-color: var(--site-accent, #12a5b5);
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--site-accent, #12a5b5) 14%, transparent);
+}
+.ovcontact .field textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+/* -- details card -------------------------------------------------------- */
+.ovcontact .dcard {
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: var(--site-radius-lg, 22px);
+  padding: 30px;
+  box-shadow: 0 24px 50px -34px rgba(10, 34, 48, 0.3);
+}
+.ovcontact .drow {
+  display: flex;
+  gap: 15px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--site-line, #e9e1d1);
+}
+.ovcontact .drow:first-child {
+  padding-top: 0;
+}
+.ovcontact .drow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ovcontact .drow .ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--site-tint, #d7eef1);
+  color: var(--site-accent-deep, #0c8694);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ovcontact .drow .t {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 1.1rem;
+  word-break: break-word;
+}
+.ovcontact .drow .d {
+  font-size: 14px;
+  color: var(--site-mute, #5e7884);
+  margin-top: 3px;
+}
+.ovcontact .reassure {
+  margin-top: 16px;
+  padding: 20px 22px;
+  background: var(--site-soft, #f7f1e6);
+  border-radius: var(--site-radius-lg, 22px);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.ovcontact .reassure .ic {
+  color: var(--site-accent, #12a5b5);
+  flex-shrink: 0;
+}
+.ovcontact .reassure p {
+  font-size: 14px;
+  color: var(--site-mute, #5e7884);
+  line-height: 1.55;
+}
+
+/* -- map ----------------------------------------------------------------- */
+.ovcontact .mapframe {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--site-radius-lg, 22px);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e9e1d1);
+}
+.ovcontact .mapframe iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.ovcontact .mapph {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--site-radius-lg, 22px);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e9e1d1);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--site-soft, #f7f1e6),
+    var(--site-soft, #f7f1e6) 14px,
+    var(--site-soft-2, #efe7d6) 14px,
+    var(--site-soft-2, #efe7d6) 28px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ovcontact .mappin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--site-secondary, #ff6b57);
+  box-shadow:
+    0 0 0 8px
+      color-mix(in srgb, var(--site-secondary, #ff6b57) 22%, transparent),
+    0 0 0 18px
+      color-mix(in srgb, var(--site-secondary, #ff6b57) 10%, transparent);
+}
+.ovcontact .maptag {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e9e1d1);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-mute, #5e7884);
+}
+
+/* -- FAQ ----------------------------------------------------------------- */
+.ovcontact .faq {
+  border-top: 1px solid var(--site-line, #e9e1d1);
+  padding: 22px 0;
+}
+.ovcontact .faq summary {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 1.3rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  color: var(--site-ink, #0e2c3a);
+}
+.ovcontact .faq summary::-webkit-details-marker {
+  display: none;
+}
+.ovcontact .faq .pm {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--site-surface, #fff);
+  color: var(--site-ink, #0e2c3a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    color 0.3s;
+}
+.ovcontact .faq[open] .pm {
+  transform: rotate(45deg);
+  background: var(--site-accent, #12a5b5);
+  color: #fff;
+}
+.ovcontact .faq p {
+  margin-top: 14px;
+  color: var(--site-mute, #5e7884);
+  line-height: 1.6;
+  max-width: 64ch;
+}
+
+/* -- sent state ---------------------------------------------------------- */
+.ovcontact .sent {
+  padding: 32px;
+  background: var(--site-soft, #f7f1e6);
+  border-radius: var(--site-radius-lg, 22px);
+  text-align: center;
+  margin-top: 28px;
+}
+
+/* -- page header --------------------------------------------------------- */
+.ovcontact .phead {
+  position: relative;
+  min-height: clamp(360px, 46vh, 460px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.ovcontact .phead img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 114%;
+  object-fit: cover;
+  z-index: 0;
+}
+.ovcontact .phead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 28, 40, 0.3),
+    rgba(8, 28, 40, 0.66)
+  );
+}
+.ovcontact .phead .wrap {
+  position: relative;
+  z-index: 2;
+  padding-bottom: clamp(44px, 6vw, 72px);
+  color: #fff;
+  width: 100%;
+}
+.ovcontact .phead .crumbs {
+  display: flex;
+  gap: 9px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+.ovcontact .phead .crumbs a:hover {
+  color: #fff;
+}
+.ovcontact .phead h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  margin-top: 18px;
+}
+.ovcontact .phead p {
+  color: rgba(255, 255, 255, 0.88);
+  margin-top: 16px;
+  max-width: 52ch;
+  font-size: 1.1rem;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 860px) {
+  .ovcontact .cgrid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .ovcontact .frow {
+    grid-template-columns: 1fr;
+  }
+  .ovcontact .wrap,
+  .ovcontact .wrap-read {
+    padding: 0 20px;
+  }
+}
