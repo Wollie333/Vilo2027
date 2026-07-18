@@ -28,6 +28,7 @@ import {
 
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
+import { OceansViewAbout } from "./oceansview/OceansViewAbout";
 import { OceansViewHome } from "./oceansview/OceansViewHome";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
@@ -252,6 +253,80 @@ export async function SitePageView({
               reviews={extras.reviews}
               gallery={extras.gallery?.images}
               bookingData={extras.booking_search}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Oceans View — the founder's bespoke ABOUT design. Story + host bio come from
+  // content_profile; stats/imagery from live listing data; demo copy is fallback
+  // only. Sections needing data we don't collect (multi-year timeline, full team)
+  // are omitted, not fabricated. Same content-persistence contract as home.
+  if (ctx.theme.preset === "oceansview" && result.page.kind === "about") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "reviews", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            // Opens with a full-bleed page-head image → header can ride
+            // transparent-over-hero like the home page.
+            pageHasHero
+          >
+            <OceansViewAbout
+              brandName={ctx.brand.name}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              tagline={cp.brand?.tagline ?? null}
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              hostBioBody={cp.about?.hostBio?.body ?? null}
+              hostPhotoUrl={
+                cp.about?.hostBio?.photoPath
+                  ? (websiteAssetUrl(cp.about.hostBio.photoPath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
             />
           </SiteChrome>
         </SiteThemeRoot>
