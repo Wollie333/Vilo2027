@@ -5,7 +5,7 @@ import type { LocationData } from "@/lib/site/types";
 // clamp, incl. the old `surface` band); the SECTION owns padding + width +
 // background (the surface band is re-seeded as the section `bg`) and the heading is
 // a separate Heading element above. `props.heading` stays legacy.
-import { SectionHeading, Muted, Card } from "./_shared";
+import { SectionHeading, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "location" }>["props"];
 
@@ -62,6 +62,102 @@ function PoiList({
   );
 }
 
+/** A contact/detail row — icon + title + optional subtitle, theme-styled. */
+function DetailRow({
+  icon,
+  title,
+  sub,
+  href,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub?: string;
+  href?: string;
+}) {
+  const inner = (
+    <div className="flex items-start gap-3.5">
+      <span
+        aria-hidden
+        style={{
+          color: "var(--site-accent)",
+          background: "color-mix(in srgb, var(--site-accent) 12%, transparent)",
+        }}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div
+          style={{ color: "var(--site-ink)" }}
+          className="break-words text-[15px] font-semibold"
+        >
+          {title}
+        </div>
+        {sub ? (
+          <div
+            style={{ color: "var(--site-mute)" }}
+            className="mt-0.5 text-[13px]"
+          >
+            {sub}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+  return href ? (
+    <a href={href} className="block transition-opacity hover:opacity-80">
+      {inner}
+    </a>
+  ) : (
+    inner
+  );
+}
+
+const PinIcon = (
+  <svg
+    width="19"
+    height="19"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const PhoneIcon = (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+  </svg>
+);
+const MailIcon = (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-10 6L2 7" />
+  </svg>
+);
+
 export function LocationSection({
   props,
   data,
@@ -72,65 +168,100 @@ export function LocationSection({
   const pois = data?.pois ?? [];
   const variant = props.variant ?? "split";
   const showMap =
-    props.show_map && variant !== "list" && Boolean(data?.mapEmbedUrl);
+    props.show_map !== false &&
+    variant !== "list" &&
+    Boolean(data?.mapEmbedUrl);
   const mapUrl = data?.mapEmbedUrl ?? "";
+  const hasContact = Boolean(data?.phone || data?.email || data?.address);
 
-  // Nothing to show (no address, no map, no points of interest) — render nothing
-  // rather than a bare padded strip. Common before a host adds location details.
-  if (!data?.address && !showMap && pois.length === 0) return null;
+  // Nothing to show — render nothing rather than a bare padded strip.
+  if (!hasContact && !showMap && pois.length === 0) return null;
+
+  // A polished details card: establishment name + address, phone and email
+  // (each a real tel:/mailto: link), with any points of interest below it.
+  const details =
+    hasContact || pois.length > 0 ? (
+      <Card style={locCardStyle}>
+        <div className="p-6 sm:p-7">
+          {data?.name ? (
+            <div
+              style={{
+                fontFamily: "var(--site-font-heading)",
+                color: "var(--site-ink)",
+              }}
+              className="mb-5 text-xl font-bold"
+            >
+              {data.name}
+            </div>
+          ) : null}
+          <div className="space-y-4">
+            {data?.address ? (
+              <DetailRow
+                icon={PinIcon}
+                title={data.address}
+                sub="Find us here"
+              />
+            ) : null}
+            {data?.phone ? (
+              <DetailRow
+                icon={PhoneIcon}
+                title={data.phone}
+                sub="Call us"
+                href={`tel:${data.phone.replace(/\s+/g, "")}`}
+              />
+            ) : null}
+            {data?.email ? (
+              <DetailRow
+                icon={MailIcon}
+                title={data.email}
+                sub="Email us"
+                href={`mailto:${data.email}`}
+              />
+            ) : null}
+          </div>
+          {pois.length > 0 ? (
+            <div
+              style={{ borderColor: "var(--site-line)" }}
+              className="mt-5 border-t pt-5"
+            >
+              <PoiList pois={pois} />
+            </div>
+          ) : null}
+        </div>
+      </Card>
+    ) : null;
+
+  const mapCard = showMap ? (
+    <Card style={locCardStyle}>
+      <iframe
+        src={mapUrl}
+        title="Map"
+        loading="lazy"
+        className="h-64 w-full border-0 md:h-full md:min-h-[380px]"
+      />
+    </Card>
+  ) : null;
 
   return (
     <>
       {props.heading ? (
-        <SectionHeading className="mb-3">{props.heading}</SectionHeading>
-      ) : null}
-      {data?.address ? (
-        <Muted
-          className="mb-8 text-center text-base"
-          style={{ color: "var(--el-address-fg, var(--site-mute))" }}
-        >
-          {data.address}
-        </Muted>
+        <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
 
-      {variant === "stacked" ? (
-        <div className="space-y-6">
-          {showMap ? (
-            <Card style={locCardStyle}>
-              <iframe
-                src={mapUrl}
-                title="Map"
-                loading="lazy"
-                className="h-72 w-full border-0"
-              />
-            </Card>
-          ) : null}
-          {pois.length > 0 ? (
-            <PoiList
-              pois={pois}
-              className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2"
-            />
-          ) : null}
-        </div>
-      ) : variant === "list" ? (
-        pois.length > 0 ? (
-          <div className="mx-auto max-w-2xl">
-            <PoiList pois={pois} />
-          </div>
+      {variant === "list" ? (
+        details ? (
+          <div className="mx-auto max-w-2xl">{details}</div>
         ) : null
+      ) : variant === "stacked" ? (
+        <div className="space-y-6">
+          {mapCard}
+          {details}
+        </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {showMap ? (
-            <Card style={locCardStyle}>
-              <iframe
-                src={mapUrl}
-                title="Map"
-                loading="lazy"
-                className="h-64 w-full border-0 md:h-full"
-              />
-            </Card>
-          ) : null}
-          {pois.length > 0 ? <PoiList pois={pois} /> : null}
+        // split (default): the map beside the details card.
+        <div className="grid items-stretch gap-6 md:grid-cols-[1.4fr_1fr]">
+          {mapCard}
+          {details}
         </div>
       )}
     </>

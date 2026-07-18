@@ -390,6 +390,10 @@ export type Poi = {
   distance?: string | null;
 };
 export type LocationData = {
+  /** Establishment name + public contact details (from the site brand). */
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
   address?: string | null;
   mapEmbedUrl?: string | null;
   pois: Poi[];

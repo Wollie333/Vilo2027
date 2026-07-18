@@ -1921,7 +1921,14 @@ export async function assembleSiteDataByType(
       const mapEmbedUrl = address
         ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=12&output=embed`
         : null;
-      out.location = { address: address || null, mapEmbedUrl, pois };
+      out.location = {
+        name: ctx.brand?.name ?? null,
+        phone: ctx.brand?.contactPhone ?? null,
+        email: ctx.brand?.contactEmail ?? null,
+        address: address || null,
+        mapEmbedUrl,
+        pois,
+      };
     })(),
 
     // REVIEWS — published reviews across visible properties (aggregate + cards).
