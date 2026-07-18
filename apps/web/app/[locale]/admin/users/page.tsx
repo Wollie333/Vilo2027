@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { Search, User } from "lucide-react";
 
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
@@ -79,8 +80,9 @@ export default async function AdminUsersPage({
   // real user. (email is null OR != support) preserves null-email rows.
   query = query.or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`);
 
-  if (q) {
-    query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+  const qSafe = sanitizeSearch(q);
+  if (qSafe) {
+    query = query.or(`email.ilike.%${qSafe}%,full_name.ilike.%${qSafe}%`);
   }
   if (seg === "guest") query = query.eq("role", "guest");
   else if (seg === "host") query = query.eq("role", "host");

@@ -312,7 +312,10 @@ export default async function CategoryLandingPage({
       {faqJsonLd ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          // Escape `<` so FAQ text can never break out of the script tag.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
+          }}
         />
       ) : null}
 

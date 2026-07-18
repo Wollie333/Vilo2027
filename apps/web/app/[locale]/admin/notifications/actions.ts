@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/lib/admin/requirePermission";
 import { withAdminAudit } from "@/lib/admin/withAdminAudit";
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -38,8 +39,9 @@ export async function searchUsersAction(
 
   if (role !== "any") q = q.eq("role", role);
 
-  if (query.trim().length > 0) {
-    const needle = `%${query.trim()}%`;
+  const qSafe = sanitizeSearch(query);
+  if (qSafe.length > 0) {
+    const needle = `%${qSafe}%`;
     q = q.or(`full_name.ilike.${needle},email.ilike.${needle}`);
   }
 

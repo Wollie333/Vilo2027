@@ -1,3 +1,4 @@
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type SearchHit = {
@@ -20,7 +21,12 @@ export async function searchEntities(rawQuery: string): Promise<SearchResult> {
   if (q.length < 2) return { total: 0, hits: [] };
 
   const supabase = createServerClient();
-  const ilike = `%${q.replaceAll("%", "").replaceAll("_", "")}%`;
+  // Sanitise before interpolating into the `.or()` filter grammar — strips the
+  // PostgREST metacharacters ( , ( ) % _ ) so a search term can't inject extra
+  // OR-conditions. Bail if nothing usable remains.
+  const safe = sanitizeSearch(q);
+  if (safe.length < 2) return { total: 0, hits: [] };
+  const ilike = `%${safe}%`;
 
   const [listings, bookings, reviews, refunds, addons] = await Promise.all([
     supabase

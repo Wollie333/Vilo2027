@@ -1,3 +1,4 @@
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import type { createServerClient } from "@/lib/supabase/server";
 import {
   getCategoryBySlug,
@@ -110,11 +111,16 @@ export async function searchListings(
     .is("deleted_at", null);
 
   if (where.length > 0) {
-    // Search city + province + listing name. PostgREST `or` filter.
-    const pat = `%${where.replace(/[%_]/g, "")}%`;
-    query = query.or(
-      `name.ilike.${pat},city.ilike.${pat},province.ilike.${pat}`,
-    );
+    // Search city + province + listing name. PostgREST `or` filter — the term
+    // MUST be run through sanitizeSearch (strips , ( ) % _ etc.) or a public
+    // visitor could inject extra OR-conditions into the filter grammar.
+    const safe = sanitizeSearch(where);
+    if (safe.length > 0) {
+      const pat = `%${safe}%`;
+      query = query.or(
+        `name.ilike.${pat},city.ilike.${pat},province.ilike.${pat}`,
+      );
+    }
   }
   if (type) {
     if (type === "accommodation") {

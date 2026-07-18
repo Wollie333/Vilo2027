@@ -141,12 +141,63 @@ headers: [
   allow Paystack/PayPal/Supabase/OpenStreetMap/YouTube/Turnstile/GA4/Meta and be
   validated in a real browser before enabling. Will use `frame-ancestors 'self'`
   to refine the clickjacking control alongside `X-Frame-Options`.
-- [ ] No `dangerouslySetInnerHTML` used with user-supplied content anywhere in the codebase
+- [x] Every `dangerouslySetInnerHTML` render is fed SANITISED content — see §7b
+  (a bare grep is expected to return the ~17 legitimate, sanitised sinks, not
+  zero).
+
+---
+
+## 7b. Injection Defenses (XSS / SQL / CSS) — standing checks
+
+These are the "must-do" checks whenever you add a search box, a rich-text field,
+or a host-styleable surface. The codebase has ONE sanitiser for each vector —
+use it; never hand-roll.
+
+### SQL / PostgREST filter injection
+The Supabase JS client parameterises `.eq()/.gt()/…` VALUES and two-arg
+`.ilike(col, pattern)` — those are safe. The danger is the **filter-STRING**
+methods (`.or()`, `.filter()`, `.not()`, `.match()`) where user input is
+interpolated into the `column.operator.value` grammar: a raw `,` `(` `)` is read
+as filter structure and can inject extra conditions.
+
+- [x] Every `.or(...)`/`.filter(...)` built from a user search term runs the term
+  through **`sanitizeSearch`** (`lib/search/sanitizeSearch.ts`) first — strips
+  `, ( ) % _ *  \`, collapses whitespace, caps length. Unit-tested
+  (`sanitizeSearch.test.ts`).
+- [x] No raw SQL execution anywhere (no `exec`/`query`/`sql\`\`` with user input);
+  SECURITY DEFINER functions use `format('%I'/'%L', …)`, never `|| arg`.
 
 ```bash
-grep -r "dangerouslySetInnerHTML" apps/web/src
-# Any result requires review — should be zero
+# Any .or()/.filter() that interpolates a variable must import sanitizeSearch:
+grep -rn "\.or(\`\|\.filter(\`" apps/web/app apps/web/lib | grep '\${'
 ```
+
+### HTML injection via the WYSIWYG / rich text
+All stored rich HTML MUST pass a `sanitize-html` allowlist sanitiser (drops
+`<script>/<style>/<iframe>`, `on*=` handlers, `javascript:`/`data:` schemes) on
+WRITE and/or at the render chokepoint:
+
+- [x] Listing / policy / website `rich_text` / enquiry HTML → **`sanitiseListingHtml`**
+  (`lib/sanitiseHtml.ts`). Website sections also re-sanitised at render
+  (`sanitiseSectionsHtml`).
+- [x] Help / knowledge-base HTML → **`sanitizeHelpHtml`** (`lib/help/sanitize.ts`).
+- [x] Plain-text-only surfaces (meta descriptions, push, email subjects) →
+  **`stripHtml`**.
+- [x] JSON-LD `<script>` blocks escape `<` → `<` (use `components/site/JsonLd.tsx`).
+
+### CSS-value injection (host site styling)
+Host-supplied CSS VALUES interpolated into a `<style dangerouslySetInnerHTML>`
+body can break out of the element (`bg: "x}</style><script>…"`).
+
+- [x] Every host style value (`bg`, `color`, `borderColor`, `backgroundImage`)
+  interpolated into a `<style>` runs through **`sanitizeCssValue`**
+  (`lib/website/cssValue.ts`) — strips `< > { } ; \ " '`. Applied at the
+  `elementDecls`/`frameRules`/`resolveBorderColor` chokepoint in
+  `components/site/sections/_shared.tsx`. Unit-tested (`cssValue.test.ts`).
+
+> Accepted trust boundary: the Custom Code feature (`PageHeadCode`/`PageBodyCode`)
+> lets a host run arbitrary JS on THEIR OWN public site by design — ownership +
+> POPIA-consent gated. That is not the same as the unintended style-breakout above.
 
 ---
 

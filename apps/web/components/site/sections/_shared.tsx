@@ -10,6 +10,7 @@ import type {
   SectionTone,
 } from "@/lib/website/sections.schema";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import { sanitizeCssValue } from "@/lib/website/cssValue";
 import { isLucideIcon, lucideIconFor } from "@/lib/website/icons/lucideCatalog";
 
 // Shared presentational primitives for site sections. All colour/radius/font
@@ -198,7 +199,10 @@ const BLOCK_BORDER_COLOR_VAR = {
 /** Border colour → a semantic role's theme var, or a raw custom value (hex/rgb). */
 function resolveBorderColor(bc?: string): string {
   if (!bc) return BLOCK_BORDER_COLOR_VAR.line;
-  return (BLOCK_BORDER_COLOR_VAR as Record<string, string>)[bc] ?? bc;
+  return (
+    (BLOCK_BORDER_COLOR_VAR as Record<string, string>)[bc] ??
+    sanitizeCssValue(bc)
+  );
 }
 const BLOCK_MAXWIDTH_CSS = {
   full: "",
@@ -219,7 +223,7 @@ function frameRules(style: BlockStyle): string {
   const out: string[] = [];
   if (style.backgroundImage) {
     out.push(
-      `background-image:url("${style.backgroundImage}")`,
+      `background-image:url("${sanitizeCssValue(style.backgroundImage)}")`,
       "background-size:cover",
       "background-position:center",
       "background-repeat:no-repeat",
@@ -380,14 +384,16 @@ function elementDecls(elements?: Record<string, ElementStyle>): string {
   const out: string[] = [];
   for (const [key, s] of Object.entries(elements)) {
     if (!s) continue;
-    if (s.bg) out.push(`--el-${key}-bg:${s.bg}`);
-    if (s.color) out.push(`--el-${key}-fg:${s.color}`);
+    if (s.bg) out.push(`--el-${key}-bg:${sanitizeCssValue(s.bg)}`);
+    if (s.color) out.push(`--el-${key}-fg:${sanitizeCssValue(s.color)}`);
     // Composed border shorthand: emitted only when width or colour is set, so a
     // component's `border: var(--el-<key>-bd, <theme default>)` keeps the theme's
     // default border untouched until the host actually styles it.
     if (s.borderWidth != null || s.borderColor) {
       const w = s.borderWidth != null ? s.borderWidth : 1;
-      const c = s.borderColor || "var(--site-line)";
+      const c = s.borderColor
+        ? sanitizeCssValue(s.borderColor)
+        : "var(--site-line)";
       out.push(`--el-${key}-bd:${w}px solid ${c}`);
     }
     if (s.radius != null) out.push(`--el-${key}-radius:${s.radius}px`);

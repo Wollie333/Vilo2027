@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { Search, Star } from "lucide-react";
 
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
@@ -53,8 +54,9 @@ export default async function AdminHostsPage({
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
-  if (q) {
-    query = query.or(`display_name.ilike.%${q}%,handle.ilike.%${q}%`);
+  const qSafe = sanitizeSearch(q);
+  if (qSafe) {
+    query = query.or(`display_name.ilike.%${qSafe}%,handle.ilike.%${qSafe}%`);
   }
   if (status === "verified") query = query.eq("is_verified", true);
   else if (status === "unverified") query = query.eq("is_verified", false);

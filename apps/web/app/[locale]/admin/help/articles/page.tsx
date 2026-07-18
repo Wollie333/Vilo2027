@@ -10,6 +10,7 @@ import {
 import { Link } from "@/i18n/navigation";
 
 import { requirePermission } from "@/lib/admin";
+import { sanitizeSearch } from "@/lib/search/sanitizeSearch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,8 @@ export default async function AdminHelpArticlesPage({
     if (status !== "all") query = query.eq("status", status);
   }
 
-  if (q) query = query.or(`title.ilike.%${q}%,slug.ilike.%${q}%`);
+  const qSafe = sanitizeSearch(q);
+  if (qSafe) query = query.or(`title.ilike.%${qSafe}%,slug.ilike.%${qSafe}%`);
   if (categoryFilter) query = query.eq("category_id", categoryFilter);
 
   if (sort === "worst") {
