@@ -5,7 +5,38 @@
 
 ---
 
-## 2026-07-19 — Theme differentiation Phase A cont.: motion for Marmalade + Sabela; reveal via `translate` (`5405338`).
+## 2026-07-19 — Theme differentiation Phase A cont.: `data-reveal` across every subpage (`7492d25`).
+
+Completes the Phase A motion coverage — the per-theme scroll-reveal signatures
+(already live on the home pages) now play on **every public subpage** of all
+three shared/bespoke themes, so a visitor sees the theme's motion identity
+wherever they land, not just the homepage. Pure additive attribute pass on the
+already-live-verified `SiteReveal` runtime + `theme-skins.css` signatures — no
+runtime/CSS changes.
+
+- **OceansView** (and Safari + Royal, which reuse its components) — About /
+  Experiences / Specials / SpecialDetail / Contact / Gallery / Journal / Article
+  / RoomDetail. `[data-reveal]` on section heads, card grids (staggered via
+  inline `--reveal-delay`), CTA banners, and the below-fold detail blocks
+  (amenities / seasonal / good-to-know / reviews / more-offers / other-rooms).
+- **Marmalade** — same subpages, reveals on **untransformed group wrappers only**
+  (`.split`/`.pcgrid`/`.gal`/`.reviews`/`.sec-head`/`.spx`/`.statrow`/`.banner`),
+  never the tilted `.pc`/`.review`/`.g` cards, so the postcard tilt survives (the
+  reveal animates the independent `translate`, which composes with the card's
+  `rotate()` — the resolved gotcha).
+- **Sabela** — same subpages, section heads + staggered cards + `.cta-band`s.
+- **Left static** (no CLS, LCP-safe): heroes / page-heads, article prose bodies,
+  and above-the-fold booking/detail content (booking cards, room/offer title +
+  lead). Gate: `tsc` + `eslint` + `prettier` green across all 29 files.
+- **Live-verified on mana** (branch deploy, authenticated browser, DOM/
+  computed-style): all five themes settle their subpage `[data-reveal]` to
+  opacity 1 with **distinct resolved signatures** — OceansView 20px/640ms ·
+  Safari 34px/1000ms/blur(9px) · Royal 10px/900ms · Marmalade 20px + springy
+  ease · Sabela blur(5px)/1050ms + staggered. **Marmalade tilt intact**: 8
+  `.pc`/`.g` cards keep their `rotate()` (matrix ≈ ±1.2°) and 0 of them carry
+  `data-reveal`; wrappers reveal instead. 0 stuck-hidden, no horizontal overflow
+  on any theme. Safari + Royal (which reuse the OceansView `.ovabout` markup)
+  animate it with their own signature — the shared layout now *feels* distinct.
 
 Extends the motion system to the two remaining bespoke themes, so **all five now
 animate distinctly**, and hardens the primitive.

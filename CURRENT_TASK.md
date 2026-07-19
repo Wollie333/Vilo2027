@@ -2,21 +2,35 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢 SAVE POINT (2026-07-19 pt17) — NEXT: differentiate the 5 themes → read `THEME_DIFFERENTIATION_PLAN.md`
+## 🟢🟢🟢 SAVE POINT (2026-07-19 pt19) — PHASE A COMPLETE + live-verified (all 5 themes, all subpages). NEXT: Phase B.
 
-**Branch `feature/website-cms-10min-wizard`, pushed `a741a7c`. Resume context: read
+**Branch `feature/website-cms-10min-wizard`, pushed `7492d25`, deploy READY. Resume context: read
 `THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST, then `WEBSITE_CMS_SAVEPOINT_Resume_Here.md`.**
 
-- **Five website themes now exist + live** (OceansView, Marmalade, Sabela=`hotel`, Safari, Royal Hotel=`royal`),
-  all mobile-responsive + fast (this session: refinement pass — nav-bug fix, focus rings, tap targets, lazy-load
-  + WebP q82 resize, a11y — plus Safari + Royal Hotel added as themes 4 & 5).
-- **NEXT BIG TASK (founder, start fresh):** the themes must each be **UNIQUE** — not one layout in different
-  palettes. **OceansView, Safari and Royal currently share ONE layout** (Safari + Royal reuse OceansView's
-  components). Make each unique · modern · professional · mobile-responsive with its **own minimal, tasteful
-  JS animations/effects**. Full phased plan (Phase A motion system → B structural divergence → C Safari≠Sabela)
-  + findings + file map in **`THEME_DIFFERENTIATION_PLAN.md`**. Start Phase A.
-- **Also pending:** live-verify Royal Hotel (`0874a5b`) once its deploy is READY (`?theme=royal` → champagne-gold,
-  not the warm stale-deploy fallback).
+- **PHASE A (per-theme motion system) is DONE + live-verified.** The `SiteReveal` runtime + `site-reveal.css`
+  primitive (animates the independent `translate` so it composes with theme tilt/hover) + per-theme `--reveal-*`
+  signatures in `theme-skins.css` are live on **every home page AND every public subpage** of all three theme
+  component sets. This session (pt19, `7492d25`): emitted `[data-reveal]` across all 29 remaining subpage
+  components — OceansView About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article/RoomDetail
+  (reused by Safari + Royal) + the Marmalade & Sabela subpages. Marmalade reveals stay on untransformed group
+  wrappers only (tilt-safe). `tsc`+`eslint`+`prettier` green.
+- **LIVE-VERIFIED on mana** (authenticated Claude-in-Chrome, DOM/computed-style; `?site=mana&preview=1&theme=…`):
+  all 5 themes settle reveals to opacity 1 with distinct resolved signatures — OceansView 20px/640ms · Safari
+  34px/1000ms/blur(9px) · Royal 10px/900ms · Marmalade 20px+springy ease (8 tilted `.pc`/`.g` cards keep their
+  `rotate`, 0 carry reveal) · Sabela blur(5px)/1050ms + staggered. 0 hidden, no horizontal overflow. (Note:
+  translate-Y-only reveals can't cause horizontal overflow; reduced-motion safety inherited from the unchanged
+  runtime.) Royal champagne-gold `.wielo-royal` also confirmed (resolves the old stale-deploy caveat).
+- **NEXT BIG TASK — PHASE B (structural layout divergence for Safari + Royal).** They still REUSE OceansView's
+  components (only palette + motion differ). Fork the highest-traffic pages (Home + Rooms + Room detail) into
+  `components/site/safari/*` and `components/site/royal/*`, re-composed to each theme's identity (Royal: port the
+  grand-hotel reference `docs/themes/royalhotel/pages/*.html` — accreditation logos strip, amenities section,
+  R-monogram tile; wire Archivo font. Safari: design an editorial photography-forward savanna-lodge composition,
+  not a recolour). Then update `usesOceansViewLayout()` / route guards so forked pages route to their own
+  component, unforked fall back to shared OV. Then Phase C (separate Safari from Sabela). Full detail +
+  file map in **`THEME_DIFFERENTIATION_PLAN.md`** §Phase B/C.
+- **GOTCHA (verification):** the mana preview auto-drifts between routes during async/scroll JS — use single
+  SYNCHRONOUS `javascript_tool` queries right after `navigate` (no async IIFE/scroll loops, which return `{}` /
+  bounce the page). mana has NO journal/blog page (`/site/journal` 404s) — verify blog reveals elsewhere.
 
 ---
 

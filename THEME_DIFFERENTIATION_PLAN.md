@@ -120,10 +120,18 @@ Do these as separate sessions/commits; verify each live on mana before moving on
 > reveals still attach to untransformed wrappers (cleanest group settle); its signature
 > dropped the rotate (overflow-safe) for a springy overshoot ease.
 >
-> **REMAINING in Phase A:** emit `[data-reveal]` from the rest of the OceansView pages
-> (About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article + RoomDetail)
-> and the Marmalade/Sabela subpages. Optionally wire per-theme `[data-parallax]` where a
-> hero calls for it. Then Phase B + C below.
+> **UPDATE (commit `7492d25`):** Phase A motion coverage is now COMPLETE — every
+> public subpage of all three themes emits `[data-reveal]` (OceansView About/
+> Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article/RoomDetail —
+> reused by Safari + Royal; Marmalade + Sabela subpages likewise). Reveals on
+> section heads / staggered card grids / banners / below-fold detail blocks;
+> heroes + prose + above-fold booking content left static. Marmalade reveals stay
+> on untransformed group wrappers (tilt-safe). `tsc`+`eslint`+`prettier` green.
+>
+> **REMAINING in Phase A (optional):** per-theme `[data-parallax]` on individual
+> subpage heroes where a hero calls for it (only the shared OceansView home hero
+> uses parallax today). Otherwise Phase A is done → move to **Phase B** (structural
+> layout divergence for Safari + Royal) then **Phase C** (separate Safari from Sabela).
 >
 > ✅ **RESOLVED — resting-transform gotcha:** the base reveal rule used to set
 > `transform` (hidden + `.in{transform:none}`), which would flatten a card's designed
