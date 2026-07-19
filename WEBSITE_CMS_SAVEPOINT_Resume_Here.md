@@ -1,35 +1,57 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `a741a7c` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt17 — NEXT TASK: genuinely differentiate the 5 themes → read the plan doc)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `7700665` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt18 — Phase A motion system DONE + live-verified for all 5 themes)
 
 > ## ▶▶ NEXT SESSION STARTS HERE — read `THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST
 > Founder directive (2026-07-19): **the themes must each be UNIQUE — not one layout in
-> different palettes.** Each must be *unique · modern · professional · mobile-responsive*
-> with its **own minimal, tasteful JS animations/effects** that enhance the visitor
-> experience. Right now **OceansView, Safari and Royal all share ONE layout** (Safari +
-> Royal reuse OceansView's `.ov*` components via `usesOceansViewLayout()`); Marmalade +
-> Sabela are already bespoke/distinct. The plan doc has the full phased approach (Phase A
-> per-theme motion system → Phase B structural divergence for Safari/Royal → Phase C
-> separate Safari from Sabela), the key findings (the reference designs SHIP the intended
-> JS — see `docs/themes/royalhotel/royal.js`: `.reveal`→`.in` scroll-reveal, parallax,
-> nav-solidify — NOT yet wired in-app), and the file map. Start with **Phase A**.
-> **Also still pending:** live-verify Royal (`0874a5b`) once its deploy is READY (see pt16).
+> different palettes.** Each *unique · modern · professional · mobile-responsive* with its
+> **own minimal, tasteful JS animations** that enhance the visitor experience.
+>
+> **✅ PHASE A (per-theme MOTION system) — DONE + LIVE-VERIFIED (pt18).** All FIVE themes now
+> animate distinctly. Built `components/site/SiteReveal.tsx` (client IntersectionObserver →
+> `.in` on `[data-reveal]`; rAF `[data-parallax]`) + `site-reveal.css` (base primitive),
+> mounted once in `SiteChrome`. Gated behind a `wielo-reveal-ready` class the runtime adds
+> ONLY when motion is allowed AND not in `.wielo-builder` → reduced-motion/no-JS/SSR/canvas
+> never hide anything (zero CLS, proven live). Animates the INDEPENDENT `translate` property
+> (+ opacity + filter) so it COMPOSES with each theme's own `transform` (card tilt / hover)
+> instead of flattening it. Per-theme signatures in `theme-skins.css` via `--reveal-y /
+> -blur / -dur / -ease`: **oceansview** 20px/640ms · **safari** 34px/1000ms/blur9 +
+> `wielo-kenburns` hero drift · **royal** 10px/900ms + champagne rule under `.sec-head h2` ·
+> **marmalade** 20px springy back-ease (reveals on untransformed wrappers; tilts intact) ·
+> **sabela**=`.wielo-hotel` 26px/1050ms/blur5 filmic. `[data-reveal]` emitted from ALL FIVE
+> HOME pages + OceansView Rooms. Verified live on mana per theme (distinct resolved vars,
+> settle to opacity 1, tilts preserved, hover composes, no overflow, no stuck content).
+> Commits: `392e6d3` (core: oceansview/safari/royal) → `5405338` (marmalade+sabela + the
+> translate refactor) → `7700665` (docs). Full detail: CHANGELOG 2026-07-19 (×2 entries).
+>
+> **▶ RESUME with the Phase A TAIL, then B + C** (all in `THEME_DIFFERENTIATION_PLAN.md`):
+> 1. **Phase A tail** (low-risk, repetitive) — emit `[data-reveal]` from the bespoke
+>    SUBpages: OceansView About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/
+>    Article/RoomDetail (these power Safari+Royal too), + the Marmalade/Sabela subpages.
+>    Same pattern as the home pages; attach to sec-heads/cards/wrappers, stagger via inline
+>    `--reveal-delay`. Optionally wire `[data-parallax]` on a hero where it helps.
+> 2. **Phase B** — fork Safari + Royal bespoke Home/Rooms/Room-detail so their LAYOUTS
+>    diverge (not just motion/palette). Royal ref exists in `docs/themes/royalhotel/pages/`
+>    (logos/amenities/R-monogram; wire Archivo font). This is the real fix for "same layout".
+> 3. **Phase C** — separate Safari from Sabela (both warm-earth lodge + serif).
 
 > ## 🧭 WHERE WE ARE (read this first)
 > **FIVE full themes.** OceansView, Marmalade, Sabela (=`hotel`), Safari (=`safari`, "NenGama Lodge"), and
 > now **ROYAL HOTEL** (=`royal`) all render bespoke pages. Verify on mana via
 > `?site=mana&preview=1&theme=<oceansview|marmalade|hotel|safari|royal>`.
 >
-> **⚠️ GOLDEN-RULE DEBT (founder: "no two themes the same"):** OceansView, Safari AND Royal now share the
-> SAME layout (Safari + Royal reuse OceansView's components via `usesOceansViewLayout()` in
-> `lib/site/themeFamily.ts`); they differ by palette/font/radius only. The founder ACCEPTED this for Royal
-> ("faithful now, distinct later"). **Distinct-later backlog:** (1) Royal — wire Archivo (uses grotesk/
-> Bricolage now), the R-monogram brand tile, the grand-hotel logos/amenities sections; (2) re-compose a page
-> or two per reuse-theme so the LAYOUT diverges, not just the skin; (3) the founder also flagged Safari +
-> Sabela/hotel "feel like the same theme" (both warm-earth lodge + serif) — differentiate.
+> **⚠️ GOLDEN-RULE DEBT (founder: "no two themes the same"):** OceansView, Safari AND Royal still share the
+> SAME LAYOUT (Safari + Royal reuse OceansView's components via `usesOceansViewLayout()` in
+> `lib/site/themeFamily.ts`); they differ by palette/font/radius — and now (pt18) by **MOTION** (each has its
+> own scroll-reveal signature, so they no longer read as one layout in three palettes). The founder ACCEPTED
+> the shared layout for Royal ("faithful now, distinct later"). **Distinct-later backlog (Phase B/C):** (1)
+> Royal — wire Archivo (uses grotesk/Bricolage now), the R-monogram brand tile, the grand-hotel
+> logos/amenities sections; (2) re-compose a page or two per reuse-theme so the LAYOUT diverges, not just the
+> skin/motion; (3) the founder also flagged Safari + Sabela/hotel "feel like the same theme" (both warm-earth
+> lodge + serif) — differentiate.
 >
-> **ROYAL HOTEL (pt16, `0874a5b`, code done — LIVE-VERIFY PENDING the deploy):** grand hotel — white ground,
+> **ROYAL HOTEL (pt16, `0874a5b`, ✅ LIVE-VERIFIED pt18):** grand hotel — white ground,
 > warm-charcoal ink, champagne-gold accent (#B08948) + espresso secondary, tight grotesk, refined `md`
 > corners. REUSES OceansView pages + chrome (like Safari) re-skinned via the `.wielo-royal` block. Added:
 > `royal` preset (themes.ts), `.wielo-royal` colour tokens (theme-skins.css), `usesOceansViewLayout()` helper
