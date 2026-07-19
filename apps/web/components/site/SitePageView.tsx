@@ -37,6 +37,7 @@ import { OceansViewExperiences } from "./oceansview/OceansViewExperiences";
 import { OceansViewGallery } from "./oceansview/OceansViewGallery";
 import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
 import { RoyalHome } from "./royal/RoyalHome";
+import { RoyalRooms } from "./royal/RoyalRooms";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -744,6 +745,68 @@ export async function SitePageView({
               }
               rooms={extras.rooms_preview?.rooms}
               reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Royal Hotel — bespoke ROOMS (preset `royal`). Own component (`.rrooms`), a
+  // grand-hotel treatment over the shared rooms layout (centred page-head +
+  // champagne rules). Above the shared branch so only Royal forks here. Phase B.
+  if (ctx.theme.preset === "royal" && result.page.kind === "rooms") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "gallery"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <RoyalRooms
+              brandName={ctx.brand.name}
+              bookHref={headerBookHref ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
               gallery={extras.gallery?.images}
             />
           </SiteChrome>
