@@ -288,6 +288,20 @@ export function HostProfileForm({
               {...register("bio")}
             />
           </Field>
+
+          <Field
+            label="Website"
+            hint="Optional — shown on your public page and to guests on their booking."
+            error={errors.website_url?.message}
+          >
+            <TextInput
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              placeholder="https://your-website.com"
+              {...register("website_url")}
+            />
+          </Field>
         </div>
       </div>
 
