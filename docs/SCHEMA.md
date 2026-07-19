@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-17
+> **Last generated:** 2026-07-19
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -17,22 +17,14 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **181** (181 with RLS) |
-| Functions | **160** (127 SECURITY DEFINER, 57 trigger fns) |
+| Functions | **166** (133 SECURITY DEFINER, 61 trigger fns) |
 | Cron jobs | **37** (12 Vault-gated, 0 inactive) |
-| Vault secrets set | **9** |
+| Vault secrets set | **15** |
 
 ## 🚩 Automated red flags
 
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
-
-### 5 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
-
-- `drain-looking-for-notifications` needs `looking_for_worker_url`
-- `poll-website-domains` needs `website_domain_poll_url`
-- `publish-scheduled-posts` needs `blog_publish_url`
-- `reconcile-host-card-payments` needs `booking_reconcile_worker_url`
-- `sync-external-reviews` needs `external_reviews_worker_url`, `external_reviews_worker_secret`
 
 ### 4 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
@@ -132,6 +124,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `emit_affiliate_commission_ledger` | **yes** | yes | trigger |
 | `emit_affiliate_payout_ledger` | **yes** | yes | trigger |
 | `enforce_listing_requires_bank` | **yes** | yes | trigger |
+| `enforce_looking_for_post_cap` | **yes** | yes | trigger |
 | `enforce_one_active_membership` | — | — | trigger |
 | `enqueue_in_app_notification` | **yes** | yes | callable |
 | `ensure_booking_invoice` | **yes** | yes | callable |
@@ -180,6 +173,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `guest_gkey_for_email` | — | — | callable |
 | `handle_new_user` | **yes** | yes | trigger |
 | `has_admin_permission` | **yes** | yes | callable |
+| `host_public_suppressed` | **yes** | yes | callable |
 | `import_ical_blocks` | **yes** | yes | callable |
 | `increment_help_article_view` | **yes** | yes | callable |
 | `is_period_closed` | **yes** | yes | callable |
@@ -198,6 +192,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `next_quote_number` | **yes** | yes | callable |
 | `next_receipt_number` | **yes** | yes | callable |
 | `next_refund_number` | **yes** | yes | callable |
+| `notify_subscription_event` | **yes** | yes | callable |
 | `on_booking_cancelled` | **yes** | yes | trigger |
 | `on_booking_confirmed` | **yes** | yes | trigger |
 | `on_booking_confirmed_create_invoice` | **yes** | yes | trigger |
@@ -228,10 +223,13 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `room_is_available` | — | — | callable |
 | `seed_host_policies_on_create` | **yes** | yes | trigger |
 | `send_due_access_cards` | **yes** | yes | callable |
+| `set_addon_currency` | **yes** | yes | trigger |
 | `set_affiliate_status` | **yes** | yes | callable |
 | `set_guest_credit_business` | — | — | trigger |
 | `set_listing_default_business` | **yes** | yes | trigger |
 | `set_looking_for_post_expiry` | — | — | trigger |
+| `set_property_currency` | **yes** | yes | trigger |
+| `set_seasonal_currency` | **yes** | yes | trigger |
 | `set_updated_at` | — | — | trigger |
 | `settle_affiliate_payout` | **yes** | yes | callable |
 | `snapshot_booking_policies` | **yes** | yes | callable |
@@ -322,6 +320,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `CHECK ((unit_price >= (0)::numeric))`
 
 **Triggers:**
+- `trg_addon_currency` → `set_addon_currency()` *(SECURITY DEFINER)*
 - `trigger_addons_touch` → `touch_addons_updated_at()`
 
 **RLS policies:**
@@ -1144,9 +1143,14 @@ CASE
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `municipality` | text | yes | — |
+| `website_url` | text | yes | — |
+| `social_links` | jsonb | — | `'{}'::jsonb` |
 
 **Foreign keys:**
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((default_currency = ANY (ARRAY['ZAR'::text, 'USD'::text, 'EUR'::text, 'GBP'::text])))`
 
 **Triggers:**
 - `set_updated_at_businesses` → `update_updated_at()`
@@ -2382,6 +2386,9 @@ CASE
 | `platform_access` | boolean | — | `true` |
 | `brochure_path` | text | yes | — |
 | `brochure_name` | text | yes | — |
+| `hidden_from_directory` | boolean | — | `false` |
+| `hidden_from_directory_at` | timestamp with time zone | yes | — |
+| `hidden_from_directory_reason` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE RESTRICT`
@@ -2393,7 +2400,7 @@ CASE
 - `CHECK ((handle ~ '^[a-z0-9-]+$'::text))`
 - `CHECK (((char_length(handle) >= 3) AND (char_length(handle) <= 60)))`
 - `CHECK ((account_kind = ANY (ARRAY['host'::text, 'quote_only'::text])))`
-- `CHECK ((default_currency = ANY (ARRAY['ZAR'::text, 'USD'::text])))`
+- `CHECK ((default_currency = ANY (ARRAY['ZAR'::text, 'USD'::text, 'EUR'::text, 'GBP'::text])))`
 
 **Triggers:**
 - `set_updated_at` → `update_updated_at()`
@@ -2839,6 +2846,7 @@ CASE
 **Triggers:**
 - `looking_for_posts_set_expiry` → `set_looking_for_post_expiry()`
 - `looking_for_posts_updated_at` → `update_updated_at()`
+- `trg_looking_for_post_cap` → `enforce_looking_for_post_cap()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `Guests can delete own posts` (DELETE) — `USING (guest_id = auth.uid())`
@@ -3040,8 +3048,10 @@ CASE
 | `created_at` | timestamp with time zone | — | `now()` |
 | `quote_id` | uuid | yes | — |
 | `quote_version_no` | integer | yes | — |
+| `booking_id` | uuid | yes | — |
 
 **Foreign keys:**
+- `FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL`
 - `FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE`
 - `FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE SET NULL`
 - `FOREIGN KEY (sender_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -3054,7 +3064,10 @@ CASE
 
 **RLS policies:**
 - `admin_full_messages` (ALL) — `USING is_super_admin()`
-- `participant_access_msg` (ALL) — `USING (conversation_id IN ( SELECT conversations.id
+- `msg_insert` (INSERT) — `CHECK ((conversation_id IN ( SELECT conversations.id
+   FROM conversations
+  WHERE ((conversations.host_id = get_my_host_id()) OR (conversations.host_id = get_my_host_id_as_staff()) OR (conversations.guest_id = auth.uid())))) AND (sender_id = auth.uid()) AND (is_system_message = false))`
+- `msg_select` (SELECT) — `USING (conversation_id IN ( SELECT conversations.id
    FROM conversations
   WHERE ((conversations.host_id = get_my_host_id()) OR (conversations.host_id = get_my_host_id_as_staff()) OR (conversations.guest_id = auth.uid()))))`
 
@@ -3444,6 +3457,7 @@ CASE
 - `UNIQUE (provider_reference)`
 
 **Checks:**
+- `CHECK ((currency = 'ZAR'::text))`
 - `CHECK ((environment = ANY (ARRAY['test'::text, 'live'::text])))`
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text])))`
 - `CHECK ((type = ANY (ARRAY['charge'::text, 'refund'::text, 'credit'::text, 'adjustment'::text, 'commission'::text, 'payout'::text])))`
@@ -3937,13 +3951,14 @@ CASE
 - `set_updated_at` → `update_updated_at()`
 - `trg_listing_default_business` → `set_listing_default_business()` *(SECURITY DEFINER)*
 - `trg_listing_requires_bank` → `enforce_listing_requires_bank()` *(SECURITY DEFINER)*
+- `trg_property_currency` → `set_property_currency()` *(SECURITY DEFINER)*
 - `trigger_listing_slug` → `generate_listing_slug()`
 - `trigger_sync_listing_location` → `sync_listing_location()`
 
 **RLS policies:**
 - `admin_full_listings` (ALL) — `USING is_super_admin()`
 - `host_manage_own_listings` (ALL) — `USING (host_id = get_my_host_id())`
-- `public_read_published` (SELECT) — `USING ((is_published = true) AND (is_suspended = false) AND (deleted_at IS NULL))`
+- `public_read_published` (SELECT) — `USING ((is_published = true) AND (is_suspended = false) AND (deleted_at IS NULL) AND (NOT host_public_suppressed(host_id)))`
 - `staff_read_listings` (SELECT) — `USING (host_id = get_my_host_id_as_staff())`
 - `staff_update_listings` (UPDATE) — `USING (host_id = get_my_host_id_as_staff())`
 
@@ -4408,6 +4423,7 @@ CASE
 - `CHECK ((end_date >= start_date))`
 
 **Triggers:**
+- `trg_seasonal_currency` → `set_seasonal_currency()` *(SECURITY DEFINER)*
 - `trigger_seasonal_pricing_touch` → `touch_seasonal_pricing_updated_at()`
 
 **RLS policies:**
@@ -5323,7 +5339,7 @@ CASE
 **RLS policies:**
 - `specials_admin_all` (ALL) — `USING is_super_admin()`
 - `specials_owner_all` (ALL) — `USING (host_id = get_my_host_id()) CHECK (host_id = get_my_host_id())`
-- `specials_public_read` (SELECT) — `USING ((status = 'active'::text) AND (deleted_at IS NULL))`
+- `specials_public_read` (SELECT) — `USING ((status = 'active'::text) AND (deleted_at IS NULL) AND (NOT host_public_suppressed(host_id)))`
 
 ### `staff_invites`
 
@@ -5550,6 +5566,7 @@ CASE
 | `terms_accepted_at` | timestamp with time zone | yes | — |
 | `terms_version` | text | yes | — |
 | `email_verified_at` | timestamp with time zone | yes | — |
+| `first_booking_celebrated_at` | timestamp with time zone | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE`
