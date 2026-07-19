@@ -89,17 +89,23 @@ async function decryptSecret(
   }
 }
 
-// Verify against the env key (bookings) OR the admin-configured platform key
-// (subscriptions/products), since Wielo's own merchant key may be set in DB.
+// Verify the signature AND resolve the environment from the KEY THAT MATCHED —
+// never trust event metadata for environment (R1). A native/renewal event may
+// omit the metadata that carried `environment`, and defaulting to "live" would
+// book test money as live revenue and make refunds ungateable. Returns the
+// environment on a valid signature, or null when no configured key verifies it
+// (→ 401). The env key (bookings) is tagged by its sk_live_/sk_test_ prefix; the
+// platform keys are tagged by WHICH column matched (live secret vs test secret).
 // deno-lint-ignore no-explicit-any
-async function verifySignature(
+async function verifySignatureEnv(
   rawBody: string,
   signature: string | null,
   supabase: any,
-): Promise<boolean> {
-  if (!signature) return false;
-  if (matchesSecret(rawBody, signature, env.get("PAYSTACK_SECRET_KEY"))) {
-    return true;
+): Promise<"live" | "test" | null> {
+  if (!signature) return null;
+  const envKey = env.get("PAYSTACK_SECRET_KEY");
+  if (matchesSecret(rawBody, signature, envKey)) {
+    return envKey?.startsWith("sk_live_") ? "live" : "test";
   }
   try {
     const { data } = await supabase
@@ -107,16 +113,15 @@ async function verifySignature(
       .select("paystack_secret_key, paystack_test_secret_key")
       .eq("id", true)
       .maybeSingle();
-    // Decrypt (plaintext passes through) then try both live + test secrets so
-    // webhooks verify in either mode.
+    // Decrypt (plaintext passes through) then try live then test so webhooks
+    // verify in either mode; the matching column IS the environment.
     const live = await decryptSecret(data?.paystack_secret_key);
+    if (matchesSecret(rawBody, signature, live)) return "live";
     const test = await decryptSecret(data?.paystack_test_secret_key);
-    return (
-      matchesSecret(rawBody, signature, live) ||
-      matchesSecret(rawBody, signature, test)
-    );
+    if (matchesSecret(rawBody, signature, test)) return "test";
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -143,7 +148,8 @@ Deno.serve(async (req: Request) => {
   const signature = req.headers.get("x-paystack-signature");
 
   const supabase = adminClient();
-  if (!(await verifySignature(rawBody, signature, supabase))) {
+  const environment = await verifySignatureEnv(rawBody, signature, supabase);
+  if (!environment) {
     return new Response("Invalid signature", { status: 401 });
   }
 
@@ -159,7 +165,7 @@ Deno.serve(async (req: Request) => {
   // status='pending', and the return-page verify already re-runs the same work),
   // so awaiting it is safe and, crucially, a 500 now makes Paystack redeliver.
   try {
-    await processEvent(event, rawBody);
+    await processEvent(event, rawBody, environment);
   } catch (err) {
     console.error(
       "paystack-webhook: processEvent failed, asking for retry",
@@ -177,7 +183,11 @@ Deno.serve(async (req: Request) => {
   });
 });
 
-async function processEvent(event: PaystackEvent, rawBody: string) {
+async function processEvent(
+  event: PaystackEvent,
+  rawBody: string,
+  environment: "live" | "test",
+) {
   // Only act on success / failed for now. Other events (charge.dispute etc.)
   // get logged for audit but skip DB mutation.
   const ref = event.data?.reference;
@@ -192,11 +202,11 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
   const purpose = (event.data?.metadata as { purpose?: string } | null)
     ?.purpose;
   if (purpose === "subscription" || purpose === "service") {
-    await processSubscriptionEvent(event, supabase);
+    await processSubscriptionEvent(event, supabase, environment);
     return;
   }
   if (purpose === "product") {
-    await processProductEvent(event, supabase);
+    await processProductEvent(event, supabase, environment);
     return;
   }
 
@@ -384,7 +394,11 @@ async function accrueCommissionByReference(supabase: any, ref: string) {
 
 // ─── Wielo product order handler ───────────────────────────────────────
 // deno-lint-ignore no-explicit-any
-async function processProductEvent(event: PaystackEvent, supabase: any) {
+async function processProductEvent(
+  event: PaystackEvent,
+  supabase: any,
+  verifiedEnv: "live" | "test",
+) {
   if (event.event !== "charge.success" && event.event !== "charge.failed") {
     return;
   }
@@ -419,7 +433,9 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   if (order.status === "paid") return;
 
   const now = new Date().toISOString();
-  const environment = order.environment ?? "live";
+  // Prefer the environment stored at checkout init; else the VERIFIED webhook
+  // environment (R1) — never a bare "live" default.
+  const environment = order.environment ?? verifiedEnv;
   // Compare-and-set: only the path that flips pending→paid proceeds to activate,
   // so the webhook and the pay-page return can't both insert a service
   // subscription (no unique host_id+product_id constraint) → duplicate active
@@ -707,14 +723,20 @@ function addMonths(d: Date, n: number): string {
 }
 
 // deno-lint-ignore no-explicit-any
-async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
+async function processSubscriptionEvent(
+  event: PaystackEvent,
+  supabase: any,
+  environment: "live" | "test",
+) {
   const ref = event.data.reference;
   const meta = (event.data.metadata ?? {}) as Record<string, string>;
   const hostId = meta.host_id ?? null;
   const userId = meta.user_id ?? null;
   const plan = meta.plan ?? null;
   const cycle = meta.cycle === "annual" ? "annual" : "monthly";
-  const environment = meta.environment === "test" ? "test" : "live";
+  // `environment` is the VERIFIED webhook environment (R1) — resolved from the
+  // Paystack key that matched the signature, NOT from event metadata (which a
+  // native renewal may omit). Defaulting to "live" here would misbook test money.
   const amount = Number(event.data.amount ?? 0) / 100;
   const currency = event.data.currency ?? "ZAR";
   const now = new Date();

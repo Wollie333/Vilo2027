@@ -6339,10 +6339,12 @@ export type Database = {
           paypal_client_id: string | null
           paypal_enabled: boolean
           paypal_environment: string
+          paypal_recurring_enabled: boolean
           paypal_secret_cipher: string | null
           paystack_enabled: boolean
           paystack_mode: string
           paystack_public_key: string | null
+          paystack_recurring_enabled: boolean
           paystack_secret_key: string | null
           paystack_test_public_key: string | null
           paystack_test_secret_key: string | null
@@ -6360,10 +6362,12 @@ export type Database = {
           paypal_client_id?: string | null
           paypal_enabled?: boolean
           paypal_environment?: string
+          paypal_recurring_enabled?: boolean
           paypal_secret_cipher?: string | null
           paystack_enabled?: boolean
           paystack_mode?: string
           paystack_public_key?: string | null
+          paystack_recurring_enabled?: boolean
           paystack_secret_key?: string | null
           paystack_test_public_key?: string | null
           paystack_test_secret_key?: string | null
@@ -6381,10 +6385,12 @@ export type Database = {
           paypal_client_id?: string | null
           paypal_enabled?: boolean
           paypal_environment?: string
+          paypal_recurring_enabled?: boolean
           paypal_secret_cipher?: string | null
           paystack_enabled?: boolean
           paystack_mode?: string
           paystack_public_key?: string | null
+          paystack_recurring_enabled?: boolean
           paystack_secret_key?: string | null
           paystack_test_public_key?: string | null
           paystack_test_secret_key?: string | null
