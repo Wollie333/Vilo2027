@@ -51,8 +51,10 @@
 2. **PHASE 2 — Wire in the AI-wizard TEXT + IMAGES** per page (each page pulls the content from its relevant
    wizard step — `content_profile` + assembled live data). Some of this is already wired on OceansView
    (hero/story/experiences/faq from `content_profile`); Phase 2 makes it complete + correct on every theme.
-   - **Phase-2 IDEA (founder, 2026-07-19) — auto-draft EXPERIENCES from the address.** Use the stored
-     `businesses.latitude/longitude` → fetch REAL nearby POIs from free geodata (Overpass/OpenStreetMap;
+   - **Phase-2 IDEA (founder, 2026-07-19) — auto-draft EXPERIENCES from the LISTING's address.** Use the
+     LISTING/property's OWN address (`properties.address_line1…` — the actual establishment), NOT the
+     `businesses`/settings business address (founder correction). Geocode the property if it has no lat/long
+     → fetch REAL nearby POIs from free geodata (Overpass/OpenStreetMap;
      Wikivoyage for regional colour; Google Places later as a paid upgrade) → ground Claude on that verified
      list to write 4-6 on-brand experiences ("use ONLY these places, omit if unsure") → present as **drafts
      the host approves** (never silent auto-publish), cache into `content_profile.experiences`. Do NOT scrape

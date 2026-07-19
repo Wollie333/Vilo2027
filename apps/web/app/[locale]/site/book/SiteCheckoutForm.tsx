@@ -225,6 +225,19 @@ export function SiteCheckoutForm({
   surfaceDark?: boolean;
 }) {
   const cardSurface = cardSurfaceFor(surfaceDark);
+  // Selectable rows (rooms + add-ons) sit ON the form card. On dark themes lift
+  // them a further step so they read as distinct, tappable cards instead of
+  // blending into the panel; give them a clearer border too. Light themes keep
+  // the plain surface + hairline line.
+  const rowCardBg = surfaceDark
+    ? "color-mix(in srgb, var(--site-surface), var(--site-ink) 16%)"
+    : "var(--site-surface)";
+  const rowCardBorder = surfaceDark
+    ? "color-mix(in srgb, var(--site-line), var(--site-ink) 28%)"
+    : "var(--site-line)";
+  // The date-range field text a touch deeper/softer (founder request) — a bone
+  // pulled slightly toward the mute so it reads calmer than full-bright ink.
+  const dateInk = "color-mix(in srgb, var(--site-ink), var(--site-mute) 28%)";
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
   const canRooms = rooms.length > 0;
 
@@ -837,7 +850,7 @@ export function SiteCheckoutForm({
                       setCheckOut(t);
                     }}
                     accent="var(--site-accent)"
-                    ink="var(--site-ink)"
+                    ink={dateInk}
                     mute="var(--site-mute)"
                     line="var(--site-line)"
                     surface="var(--site-surface)"
@@ -887,7 +900,8 @@ export function SiteCheckoutForm({
                       <div
                         key={r.id}
                         style={{
-                          borderColor: "var(--site-line)",
+                          background: rowCardBg,
+                          borderColor: rowCardBorder,
                           borderRadius: "var(--site-radius)",
                         }}
                         className="flex items-center justify-between gap-3 border p-3"
@@ -1003,10 +1017,10 @@ export function SiteCheckoutForm({
                           // Add-on cards read the host's `--el-addon-*` styling
                           // (Builder V3 Group 1); the selected state keeps the
                           // accent highlight so the picker still reads clearly.
-                          background: "var(--el-addon-bg, transparent)",
+                          background: `var(--el-addon-bg, ${rowCardBg})`,
                           border: on
                             ? "1px solid var(--site-accent)"
-                            : "var(--el-addon-bd, 1px solid var(--site-line))",
+                            : `var(--el-addon-bd, 1px solid ${rowCardBorder})`,
                           borderRadius:
                             "var(--el-addon-radius, var(--site-radius))",
                         }}
