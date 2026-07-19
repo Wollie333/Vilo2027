@@ -6,6 +6,7 @@ import {
   FinancialDocument,
   type DocLine,
   type DocTone,
+  type DocTotal,
 } from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
@@ -49,6 +50,8 @@ export default async function PublicQuotePage({
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
+      discount_amount, discount_reason,
+      deposit_type, deposit_amount, balance_amount, balance_due_days,
       notes, valid_until,
       listing:properties ( name, business_id, vat_number, vat_rate )
     `,
@@ -107,6 +110,56 @@ export default async function PublicQuotePage({
   // amounts follow the display-currency switcher (a converted estimate) — like
   // the booking form. The actual charge on acceptance is still the host total.
   const fmt = await getServerMoneyFormatter();
+
+  // A host discount reduces the whole subtotal. Line items are shown PRE-discount,
+  // so the totals block must itemise the discount to foot to the total (otherwise
+  // the guest sees an unexplained gap between the line item and the total).
+  const discountAmount = Number(quote.discount_amount ?? 0);
+  const preDiscountSubtotal = exVatTotal + discountAmount;
+  const gross = (n: number) => (vatRate > 0 ? grossVat(n, vatRate) : n);
+
+  const docTotals: DocTotal[] = [];
+  if (discountAmount > 0 || vatRate > 0) {
+    docTotals.push({ label: "Subtotal", value: fmt(preDiscountSubtotal, c) });
+    if (discountAmount > 0) {
+      docTotals.push({
+        label: quote.discount_reason
+          ? `Discount (${quote.discount_reason})`
+          : "Discount",
+        value: `− ${fmt(discountAmount, c)}`,
+        tone: "mute",
+      });
+    }
+    if (vatRate > 0) {
+      docTotals.push({ label: `VAT (${vatRate}%)`, value: fmt(vatAmount, c) });
+    }
+  }
+
+  // Payment terms — the deposit due on acceptance + the balance owed later.
+  // Amounts are grossed for a VAT listing (the guest pays VAT-inclusive).
+  const depositAmt = Number(quote.deposit_amount ?? 0);
+  const balanceAmt = Number(quote.balance_amount ?? 0);
+  const balanceDueIso =
+    quote.check_in && balanceAmt > 0
+      ? new Date(
+          new Date(`${quote.check_in}T00:00:00Z`).getTime() -
+            Number(quote.balance_due_days ?? 7) * 86_400_000,
+        )
+          .toISOString()
+          .slice(0, 10)
+      : null;
+  const docNotes: { title: string; body: string }[] = [];
+  if (quote.deposit_type === "deposit" && depositAmt > 0 && balanceAmt > 0) {
+    docNotes.push({
+      title: "Payment terms",
+      body: `A deposit of ${fmt(gross(depositAmt), c)} is due when you accept, to secure your dates. The balance of ${fmt(gross(balanceAmt), c)} is due by ${fmtDate(balanceDueIso)}.`,
+    });
+  } else if (quote.deposit_type === "reserve") {
+    docNotes.push({
+      title: "Payment terms",
+      body: `Accept now to reserve your dates — the full ${fmt(gross(balanceAmt || exVatTotal), c)} is due${balanceDueIso ? ` by ${fmtDate(balanceDueIso)}` : " before check-in"}.`,
+    });
+  }
 
   const expired =
     !!quote.valid_until && new Date(quote.valid_until) < new Date();
@@ -207,21 +260,12 @@ export default async function PublicQuotePage({
       }
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
-      totals={
-        vatRate > 0
-          ? [
-              { label: "Subtotal", value: fmt(exVatTotal, c) },
-              {
-                label: `VAT (${vatRate}%)`,
-                value: fmt(vatAmount, c),
-              },
-            ]
-          : []
-      }
+      totals={docTotals}
       grandTotal={{
         label: vatRate > 0 ? "Total (incl. VAT)" : "Total",
         value: fmt(vatRate > 0 ? grossTotal : exVatTotal, c),
       }}
+      notes={docNotes}
       banking={expired || decided ? null : party.banking}
       pdfHref={`/${params.locale}/q/${quote.id}/${quote.accept_token}/pdf`}
       footerTitle={quote.notes ? "A note from your host" : undefined}

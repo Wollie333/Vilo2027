@@ -6,6 +6,8 @@ import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderQuotePdf } from "@/lib/pdf/render";
+import { formatMoney } from "@/lib/pdf/styles";
+import { effectiveVatRate, vatOf } from "@/lib/pricing/vat";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -74,8 +76,9 @@ export async function GET(
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason,
+      deposit_type, deposit_amount, balance_amount, balance_due_days,
       notes,
-      listing:properties ( name, business_id ),
+      listing:properties ( name, business_id, vat_number, vat_rate ),
       host:hosts!inner ( id, display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
     `,
     )
@@ -269,15 +272,41 @@ export async function GET(
       subtotal: a.subtotal,
     });
   }
-  if (doc.discountAmount > 0) {
-    lineRows.push({
-      description: doc.discountReason
-        ? `Discount — ${doc.discountReason}`
-        : "Discount",
-      quantity: 1,
-      unit_price: -doc.discountAmount,
-      subtotal: -doc.discountAmount,
-    });
+  // VAT the booking will add on accept — shown so the host preview matches the
+  // guest-facing quote + what the guest is actually charged (0 for non-VAT).
+  const quoteVatRate = effectiveVatRate(
+    (listingObj as { vat_number?: string | null; vat_rate?: number } | null) ??
+      {},
+  );
+
+  // Payment terms — deposit due on acceptance + balance owed later, grossed for a
+  // VAT listing so the split reconciles with the grand total.
+  const grossN = (n: number) =>
+    quoteVatRate > 0 ? Math.round(n * (100 + quoteVatRate)) / 100 : n;
+  const depositAmt = Number(quote.deposit_amount ?? 0);
+  const balanceAmt = Number(quote.balance_amount ?? 0);
+  const balanceDueIso =
+    quote.check_in && balanceAmt > 0
+      ? new Date(
+          new Date(`${quote.check_in}T00:00:00Z`).getTime() -
+            Number(quote.balance_due_days ?? 7) * 86_400_000,
+        )
+          .toISOString()
+          .slice(0, 10)
+      : null;
+  const fmtDueDate = (iso: string | null) =>
+    iso
+      ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "before check-in";
+  let paymentTerms: string | null = null;
+  if (quote.deposit_type === "deposit" && depositAmt > 0 && balanceAmt > 0) {
+    paymentTerms = `A deposit of ${formatMoney(grossN(depositAmt), doc.currency)} is due when the guest accepts, to secure the dates. The balance of ${formatMoney(grossN(balanceAmt), doc.currency)} is due by ${fmtDueDate(balanceDueIso)}.`;
+  } else if (quote.deposit_type === "reserve") {
+    paymentTerms = `Accepting reserves the dates — the full ${formatMoney(grossN(balanceAmt || Number(doc.total)), doc.currency)} is due ${balanceDueIso ? `by ${fmtDueDate(balanceDueIso)}` : "before check-in"}.`;
   }
 
   // Absolute URL for the guest accept link in the PDF.
@@ -335,6 +364,11 @@ export async function GET(
     },
     lines: lineRows,
     subtotal: doc.baseAmount + doc.cleaningFee + doc.addonsTotal,
+    discountAmount: doc.discountAmount,
+    discountLabel: doc.discountReason,
+    paymentTerms,
+    vatRate: quoteVatRate,
+    vatAmount: vatOf(Number(doc.total), quoteVatRate),
     total: doc.total,
     currency: doc.currency,
     notes: doc.notes,

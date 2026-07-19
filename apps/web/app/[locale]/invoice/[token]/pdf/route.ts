@@ -25,6 +25,8 @@ type Lines = {
   cleaning_fee: number;
   discount_amount?: number;
   coupon_code?: string | null;
+  /** Non-coupon (stay/LOS or manual-quote) discount. */
+  stay_discount?: number;
   price_breakdown?: {
     seasonalNights?: number;
     weekendNights?: number;
@@ -276,11 +278,15 @@ export async function GET(
       nights: lines.nights,
     },
     lines: lineRows,
-    // Subtotal shown PRE-discount so the itemized discount line foots to the
-    // total (stored `subtotal` is net of the discount: total − vat).
-    subtotal: Number(invoice.subtotal) + Number(lines.discount_amount ?? 0),
+    // Subtotal shown PRE-every-discount so the itemized discount lines foot to
+    // the total (stored `subtotal` is net of ALL discounts: total − vat).
+    subtotal:
+      Number(invoice.subtotal) +
+      Number(lines.discount_amount ?? 0) +
+      Number(lines.stay_discount ?? 0),
     discountAmount: lines.discount_amount ?? 0,
     discountLabel: lines.coupon_code ?? null,
+    stayDiscount: Number(lines.stay_discount ?? 0),
     seasonSummary: seasonSummary(lines.price_breakdown),
     vatAmount: invoice.vat_amount,
     totalAmount: invoice.total_amount,

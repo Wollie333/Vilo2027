@@ -66,7 +66,14 @@ export type QuoteProps = {
     headcount: number;
   };
   lines: QuoteLineItem[];
+  /** Pre-discount ex-VAT subtotal (sum of the line items). */
   subtotal: number;
+  /** Host discount off the subtotal (0 = none). Itemised as its own totals row. */
+  discountAmount?: number;
+  /** Reason shown beside the discount, e.g. "Loyal guest". */
+  discountLabel?: string | null;
+  /** Deposit/balance payment terms shown as a note (null = pay in full). */
+  paymentTerms?: string | null;
   /** Ex-VAT total (post-discount). The grand total shown is this + vatAmount. */
   total: number;
   /** VAT rate applied when this quote converts to a booking (0 = not registered). */
@@ -103,9 +110,19 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
     { text: formatMoney(l.subtotal, c), align: "right", bold: true },
   ]);
 
+  const discountAmount = quote.discountAmount ?? 0;
   const totals: PdfTotal[] = [
     { label: "Subtotal", value: formatMoney(quote.subtotal, c) },
   ];
+  if (discountAmount > 0) {
+    totals.push({
+      label: quote.discountLabel
+        ? `Discount (${quote.discountLabel})`
+        : "Discount",
+      value: `- ${formatMoney(discountAmount, c)}`,
+      mute: true,
+    });
+  }
   if (hasVat) {
     totals.push({
       label: `VAT (${quote.vatRate}%)`,
@@ -134,6 +151,9 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
   ];
 
   const notes: PdfNote[] = [];
+  if (quote.paymentTerms) {
+    notes.push({ title: "Payment terms", body: quote.paymentTerms });
+  }
   if (quote.acceptUrl) {
     notes.push({
       title: "Accept & pay online",

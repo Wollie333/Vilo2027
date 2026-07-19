@@ -65,6 +65,8 @@ export type InvoiceProps = {
   subtotal: number;
   discountAmount?: number;
   discountLabel?: string | null;
+  /** Non-coupon (stay/LOS or manual-quote) discount, itemised separately. */
+  stayDiscount?: number;
   seasonSummary?: string | null;
   vatAmount: number;
   totalAmount: number;
@@ -171,6 +173,13 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
   const totals: PdfTotal[] = [
     { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
   ];
+  if (invoice.stayDiscount && invoice.stayDiscount > 0) {
+    totals.push({
+      label: "Discount",
+      value: `- ${formatMoney(invoice.stayDiscount, c)}`,
+      mute: true,
+    });
+  }
   if (invoice.discountAmount && invoice.discountAmount > 0) {
     totals.push({
       label: invoice.discountLabel

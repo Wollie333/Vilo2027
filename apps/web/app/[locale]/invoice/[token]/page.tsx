@@ -30,6 +30,8 @@ type Lines = {
   cleaning_fee: number;
   discount_amount?: number;
   coupon_code?: string | null;
+  /** Non-coupon (stay/LOS or manual-quote) discount. */
+  stay_discount?: number;
   rooms: { room_name: string; base_amount: number; cleaning_fee: number }[];
   addons: {
     label: string;
@@ -161,16 +163,17 @@ export default async function PublicInvoicePage({
     });
   }
 
-  const discount = Number(lines.discount_amount ?? 0);
+  const discount = Number(lines.discount_amount ?? 0); // coupon
+  const stayDiscount = Number(lines.stay_discount ?? 0); // stay/LOS or manual quote
   // VAT is authoritative from the stored column — never re-derived from the
   // totals. (Deriving it as `total − (subtotal − discount)` double-subtracted
   // the discount, since `subtotal` is already stored net of it, so a coupon
   // masqueraded as VAT — a non-VAT host's invoice showed phantom VAT = the
   // discount and mislabelled itself a Tax Invoice.)
   const vat = Number(invoice.vat_amount ?? 0);
-  // Show the subtotal PRE-discount so the itemized discount line foots to the
-  // total (stored `subtotal` is net of the discount: total − vat).
-  const subtotalGross = Number(invoice.subtotal) + discount;
+  // Show the subtotal PRE-every-discount so the itemized discount lines foot to
+  // the total (stored `subtotal` is net of ALL discounts: total − vat).
+  const subtotalGross = Number(invoice.subtotal) + discount + stayDiscount;
   const isTaxInvoice = vat > 0.005;
   const isPaid = status === "paid";
 
@@ -214,6 +217,15 @@ export default async function PublicInvoicePage({
       lines={lineRows}
       totals={[
         { label: "Subtotal", value: formatMoney(subtotalGross, c) },
+        ...(stayDiscount > 0
+          ? [
+              {
+                label: "Discount",
+                value: `− ${formatMoney(stayDiscount, c)}`,
+                tone: "mute" as const,
+              },
+            ]
+          : []),
         ...(discount > 0
           ? [
               {

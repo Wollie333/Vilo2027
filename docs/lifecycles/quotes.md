@@ -199,3 +199,33 @@ flowchart TD
   card (cover image, requester's message, suggested-price/waiting).
 - ✅ **Guest-side verified live:** portal Quotes list → detail (Download PDF, line items) → **Accept**
   → "Continue to pay" modal (the `pay_token` hand-off, no dead-end) → `/pay/[token]` pay page.
+
+## Money-document sweep — 2026-07-19 (discount + deposit itemisation)
+
+Live-green pass on the quote → booking → invoice money path surfaced a **discount that
+was invisible on every document**, plus missing deposit terms. All financial documents
+were audited (invoice/quote/receipt/credit-note/statement/forfeit/Wielo-*); the fixes:
+
+- **Quote document (guest page `q/[id]/[token]/page.tsx` + guest PDF + host PDF
+  `quote/[id]/pdf`):** a host discount (`discount_type/value`→`discount_amount`) was
+  never itemised — line item showed the PRE-discount base, total showed the post-discount
+  figure, and nothing bridged the gap. Now: **Subtotal → Discount (reason) → [VAT] →
+  Total** (foots), plus a **Payment terms** note (deposit due on acceptance + balance by
+  date, grossed for VAT hosts). The guest + host PDFs render the discount in the totals
+  block (was a stray negative line item on the PDFs) and now carry VAT + deposit terms too.
+- **Booking invoice (`invoice/[token]/page.tsx` + PDF + `InvoiceDocument`, migration
+  `20260719220000`):** `ensure_booking_invoice` only itemised the COUPON discount
+  (`coupon_discount`); a quote-converted booking's manual discount + a regular booking's
+  stay/LOS discount both live in `bookings.discount_amount` and were dropped, so the
+  invoice didn't foot. Added `line_items.stay_discount`; renderers now show a separate
+  **Discount** row for it (alongside any coupon `Discount (CODE)`), subtotal shown
+  pre-every-discount. **Verified live** (HTML + rastered PDF): quote Q-0019 (20% "Loyal
+  guest", 50% deposit) → BK-0080 → INV-0104 shows Subtotal 10 800 → Discount −2 160 →
+  Total 8 640, footing; deposit R4 320 / balance R4 320 by 11 Aug on the quote.
+- **Audited CLEAN (no change):** receipt (single-line proof-of-payment), booking
+  credit-note (single figure = total), statement (stored `vat_amount`, post-discount
+  charge lines), forfeit statement, Wielo credit-note, commission statement.
+- **⏳ Follow-up (spawned):** the **Wielo platform invoice** bakes a platform-coupon
+  discount into the net price and never itemises it (foots, but hides the discount) —
+  mint `mint_wielo_invoice_on_ledger_complete` + its renderers. Minor: booking credit-note
+  shows no VAT breakdown line for VAT hosts; Wielo statement hard-codes a 15% rate label.
