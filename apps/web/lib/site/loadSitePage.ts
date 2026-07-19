@@ -756,7 +756,10 @@ function firstNameLastInitial(name: string | null | undefined): string {
  * adds `&site=` when rendered via the app-domain ?site= testing affordance.
  */
 export function siteBookHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+  ctx: Pick<
+    SiteContext,
+    "bookBasePath" | "subdomain" | "preview" | "previewThemeSlug"
+  >,
   params: {
     propertyId?: string;
     roomId?: string;
@@ -778,6 +781,9 @@ export function siteBookHref(
   // Stay in preview so a "Book" tap from a draft/unpublished site keeps rendering
   // the themed checkout in preview mode instead of 404ing on the live route.
   if (ctx.preview) qs.set("preview", "1");
+  // Carry the theme-gallery preview theme so a "Book" tap from a themed preview
+  // keeps rendering that theme's checkout — not the site's stored theme.
+  if (ctx.previewThemeSlug) qs.set("theme", ctx.previewThemeSlug);
   const q = qs.toString();
   return `${ctx.bookBasePath}/book${q ? `?${q}` : ""}`;
 }
@@ -789,12 +795,16 @@ export function siteBookHref(
  * in preview mode (draft sections, unpublished sites) instead of 404ing.
  */
 export function siteRoomHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+  ctx: Pick<
+    SiteContext,
+    "bookBasePath" | "subdomain" | "preview" | "previewThemeSlug"
+  >,
   slug: string,
 ): string {
   const qs = new URLSearchParams();
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
   if (ctx.preview) qs.set("preview", "1");
+  if (ctx.previewThemeSlug) qs.set("theme", ctx.previewThemeSlug);
   const q = qs.toString();
   return `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
 }
@@ -803,12 +813,16 @@ export function siteRoomHref(
  *  `siteRoomHref` — carries `?site=` on the app-domain affordance + `&preview=1`
  *  when previewing, so the offer card + auto-menu resolve in both modes. */
 export function siteSpecialHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+  ctx: Pick<
+    SiteContext,
+    "bookBasePath" | "subdomain" | "preview" | "previewThemeSlug"
+  >,
   slug: string,
 ): string {
   const qs = new URLSearchParams();
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
   if (ctx.preview) qs.set("preview", "1");
+  if (ctx.previewThemeSlug) qs.set("theme", ctx.previewThemeSlug);
   const q = qs.toString();
   return `${ctx.bookBasePath}/specials/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
 }
@@ -820,11 +834,15 @@ export function siteSpecialHref(
  * widget appends `&from=&to=&guests=` client-side at search time.
  */
 export function siteSearchHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+  ctx: Pick<
+    SiteContext,
+    "bookBasePath" | "subdomain" | "preview" | "previewThemeSlug"
+  >,
 ): string {
   const qs = new URLSearchParams();
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
   if (ctx.preview) qs.set("preview", "1");
+  if (ctx.previewThemeSlug) qs.set("theme", ctx.previewThemeSlug);
   const q = qs.toString();
   return `${ctx.bookBasePath}/search-results${q ? `?${q}` : ""}`;
 }
