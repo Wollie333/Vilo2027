@@ -244,28 +244,6 @@ export function MarmaladeContact({
                 </div>
               ) : null}
 
-              {/* Brand-agnostic direct-booking reassurance (from the reference). */}
-              <div className="postnote">
-                <span className="pn-ic">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    aria-hidden
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                </span>
-                <p>
-                  Book direct and you pay exactly what we quote — no agents, no
-                  booking fees, ever.
-                </p>
-              </div>
-
               {/* A real guest review — adds social proof beside the form.
                   Omitted when the site has no reviews. */}
               {review?.body?.trim() ? (

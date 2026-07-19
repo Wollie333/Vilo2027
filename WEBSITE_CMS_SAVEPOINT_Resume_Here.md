@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `326e908` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt8 — Marmalade HOME done + live-verified)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `6561ebd` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt9 — Marmalade Rooms/Room-detail/Specials/Special-detail/Contact + contact phone/email)
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
@@ -51,6 +51,30 @@
   photos, 3 reviews, address "Hazyview, Mpumalanga, ZA"; Gloock/Caveat fonts + terracotta `#C8702E`
   accent + cream `#F4ECDB` bg all applied; no hidden/opacity-0 content, zero horizontal overflow.
   (Screenshots kept timing out — the documented flakiness; DOM/computed-style is the reliable path.)
+- **Marmalade — Rooms + Room detail + Specials + Special detail + Contact** all bespoke + LIVE-VERIFIED
+  (`6561ebd`). Components in `components/site/marmalade/`: `MarmaladeRooms` (`.mmrooms`),
+  `MarmaladeRoomDetail` (`.mmroom`, reuses the shared `OceansRoomGallery` + `OceansBookCard`, re-skinned
+  under `.mmroom` — does NOT import oceansRoom.css), `MarmaladeSpecials` (`.mmspecials`),
+  `MarmaladeSpecialDetail` (`.mmsd`, bespoke — no reference HTML existed; carries the special-locked
+  checkout href like OceansView), `MarmaladeContact` (`.mmcontact`) + `MarmaladeContactForm` (client, posts
+  to `/api/website-enquiry`). Wired: SitePageView (rooms/specials/contact), SiteRoomView + SiteSpecialView
+  (`preset === "marmalade"`). Prop interfaces mirror the OceansView components 1:1 so each branch is a
+  near-copy. Verified on mana (`?site=mana&preview=1&theme=marmalade`, DOM + a real screenshot): live rooms
+  (Leadwood/Marula/Tamboti + prices + facts + 2-line-clamped blurbs + "We'll pick for you" card), room
+  detail (gallery + book card 4.7★ R4 850/night + 2 other rooms + 3 reviews), specials (3 live offers),
+  special detail (facts + book href + more offers), contact (form + info card + map). **100% responsive
+  verified** via the loaded `@media` rules: every grid collapses (…@1040 →1@560), the room/special book-card
+  `aside` goes `position:static` @860 (stacks below content), card tilts reset on phones; zero horizontal
+  overflow on every page at desktop.
+- **CONTACT phone + email on ALL themes** (`6561ebd`): `assembleSiteDataByType`'s `location` block now
+  falls back from the wizard's `brand.contact` to the OWNING HOST ACCOUNT's phone/email
+  (`businesses.host_id → hosts.user_id → user_profiles.{phone,email}`) when the wizard fields are empty.
+  So the contact section always offers a real way to reach the host, not just an address. Live-verified on
+  mana: BOTH OceansView contact (address + `+27 …` phone + `…@manamarketing.co.za` email, 3 info rows) AND
+  Marmalade contact (same, as `tel:`/`mailto:` links) now show all three. Applies to every theme's contact
+  (generic `LocationSection` already rendered phone/email when present — the fix was the DATA).
+  Marmalade contact's reference "reassurance" note was dropped (founder previously preferred the guest-review
+  card carry that column — see the OceansView contact `c1814b2` precedent).
 
 ---
 
@@ -69,8 +93,10 @@ are transactional — token-themed, low priority).
 
 **Suggested order per theme:** Home → Rooms → Room detail → About → Contact → Specials (+ reuse the
 special-detail generic OR build a bespoke one) → Journal (index + article) → Experiences → Gallery →
-Thank-you. **Marmalade Home is DONE + live-verified (`326e908`)** — next up: **Marmalade Rooms**
-(`docs/themes/marmalade/pages/Rooms.html`), then Room detail, then the rest, then Sabela.
+Thank-you. **Marmalade DONE + live-verified: Home, Rooms, Room detail, Specials, Special detail, Contact.**
+Next up (Marmalade): **About** (`docs/themes/marmalade/pages/About.html`) → **Journal** (index + article)
+→ **Experiences** → **Gallery** → **Thank-you**. Then start **Sabela** (preset `hotel`, `.sb*`). Sabela's
+generic contact will also show phone/email now (the data fix is theme-agnostic).
 
 ### THANK-YOU (part of Phase 1) — the logic already exists, only the DESIGN is missing
 Routes: `app/[locale]/site/book/thank-you` (booking → **Purchase** pixel event) and
