@@ -112,24 +112,25 @@ Do these as separate sessions/commits; verify each live on mana before moving on
 >   signature VARS are set but those components don't emit `[data-reveal]` yet.
 > - ✅ Live-verified on mana via the authenticated browser (see CHANGELOG 2026-07-19).
 >
-> **REMAINING in Phase A:** emit `[data-reveal]` from (a) the rest of the OceansView
-> pages (About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article +
-> RoomDetail), and (b) the **Marmalade + Sabela** bespoke components (so those two get
-> motion too — vars already staged). Optionally wire per-theme `[data-parallax]` where
-> a hero calls for it. Then Phase B + C below.
+> **UPDATE (commit `5405338`):** Marmalade + Sabela home pages now emit `[data-reveal]`
+> and are live-verified — so ALL FIVE themes have distinct motion. The GOTCHA below was
+> RESOLVED by switching the primitive to animate the independent `translate` property
+> (not `transform`): `translate` composes with a theme's own `transform` (tilt / hover)
+> instead of overriding it. Signature vars are now `--reveal-y` (a distance). Marmalade
+> reveals still attach to untransformed wrappers (cleanest group settle); its signature
+> dropped the rotate (overflow-safe) for a springy overshoot ease.
 >
-> ⚠️ **GOTCHA for Marmalade (and any theme with a resting transform):** the base
-> reveal rule sets `transform: var(--reveal-from)` while hidden and `transform: none`
-> on `.in`. Marmalade cards have a DESIGNED resting tilt/rotate (postcard look) set
-> via `transform` in `marmalade*.css` — putting `[data-reveal]` directly on a tilted
-> card would (i) override its tilt while hidden and (ii) flatten it to `none` once
-> revealed, killing the design. So for Marmalade, either put `[data-reveal]` on
-> NON-transformed wrappers (section headers, the grid/section container, the untilted
-> inner) OR change that theme's reveal to animate `opacity` only (drop the transform
-> from `--reveal-from`, e.g. `--reveal-from: none` and lean on opacity + the existing
-> tilt). Check each bespoke component's CSS for an existing `transform` before adding
-> `[data-reveal]` to an element. (Sabela's cards are mostly untransformed — lower risk,
-> but verify the same way.)
+> **REMAINING in Phase A:** emit `[data-reveal]` from the rest of the OceansView pages
+> (About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article + RoomDetail)
+> and the Marmalade/Sabela subpages. Optionally wire per-theme `[data-parallax]` where a
+> hero calls for it. Then Phase B + C below.
+>
+> ✅ **RESOLVED — resting-transform gotcha:** the base reveal rule used to set
+> `transform` (hidden + `.in{transform:none}`), which would flatten a card's designed
+> tilt (Marmalade) and could tie with a `:hover{transform:…}` lift. Now it animates the
+> independent `translate` property, which stacks with any `transform`, so `[data-reveal]`
+> is safe on tilted or hoverable elements. (Marmalade reveals are still placed on
+> wrappers by choice, not necessity.)
 >
 > Also note: the shared safety timer force-reveals ALL remaining `[data-reveal]` at
 > 2.3 s (matches the reference `royal.js`), so on a long page below-fold content

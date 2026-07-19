@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-19 — Theme differentiation Phase A cont.: motion for Marmalade + Sabela; reveal via `translate` (`5405338`).
+
+Extends the motion system to the two remaining bespoke themes, so **all five now
+animate distinctly**, and hardens the primitive.
+
+- **Primitive now animates the independent `translate` property** (not `transform`)
+  + opacity + filter. `translate` COMPOSES with a theme's own `transform` — a card's
+  resting tilt (Marmalade postcards) or `:hover` lift (every theme) — instead of
+  overriding it. This fixes a latent specificity tie where `.in{transform:none}`
+  could beat a card's `:hover{transform:…}` and kill the lift. Signature vars renamed
+  `--reveal-from` → `--reveal-y` (a distance) across all five theme blocks.
+- **Marmalade** — `[data-reveal]` on untransformed wrappers only (`.split`/`.sec-head`
+  /`.pcgrid`/`.gal`/`.reviews`/`.banner`), so the postcard wall settles up together
+  while each `.pc`/`.review`/`.gal .g` keeps its `rotate()` tilt. Signature = springy
+  overshoot ease (`cubic-bezier(0.34,1.4,0.5,1)`), rotate dropped (overflow-safe).
+- **Sabela** (`.wielo-hotel`) — `[data-reveal]` on sec-heads + cards (feature/gallery/
+  suite/stat/review, staggered) + rating-hero/loc/cta-band; filmic slow blur-in
+  (26px, 1050 ms, `blur(5px)`).
+- **Live-verified on mana** (`?theme=marmalade` / `hotel`, + regression on the three
+  shared-layout themes): all mount the runtime; resolved signatures are distinct;
+  reveals settle to opacity 1 with `translate:0`; **Marmalade tilts intact** (cards
+  keep `transform: matrix()`, `translate:none`); Sabela cards settle and compose with
+  hover; no horizontal overflow; no stuck content.
+
 ## 2026-07-19 — Theme differentiation Phase A: per-theme scroll-reveal motion system (`392e6d3`).
 
 First phase of `THEME_DIFFERENTIATION_PLAN.md` — give each theme its own tasteful,
