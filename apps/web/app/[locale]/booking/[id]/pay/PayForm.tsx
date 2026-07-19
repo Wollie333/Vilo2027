@@ -16,6 +16,7 @@ export function PayForm({
   eftAvailable,
   cardAvailable = true,
   paypalAvailable = false,
+  initialMethod,
 }: {
   bookingId: string;
   currency: string;
@@ -24,14 +25,20 @@ export function PayForm({
   eftAvailable: boolean;
   cardAvailable?: boolean;
   paypalAvailable?: boolean;
+  /** Rail to pre-select (e.g. the "Pay with PayPal" option on the success page
+   * deep-links here). Honoured only when that rail is actually available. */
+  initialMethod?: "paystack" | "eft" | "paypal";
 }) {
   // Default to the deposit when the host set one.
   const [amount, setAmount] = useState<"deposit" | "full">(
     deposit != null ? "deposit" : "full",
   );
-  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
-    cardAvailable ? "paystack" : paypalAvailable ? "paypal" : "eft",
-  );
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(() => {
+    if (initialMethod === "paystack" && cardAvailable) return "paystack";
+    if (initialMethod === "paypal" && paypalAvailable) return "paypal";
+    if (initialMethod === "eft" && eftAvailable) return "eft";
+    return cardAvailable ? "paystack" : paypalAvailable ? "paypal" : "eft";
+  });
   const [pending, setPending] = useState(false);
 
   const payNow = amount === "deposit" && deposit != null ? deposit : total;

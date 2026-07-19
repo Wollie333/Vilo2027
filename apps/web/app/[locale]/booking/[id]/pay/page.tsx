@@ -16,8 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function BookingPayPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { method?: string };
 }) {
   const supabase = createServerClient();
   const {
@@ -75,6 +77,13 @@ export default async function BookingPayPage({
         eftAvailable={eftAvailable}
         cardAvailable={cardAvailable}
         paypalAvailable={paypalAvailable}
+        initialMethod={
+          searchParams?.method === "paystack" ||
+          searchParams?.method === "paypal" ||
+          searchParams?.method === "eft"
+            ? searchParams.method
+            : undefined
+        }
       />
     </div>
   );

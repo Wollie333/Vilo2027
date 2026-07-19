@@ -24,6 +24,7 @@ import {
   Star,
   Sun,
   Users,
+  Wallet,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -130,6 +131,7 @@ export type ConfirmationData = {
     due: boolean;
     payUrl: string;
     cardAvailable: boolean;
+    paypalAvailable: boolean;
     eft: {
       bankName: string | null;
       accountHolder: string | null;
@@ -1040,7 +1042,9 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
   const { payment } = data;
   // Nothing owed, or no way to pay surfaced → don't render.
   if (!payment.due) return null;
-  if (!payment.eft && !payment.cardAvailable) return null;
+  if (!payment.eft && !payment.cardAvailable && !payment.paypalAvailable) {
+    return null;
+  }
 
   return (
     <SectionCard>
@@ -1061,18 +1065,25 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
           </span>
         </div>
 
-        {payment.cardAvailable || data.isPaymentIncomplete ? (
+        {/* Every rail the host has switched on, offered as its own option — the
+            header CTA already leads with the method the guest chose, so this
+            card is the "pay another way" menu. Each deep-links to the pay page
+            with that rail pre-selected. */}
+        {payment.cardAvailable ? (
           <Link
-            href={payment.payUrl}
+            href={`${payment.payUrl}?method=paystack`}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
           >
-            {/* On an unfinished card/PayPal attempt this mirrors the header CTA
-                and names the guest's rail; on an EFT-pending booking it stays the
-                "pay by card instead" alternative beside the bank details. */}
-            <CreditCard className="h-4 w-4" />{" "}
-            {data.isPaymentIncomplete
-              ? payWithLabel(data.paymentMethod)
-              : "Pay by card now"}
+            <CreditCard className="h-4 w-4" /> Pay by card
+          </Link>
+        ) : null}
+
+        {payment.paypalAvailable ? (
+          <Link
+            href={`${payment.payUrl}?method=paypal`}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border border-brand-line bg-white px-5 py-3 text-sm font-semibold text-brand-ink transition hover:border-brand-primary/50 hover:bg-brand-light"
+          >
+            <Wallet className="h-4 w-4 text-brand-primary" /> Pay with PayPal
           </Link>
         ) : null}
 

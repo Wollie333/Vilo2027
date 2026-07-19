@@ -8,6 +8,7 @@ import { resolvePartyGuests } from "@/lib/bookings/party";
 import { getBrandName } from "@/lib/brand";
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { sendCapiPurchase } from "@/lib/integrations/meta-capi";
+import { getHostPayPal } from "@/lib/payments/host-paypal";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import {
   capturePayPalOrderForBooking,
@@ -396,7 +397,7 @@ export default async function BookingSuccessPage({
   // /booking/[id]/pay surface, which surfaces every rail the host offers.
   const BANK_COLS =
     "bank_name, account_holder, account_number, account_type, branch_code, swift_code";
-  const [bankBiz, bankHost, hostPaystack] = await Promise.all([
+  const [bankBiz, bankHost, hostPaystack, hostPayPal] = await Promise.all([
     listing.business_id
       ? admin
           .from("eft_banking_details")
@@ -416,6 +417,7 @@ export default async function BookingSuccessPage({
       .limit(1)
       .maybeSingle(),
     getHostPaystack(listing.host_id),
+    getHostPayPal(listing.host_id),
   ]);
 
   const bankRow = (bankBiz.data ?? bankHost.data) as {
@@ -447,6 +449,7 @@ export default async function BookingSuccessPage({
     due: !isConfirmed && !isReleased,
     payUrl: `/booking/${booking.id}/pay`,
     cardAvailable: !!hostPaystack,
+    paypalAvailable: !!hostPayPal,
     eft: bankRow
       ? {
           bankName: bankRow.bank_name,
