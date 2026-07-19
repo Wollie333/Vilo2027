@@ -1,8 +1,11 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
-
-import { DocHeader } from "./DocHeader";
-import type { InvoiceBusiness } from "./InvoiceDocument";
-import { formatDate, formatMoney, styles } from "./styles";
+import { BRAND, formatDate, formatMoney } from "./styles";
+import { buildIssuerFromHost, type InvoiceBusiness } from "./InvoiceDocument";
+import {
+  PdfPaper,
+  type PdfCell,
+  type PdfColumn,
+  type PdfNote,
+} from "./PdfPaper";
 
 export type ReceiptProps = {
   receiptNumber: string;
@@ -42,143 +45,108 @@ export type ReceiptProps = {
 };
 
 export function ReceiptDocument({ receipt }: { receipt: ReceiptProps }) {
+  const c = receipt.currency;
+  const method = receipt.method.replace(/_/g, " ");
+  const issuer = buildIssuerFromHost(receipt.host, receipt.logoUrl);
+
+  const columns: PdfColumn[] = [
+    { label: "#", flex: 0.4, align: "center" },
+    { label: "Item & Description", flex: 5, align: "left" },
+    { label: "Amount", flex: 1.6, align: "right" },
+  ];
+  const rows: PdfCell[][] = [
+    [
+      { text: "1", align: "center", color: BRAND.mute },
+      {
+        text: `${receipt.kindLabel} payment`,
+        sub: receipt.stay.listingName,
+        align: "left",
+      },
+      { text: formatMoney(receipt.amount, c), align: "right", bold: true },
+    ],
+  ];
+
+  const notes: PdfNote[] = [
+    {
+      title: "Notes",
+      body: "This receipt confirms payment received against the booking above. Please retain it for your records.",
+    },
+  ];
+
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <DocHeader
-            logoUrl={receipt.logoUrl}
-            brandName={receipt.brandName}
-            businessName={
-              receipt.host.business?.tradingName ??
-              receipt.host.business?.legalName ??
-              receipt.host.displayName ??
-              receipt.brandName
-            }
-          />
-          <View style={styles.docMeta}>
-            <Text style={styles.docKind}>Receipt</Text>
-            <Text style={styles.docNumber}>{receipt.receiptNumber}</Text>
-            <Text style={styles.docDate}>
-              Paid {formatDate(receipt.paidAt)}
-            </Text>
-            <Text style={styles.statusPill}>Received</Text>
-          </View>
-        </View>
-
-        <View style={styles.twoCols}>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>From</Text>
-            <Text style={styles.partyName}>
-              {receipt.host.business?.tradingName ??
-                receipt.host.business?.legalName ??
-                receipt.host.displayName ??
-                "—"}
-            </Text>
-            {receipt.host.handle ? (
-              <Text style={styles.partyLine}>@{receipt.host.handle}</Text>
-            ) : null}
-            {receipt.host.email ? (
-              <Text style={styles.partyLine}>{receipt.host.email}</Text>
-            ) : null}
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>Received from</Text>
-            <Text style={styles.partyName}>{receipt.guest.name ?? "—"}</Text>
-            {receipt.guest.email ? (
-              <Text style={styles.partyLine}>{receipt.guest.email}</Text>
-            ) : null}
-            {receipt.guest.phone ? (
-              <Text style={styles.partyLine}>{receipt.guest.phone}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.staySummaryBox}>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Listing</Text>
-            <Text style={styles.staySummaryValue}>
-              {receipt.stay.listingName ?? "—"}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Booking</Text>
-            <Text style={styles.staySummaryValue}>
-              {receipt.bookingRef ?? "—"}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Method</Text>
-            <Text style={styles.staySummaryValue}>
-              {receipt.method.replace(/_/g, " ")}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>For</Text>
-            <Text style={styles.staySummaryValue}>{receipt.kindLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.tableHeader}>
-          <Text style={[styles.th, styles.colDesc]}>Description</Text>
-          <Text style={[styles.th, styles.colTotal]}>Amount</Text>
-        </View>
-        <View style={styles.tableRow}>
-          <Text style={[styles.td, styles.colDesc]}>
-            {receipt.kindLabel} payment
-            {receipt.stay.listingName ? ` — ${receipt.stay.listingName}` : ""}
-          </Text>
-          <Text style={[styles.td, styles.colTotal]}>
-            {formatMoney(receipt.amount, receipt.currency)}
-          </Text>
-        </View>
-
-        <View style={styles.totalsBlock}>
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Amount received</Text>
-            <Text style={styles.grandTotalValue}>
-              {formatMoney(receipt.amount, receipt.currency)}
-            </Text>
-          </View>
-          {receipt.balanceAfter != null ? (
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Balance still due</Text>
-              <Text style={styles.totalsValue}>
-                {formatMoney(receipt.balanceAfter, receipt.currency)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {receipt.banking ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Payment details</Text>
-            <Text style={styles.notesBody}>
-              {receipt.banking.bankName} — {receipt.banking.accountHolder}
-            </Text>
-            <Text style={styles.notesBody}>
-              Account {receipt.banking.accountNumber} ·{" "}
-              {receipt.banking.accountType} · Branch{" "}
-              {receipt.banking.branchCode}
-              {receipt.banking.swiftCode
-                ? ` · SWIFT ${receipt.banking.swiftCode}`
-                : ""}
-            </Text>
-            {receipt.banking.reference ? (
-              <Text
-                style={[styles.notesBody, { marginTop: 4, color: "#4A7C6A" }]}
-              >
-                Use reference: {receipt.banking.reference}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        <Text style={styles.footer}>
-          Generated by {receipt.brandName} · Receipt {receipt.receiptNumber} ·
-          This confirms payment received.
-        </Text>
-      </Page>
-    </Document>
+    <PdfPaper
+      kind="Receipt"
+      number={receipt.receiptNumber}
+      brandName={receipt.brandName}
+      issuer={issuer}
+      billTo={{
+        label: "Received from",
+        name: receipt.guest.name ?? "—",
+        lines: [receipt.guest.email, receipt.guest.phone].filter(
+          Boolean,
+        ) as string[],
+      }}
+      facts={[
+        { label: "Receipt date", value: formatDate(receipt.paidAt) },
+        { label: "Method", value: method },
+        ...(receipt.bookingRef
+          ? [{ label: "Booking", value: receipt.bookingRef }]
+          : []),
+      ]}
+      balance={{
+        label: "Amount Received",
+        value: formatMoney(receipt.amount, c),
+        positive: true,
+      }}
+      summary={
+        receipt.stay.listingName
+          ? [
+              { label: "Listing", value: receipt.stay.listingName },
+              { label: "Check-in", value: formatDate(receipt.stay.checkIn) },
+              { label: "Check-out", value: formatDate(receipt.stay.checkOut) },
+            ]
+          : null
+      }
+      columns={columns}
+      rows={rows}
+      totals={[]}
+      grand={{
+        label: "Amount received",
+        value: formatMoney(receipt.amount, c),
+      }}
+      dueRows={
+        receipt.balanceAfter != null
+          ? [
+              {
+                label: "Balance still due",
+                value: formatMoney(receipt.balanceAfter, c),
+                color: receipt.balanceAfter > 0 ? BRAND.deep : "#047857",
+              },
+            ]
+          : undefined
+      }
+      footBox={{
+        title: "Payment received",
+        rows: [
+          { k: "Method", v: method },
+          { k: "Received on", v: formatDate(receipt.paidAt) },
+          ...(receipt.bookingRef
+            ? [{ k: "Reference", v: receipt.bookingRef }]
+            : []),
+        ],
+      }}
+      notes={notes}
+      thanks={{
+        title: "Thank you — payment received.",
+        subtitle: receipt.host.email
+          ? `Questions about this receipt? Contact ${receipt.host.email}.`
+          : undefined,
+      }}
+      stamp="Received"
+      runningFooter={{
+        left: `${issuer.name} · Receipt ${receipt.receiptNumber}`,
+        right: `Issued via ${receipt.brandName} · wielo.co.za`,
+      }}
+    />
   );
 }

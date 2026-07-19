@@ -1,8 +1,15 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
-
-import { DocHeader } from "./DocHeader";
-import type { InvoiceBanking, InvoiceBusiness } from "./InvoiceDocument";
-import { formatDate, formatMoney, styles } from "./styles";
+import { BRAND, formatDate, formatMoney } from "./styles";
+import {
+  buildIssuerFromHost,
+  type InvoiceBanking,
+  type InvoiceBusiness,
+} from "./InvoiceDocument";
+import {
+  PdfPaper,
+  type PdfCell,
+  type PdfColumn,
+  type PdfNote,
+} from "./PdfPaper";
 
 export type CreditNoteProps = {
   creditNoteNumber: string;
@@ -17,8 +24,8 @@ export type CreditNoteProps = {
   toLabel?: string;
   /** Grand-total row label (default "Total credited"). */
   totalLabel?: string;
-  /** A positive money movement (an upward adjustment) — prints "+" in ink rather
-   *  than the default "−" in red. */
+  /** A positive money movement (an upward adjustment) — prints "+" rather than
+   *  the default "-". */
   positive?: boolean;
   host: {
     displayName: string | null;
@@ -38,130 +45,91 @@ export type CreditNoteProps = {
 };
 
 export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
-  const statusLabel =
-    note.status === "cancelled"
-      ? "Cancelled"
-      : note.status === "draft"
-        ? "Draft"
-        : "Issued";
+  const c = note.currency;
+  const kind = note.docKind ?? "Credit note";
+  // ASCII hyphen — Helvetica has no U+2212 MINUS SIGN glyph (it renders blank).
+  const sign = note.positive ? "+" : "-";
+  const issuer = buildIssuerFromHost(note.host, note.logoUrl);
+
+  const balanceLabel =
+    kind.toLowerCase() === "refund"
+      ? "Amount Refunded"
+      : kind.toLowerCase() === "adjustment"
+        ? "Adjustment"
+        : "Credit Amount";
+
+  const columns: PdfColumn[] = [
+    { label: "#", flex: 0.4, align: "center" },
+    { label: "Item & Description", flex: 5, align: "left" },
+    { label: note.positive ? "Amount" : "Credited", flex: 1.6, align: "right" },
+  ];
+  const rows: PdfCell[][] = note.lines.map((l, i) => [
+    { text: String(i + 1), align: "center", color: BRAND.mute },
+    { text: l.label, align: "left" },
+    { text: formatMoney(l.amount, c), align: "right", bold: true },
+  ]);
+
+  const notes: PdfNote[] = note.reason
+    ? [
+        { title: "Reason", body: note.reason },
+        {
+          title: "Notes",
+          body:
+            kind.toLowerCase() === "refund"
+              ? "This refund has been processed to the original payment method. Please allow a few business days for it to reflect."
+              : "This credit note reduces the amount owed on the related invoice.",
+        },
+      ]
+    : [
+        {
+          title: "Notes",
+          body: "This credit note reduces the amount owed on the related invoice. Keep it for your records.",
+        },
+      ];
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <DocHeader
-            logoUrl={note.logoUrl}
-            brandName={note.brandName}
-            businessName={
-              note.host.business?.tradingName ??
-              note.host.business?.legalName ??
-              note.host.displayName ??
-              note.brandName
-            }
-          />
-          <View style={styles.docMeta}>
-            <Text
-              style={[
-                styles.docKind,
-                { color: note.positive ? "#065F46" : "#B91C1C" },
-              ]}
-            >
-              {note.docKind ?? "Credit note"}
-            </Text>
-            <Text style={styles.docNumber}>{note.creditNoteNumber}</Text>
-            <Text style={styles.docDate}>
-              Issued {formatDate(note.issuedAt)}
-            </Text>
-            {note.invoiceNumber ? (
-              <Text style={styles.docDate}>Against {note.invoiceNumber}</Text>
-            ) : null}
-            <Text style={styles.statusPill}>{statusLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.twoCols}>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>From</Text>
-            <Text style={styles.partyName}>
-              {note.host.business?.tradingName ??
-                note.host.business?.legalName ??
-                note.host.displayName ??
-                "—"}
-            </Text>
-            {note.host.handle ? (
-              <Text style={styles.partyLine}>@{note.host.handle}</Text>
-            ) : null}
-            {note.host.business?.billingAddress?.map((line, i) => (
-              <Text key={`addr-${i}`} style={styles.partyLine}>
-                {line}
-              </Text>
-            ))}
-            {note.host.email ? (
-              <Text style={styles.partyLine}>{note.host.email}</Text>
-            ) : null}
-            {note.host.business?.vatNumber ? (
-              <Text style={styles.partyLine}>
-                VAT {note.host.business.vatNumber}
-              </Text>
-            ) : null}
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>
-              {note.toLabel ?? "Credited to"}
-            </Text>
-            <Text style={styles.partyName}>{note.guest.name ?? "—"}</Text>
-            {note.guest.email ? (
-              <Text style={styles.partyLine}>{note.guest.email}</Text>
-            ) : null}
-            {note.guest.phone ? (
-              <Text style={styles.partyLine}>{note.guest.phone}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.tableHeader}>
-          <Text style={[styles.th, styles.colDesc]}>Description</Text>
-          <Text style={[styles.th, styles.colTotal]}>
-            {note.positive ? "Amount" : "Credited"}
-          </Text>
-        </View>
-        {note.lines.map((line, i) => (
-          <View key={i} style={styles.tableRow}>
-            <Text style={[styles.td, styles.colDesc]}>{line.label}</Text>
-            <Text style={[styles.td, styles.colTotal]}>
-              {formatMoney(line.amount, note.currency)}
-            </Text>
-          </View>
-        ))}
-
-        <View style={styles.totalsBlock}>
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>
-              {note.totalLabel ?? "Total credited"}
-            </Text>
-            <Text
-              style={[
-                styles.grandTotalValue,
-                { color: note.positive ? "#065F46" : "#B91C1C" },
-              ]}
-            >
-              {note.positive ? "+" : "−"}
-              {formatMoney(note.total, note.currency)}
-            </Text>
-          </View>
-        </View>
-
-        {note.reason ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Reason</Text>
-            <Text style={styles.notesBody}>{note.reason}</Text>
-          </View>
-        ) : null}
-
-        <Text style={styles.footer}>
-          Generated by {note.brandName} · Reference {note.creditNoteNumber}
-        </Text>
-      </Page>
-    </Document>
+    <PdfPaper
+      kind={kind}
+      number={note.creditNoteNumber}
+      brandName={note.brandName}
+      issuer={issuer}
+      billTo={{
+        label: note.toLabel ?? "Credited to",
+        name: note.guest.name ?? "—",
+        lines: [note.guest.email, note.guest.phone].filter(Boolean) as string[],
+      }}
+      facts={[
+        { label: "Issue date", value: formatDate(note.issuedAt) },
+        ...(note.invoiceNumber
+          ? [{ label: "Against invoice", value: note.invoiceNumber }]
+          : []),
+      ]}
+      balance={{
+        label: balanceLabel,
+        value: `${sign}${formatMoney(note.total, c)}`,
+        positive: note.positive,
+      }}
+      columns={columns}
+      rows={rows}
+      totals={[]}
+      grand={{
+        label: note.totalLabel ?? "Total credited",
+        value: `${sign}${formatMoney(note.total, c)}`,
+      }}
+      notes={notes}
+      thanks={{
+        title:
+          kind.toLowerCase() === "refund"
+            ? "Your refund is on its way."
+            : "Your account has been credited.",
+        subtitle: note.host.email
+          ? `Questions? Contact ${note.host.email}.`
+          : undefined,
+      }}
+      runningFooter={{
+        left: `${issuer.name} · ${kind} ${note.creditNoteNumber}`,
+        right: `Issued via ${note.brandName} · wielo.co.za`,
+      }}
+    />
   );
 }

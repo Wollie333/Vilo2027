@@ -1,10 +1,18 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
-
-import { DocHeader } from "./DocHeader";
-import { formatDate, formatMoney, styles } from "./styles";
+import { BRAND, formatDate, formatMoney } from "./styles";
+import {
+  PdfPaper,
+  type PdfCell,
+  type PdfColumn,
+  type PdfFootRow,
+  type PdfMark,
+  type PdfNote,
+  type PdfTotal,
+} from "./PdfPaper";
 
 export type InvoiceLineItem = {
   description: string;
+  /** Optional second line under the item name. */
+  note?: string | null;
   quantity: number;
   unit_price: number;
   subtotal: number;
@@ -55,243 +63,189 @@ export type InvoiceProps = {
   lines: InvoiceLineItem[];
   subtotal: number;
   discountAmount?: number;
-  /** Coupon code shown next to the discount, e.g. "SUMMER10". */
   discountLabel?: string | null;
-  /** e.g. "3 season-priced nights · 2 weekend nights" — the "why". */
   seasonSummary?: string | null;
   vatAmount: number;
   totalAmount: number;
   currency: string;
-  notes?: string | null;
+  /** Notes / Terms shown in the foot. Defaults to a generic booking note. */
+  notes?: PdfNote[] | null;
+  /** Thanks band (bottom). Falls back to a generic thank-you. */
+  thanks?: { title: string; subtitle?: string } | null;
   /** Host logo (data URI or public URL) for the branded header. */
   logoUrl?: string | null;
   /** Configurable platform brand name (see lib/brand.ts). */
   brandName: string;
 };
 
+export function buildIssuerFromHost(
+  host: InvoiceProps["host"],
+  logoUrl?: string | null,
+) {
+  const name =
+    host.business?.tradingName ??
+    host.business?.legalName ??
+    host.displayName ??
+    "—";
+  const meta: string[] = [];
+  if (host.business?.legalName && host.business.legalName !== name)
+    meta.push(host.business.legalName);
+  if (host.handle) meta.push(`@${host.handle}`);
+  for (const l of host.business?.billingAddress ?? []) meta.push(l);
+  if (host.email) meta.push(host.email);
+  if (host.phone) meta.push(host.phone);
+  if (host.business?.companyRegistrationNumber)
+    meta.push(`Reg ${host.business.companyRegistrationNumber}`);
+  if (host.business?.vatNumber) meta.push(`VAT ${host.business.vatNumber}`);
+  const mark: PdfMark = logoUrl
+    ? { kind: "logo", url: logoUrl }
+    : { kind: "initials", text: initials(name) };
+  return { mark, name, metaLines: meta };
+}
+
+export function bankingFootRows(
+  banking: InvoiceBanking | null | undefined,
+  reference: string,
+): PdfFootRow[] {
+  if (!banking) return [];
+  const rows: PdfFootRow[] = [{ k: "Bank", v: banking.bankName }];
+  if (banking.accountHolder)
+    rows.push({ k: "Account name", v: banking.accountHolder });
+  rows.push({ k: "Account no.", v: banking.accountNumber });
+  if (banking.branchCode)
+    rows.push({ k: "Branch code", v: banking.branchCode });
+  if (banking.swiftCode) rows.push({ k: "SWIFT", v: banking.swiftCode });
+  rows.push({ k: "Reference", v: banking.reference || reference });
+  return rows;
+}
+
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "W";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
-  const statusLabel =
-    invoice.status === "paid"
-      ? "Paid"
-      : invoice.status === "cancelled"
-        ? "Cancelled"
-        : invoice.status === "draft"
-          ? "Draft"
-          : "Issued";
+  const c = invoice.currency;
+  const isPaid = invoice.status === "paid";
+  const isTax = invoice.vatAmount > 0;
+  const kind = isTax ? "Tax Invoice" : "Invoice";
+  const issuer = buildIssuerFromHost(invoice.host, invoice.logoUrl);
+
+  const columns: PdfColumn[] = [
+    { label: "#", flex: 0.4, align: "center" },
+    { label: "Item & Description", flex: 4.2, align: "left" },
+    { label: "Qty", flex: 1, align: "right" },
+    { label: "Rate", flex: 1.5, align: "right" },
+    { label: "Amount", flex: 1.5, align: "right" },
+  ];
+  const rows: PdfCell[][] = invoice.lines.map((l, i) => [
+    { text: String(i + 1), align: "center", color: BRAND.mute },
+    { text: l.description, sub: l.note ?? null, align: "left" },
+    { text: String(l.quantity), align: "right" },
+    { text: formatMoney(l.unit_price, c), align: "right" },
+    { text: formatMoney(l.subtotal, c), align: "right", bold: true },
+  ]);
+
+  const totals: PdfTotal[] = [
+    { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
+  ];
+  if (invoice.discountAmount && invoice.discountAmount > 0) {
+    totals.push({
+      label: invoice.discountLabel
+        ? `Discount (${invoice.discountLabel})`
+        : "Discount",
+      value: `- ${formatMoney(invoice.discountAmount, c)}`,
+      mute: true,
+    });
+  }
+  if (invoice.seasonSummary) {
+    totals.push({
+      label: `Incl. ${invoice.seasonSummary}`,
+      value: "",
+      mute: true,
+    });
+  }
+  if (isTax)
+    totals.push({ label: "VAT", value: formatMoney(invoice.vatAmount, c) });
+
+  const facts = [
+    { label: "Invoice date", value: formatDate(invoice.issuedAt) },
+  ];
+
+  const notes: PdfNote[] = invoice.notes ?? [
+    {
+      title: "Notes",
+      body: "Thank you for your booking. Please keep this invoice for your records.",
+    },
+    {
+      title: "Terms & Conditions",
+      body: "This invoice is issued for the booking shown above. Cancellation and refund terms are those set out in your booking confirmation.",
+    },
+  ];
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <DocHeader
-            logoUrl={invoice.logoUrl}
-            brandName={invoice.brandName}
-            businessName={
-              invoice.host.business?.tradingName ??
-              invoice.host.business?.legalName ??
-              invoice.host.displayName ??
-              invoice.brandName
+    <PdfPaper
+      kind={kind}
+      number={invoice.invoiceNumber}
+      brandName={invoice.brandName}
+      issuer={issuer}
+      billTo={{
+        label: "Billed to",
+        name: invoice.guest.name ?? "—",
+        lines: [invoice.guest.email, invoice.guest.phone].filter(
+          Boolean,
+        ) as string[],
+      }}
+      facts={facts}
+      balance={{
+        label: isPaid ? "Amount Paid" : "Balance Due",
+        value: formatMoney(invoice.totalAmount, c),
+        positive: isPaid,
+      }}
+      summary={
+        invoice.stay
+          ? [
+              { label: "Listing", value: invoice.stay.listingName ?? "—" },
+              { label: "Check-in", value: formatDate(invoice.stay.checkIn) },
+              { label: "Check-out", value: formatDate(invoice.stay.checkOut) },
+              { label: "Nights", value: String(invoice.stay.nights ?? "—") },
+            ]
+          : null
+      }
+      columns={columns}
+      rows={rows}
+      totals={totals}
+      grand={{
+        label: isPaid ? "Total paid" : "Total due",
+        value: formatMoney(invoice.totalAmount, c),
+      }}
+      footBox={
+        invoice.host.banking
+          ? {
+              title: isPaid ? "Banking details" : "Payment details",
+              rows: bankingFootRows(
+                invoice.host.banking,
+                invoice.invoiceNumber,
+              ),
             }
-          />
-          <View style={styles.docMeta}>
-            <Text style={styles.docKind}>
-              {invoice.vatAmount > 0 ? "Tax Invoice" : "Invoice"}
-            </Text>
-            <Text style={styles.docNumber}>{invoice.invoiceNumber}</Text>
-            <Text style={styles.docDate}>
-              Issued {formatDate(invoice.issuedAt)}
-            </Text>
-            <Text style={styles.statusPill}>{statusLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.twoCols}>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>From</Text>
-            <Text style={styles.partyName}>
-              {invoice.host.business?.tradingName ??
-                invoice.host.business?.legalName ??
-                invoice.host.displayName ??
-                "—"}
-            </Text>
-            {invoice.host.business?.legalName &&
-            invoice.host.business?.tradingName &&
-            invoice.host.business.legalName !==
-              invoice.host.business.tradingName ? (
-              <Text style={styles.partyLine}>
-                {invoice.host.business.legalName}
-              </Text>
-            ) : null}
-            {invoice.host.handle ? (
-              <Text style={styles.partyLine}>@{invoice.host.handle}</Text>
-            ) : null}
-            {invoice.host.business?.billingAddress?.map((line, i) => (
-              <Text key={`addr-${i}`} style={styles.partyLine}>
-                {line}
-              </Text>
-            ))}
-            {invoice.host.email ? (
-              <Text style={styles.partyLine}>{invoice.host.email}</Text>
-            ) : null}
-            {invoice.host.phone ? (
-              <Text style={styles.partyLine}>{invoice.host.phone}</Text>
-            ) : null}
-            {invoice.host.business?.companyRegistrationNumber ? (
-              <Text style={styles.partyLine}>
-                Reg {invoice.host.business.companyRegistrationNumber}
-              </Text>
-            ) : null}
-            {invoice.host.business?.vatNumber ? (
-              <Text style={styles.partyLine}>
-                VAT {invoice.host.business.vatNumber}
-              </Text>
-            ) : null}
-          </View>
-          <View style={styles.col}>
-            <Text style={styles.sectionLabel}>Billed to</Text>
-            <Text style={styles.partyName}>{invoice.guest.name ?? "—"}</Text>
-            {invoice.guest.email ? (
-              <Text style={styles.partyLine}>{invoice.guest.email}</Text>
-            ) : null}
-            {invoice.guest.phone ? (
-              <Text style={styles.partyLine}>{invoice.guest.phone}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        {invoice.stay ? (
-          <View style={styles.staySummaryBox}>
-            <View style={styles.staySummaryItem}>
-              <Text style={styles.staySummaryLabel}>Listing</Text>
-              <Text style={styles.staySummaryValue}>
-                {invoice.stay.listingName ?? "—"}
-              </Text>
-            </View>
-            <View style={styles.staySummaryItem}>
-              <Text style={styles.staySummaryLabel}>Check-in</Text>
-              <Text style={styles.staySummaryValue}>
-                {formatDate(invoice.stay.checkIn)}
-              </Text>
-            </View>
-            <View style={styles.staySummaryItem}>
-              <Text style={styles.staySummaryLabel}>Check-out</Text>
-              <Text style={styles.staySummaryValue}>
-                {formatDate(invoice.stay.checkOut)}
-              </Text>
-            </View>
-            <View style={styles.staySummaryItem}>
-              <Text style={styles.staySummaryLabel}>Nights</Text>
-              <Text style={styles.staySummaryValue}>
-                {invoice.stay.nights ?? "—"}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-        <View style={styles.tableHeader}>
-          <Text style={[styles.th, styles.colDesc]}>Description</Text>
-          <Text style={[styles.th, styles.colQty]}>Qty</Text>
-          <Text style={[styles.th, styles.colUnit]}>Unit price</Text>
-          <Text style={[styles.th, styles.colTotal]}>Total</Text>
-        </View>
-
-        {invoice.lines.map((line, i) => (
-          <View key={i} style={styles.tableRow}>
-            <Text style={[styles.td, styles.colDesc]}>{line.description}</Text>
-            <Text style={[styles.td, styles.colQty]}>{line.quantity}</Text>
-            <Text style={[styles.td, styles.colUnit]}>
-              {formatMoney(line.unit_price, invoice.currency)}
-            </Text>
-            <Text style={[styles.td, styles.colTotal]}>
-              {formatMoney(line.subtotal, invoice.currency)}
-            </Text>
-          </View>
-        ))}
-
-        {invoice.seasonSummary ? (
-          <Text style={[styles.td, { marginTop: 6, color: "#6B7280" }]}>
-            Includes {invoice.seasonSummary}.
-          </Text>
-        ) : null}
-
-        <View style={styles.totalsBlock}>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Subtotal</Text>
-            <Text style={styles.totalsValue}>
-              {formatMoney(invoice.subtotal, invoice.currency)}
-            </Text>
-          </View>
-          {invoice.discountAmount && invoice.discountAmount > 0 ? (
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>
-                {invoice.discountLabel
-                  ? `Discount (${invoice.discountLabel})`
-                  : "Discount"}
-              </Text>
-              <Text style={styles.totalsValue}>
-                −{formatMoney(invoice.discountAmount, invoice.currency)}
-              </Text>
-            </View>
-          ) : null}
-          {invoice.vatAmount > 0 ? (
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>VAT</Text>
-              <Text style={styles.totalsValue}>
-                {formatMoney(invoice.vatAmount, invoice.currency)}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Total due</Text>
-            <Text style={styles.grandTotalValue}>
-              {formatMoney(invoice.totalAmount, invoice.currency)}
-            </Text>
-          </View>
-        </View>
-
-        {invoice.host.banking ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Payment details</Text>
-            <Text style={styles.notesBody}>
-              Bank: {invoice.host.banking.bankName}
-            </Text>
-            {invoice.host.banking.accountHolder ? (
-              <Text style={styles.notesBody}>
-                Account name: {invoice.host.banking.accountHolder}
-              </Text>
-            ) : null}
-            <Text style={styles.notesBody}>
-              Account no: {invoice.host.banking.accountNumber}
-            </Text>
-            {invoice.host.banking.branchCode ? (
-              <Text style={styles.notesBody}>
-                Branch: {invoice.host.banking.branchCode}
-              </Text>
-            ) : null}
-            {invoice.host.banking.swiftCode ? (
-              <Text style={styles.notesBody}>
-                SWIFT: {invoice.host.banking.swiftCode}
-              </Text>
-            ) : null}
-            <Text
-              style={[styles.notesBody, { marginTop: 4, color: "#4A7C6A" }]}
-            >
-              Ref #: {invoice.invoiceNumber}
-            </Text>
-          </View>
-        ) : null}
-
-        {invoice.notes ? (
-          <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Notes</Text>
-            <Text style={styles.notesBody}>{invoice.notes}</Text>
-          </View>
-        ) : null}
-
-        <Text style={styles.footer}>
-          Generated by {invoice.brandName} · Reference {invoice.invoiceNumber}
-        </Text>
-      </Page>
-    </Document>
+          : null
+      }
+      notes={notes}
+      thanks={
+        invoice.thanks ?? {
+          title: "Thank you for booking direct.",
+          subtitle: invoice.host.email
+            ? `Questions about this ${kind.toLowerCase()}? Contact ${invoice.host.email}.`
+            : undefined,
+        }
+      }
+      stamp={isPaid ? "Paid" : null}
+      runningFooter={{
+        left: `${issuer.name} · ${kind} ${invoice.invoiceNumber}`,
+        right: `Issued via ${invoice.brandName} · wielo.co.za`,
+      }}
+    />
   );
 }

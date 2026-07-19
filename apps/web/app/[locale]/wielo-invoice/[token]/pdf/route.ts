@@ -44,6 +44,8 @@ export async function GET(
   // Wielo's bank details always print on the invoice PDF; the payment reference
   // is always the invoice number (rendered by the PDF banking block).
   const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
+  const brandName = await getBrandName();
+  const isPaid = invoice.status === "paid";
 
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,
@@ -73,8 +75,26 @@ export async function GET(
     vatAmount: Number(invoice.vat_amount ?? 0),
     totalAmount: Number(invoice.total_amount),
     currency: invoice.currency,
+    notes: [
+      {
+        title: "Notes",
+        body: isPaid
+          ? `This is your ${brandName} subscription invoice, settled in full. Your plan renews automatically and is charged to the payment method on file. Zero commission on every booking you take — always.`
+          : `This is your ${brandName} subscription invoice. Your plan renews automatically each cycle and is charged to the payment method on file. Zero commission on every booking you take — always.`,
+      },
+      {
+        title: "Terms & Conditions",
+        body: "Subscriptions are billed in advance each cycle. Cancel anytime before the renewal date. No per-booking fees, ever.",
+      },
+    ],
+    thanks: {
+      title: `Thank you for choosing ${brandName}.`,
+      subtitle: snap.email
+        ? `Questions about this invoice? Contact ${snap.email}.`
+        : "Keep this invoice for your records.",
+    },
     logoUrl: null,
-    brandName: await getBrandName(),
+    brandName,
   });
 
   return new NextResponse(new Uint8Array(buffer), {
