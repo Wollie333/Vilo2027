@@ -14,6 +14,10 @@ type Option = {
   name: string;
   unitPrice: number;
   description: string | null;
+  /** What the guest is actually billed for this stay (guests × nights). */
+  effectiveTotal: number;
+  /** Basis note when the total differs from the unit price, e.g. "per person / night". */
+  basis: string | null;
 };
 
 export function AddExtraCard({
@@ -75,8 +79,15 @@ export function AddExtraCard({
                 </div>
               ) : null}
             </div>
-            <span className="num text-[13px] font-semibold text-brand-ink">
-              {formatMoney(o.unitPrice, currency)}
+            <span className="shrink-0 text-right">
+              <span className="num block text-[13px] font-semibold text-brand-ink">
+                {formatMoney(o.effectiveTotal, currency)}
+              </span>
+              {o.basis ? (
+                <span className="block text-[11px] text-brand-mute">
+                  {formatMoney(o.unitPrice, currency)} {o.basis}
+                </span>
+              ) : null}
             </span>
             <button
               type="button"

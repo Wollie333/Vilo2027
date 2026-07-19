@@ -30,6 +30,16 @@
   catalog server-side — client price never trusted**). Each bumps `total_amount`+`vat_amount`
   (VAT `grossUpVat` at the booking's frozen `vat_rate`) and mints a separate `kind='addon'`
   invoice (`lib/payments/invoicing.ts` `createAddonInvoice`).
+  - 🔧 **FIXED (live-test pass 2026-07-19):** the guest post-booking path used to bill
+    `unit_price × quantity` and ignored the add-on's `pricing_model` — so a
+    `per_guest_per_night` extra (e.g. Brekfast R300) was charged as R300 instead of
+    R300 × guests × nights, **undercharging the host**. It now applies
+    `computeAddonSubtotal(model, unit, qty, guests)` (per-night models carry the
+    night count in `qty` via `defaultAddonQuantity`) — the SAME helper the quote-time
+    + specials paths use. The guest "Add an extra" card (`AddExtraCard`) now shows the
+    **effective total** for the stay + a `R300 per person / night` basis note, so the
+    displayed price matches what's billed. Host free-form path is unchanged (host sets
+    the price directly, by design). Proven on BK-0076: guest-added Brekfast → R1 800.
 
 ## Double-charge guard — CONFIRMED HOLDING
 `ensure_booking_invoice` sets the booking-invoice total = `total_amount − Σ(non-voided

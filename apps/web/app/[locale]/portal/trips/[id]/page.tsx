@@ -52,6 +52,14 @@ import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import {
+  computeAddonSubtotal,
+  defaultAddonQuantity,
+  isPerNightModel,
+  PRICING_LABEL,
+  type PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
+
 import { AddExtraCard } from "./AddExtraCard";
 import { CancelTripButton } from "./CancelTripButton";
 import { RequestRefundButton } from "./RequestRefundButton";
@@ -516,23 +524,30 @@ export default async function PortalTripDetailPage({
     .eq("booking_id", booking.id)
     .order("sort_order");
 
-  let addExtraOptions: {
+  type AddExtraOption = {
     id: string;
     name: string;
     unitPrice: number;
     description: string | null;
-  }[] = [];
+    /** What the guest will actually be billed for THIS stay (guests × nights). */
+    effectiveTotal: number;
+    /** Basis note, e.g. "per person / night" — null for flat per-stay extras. */
+    basis: string | null;
+  };
+  let addExtraOptions: AddExtraOption[] = [];
   if (listing?.id) {
     const admin = createAdminClient();
+    const optNights = Math.max(1, booking.nights ?? 1);
+    const optGuests = Math.max(1, booking.guests_count ?? 1);
     const { data: linkRows } = await admin
       .from("property_addons")
       .select(
-        "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active )",
+        "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active, pricing_model, min_quantity )",
       )
       .eq("property_id", listing.id)
       .is("room_id", null);
     addExtraOptions = (linkRows ?? [])
-      .map((r) => {
+      .map((r): AddExtraOption | null => {
         const a = one(
           r.addon as
             | {
@@ -541,6 +556,8 @@ export default async function PortalTripDetailPage({
                 unit_price: number;
                 description: string | null;
                 is_active: boolean;
+                pricing_model: PricingModel;
+                min_quantity: number | null;
               }
             | {
                 id: string;
@@ -548,29 +565,35 @@ export default async function PortalTripDetailPage({
                 unit_price: number;
                 description: string | null;
                 is_active: boolean;
+                pricing_model: PricingModel;
+                min_quantity: number | null;
               }[],
         );
         if (!a || !a.is_active) return null;
+        const unitPrice =
+          r.unit_price_override != null
+            ? Number(r.unit_price_override)
+            : Number(a.unit_price);
+        const model = a.pricing_model;
+        const minQ = a.min_quantity ?? 1;
+        // Mirror addGuestBookingAddonAction so the shown price is what's billed.
+        const qty = isPerNightModel(model)
+          ? defaultAddonQuantity(model, minQ, optNights)
+          : Math.max(minQ, 1);
+        const effectiveTotal =
+          Math.round(
+            computeAddonSubtotal(model, unitPrice, qty, optGuests) * 100,
+          ) / 100;
         return {
           id: a.id,
           name: a.name,
-          unitPrice:
-            r.unit_price_override != null
-              ? Number(r.unit_price_override)
-              : Number(a.unit_price),
+          unitPrice,
           description: a.description ?? null,
+          effectiveTotal,
+          basis: effectiveTotal !== unitPrice ? PRICING_LABEL[model] : null,
         };
       })
-      .filter(
-        (
-          o,
-        ): o is {
-          id: string;
-          name: string;
-          unitPrice: number;
-          description: string | null;
-        } => Boolean(o),
-      );
+      .filter((o): o is AddExtraOption => Boolean(o));
   }
 
   const addons = (bookingAddons ?? []) as Array<{

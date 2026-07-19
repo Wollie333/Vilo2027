@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  computeAddonSubtotal,
+  defaultAddonQuantity,
+  isPerNightModel,
+  type PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
 import { grossUpVat } from "@/lib/finance/vat";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
+import { nightsBetween } from "@/lib/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -34,7 +41,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, host_id, property_id, guest_id, status, total_amount, vat_amount, vat_rate",
+      "id, host_id, property_id, guest_id, status, total_amount, vat_amount, vat_rate, guests_count, check_in, check_out",
     )
     .eq("id", input.bookingId)
     .maybeSingle();
@@ -49,7 +56,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: addon } = await admin
     .from("addons")
     .select(
-      "id, name, unit_price, host_id, is_active, min_quantity, max_quantity",
+      "id, name, unit_price, host_id, is_active, min_quantity, max_quantity, pricing_model",
     )
     .eq("id", input.addonId)
     .eq("host_id", booking.host_id)
@@ -74,13 +81,25 @@ export async function addGuestBookingAddonAction(input: {
     link.unit_price_override != null
       ? Number(link.unit_price_override)
       : Number(addon.unit_price);
+  const model = addon.pricing_model as PricingModel;
   const minQ = addon.min_quantity ?? 1;
   const maxQ = addon.max_quantity ?? 99;
-  const qty = Math.min(
-    maxQ,
-    Math.max(minQ, Math.round(Number(input.quantity) || 1)),
+  const nights = Math.max(
+    1,
+    nightsBetween(booking.check_in, booking.check_out),
   );
-  const subtotal = Math.round(unitPrice * qty * 100) / 100;
+  const guests = Math.max(1, Number(booking.guests_count) || 1);
+  // Per-night models carry the night count in `quantity` (the guest UI can't
+  // pick nights post-booking, so bill the whole stay); other models honour the
+  // requested quantity within the host's min/max. Then apply the SAME pricing
+  // model everywhere else uses (guests / couples scaling) — the catalogue price
+  // and model are authoritative; the client-sent quantity is never trusted for
+  // per-night extras. Keeps parity with the quote-time + specials pricing paths.
+  const qty = isPerNightModel(model)
+    ? defaultAddonQuantity(model, minQ, nights)
+    : Math.min(maxQ, Math.max(minQ, Math.round(Number(input.quantity) || 1)));
+  const subtotal =
+    Math.round(computeAddonSubtotal(model, unitPrice, qty, guests) * 100) / 100;
 
   const { data: existing } = await admin
     .from("booking_addons")
