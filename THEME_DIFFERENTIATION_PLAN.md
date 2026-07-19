@@ -117,6 +117,26 @@ Do these as separate sessions/commits; verify each live on mana before moving on
 > RoomDetail), and (b) the **Marmalade + Sabela** bespoke components (so those two get
 > motion too — vars already staged). Optionally wire per-theme `[data-parallax]` where
 > a hero calls for it. Then Phase B + C below.
+>
+> ⚠️ **GOTCHA for Marmalade (and any theme with a resting transform):** the base
+> reveal rule sets `transform: var(--reveal-from)` while hidden and `transform: none`
+> on `.in`. Marmalade cards have a DESIGNED resting tilt/rotate (postcard look) set
+> via `transform` in `marmalade*.css` — putting `[data-reveal]` directly on a tilted
+> card would (i) override its tilt while hidden and (ii) flatten it to `none` once
+> revealed, killing the design. So for Marmalade, either put `[data-reveal]` on
+> NON-transformed wrappers (section headers, the grid/section container, the untilted
+> inner) OR change that theme's reveal to animate `opacity` only (drop the transform
+> from `--reveal-from`, e.g. `--reveal-from: none` and lean on opacity + the existing
+> tilt). Check each bespoke component's CSS for an existing `transform` before adding
+> `[data-reveal]` to an element. (Sabela's cards are mostly untransformed — lower risk,
+> but verify the same way.)
+>
+> Also note: the shared safety timer force-reveals ALL remaining `[data-reveal]` at
+> 2.3 s (matches the reference `royal.js`), so on a long page below-fold content
+> reveals at 2.3 s even if unscrolled — the scroll-reveal effect mainly plays for
+> above-fold + whatever you reach within 2.3 s. Fine + robust for now; if a longer
+> scroll-reveal window is wanted later, lengthen the timer or make the safety a
+> repeated rect-check instead of a one-shot force-all-visible.
 
 ### PHASE A — a per-theme MOTION system (highest value, do first)
 Give every theme its own small, tasteful animation set so each FEELS alive + distinct,
