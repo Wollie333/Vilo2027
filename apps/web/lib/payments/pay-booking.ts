@@ -23,7 +23,7 @@ import {
   recomputeBookingPaymentState,
   sumCompletedPaid,
 } from "@/lib/payments/ledger";
-import { postGuestSystemCard } from "@/lib/messaging/system-card";
+import { postPaymentConfirmedCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -514,41 +514,4 @@ export async function capturePayPalOrderForBooking(opts: {
   }
 
   return true;
-}
-
-/**
- * Post a one-time "Payment received — booking confirmed" system card into the
- * guest's conversation thread (resolved via the shared postGuestSystemCard /
- * resolveGuestConversation helper). The converted ThreadQuoteCard already
- * exposes "View booking" (→ trip page + receipt), so this card is the explicit
- * payment confirmation that nudges both parties. Best-effort: a thread-post
- * failure must never roll back a captured payment.
- */
-async function postPaymentConfirmedCard(
-  admin: ReturnType<typeof createAdminClient>,
-  bookingId: string,
-): Promise<void> {
-  const { data: b } = await admin
-    .from("bookings")
-    .select(
-      "id, reference, host_id, guest_id, property_id, quote_id, listing:properties ( name )",
-    )
-    .eq("id", bookingId)
-    .maybeSingle();
-  if (!b) return;
-
-  const listingName =
-    (
-      (Array.isArray(b.listing) ? b.listing[0] : b.listing) as {
-        name: string;
-      } | null
-    )?.name ?? "your stay";
-
-  await postGuestSystemCard(admin, b, {
-    systemEvent: "payment_received",
-    body: `✅ Payment received — your booking ${b.reference} at ${listingName} is confirmed. Open your booking above to view your trip details and invoice.`,
-    // Guest just paid (they know); the host should see the unread nudge.
-    readByHost: false,
-    readByGuest: true,
-  });
 }

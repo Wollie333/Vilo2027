@@ -5,6 +5,7 @@ import { notifyAdmins } from "@/lib/admin/notify";
 import { mintPartyGuestIdentities } from "@/lib/bookings/mintPartyGuestIdentities";
 import { notifyGuestEftInstructions } from "@/lib/bookings/notifyGuestEftInstructions";
 import { notifyHostNewBooking } from "@/lib/bookings/notifyHostNewBooking";
+import { postPaymentPendingCard } from "@/lib/messaging/system-card";
 import {
   startBookingPayment,
   type PayableBooking,
@@ -281,6 +282,12 @@ export async function persistBookingAndPay(
   // booking reference) so they can pay even after leaving the success page. The
   // helper no-ops for card bookings (status stays 'pending', not 'pending_eft').
   await notifyGuestEftInstructions(admin, booking.id);
+
+  // 8a. Drop the "reserved — complete your EFT" pending card into the guest's
+  // thread, so an EFT booking has an in-thread card from the start (parity with
+  // the card/PayPal path, whose confirmed card lands in-thread). Self-gates to
+  // pending_eft, so it no-ops for card/PayPal. Best-effort.
+  await postPaymentPendingCard(admin, booking.id);
 
   // 9. Mint a Wielo guest account for every party guest on the booking
   // (BUSINESS_PRINCIPLES #1 rule 1 names this entry point). Uniform across every

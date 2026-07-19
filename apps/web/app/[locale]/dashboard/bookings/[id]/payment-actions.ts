@@ -8,6 +8,7 @@ import { grossUpVat } from "@/lib/finance/vat";
 import { round2 } from "@/lib/format";
 import { assertFullHost as requireHost } from "@/lib/host/current";
 import { gkeyFor } from "@/lib/guests/gkey";
+import { postPaymentConfirmedCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
 import {
@@ -63,6 +64,11 @@ async function confirmBookingIfPending(
       confirmed_at: now,
     })
     .eq("id", booking.id);
+  // Drop the rich "payment received — confirmed" card into the guest's thread.
+  // This is the host-side settle path (EFT / manual / applied credit); the
+  // self-serve card/PayPal path posts the same card from pay-booking. Guards on
+  // the pending→confirmed transition above, so it posts exactly once. Best-effort.
+  await postPaymentConfirmedCard(admin, booking.id);
   if (booking.guest_id) {
     await dispatchEvent({
       kind: "booking_confirmed_guest",
