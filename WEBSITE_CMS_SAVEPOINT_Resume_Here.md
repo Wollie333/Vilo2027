@@ -82,6 +82,17 @@ booking / contact-quote / custom — already modelled by the goal templates.)
 
 ---
 
+## 📐 CARD CONVENTION (founder, 2026-07-19 — applies to EVERY theme)
+
+Room cards + special/offer cards clamp their **description to 2 lines** so cards stay uniform and
+tidy (long host copy must never make one card tower over its neighbours). Larger alternating-row /
+split feature layouts (not compact cards) clamp to **3**. CSS: `display:-webkit-box;
+-webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden` (or Tailwind
+`line-clamp-2`). Already applied to OceansView + Marmalade + the generic sections; **build every new
+bespoke card this way.** Also in `DESIGN_SYSTEM.md` Hard rules.
+
+---
+
 ## 🧭 THEME → PRESET MAPPING (dispatch keys)
 
 | Design (docs/themes) | `theme.preset` | skin class | chrome scope | page scope convention |

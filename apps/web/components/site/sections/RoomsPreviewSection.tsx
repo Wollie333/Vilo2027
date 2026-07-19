@@ -120,7 +120,7 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
               lineHeight: "var(--el-desc-lh, 1.625)",
               letterSpacing: "var(--el-desc-ls, normal)",
             }}
-            className="mt-2 line-clamp-3 text-sm leading-relaxed"
+            className="mt-2 line-clamp-2 text-sm leading-relaxed"
           >
             {room.description}
           </p>

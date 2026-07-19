@@ -103,7 +103,7 @@ function SpecialCardView({
               color: "var(--el-desc-fg, var(--site-mute))",
               fontSize: "var(--el-desc-size, 0.875rem)",
             }}
-            className="mt-1.5 line-clamp-3 leading-relaxed"
+            className="mt-1.5 line-clamp-2 leading-relaxed"
           >
             {s.description}
           </p>

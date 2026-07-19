@@ -101,6 +101,11 @@ These are enforced by code review — the HTML has the full "Do & Don't" section
 - ✅ Booking references formatted `VILO-YYYY-XXNNNN` in `font-mono`.
 - ✅ All forms use React Hook Form + Zod.
 - ✅ Icons: `lucide-react` only, 1.5px stroke.
+- ✅ **Public-site theme cards** (room cards & special/offer cards, every theme + the generic
+  sections): clamp the description to **2 lines** so cards stay uniform regardless of how long the
+  host's copy runs. Larger alternating-row / split feature layouts (not compact cards) clamp to **3**.
+  CSS: `display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden` (or the `line-clamp-2` Tailwind utility). Applies to any new bespoke theme page.
 
 ---
 

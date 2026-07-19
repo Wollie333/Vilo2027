@@ -91,10 +91,12 @@
   line-height: 1.55;
 }
 /* Keep long host descriptions from unbalancing the alternating rows — clamp the
-   room blurb to four lines so every room block reads at a uniform height. */
+   room blurb to three lines so every room block reads at a uniform height.
+   (Compact CARDS clamp to 2; larger alternating-row/split layouts clamp to 3.) */
 .ovrooms .room-blurb {
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -554,11 +554,11 @@
   line-height: 1.55;
   margin-top: 14px;
   flex: 1;
-  /* Keep the cards uniform: clamp the blurb to three lines regardless of how
-     long the host's room description runs. */
+  /* Convention: clamp card descriptions to 2 lines so cards stay uniform and
+     tidy regardless of how long the host's room description runs. */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
