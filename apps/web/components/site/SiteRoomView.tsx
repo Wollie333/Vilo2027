@@ -17,6 +17,7 @@ import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { OceansViewRoomDetail } from "./oceansview/OceansViewRoomDetail";
 import { MarmaladeRoomDetail } from "./marmalade/MarmaladeRoomDetail";
+import { SabelaSuiteDetail } from "./sabela/SabelaSuiteDetail";
 import { RoomBookingDock } from "./RoomBookingDock";
 import { RoomDockLayout } from "./RoomDockLayout";
 import { SectionRenderer } from "./SectionRenderer";
@@ -218,6 +219,55 @@ export async function SiteRoomView({
             pageHasHero={false}
           >
             <MarmaladeRoomDetail
+              room={room}
+              reviews={extras.reviews}
+              seasonal={extras.seasonal_pricing}
+              otherRooms={extras.rooms_preview?.rooms}
+              roomsHref={roomsHref}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Sabela — bespoke suite detail (dark editorial), same live data as OceansView.
+  if (ctx.theme.preset === "hotel") {
+    const sbx = createAdminClient();
+    const extras = await assembleSiteDataByType(
+      sbx,
+      ctx,
+      new Set(["reviews", "seasonal_pricing", "rooms_preview"] as const),
+    );
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {viewContent}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={
+              ctx.preview
+                ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+                : undefined
+            }
+            previewPages={previewPages}
+            pageHasHero={false}
+          >
+            <SabelaSuiteDetail
               room={room}
               reviews={extras.reviews}
               seasonal={extras.seasonal_pricing}

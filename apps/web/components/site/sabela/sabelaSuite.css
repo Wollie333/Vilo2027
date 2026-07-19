@@ -1,0 +1,879 @@
+/*
+ * Sabela Lodge — bespoke SUITE-DETAIL page, ported faithfully from the founder's
+ * reference (docs/themes/sabela/pages/Suite.html body + theme.source.css). Every
+ * selector is scoped to `.sbsuite` so the ported base classes never collide with
+ * the app or the `.sbchrome` header/footer; all colour / type / shape comes from
+ * the theme's `--site-*` tokens with the reference's own hard fallbacks. The
+ * shared interactive gallery (`.rgal`/`.g`/`.gcount` + `.ovroom-lightbox`) and
+ * booking card (`.bkcard`/`.field`/…) are reused from oceansview but RE-SKINNED
+ * HERE, scoped under `.sbsuite`, so oceansRoom.css is never imported. Sabela is
+ * DARK-first: warm-bone ink (#F1EADB) on deep ebony (#14120D), gold (#C9A24A).
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbsuite {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbsuite * {
+  box-sizing: border-box;
+}
+.sbsuite img {
+  display: block;
+  max-width: 100%;
+}
+.sbsuite p {
+  margin: 0;
+}
+.sbsuite a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbsuite h1,
+.sbsuite h2,
+.sbsuite h3,
+.sbsuite h4 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbsuite .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbsuite .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbsuite .soft-bg {
+  background: var(--site-soft, #1a1710);
+}
+.sbsuite .muted {
+  color: var(--site-mute, #a99b7f);
+}
+.sbsuite .center {
+  text-align: center;
+}
+.sbsuite .stars {
+  color: #f5a623;
+  letter-spacing: 1px;
+}
+
+/* striped placeholder so a slow/blocked photo never reads as blank */
+.sbsuite .rgal .g,
+.sbsuite .room-card .rc-img {
+  background-color: var(--site-soft-2, #221e15);
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbsuite .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbsuite .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+
+/* -- buttons (also drives the reused book card) -------------------------- */
+.sbsuite .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbsuite .btn:hover {
+  transform: translateY(-2px);
+}
+/* the reserve CTA in the reused OceansBookCard is `.btn-coral` — re-skin to the
+   Sabela gold accent so it reads as the house's primary action */
+.sbsuite .btn-coral,
+.sbsuite .btn-primary {
+  background: var(--site-btn-primary-bg, var(--site-accent, #c9a24a));
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  border-color: var(--site-btn-primary-border, transparent);
+  border-radius: var(--site-btn-primary-radius, 9999px);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 75%, transparent);
+}
+.sbsuite .btn-coral:hover,
+.sbsuite .btn-primary:hover {
+  box-shadow: 0 20px 38px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 80%, transparent);
+}
+.sbsuite .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+.sbsuite .btn-block {
+  display: flex;
+  width: 100%;
+}
+.sbsuite .link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--site-accent, #c9a24a);
+  font-size: 15px;
+  white-space: nowrap;
+}
+.sbsuite .link-arrow i {
+  display: inline-flex;
+  transition: transform 0.2s;
+}
+.sbsuite .link-arrow:hover i {
+  transform: translateX(4px);
+}
+
+/* -- breadcrumb + title -------------------------------------------------- */
+.sbsuite .gallery-sec {
+  padding-top: clamp(28px, 4vw, 40px);
+}
+.sbsuite .crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  flex-wrap: wrap;
+}
+.sbsuite .crumb a:hover {
+  color: var(--site-accent, #c9a24a);
+}
+.sbsuite .crumb .cur {
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .rd-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.sbsuite .rd-title h1 {
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+}
+.sbsuite .rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* -- gallery mosaic (reused OceansRoomGallery markup) -------------------- */
+.sbsuite .rgal {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  height: clamp(340px, 46vw, 540px);
+  margin-top: 18px;
+}
+.sbsuite .rgal .g {
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius, 4px));
+  position: relative;
+}
+.sbsuite .rgal .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: zoom-in;
+  transition: transform 0.6s;
+}
+.sbsuite .rgal .g:hover img {
+  transform: scale(1.05);
+}
+.sbsuite .rgal .g.main {
+  grid-row: span 2;
+}
+.sbsuite .gcount {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--site-bg, #14120d) 82%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--site-ink, #f1eadb);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: 9999px;
+  padding: 9px 15px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: zoom-in;
+  transition: transform 0.25s;
+}
+.sbsuite .gcount:hover {
+  transform: translateY(-2px);
+}
+
+/* -- overview grid ------------------------------------------------------- */
+.sbsuite .rd-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: clamp(32px, 4vw, 64px);
+  align-items: start;
+}
+.sbsuite .chips-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.sbsuite .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--site-ink, #f1eadb);
+  background: var(--site-soft, #1a1710);
+  border: 1px solid var(--site-line, #2b2618);
+  padding: 8px 14px;
+  border-radius: 9999px;
+}
+.sbsuite .rd-sec {
+  padding: clamp(28px, 3vw, 40px) 0;
+  border-top: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .rd-sec.first {
+  border-top: 0;
+  padding-top: 24px;
+}
+.sbsuite .rd-sec h2 {
+  font-size: 1.7rem;
+  margin-bottom: 14px;
+}
+.sbsuite .rd-sec p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.08rem;
+  line-height: 1.75;
+  max-width: 60ch;
+}
+
+/* -- specs --------------------------------------------------------------- */
+.sbsuite .specs {
+  display: flex;
+  gap: 34px;
+  flex-wrap: wrap;
+  padding: 24px 0;
+  border-top: 1px solid var(--site-line, #2b2618);
+  border-bottom: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .specs b {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.6rem;
+  display: block;
+  line-height: 1;
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .specs span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 6px;
+  display: block;
+}
+
+/* -- amenities ----------------------------------------------------------- */
+.sbsuite .amenities {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin-top: 24px;
+}
+.sbsuite .amenity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 15.5px;
+}
+.sbsuite .amenity i {
+  color: var(--site-accent, #c9a24a);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+/* -- seasonal rate cards ------------------------------------------------- */
+.sbsuite .seas {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+.sbsuite .scard {
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius, 4px);
+  padding: 22px;
+  background: var(--site-surface, #1c1913);
+  position: relative;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbsuite .scard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.5);
+}
+.sbsuite .scard.best {
+  border-color: var(--site-accent, #c9a24a);
+  box-shadow: 0 0 0 1px var(--site-accent, #c9a24a);
+}
+.sbsuite .scard .sh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+.sbsuite .scard .sn {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.15rem;
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .scard .sbadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--site-accent-ink, #15120b);
+  background: var(--site-accent, #c9a24a);
+  padding: 4px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.sbsuite .scard .sbadge.peak {
+  color: #fff;
+  background: var(--site-secondary, #e7dcc4);
+}
+.sbsuite .scard .smo {
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 4px;
+  font-weight: 600;
+}
+.sbsuite .scard .sp {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 1.85rem;
+  color: var(--site-ink, #f1eadb);
+  margin-top: 16px;
+  line-height: 1;
+}
+.sbsuite .scard .sp small {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- good to know -------------------------------------------------------- */
+.sbsuite .gtk {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+.sbsuite .gtk .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .gtk .row .k {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.15rem;
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .gtk .row .v {
+  font-size: 14.5px;
+  color: var(--site-mute, #a99b7f);
+  text-align: right;
+  max-width: 34ch;
+}
+
+/* -- sticky booking card (reused OceansBookCard markup) ------------------ */
+.sbsuite .rd-grid > aside {
+  position: sticky;
+  top: calc(var(--wielo-sticky-top, 104px) + 16px);
+  align-self: start;
+}
+.sbsuite .bkcard {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: 26px;
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.55);
+}
+.sbsuite .bktrust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-ink, #f1eadb);
+  margin-bottom: 16px;
+}
+.sbsuite .bkrate {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--site-line, #2b2618);
+  margin-bottom: 18px;
+}
+.sbsuite .bkrate .amt {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--site-ink, #f1eadb);
+}
+
+/* form fields (book card) */
+.sbsuite .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.sbsuite .field label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
+}
+.sbsuite .field input,
+.sbsuite .field select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  color: var(--site-ink, #f1eadb);
+  background: var(--site-soft, #1a1710);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-sm, 3px);
+  padding: 13px 15px;
+  width: 100%;
+  min-height: 52px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.sbsuite .field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A99B7F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+.sbsuite .field input:focus,
+.sbsuite .field select:focus {
+  outline: none;
+  border-color: var(--site-accent, #c9a24a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 20%, transparent);
+}
+
+/* booking summary lines */
+.sbsuite .sline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  font-size: 14.5px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbsuite .sline b {
+  font-weight: 700;
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .stotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .stotal .l {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
+}
+.sbsuite .stotal .amt {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 2rem;
+  color: var(--site-ink, #f1eadb);
+  line-height: 1;
+}
+.sbsuite .nofee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-mute, #a99b7f);
+}
+.sbsuite .nofee svg {
+  flex-shrink: 0;
+  color: var(--site-accent, #c9a24a);
+}
+
+/* -- section head -------------------------------------------------------- */
+.sbsuite .sec-head {
+  max-width: 640px;
+  margin-bottom: clamp(32px, 4vw, 52px);
+}
+.sbsuite .sec-head.between {
+  max-width: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.sbsuite .sec-head h2 {
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  margin-top: 16px;
+}
+
+/* -- reviews ------------------------------------------------------------- */
+.sbsuite .reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.sbsuite .review {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: 30px;
+}
+.sbsuite .review .stars {
+  letter-spacing: 2px;
+  font-size: 15px;
+}
+.sbsuite .review p {
+  font-size: 1.075rem;
+  line-height: 1.66;
+  margin: 16px 0 22px;
+  color: var(--site-ink, #f1eadb);
+}
+.sbsuite .review .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sbsuite .review .avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-secondary, #e7dcc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.sbsuite .review .who .nm {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.sbsuite .review .who .dt {
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- other suites (cross-sell cards) ------------------------------------- */
+.sbsuite .rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.sbsuite .room-card {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbsuite .room-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--site-card-shadow, 0 30px 60px -34px rgba(0, 0, 0, 0.5));
+}
+.sbsuite .room-card .rc-img {
+  position: relative;
+  aspect-ratio: var(--site-card-ratio, 4/3);
+  overflow: hidden;
+}
+.sbsuite .room-card .rc-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.sbsuite .room-card:hover .rc-img img {
+  transform: scale(1.05);
+}
+.sbsuite .rc-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: color-mix(in srgb, var(--site-bg, #14120d) 88%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--site-ink, #f1eadb);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: 9999px;
+}
+.sbsuite .room-card .rc-body {
+  padding: 24px 24px 26px;
+}
+.sbsuite .room-card .rc-body h3 {
+  font-size: 1.4rem;
+  margin-bottom: 7px;
+}
+.sbsuite .room-card .rc-meta {
+  font-size: 13.5px;
+  color: var(--site-mute, #a99b7f);
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.sbsuite .room-card .rc-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sbsuite .room-card .rc-desc {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.sbsuite .rc-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--site-line, #2b2618);
+  padding-top: 18px;
+}
+.sbsuite .price {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 1.55rem;
+  color: var(--site-ink, #f1eadb);
+  line-height: 1;
+}
+.sbsuite .price small {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  letter-spacing: 0;
+}
+
+/* -- lightbox (reused OceansRoomGallery markup, scoped here) -------------- */
+.sbsuite .ovroom-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(7, 6, 4, 0.94);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 38px;
+  cursor: zoom-out;
+}
+.sbsuite .ovroom-lightbox.open {
+  display: flex;
+}
+.sbsuite .ovroom-lightbox img {
+  max-width: min(92vw, 1400px);
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: var(--site-radius, 4px);
+  cursor: default;
+}
+.sbsuite .ovroom-lightbox .ovlb-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.sbsuite .ovroom-lightbox .ovlb-arrow:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.sbsuite .ovroom-lightbox .ovlb-prev {
+  left: clamp(12px, 3vw, 40px);
+}
+.sbsuite .ovroom-lightbox .ovlb-next {
+  right: clamp(12px, 3vw, 40px);
+}
+.sbsuite .ovroom-lightbox .ovlb-close {
+  position: absolute;
+  top: clamp(14px, 3vw, 30px);
+  right: clamp(14px, 3vw, 30px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s;
+}
+.sbsuite .ovroom-lightbox .ovlb-close:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.sbsuite .ovroom-lightbox .ovlb-count {
+  position: absolute;
+  bottom: clamp(16px, 3vw, 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 15px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  cursor: default;
+}
+
+/* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbsuite .rd-grid {
+    grid-template-columns: 1fr;
+  }
+  .sbsuite .rd-grid > aside {
+    position: static;
+  }
+  .sbsuite .rgal {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+  .sbsuite .rgal .g.main {
+    grid-column: span 2;
+    grid-row: span 1;
+    aspect-ratio: 16/10;
+  }
+  .sbsuite .rgal .g {
+    aspect-ratio: 4/3;
+  }
+  .sbsuite .rooms-grid,
+  .sbsuite .reviews-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sbsuite .seas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .sbsuite .wrap {
+    padding: 0 20px;
+  }
+  .sbsuite .rooms-grid,
+  .sbsuite .reviews-grid,
+  .sbsuite .seas,
+  .sbsuite .amenities {
+    grid-template-columns: 1fr;
+  }
+  .sbsuite .rgal {
+    grid-template-columns: 1fr;
+  }
+  .sbsuite .rgal .g.main {
+    grid-column: span 1;
+  }
+  .sbsuite .gtk .row {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sbsuite .gtk .row .v {
+    text-align: left;
+    max-width: none;
+  }
+  .sbsuite .ovroom-lightbox .ovlb-arrow {
+    width: 44px;
+    height: 44px;
+  }
+}

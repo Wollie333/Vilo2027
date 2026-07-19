@@ -1,0 +1,309 @@
+/*
+ * Sabela Lodge — bespoke GALLERY page, ported faithfully from the founder's
+ * reference (docs/themes/sabela/pages/Gallery.html body + theme.source.css).
+ * Every selector is scoped to `.sbgallery` so the ported base classes
+ * (.wrap/.page-head/.masonry/.cta-band/...) never collide with the app or the
+ * `.sbchrome` header/footer; all colour / type / shape comes from the theme's
+ * `--site-*` tokens with the reference's own hard fallbacks — so it stays
+ * on-brand (Ebony dark + gold) AND host-editable. Sabela is DARK-first:
+ * warm-bone ink (#F1EADB) on deep ebony (#14120D), brand gold (#C9A24A) accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbgallery {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbgallery * {
+  box-sizing: border-box;
+}
+.sbgallery img {
+  display: block;
+  max-width: 100%;
+}
+.sbgallery p {
+  margin: 0;
+}
+.sbgallery a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbgallery h1,
+.sbgallery h2 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbgallery .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbgallery .wrap-narrow {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbgallery .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbgallery .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbgallery .center {
+  text-align: center;
+}
+.sbgallery .muted {
+  color: var(--site-mute, #a99b7f);
+}
+.sbgallery .lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--site-mute, #a99b7f);
+  max-width: 60ch;
+}
+.sbgallery .mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbgallery .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbgallery .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbgallery .eyebrow.center {
+  justify-content: center;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbgallery .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbgallery .btn:hover {
+  transform: translateY(-2px);
+}
+.sbgallery .btn:active {
+  transform: translateY(0);
+}
+.sbgallery .btn-primary {
+  background: var(--site-btn-primary-bg, var(--site-accent, #c9a24a));
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  border-color: var(--site-btn-primary-border, transparent);
+  border-radius: var(--site-btn-primary-radius, 9999px);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 75%, transparent);
+}
+.sbgallery .btn-primary:hover {
+  box-shadow: 0 20px 38px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 80%, transparent);
+}
+.sbgallery .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #f1eadb);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #2b2618));
+  border-radius: var(--site-btn-secondary-radius, 9999px);
+}
+.sbgallery .btn-ghost:hover {
+  background: var(--site-soft, #1a1710);
+  border-color: var(--site-accent, #c9a24a);
+}
+.sbgallery .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbgallery .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbgallery .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbgallery .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+
+/* -- PAGE HEAD (clears the floating nav) --------------------------------- */
+.sbgallery .page-head {
+  padding: calc(78px + clamp(48px, 7vw, 90px)) 0 clamp(8px, 2vw, 20px);
+  text-align: center;
+}
+.sbgallery .page-head h1 {
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  margin-top: 18px;
+}
+.sbgallery .page-head p {
+  margin: 22px auto 0;
+  max-width: 54ch;
+}
+
+/* -- MASONRY GALLERY ----------------------------------------------------- */
+.sbgallery .masonry {
+  columns: 3 280px;
+  column-gap: 14px;
+}
+.sbgallery .masonry .m {
+  break-inside: avoid;
+  margin: 0 0 14px;
+  border-radius: var(--site-img-radius, var(--site-radius, 4px));
+  overflow: hidden;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+}
+.sbgallery .masonry .m img {
+  width: 100%;
+  display: block;
+  transition: transform 0.6s;
+}
+.sbgallery .masonry .m:hover img {
+  transform: scale(1.04);
+}
+.sbgallery .masonry .m .cap {
+  padding: 12px 16px 14px;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  line-height: 1.5;
+}
+
+/* -- empty state --------------------------------------------------------- */
+.sbgallery .empty {
+  max-width: 620px;
+  margin: 0 auto;
+  text-align: center;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  padding: clamp(44px, 6vw, 72px) clamp(28px, 5vw, 56px);
+}
+.sbgallery .empty .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 66px;
+  height: 66px;
+  border-radius: var(--site-radius-sm, 3px);
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-accent, #c9a24a);
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1;
+  margin-bottom: 24px;
+}
+.sbgallery .empty h2 {
+  font-size: clamp(1.8rem, 3.4vw, 2.4rem);
+}
+.sbgallery .empty .muted {
+  margin-top: 16px;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+.sbgallery .empty .ecta {
+  display: flex;
+  gap: 13px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbgallery .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+.sbgallery .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbgallery .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+}
+.sbgallery .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbgallery .cta-band .hero-cta-row {
+  justify-content: center;
+  margin-top: 34px;
+}
+.sbgallery .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+
+/* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 680px) {
+  .sbgallery .wrap,
+  .sbgallery .wrap-narrow {
+    padding: 0 20px;
+  }
+  .sbgallery .masonry {
+    columns: 2 150px;
+  }
+}

@@ -1,0 +1,541 @@
+/*
+ * Sabela Lodge — bespoke JOURNAL ARTICLE design, ported faithfully from the
+ * founder's reference (docs/themes/sabela/theme.source.css + pages/Journal
+ * Post.html body sections). Every selector is scoped to `.sbarticle` so the
+ * ported base classes (.wrap/.section/.article/.post-card/.cta-band/...) never
+ * collide with the app or the `.sbchrome` header/footer; all colour / type /
+ * shape comes from the theme's `--site-*` tokens with the reference's own hard
+ * fallbacks — so it stays on-brand (Ebony dark + gold) AND host-editable. Sabela
+ * is DARK-first: warm-bone ink (#F1EADB) on deep ebony (#14120D), gold accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbarticle {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbarticle * {
+  box-sizing: border-box;
+}
+.sbarticle img {
+  display: block;
+  max-width: 100%;
+}
+.sbarticle p {
+  margin: 0;
+}
+.sbarticle a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbarticle h1,
+.sbarticle h2,
+.sbarticle h3,
+.sbarticle h4 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbarticle .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbarticle .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbarticle .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbarticle .center {
+  text-align: center;
+}
+.sbarticle .muted {
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbarticle .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbarticle .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbarticle .eyebrow.center {
+  justify-content: center;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbarticle .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbarticle .btn:hover {
+  transform: translateY(-2px);
+}
+.sbarticle .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbarticle .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbarticle .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbarticle .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+
+/* -- section header ------------------------------------------------------ */
+.sbarticle .sec-head {
+  max-width: 640px;
+  margin-bottom: clamp(32px, 4vw, 52px);
+}
+.sbarticle .sec-head.center {
+  margin-inline: auto;
+  text-align: center;
+}
+.sbarticle .sec-head h2 {
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  margin-top: 16px;
+}
+
+/* -- title header (nav-clearing, centred) -------------------------------- */
+.sbarticle .art-head {
+  padding: calc(78px + clamp(32px, 5vw, 64px)) 0 0;
+  text-align: center;
+}
+.sbarticle .crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbarticle .crumb a:hover {
+  color: var(--site-accent, #c9a24a);
+}
+.sbarticle .crumb .crumb-cur {
+  color: var(--site-accent, #c9a24a);
+}
+.sbarticle .art-head h1 {
+  font-size: clamp(2.2rem, 4.4vw, 3.6rem);
+  margin-top: 16px;
+}
+.sbarticle .head-meta {
+  justify-content: center;
+  margin-top: 22px;
+}
+.sbarticle .head-meta .by {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* -- post meta ----------------------------------------------------------- */
+.sbarticle .pc-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbarticle .avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sbarticle .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* -- cover figure -------------------------------------------------------- */
+.sbarticle .art-cover {
+  margin: clamp(36px, 5vw, 56px) 0 0;
+}
+.sbarticle .art-cover img {
+  width: 100%;
+  height: clamp(320px, 42vw, 520px);
+  object-fit: cover;
+  border-radius: var(--site-radius-lg, 6px);
+}
+
+/* -- article prose ------------------------------------------------------- */
+.sbarticle .article {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.sbarticle .article .lead-p {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.32;
+  margin-bottom: 28px;
+  color: var(--site-ink, #f1eadb);
+}
+.sbarticle .article p {
+  font-size: 1.18rem;
+  line-height: 1.85;
+  color: var(--site-ink, #f1eadb);
+  margin: 0 0 28px;
+}
+.sbarticle .article h2 {
+  font-size: 1.9rem;
+  margin: 48px 0 18px;
+}
+.sbarticle .article h3 {
+  font-size: 1.45rem;
+  margin: 36px 0 14px;
+}
+.sbarticle .article strong {
+  font-weight: 700;
+  color: var(--site-ink, #f1eadb);
+}
+.sbarticle .article a:not(.btn) {
+  color: var(--site-accent, #c9a24a);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.sbarticle .article blockquote {
+  margin: 42px 0;
+  padding: 6px 0 6px 28px;
+  border-left: 3px solid var(--site-accent, #c9a24a);
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(1.4rem, 2.5vw, 1.55rem);
+  line-height: 1.4;
+  color: var(--site-ink, #f1eadb);
+  font-weight: var(--site-weight-heading, 700);
+}
+.sbarticle .article blockquote cite {
+  display: block;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 14px;
+}
+.sbarticle .article figure {
+  margin: 42px 0;
+}
+.sbarticle .article figure img {
+  width: 100%;
+  border-radius: var(--site-radius-lg, 6px);
+}
+.sbarticle .article figcaption {
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  text-align: center;
+  margin-top: 12px;
+}
+.sbarticle .article ul,
+.sbarticle .article ol {
+  padding-left: 0;
+  list-style: none;
+  margin: 0 0 28px;
+}
+.sbarticle .article li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 1.12rem;
+  line-height: 1.7;
+  margin-top: 10px;
+  color: var(--site-ink, #f1eadb);
+}
+.sbarticle .article li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 13px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--site-accent, #c9a24a);
+}
+.sbarticle .rule {
+  height: 1px;
+  background: var(--site-line, #2b2618);
+  border: none;
+  margin: 0;
+}
+.sbarticle .article hr {
+  margin: 44px 0;
+}
+
+/* -- tag chips ----------------------------------------------------------- */
+.sbarticle .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.sbarticle .chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-accent, #c9a24a);
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  padding: 5px 12px;
+  border-radius: 9999px;
+}
+
+/* -- author + share ------------------------------------------------------ */
+.sbarticle .auth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+.sbarticle .auth {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sbarticle .auth .av {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-accent, #c9a24a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.sbarticle .auth .av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sbarticle .auth-nm {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+.sbarticle .share {
+  display: flex;
+  gap: 10px;
+}
+.sbarticle .share a {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--site-line, #2b2618);
+  color: var(--site-mute, #a99b7f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+.sbarticle .share a:hover {
+  color: var(--site-accent, #c9a24a);
+  border-color: var(--site-accent, #c9a24a);
+}
+
+/* -- keep reading -------------------------------------------------------- */
+.sbarticle .keep-reading {
+  background: var(--site-soft, #1a1710);
+}
+
+/* striped placeholder so a slow/blocked photo never reads as blank */
+.sbarticle .pc-img {
+  background-color: var(--site-soft-2, #221e15);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 11px,
+    color-mix(in srgb, var(--site-accent, #c9a24a) 7%, transparent) 11px,
+    color-mix(in srgb, var(--site-accent, #c9a24a) 7%, transparent) 22px
+  );
+}
+.sbarticle .cover-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-tint, rgba(201, 162, 74, 0.15)),
+    var(--site-soft-2, #221e15)
+  );
+}
+.sbarticle .cover-ph span {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 2.6rem;
+  color: var(--site-accent, #c9a24a);
+  opacity: 0.85;
+}
+
+/* -- keep-reading cards -------------------------------------------------- */
+.sbarticle .blog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(22px, 2.6vw, 34px);
+}
+.sbarticle .post-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbarticle .post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--site-card-shadow, 0 30px 60px -38px rgba(0, 0, 0, 0.3));
+}
+.sbarticle .post-card .pc-img {
+  aspect-ratio: 3/2;
+  overflow: hidden;
+}
+.sbarticle .post-card .pc-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.sbarticle .post-card:hover .pc-img img {
+  transform: scale(1.05);
+}
+.sbarticle .post-card .pc-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sbarticle .post-card h3 {
+  font-size: 1.3rem;
+  line-height: 1.2;
+  /* clamp related card titles to 2 lines so the grid stays uniform */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbarticle .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbarticle .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+}
+.sbarticle .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbarticle .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+.sbarticle .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 34px;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbarticle .blog-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 680px) {
+  .sbarticle .wrap {
+    padding: 0 20px;
+  }
+  .sbarticle .blog-grid {
+    grid-template-columns: 1fr;
+  }
+}

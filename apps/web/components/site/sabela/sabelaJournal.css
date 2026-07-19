@@ -1,0 +1,399 @@
+/*
+ * Sabela Lodge — bespoke JOURNAL INDEX design, ported faithfully from the
+ * founder's reference (docs/themes/sabela/theme.source.css + pages/Journal.html
+ * body sections). Every selector is scoped to `.sbjournal` so the ported base
+ * classes (.wrap/.section/.post-card/.post-feature/.cta-band/...) never collide
+ * with the app or the `.sbchrome` header/footer; all colour / type / shape comes
+ * from the theme's `--site-*` tokens with the reference's own hard fallbacks — so
+ * it stays on-brand (Ebony dark + gold) AND host-editable. Sabela is DARK-first:
+ * warm-bone ink (#F1EADB) on deep ebony (#14120D), brand gold (#C9A24A) accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbjournal {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbjournal * {
+  box-sizing: border-box;
+}
+.sbjournal img {
+  display: block;
+  max-width: 100%;
+}
+.sbjournal p {
+  margin: 0;
+}
+.sbjournal a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbjournal h1,
+.sbjournal h2,
+.sbjournal h3,
+.sbjournal h4 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbjournal .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbjournal .wrap-narrow {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbjournal .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbjournal .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbjournal .center {
+  text-align: center;
+}
+.sbjournal .mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+.sbjournal .muted {
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbjournal .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbjournal .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbjournal .eyebrow.center {
+  justify-content: center;
+}
+
+/* -- lead ---------------------------------------------------------------- */
+.sbjournal .lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--site-mute, #a99b7f);
+  max-width: 60ch;
+}
+
+/* -- page head (nav-clearing, no full-bleed hero) ------------------------ */
+.sbjournal .page-head {
+  padding: calc(78px + clamp(48px, 7vw, 90px)) 0 clamp(40px, 5vw, 60px);
+  text-align: center;
+}
+.sbjournal .page-head h1 {
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  margin-top: 18px;
+}
+.sbjournal .page-head p {
+  margin: 22px auto 0;
+  max-width: 54ch;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbjournal .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbjournal .btn:hover {
+  transform: translateY(-2px);
+}
+.sbjournal .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbjournal .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbjournal .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbjournal .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+.sbjournal .link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--site-accent, #c9a24a);
+  font-size: 15px;
+}
+.sbjournal .link-arrow svg {
+  transition: transform 0.2s;
+}
+.sbjournal .link-arrow:hover svg {
+  transform: translateX(4px);
+}
+
+/* -- empty state --------------------------------------------------------- */
+.sbjournal .empty-h {
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+}
+
+/* striped placeholder so a slow/blocked photo never reads as blank */
+.sbjournal .pf-img,
+.sbjournal .pc-img {
+  background-color: var(--site-soft-2, #221e15);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 11px,
+    color-mix(in srgb, var(--site-accent, #c9a24a) 7%, transparent) 11px,
+    color-mix(in srgb, var(--site-accent, #c9a24a) 7%, transparent) 22px
+  );
+}
+
+/* cover placeholder (cover-less post) — gold monogram on tint */
+.sbjournal .cover-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-tint, rgba(201, 162, 74, 0.15)),
+    var(--site-soft-2, #221e15)
+  );
+}
+.sbjournal .cover-ph span {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 2.6rem;
+  color: var(--site-accent, #c9a24a);
+  opacity: 0.85;
+}
+
+/* -- post meta ----------------------------------------------------------- */
+.sbjournal .pc-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 18px;
+}
+
+/* -- category eyebrow ---------------------------------------------------- */
+.sbjournal .pc-cat {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+}
+
+/* -- featured post ------------------------------------------------------- */
+.sbjournal .post-feature {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+.sbjournal .post-feature .pf-img {
+  aspect-ratio: 4/3;
+  border-radius: var(--site-img-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+}
+.sbjournal .post-feature .pf-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.sbjournal .post-feature:hover .pf-img img {
+  transform: scale(1.04);
+}
+.sbjournal .post-feature h2 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  margin: 14px 0 16px;
+}
+.sbjournal .post-feature .feat-ex {
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+.sbjournal .post-feature .feat-link {
+  margin-top: 18px;
+}
+
+/* -- posts grid / cards -------------------------------------------------- */
+.sbjournal .blog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(22px, 2.6vw, 34px);
+}
+.sbjournal .post-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbjournal .post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--site-card-shadow, 0 30px 60px -38px rgba(0, 0, 0, 0.3));
+}
+.sbjournal .post-card .pc-img {
+  aspect-ratio: 3/2;
+  overflow: hidden;
+}
+.sbjournal .post-card .pc-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.sbjournal .post-card:hover .pc-img img {
+  transform: scale(1.05);
+}
+.sbjournal .post-card .pc-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sbjournal .post-card h3 {
+  font-size: 1.3rem;
+  margin: 12px 0 10px;
+  line-height: 1.2;
+  /* clamp card titles to 2 lines so the grid stays uniform */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sbjournal .post-card .pc-cat + h3 {
+  margin-top: 0;
+}
+.sbjournal .post-card .pc-ex {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1rem;
+  line-height: 1.6;
+  flex: 1;
+  /* clamp card excerpts to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbjournal .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbjournal .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+}
+.sbjournal .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbjournal .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+.sbjournal .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 34px;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbjournal .blog-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sbjournal .post-feature {
+    grid-template-columns: 1fr;
+  }
+  .sbjournal .post-feature .pf-img {
+    order: -1;
+  }
+}
+@media (max-width: 680px) {
+  .sbjournal .wrap,
+  .sbjournal .wrap-narrow {
+    padding: 0 20px;
+  }
+  .sbjournal .blog-grid {
+    grid-template-columns: 1fr;
+  }
+}

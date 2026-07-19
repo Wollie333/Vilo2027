@@ -7,6 +7,7 @@ import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewJournal } from "@/components/site/oceansview/OceansViewJournal";
 import { MarmaladeJournal } from "@/components/site/marmalade/MarmaladeJournal";
+import { SabelaJournal } from "@/components/site/sabela/SabelaJournal";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
   buildSitePreviewPages,
@@ -96,6 +97,14 @@ export default async function SiteBlogIndexPage({
           />
         ) : ctx.theme.preset === "marmalade" ? (
           <MarmaladeJournal
+            brandName={ctx.brand.name}
+            heading={ctx.blog.heading}
+            intro={ctx.blog.intro}
+            posts={posts}
+            asset={siteAsset}
+          />
+        ) : ctx.theme.preset === "hotel" ? (
+          <SabelaJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}
             intro={ctx.blog.intro}

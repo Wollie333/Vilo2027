@@ -13,6 +13,7 @@ import type { SpecialCard } from "@/lib/site/types";
 import { JsonLd } from "./JsonLd";
 import { OceansViewSpecialDetail } from "./oceansview/OceansViewSpecialDetail";
 import { MarmaladeSpecialDetail } from "./marmalade/MarmaladeSpecialDetail";
+import { SabelaSpecialDetail } from "./sabela/SabelaSpecialDetail";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
 import { SiteImg } from "./SiteImg";
@@ -283,6 +284,13 @@ export async function SiteSpecialView({
             />
           ) : ctx.theme.preset === "marmalade" ? (
             <MarmaladeSpecialDetail
+              special={special}
+              otherSpecials={otherSpecials}
+              specialsHref={specialsHref}
+              asset={siteAsset}
+            />
+          ) : ctx.theme.preset === "hotel" ? (
+            <SabelaSpecialDetail
               special={special}
               otherSpecials={otherSpecials}
               specialsHref={specialsHref}

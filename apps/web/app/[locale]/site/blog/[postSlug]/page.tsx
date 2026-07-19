@@ -10,6 +10,7 @@ import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewArticle } from "@/components/site/oceansview/OceansViewArticle";
 import { MarmaladeArticle } from "@/components/site/marmalade/MarmaladeArticle";
+import { SabelaArticle } from "@/components/site/sabela/SabelaArticle";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
   buildSitePreviewPages,
@@ -161,6 +162,14 @@ export default async function SiteBlogPostPage({
             />
           ) : ctx.theme.preset === "marmalade" ? (
             <MarmaladeArticle
+              brandName={ctx.brand.name}
+              post={post}
+              related={relatedPosts}
+              socials={ctx.brand.socials}
+              asset={siteAsset}
+            />
+          ) : ctx.theme.preset === "hotel" ? (
+            <SabelaArticle
               brandName={ctx.brand.name}
               post={post}
               related={relatedPosts}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { MarmaladeThankYou } from "@/components/site/marmalade/MarmaladeThankYou";
+import { SabelaThankYou } from "@/components/site/sabela/SabelaThankYou";
 import {
   SectionShell,
   SectionHeading,
@@ -153,11 +154,23 @@ export default async function SiteFormThankYouPage({
             : undefined
         }
         previewPages={previewPages}
-        pageHasHero={ctx.theme.preset === "marmalade"}
+        pageHasHero={
+          ctx.theme.preset === "marmalade" || ctx.theme.preset === "hotel"
+        }
       >
         {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
         {ctx.theme.preset === "marmalade" ? (
           <MarmaladeThankYou
+            brandName={ctx.brand.name}
+            handLine={goalCopy.eyebrow.toLowerCase()}
+            heading={heading}
+            message={message}
+            confirmed
+            primaryCta={{ label: "Back home", href: "/" }}
+            secondaryCta={{ label: "Say hello", href: "/contact" }}
+          />
+        ) : ctx.theme.preset === "hotel" ? (
+          <SabelaThankYou
             brandName={ctx.brand.name}
             handLine={goalCopy.eyebrow.toLowerCase()}
             heading={heading}

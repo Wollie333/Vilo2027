@@ -5,6 +5,7 @@ import { FirePurchase } from "@/components/site/FirePurchase";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { BookingConfirmationCard } from "@/components/site/BookingConfirmationCard";
 import { MarmaladeThankYou } from "@/components/site/marmalade/MarmaladeThankYou";
+import { SabelaThankYou } from "@/components/site/sabela/SabelaThankYou";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import {
   getHostWebsiteCapi,
@@ -307,7 +308,9 @@ export default async function SiteThankYouPage({
   ];
 
   const isMarmalade = ctx.theme.preset === "marmalade";
-  // Marmalade summary rows (reference is shown in its own chip): arrive / depart /
+  const isSabela = ctx.theme.preset === "hotel";
+  const isBespokeThankYou = isMarmalade || isSabela;
+  // Bespoke summary rows (reference is shown in its own chip): arrive / depart /
   // guests·nights, with the amount folded in as a row when it's still to be paid.
   const nights =
     booking.check_in && booking.check_out
@@ -346,38 +349,40 @@ export default async function SiteThankYouPage({
         preset={ctx.theme.preset}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
-        pageHasHero={isMarmalade}
+        pageHasHero={isBespokeThankYou}
       >
         <FirePurchase purchase={purchase} />
-        {isMarmalade ? (
-          <MarmaladeThankYou
-            brandName={ctx.brand.name}
-            handLine={
-              isConfirmed
+        {isBespokeThankYou ? (
+          (() => {
+            // Marmalade + Sabela share the exact same bespoke thank-you props.
+            const bespokeProps = {
+              brandName: ctx.brand.name,
+              handLine: isConfirmed
                 ? "see you soon!"
                 : isEftPending
                   ? "almost there!"
-                  : "one moment…"
-            }
-            heading={heading}
-            message={message}
-            confirmed={isConfirmed}
-            reference={booking.reference}
-            rows={
-              isEftPending
+                  : "one moment…",
+              heading,
+              message,
+              confirmed: isConfirmed,
+              reference: booking.reference,
+              rows: isEftPending
                 ? [...mmRows, { label: "Amount to transfer", value: totalStr }]
-                : mmRows
-            }
-            total={isEftPending ? null : totalStr}
-            eft={eftRows}
-            primaryCta={{ label: "Back to home", href: "/" }}
-            secondaryCta={{ label: "Get in touch", href: "/contact" }}
-            footnote={
-              isConfirmed
+                : mmRows,
+              total: isEftPending ? null : totalStr,
+              eft: eftRows,
+              primaryCta: { label: "Back to home", href: "/" },
+              secondaryCta: { label: "Get in touch", href: "/contact" },
+              footnote: isConfirmed
                 ? "Booked direct — no booking fees were charged."
-                : null
-            }
-          />
+                : null,
+            };
+            return isSabela ? (
+              <SabelaThankYou {...bespokeProps} />
+            ) : (
+              <MarmaladeThankYou {...bespokeProps} />
+            );
+          })()
         ) : (
           <BookingStyleOverlay
             node={bookingStyle}

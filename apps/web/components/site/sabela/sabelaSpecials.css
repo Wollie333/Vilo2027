@@ -1,0 +1,477 @@
+/*
+ * Sabela Lodge — bespoke OFFERS page, ported faithfully from the founder's
+ * reference (docs/themes/sabela/pages/Specials.html body + theme.source.css).
+ * Every selector is scoped to `.sbspecials` so the ported base classes
+ * (.wrap .section .special-card .sp-* .cta-band …) never collide with the app
+ * or the `.sbchrome` header/footer; all colour / type / shape comes from the
+ * theme's `--site-*` tokens with the reference's own hard fallbacks — so it stays
+ * on-brand (Ebony dark + gold) AND host-editable. Sabela is DARK-first: warm-bone
+ * ink (#F1EADB) on deep ebony (#14120D), brand gold (#C9A24A) accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbspecials {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbspecials * {
+  box-sizing: border-box;
+}
+.sbspecials img {
+  display: block;
+  max-width: 100%;
+}
+.sbspecials p {
+  margin: 0;
+}
+.sbspecials a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbspecials h1,
+.sbspecials h2,
+.sbspecials h3 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbspecials .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbspecials .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbspecials .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbspecials .soft-bg {
+  background: var(--site-soft, #1a1710);
+}
+.sbspecials .center {
+  text-align: center;
+}
+.sbspecials .muted {
+  color: var(--site-mute, #a99b7f);
+}
+.sbspecials .lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  max-width: 60ch;
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbspecials .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbspecials .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbspecials .eyebrow.center {
+  justify-content: center;
+}
+.sbspecials .eyebrow.no-rule::before {
+  display: none;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbspecials .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbspecials .btn:hover {
+  transform: translateY(-2px);
+}
+.sbspecials .btn:active {
+  transform: translateY(0);
+}
+.sbspecials .btn-primary {
+  background: var(--site-btn-primary-bg, var(--site-accent, #c9a24a));
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  border-color: var(--site-btn-primary-border, transparent);
+  border-radius: var(--site-btn-primary-radius, 9999px);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 75%, transparent);
+}
+.sbspecials .btn-primary:hover {
+  box-shadow: 0 20px 38px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 80%, transparent);
+}
+.sbspecials .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #f1eadb);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #2b2618));
+  border-radius: var(--site-btn-secondary-radius, 9999px);
+}
+.sbspecials .btn-ghost:hover {
+  background: var(--site-soft, #1a1710);
+  border-color: var(--site-accent, #c9a24a);
+}
+.sbspecials .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbspecials .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbspecials .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbspecials .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+.sbspecials .btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* striped placeholder so a slow/blocked photo never reads as blank */
+.sbspecials .bg,
+.sbspecials .sp-img {
+  background-color: var(--site-soft-2, #221e15);
+}
+
+/* -- PAGE HEAD (full-bleed photo + editorial overlay) -------------------- */
+.sbspecials .phead {
+  position: relative;
+  min-height: clamp(420px, 58vh, 580px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.sbspecials .phead .bg {
+  position: absolute;
+  inset: 0;
+}
+.sbspecials .phead .bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+}
+.sbspecials .phead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(
+    --site-hero-overlay,
+    linear-gradient(
+      180deg,
+      rgba(7, 6, 4, 0.24) 0%,
+      rgba(7, 6, 4, 0.42) 42%,
+      rgba(5, 4, 2, 0.9) 100%
+    )
+  );
+}
+.sbspecials .phead-in {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  padding-bottom: clamp(44px, 7vw, 92px);
+  padding-top: clamp(88px, 12vw, 128px);
+  max-width: 760px;
+}
+.sbspecials .phead-in .eyebrow {
+  color: #fff;
+}
+.sbspecials .phead-in .eyebrow::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+.sbspecials .phead-in h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 4.8rem);
+  margin-top: 16px;
+}
+.sbspecials .phead-in .lead {
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 20px;
+  max-width: 56ch;
+}
+
+/* -- breadcrumbs --------------------------------------------------------- */
+.sbspecials .crumbs {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 20px;
+}
+.sbspecials .crumbs a:hover {
+  color: var(--site-accent, #c9a24a);
+}
+.sbspecials .crumbs .sep {
+  opacity: 0.5;
+}
+.sbspecials .crumbs .cur {
+  color: #fff;
+}
+
+/* -- specials grid (editorial suite cards) ------------------------------- */
+.sbspecials .specials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.sbspecials .special-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbspecials .special-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--site-card-shadow, 0 30px 60px -34px rgba(0, 0, 0, 0.32));
+}
+.sbspecials .special-card .sp-img {
+  position: relative;
+  aspect-ratio: 3/2;
+  overflow: hidden;
+}
+.sbspecials .special-card .sp-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.sbspecials .special-card:hover .sp-img img {
+  transform: scale(1.05);
+}
+.sbspecials .sp-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  background: var(--site-accent, #c9a24a);
+  color: var(--site-accent-ink, #15120b);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 9999px;
+}
+.sbspecials .sp-left {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  background: color-mix(in srgb, var(--site-bg, #14120d) 82%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--site-ink, #f1eadb);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 9999px;
+}
+.sbspecials .special-card .sp-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sbspecials .special-card h3 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+.sbspecials .special-card .sp-desc {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1rem;
+  line-height: 1.6;
+  flex: 1;
+  /* Convention: clamp card descriptions to 2 lines so cards stay uniform. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sbspecials .sp-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0 16px;
+}
+.sbspecials .sp-now {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--site-ink, #f1eadb);
+  line-height: 1;
+}
+.sbspecials .sp-per {
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbspecials .sp-was {
+  font-size: 1rem;
+  color: var(--site-mute, #a99b7f);
+  text-decoration: line-through;
+}
+.sbspecials .sp-save {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--site-accent, #c9a24a);
+}
+
+/* -- empty state (on-brand dark panel) ----------------------------------- */
+.sbspecials .empty {
+  max-width: 620px;
+  margin: 0 auto;
+  text-align: center;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  padding: clamp(44px, 6vw, 72px) clamp(28px, 5vw, 56px);
+}
+.sbspecials .empty .ico {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 22px;
+  border-radius: var(--site-radius-sm, 3px);
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-icon-color, var(--site-secondary, #e7dcc4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sbspecials .empty h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  margin-top: 14px;
+}
+.sbspecials .empty .muted {
+  margin: 16px auto 0;
+  max-width: 46ch;
+}
+.sbspecials .empty .pcta {
+  display: flex;
+  gap: 13px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbspecials .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbspecials .cta-band .zero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 9999px;
+}
+.sbspecials .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+  margin-top: 18px;
+}
+.sbspecials .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbspecials .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 34px;
+}
+.sbspecials .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+
+/* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbspecials .specials-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 680px) {
+  .sbspecials .wrap {
+    padding: 0 20px;
+  }
+  .sbspecials .specials-grid {
+    grid-template-columns: 1fr;
+  }
+  .sbspecials .cta-band .hero-cta-row .btn,
+  .sbspecials .empty .pcta .btn {
+    width: 100%;
+  }
+}

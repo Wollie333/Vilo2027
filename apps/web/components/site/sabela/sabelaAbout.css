@@ -1,0 +1,419 @@
+/*
+ * Sabela Lodge — bespoke ABOUT page, ported faithfully from the founder's
+ * reference (docs/themes/sabela/pages/About.html body + theme.source.css). Every
+ * selector is scoped to `.sbabout` so the ported base classes never collide with
+ * the app, the `.sbchrome` header/footer, or the other Sabela pages; all colour /
+ * type / shape comes from the theme's `--site-*` tokens with the reference's own
+ * hard fallbacks — so it stays on-brand (Ebony dark + gold) AND host-editable.
+ * Sabela is DARK-first: warm-bone ink (#F1EADB) on deep ebony (#14120D), brand
+ * gold (#C9A24A) accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbabout {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbabout * {
+  box-sizing: border-box;
+}
+.sbabout img {
+  display: block;
+  max-width: 100%;
+}
+.sbabout p {
+  margin: 0;
+}
+.sbabout a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbabout h1,
+.sbabout h2,
+.sbabout h3,
+.sbabout h4 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbabout .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbabout .wrap-narrow {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbabout .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbabout .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbabout .section-tight {
+  padding: 0 0 clamp(72px, 9vw, 128px);
+}
+.sbabout .soft-bg {
+  background: var(--site-soft, #1a1710);
+}
+.sbabout .center {
+  text-align: center;
+}
+.sbabout .muted {
+  color: var(--site-mute, #a99b7f);
+}
+.sbabout .mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* -- type helpers -------------------------------------------------------- */
+.sbabout .lead {
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--site-mute, #a99b7f);
+  max-width: 60ch;
+}
+.sbabout .lead.ink {
+  color: var(--site-ink, #f1eadb);
+  font-weight: 500;
+}
+.sbabout .intro-p {
+  margin-top: 22px;
+  font-size: 1.075rem;
+  line-height: 1.75;
+  max-width: 56ch;
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbabout .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbabout .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbabout .eyebrow.center {
+  justify-content: center;
+}
+.sbabout .eyebrow.no-rule::before {
+  display: none;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbabout .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbabout .btn:hover {
+  transform: translateY(-2px);
+}
+.sbabout .btn:active {
+  transform: translateY(0);
+}
+.sbabout .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbabout .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbabout .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbabout .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+.sbabout .link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--site-accent, #c9a24a);
+  font-size: 15px;
+}
+.sbabout .link-arrow svg {
+  transition: transform 0.2s;
+}
+.sbabout .link-arrow:hover svg {
+  transform: translateX(4px);
+}
+
+/* -- section headers ----------------------------------------------------- */
+.sbabout .sec-head {
+  max-width: 640px;
+}
+.sbabout .sec-head.center {
+  margin: 0 auto;
+  text-align: center;
+}
+.sbabout .sec-head h2 {
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  margin-top: 16px;
+}
+
+/* -- PAGE HEAD (interior pages, clears the fixed nav) -------------------- */
+.sbabout .page-head {
+  padding: calc(78px + clamp(48px, 7vw, 90px)) 0 clamp(28px, 3vw, 40px);
+  text-align: center;
+}
+.sbabout .page-head h1 {
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  margin-top: 18px;
+}
+.sbabout .page-head p {
+  margin: 22px auto 0;
+  max-width: 54ch;
+}
+
+/* -- SPLIT / STORY ------------------------------------------------------- */
+.sbabout .split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(28px, 4vw, 72px);
+  align-items: center;
+}
+.sbabout .split-media {
+  position: relative;
+  aspect-ratio: 4/5;
+  border-radius: var(--site-img-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  background: var(--site-soft-2, #221e15);
+}
+.sbabout .split-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sbabout .stat-row {
+  display: flex;
+  gap: clamp(28px, 4vw, 56px);
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+.sbabout .stat .n {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 2.4rem;
+  color: var(--site-accent, #c9a24a);
+  line-height: 1;
+}
+.sbabout .stat .l {
+  font-size: 13.5px;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 6px;
+}
+
+/* -- HOST CARD ----------------------------------------------------------- */
+.sbabout .host {
+  display: grid;
+  grid-template-columns: 0.8fr 1fr;
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+.sbabout .host-img {
+  aspect-ratio: 1;
+  border-radius: var(--site-img-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  background: var(--site-soft-2, #221e15);
+}
+.sbabout .host-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sbabout .host-h {
+  font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+  margin-top: 16px;
+}
+.sbabout .host-p {
+  margin-top: 16px;
+  font-size: 1.1rem;
+  line-height: 1.75;
+  max-width: 54ch;
+}
+.sbabout .host-link {
+  margin-top: 24px;
+}
+
+/* -- VALUES (numbered) --------------------------------------------------- */
+.sbabout .values {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.6vw, 40px);
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.sbabout .value {
+  padding-top: 26px;
+  border-top: 2px solid var(--site-ink, #f1eadb);
+}
+.sbabout .value .vn {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  letter-spacing: 0.04em;
+}
+.sbabout .value h3 {
+  font-size: 1.3rem;
+  margin: 14px 0 10px;
+}
+.sbabout .value p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.0125rem;
+  line-height: 1.65;
+}
+
+/* -- GALLERY (mosaic) ---------------------------------------------------- */
+.sbabout .gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 240px;
+  gap: 14px;
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.sbabout .gallery .g {
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius, 4px));
+  position: relative;
+}
+.sbabout .gallery .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.sbabout .gallery .g:hover img {
+  transform: scale(1.06);
+}
+.sbabout .gallery .span2 {
+  grid-column: span 2;
+}
+.sbabout .gallery .g-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22px 16px 12px;
+  font-size: 12.5px;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(5, 4, 2, 0.72));
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbabout .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 34px;
+}
+.sbabout .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbabout .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+}
+.sbabout .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbabout .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+
+/* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbabout .values {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sbabout .split,
+  .sbabout .host {
+    grid-template-columns: 1fr;
+  }
+  .sbabout .split-media,
+  .sbabout .host-img {
+    aspect-ratio: 5/4;
+  }
+}
+@media (max-width: 680px) {
+  .sbabout .wrap,
+  .sbabout .wrap-narrow {
+    padding: 0 20px;
+  }
+  .sbabout .values,
+  .sbabout .gallery {
+    grid-template-columns: 1fr;
+  }
+  .sbabout .gallery {
+    grid-auto-rows: 220px;
+  }
+  .sbabout .gallery .span2 {
+    grid-column: span 1;
+  }
+}

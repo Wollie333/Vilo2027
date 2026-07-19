@@ -1,0 +1,374 @@
+/*
+ * Sabela Lodge — bespoke dark-editorial thank-you / confirmation page, ported
+ * faithfully from the founder's reference (docs/themes/sabela/pages/Thank
+ * You.html — the confirmation section + its inline <style>). Twin of Marmalade's
+ * `.mmty`, restyled into Sabela's language: warm-bone ink (#F1EADB) on deep
+ * ebony (#14120D), brand gold (#C9A24A) accent. Every selector is scoped to
+ * `.sbty` so the base classes never collide with the app or the `.sbchrome`
+ * header/footer; all colour / type / shape comes from the theme's `--site-*`
+ * tokens WITH the reference's own dark hard fallbacks — on-brand AND host-editable.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbty {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbty * {
+  box-sizing: border-box;
+}
+.sbty img {
+  display: block;
+  max-width: 100%;
+}
+.sbty p {
+  margin: 0;
+}
+.sbty a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbty h1,
+.sbty h3 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  line-height: var(--site-leading-heading, 1.07);
+  margin: 0;
+  color: var(--site-ink, #f1eadb);
+  text-wrap: balance;
+}
+.sbty .muted {
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbty .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbty .eyebrow.center {
+  justify-content: center;
+}
+.sbty .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbty .eyebrow.no-rule::before {
+  display: none;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbty .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbty .btn:hover {
+  transform: translateY(-2px);
+}
+.sbty .btn:active {
+  transform: translateY(0);
+}
+.sbty .btn-lg {
+  height: 58px;
+  padding: 0 36px;
+  font-size: 16px;
+}
+.sbty .btn-accent {
+  background: var(--site-btn-primary-bg, var(--site-accent, #c9a24a));
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  border-color: var(--site-btn-primary-border, transparent);
+  border-radius: var(--site-btn-primary-radius, 9999px);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 75%, transparent);
+}
+.sbty .btn-accent:hover {
+  box-shadow: 0 20px 38px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 80%, transparent);
+}
+.sbty .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #f1eadb);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #2b2618));
+  border-radius: var(--site-btn-secondary-radius, 9999px);
+}
+.sbty .btn-ghost:hover {
+  background: var(--site-soft, #1a1710);
+  border-color: var(--site-accent, #c9a24a);
+}
+
+/* -- hero (full-bleed) --------------------------------------------------- */
+.sbty .tyhero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: clamp(72px, 12vw, 120px) 20px 60px;
+  background: var(--site-bg, #14120d);
+}
+.sbty .tyhero .bg {
+  position: absolute;
+  inset: 0;
+  background-color: var(--site-soft-2, #221e15);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.04);
+}
+.sbty .tyhero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(
+    --site-hero-overlay,
+    linear-gradient(
+      180deg,
+      rgba(7, 6, 4, 0.42) 0%,
+      rgba(7, 6, 4, 0.62) 45%,
+      rgba(5, 4, 2, 0.88) 100%
+    )
+  );
+}
+
+/* -- card ---------------------------------------------------------------- */
+.sbty .tycard {
+  position: relative;
+  z-index: 2;
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  width: min(620px, 94vw);
+  padding: clamp(28px, 4vw, 52px);
+  text-align: center;
+  box-shadow: 0 60px 110px -40px rgba(0, 0, 0, 0.85);
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+}
+
+/* -- confirmation tick / pending clock ----------------------------------- */
+.sbty .tychk {
+  width: 80px;
+  height: 80px;
+  border-radius: 9999px;
+  background: var(--site-accent, #c9a24a);
+  color: var(--site-accent-ink, #15120b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 16px 40px -14px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 70%, transparent);
+  animation: sbty-pop 0.5s cubic-bezier(0.34, 1.56, 0.5, 1) both;
+}
+.sbty .tychk.pending {
+  background: var(--site-tint, rgba(201, 162, 74, 0.16));
+  color: var(--site-accent, #c9a24a);
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.6);
+}
+@keyframes sbty-pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sbty .ty-eye {
+  display: inline-flex;
+  margin-top: 22px;
+}
+.sbty .tycard h1 {
+  font-size: clamp(2.2rem, 4.2vw, 3.3rem);
+  margin-top: 12px;
+}
+.sbty .ty-msg {
+  margin-top: 16px;
+  max-width: 48ch;
+  margin-inline: auto;
+  font-size: 1.075rem;
+}
+.sbty .ty-msg b {
+  color: var(--site-ink, #f1eadb);
+}
+
+/* -- reference chip ------------------------------------------------------ */
+.sbty .tyref {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 9px 16px;
+  border-radius: 9999px;
+  background: var(--site-tint, rgba(201, 162, 74, 0.14));
+  border: 1px solid var(--site-line, #2b2618);
+}
+.sbty .tyref span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
+}
+.sbty .tyref b {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--site-accent, #c9a24a);
+}
+
+/* -- summary block ------------------------------------------------------- */
+.sbty .tysum {
+  margin-top: 30px;
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+  overflow: hidden;
+  text-align: left;
+}
+.sbty .tysum-top {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 22px;
+  background: var(--site-soft, #1a1710);
+  border-bottom: 1px solid var(--site-line, #2b2618);
+}
+.sbty .tysum-top img {
+  width: 84px;
+  height: 68px;
+  border-radius: var(--site-radius-sm, 3px);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.sbty .tysum-eye {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+}
+.sbty .tysum-top h3 {
+  font-size: 1.35rem;
+  margin-top: 4px;
+}
+.sbty .tysum-note {
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 4px;
+}
+.sbty .tyrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--site-line, #2b2618);
+  font-size: 15px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbty .tyrow:last-child {
+  border-bottom: 0;
+}
+.sbty .tyrow b {
+  color: var(--site-ink, #f1eadb);
+  font-weight: 600;
+  text-align: right;
+}
+.sbty .tyrow.tytotal {
+  border-top: 1px solid var(--site-line, #2b2618);
+  color: var(--site-ink, #f1eadb);
+}
+.sbty .tyrow.tytotal span {
+  font-weight: 600;
+  color: var(--site-ink, #f1eadb);
+}
+.sbty .tyrow.tytotal b {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.35rem;
+  color: var(--site-accent, #c9a24a);
+}
+.sbty .tybank {
+  padding: 16px 22px 8px;
+  border-top: 1px solid var(--site-line, #2b2618);
+  background: var(--site-soft, #1a1710);
+}
+.sbty .tybank-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  margin-bottom: 4px;
+}
+.sbty .tybank .tyrow {
+  border-bottom: 0;
+  padding: 8px 0;
+}
+
+/* -- actions / footnote -------------------------------------------------- */
+.sbty .tyacts {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 32px;
+}
+.sbty .tyfoot {
+  font-size: 12.5px;
+  margin-top: 18px;
+}
+
+/* -- responsive tightening ----------------------------------------------- */
+@media (max-width: 560px) {
+  .sbty .tyhero {
+    padding: clamp(56px, 16vw, 88px) 16px 44px;
+  }
+  .sbty .tychk {
+    width: 68px;
+    height: 68px;
+  }
+  .sbty .tysum-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sbty .tysum-top img {
+    width: 100%;
+    height: 150px;
+  }
+  .sbty .btn-lg {
+    height: 52px;
+    padding: 0 26px;
+  }
+  .sbty .tyacts .btn {
+    flex: 1 1 100%;
+  }
+}
