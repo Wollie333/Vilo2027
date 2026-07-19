@@ -2,19 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢 SAVE POINT (2026-07-18 pt2) — OceansView JOURNAL wip → **read `WEBSITE_CMS_SAVEPOINT_Resume_Here.md`**
+## 🟢🟢🟢 SAVE POINT (2026-07-19 pt17) — NEXT: differentiate the 5 themes → read `THEME_DIFFERENTIATION_PLAN.md`
 
-**Branch `feature/website-cms-10min-wizard`, pushed `ec79150`. Full resume context lives in the repo-root
-file `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` (committed) — read it first.**
+**Branch `feature/website-cms-10min-wizard`, pushed `a741a7c`. Resume context: read
+`THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST, then `WEBSITE_CMS_SAVEPOINT_Resume_Here.md`.**
 
-- **DONE + live-verified on the `mana` branch site:** bespoke Rooms, Offers, Contact (+ earlier home/about/
-  room-detail). Contact FAQ now standard-aligned (wizard `contact.faq` → property `policies` → omit).
-  Rooms blurb clamped to 4 lines.
-- **IN PROGRESS (start here):** bespoke **Journal** — `OceansViewJournal` (index) + `OceansViewArticle`
-  (article) + `oceansJournal.css`, hooked into `app/[locale]/site/blog/page.tsx` + `…/[postSlug]/page.tsx`
-  behind the oceansview guard. **`pnpm lint` GREEN; tsc + live render NOT yet verified.** Founder seeded 2
-  live posts. FIRST: verify the `ec79150` deploy built green + open `…/site/blog?site=mana&preview=1` and a
-  post, then fix design. Gotchas + full detail in the savepoint file + memory `oceansview-cms-worktree-env`.
+- **Five website themes now exist + live** (OceansView, Marmalade, Sabela=`hotel`, Safari, Royal Hotel=`royal`),
+  all mobile-responsive + fast (this session: refinement pass — nav-bug fix, focus rings, tap targets, lazy-load
+  + WebP q82 resize, a11y — plus Safari + Royal Hotel added as themes 4 & 5).
+- **NEXT BIG TASK (founder, start fresh):** the themes must each be **UNIQUE** — not one layout in different
+  palettes. **OceansView, Safari and Royal currently share ONE layout** (Safari + Royal reuse OceansView's
+  components). Make each unique · modern · professional · mobile-responsive with its **own minimal, tasteful
+  JS animations/effects**. Full phased plan (Phase A motion system → B structural divergence → C Safari≠Sabela)
+  + findings + file map in **`THEME_DIFFERENTIATION_PLAN.md`**. Start Phase A.
+- **Also pending:** live-verify Royal Hotel (`0874a5b`) once its deploy is READY (`?theme=royal` → champagne-gold,
+  not the warm stale-deploy fallback).
 
 ---
 

@@ -1,7 +1,20 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `0874a5b` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt16 — ROYAL HOTEL is a 5th theme + image-quality tuning)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `a741a7c` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt17 — NEXT TASK: genuinely differentiate the 5 themes → read the plan doc)
+
+> ## ▶▶ NEXT SESSION STARTS HERE — read `THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST
+> Founder directive (2026-07-19): **the themes must each be UNIQUE — not one layout in
+> different palettes.** Each must be *unique · modern · professional · mobile-responsive*
+> with its **own minimal, tasteful JS animations/effects** that enhance the visitor
+> experience. Right now **OceansView, Safari and Royal all share ONE layout** (Safari +
+> Royal reuse OceansView's `.ov*` components via `usesOceansViewLayout()`); Marmalade +
+> Sabela are already bespoke/distinct. The plan doc has the full phased approach (Phase A
+> per-theme motion system → Phase B structural divergence for Safari/Royal → Phase C
+> separate Safari from Sabela), the key findings (the reference designs SHIP the intended
+> JS — see `docs/themes/royalhotel/royal.js`: `.reveal`→`.in` scroll-reveal, parallax,
+> nav-solidify — NOT yet wired in-app), and the file map. Start with **Phase A**.
+> **Also still pending:** live-verify Royal (`0874a5b`) once its deploy is READY (see pt16).
 
 > ## 🧭 WHERE WE ARE (read this first)
 > **FIVE full themes.** OceansView, Marmalade, Sabela (=`hotel`), Safari (=`safari`, "NenGama Lodge"), and
