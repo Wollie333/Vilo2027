@@ -47,6 +47,7 @@ import { SabelaFooter } from "./sabela/SabelaFooter";
 import { SabelaHeader } from "./sabela/SabelaHeader";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { SitePreviewBar } from "./SitePreviewBar";
+import { SiteReveal } from "./SiteReveal";
 import { SiteAnalytics } from "./SiteAnalytics";
 import { SiteMarketing } from "./SiteMarketing";
 import { SiteMobileMenu } from "./SiteMobileMenu";
@@ -1336,6 +1337,11 @@ export function SiteChrome({
       {analyticsWebsiteId ? (
         <SiteAnalytics websiteId={analyticsWebsiteId} />
       ) : null}
+
+      {/* Shared per-theme motion runtime (scroll-reveal + parallax). Renders on
+          the live site AND theme preview; it self-disables in the builder canvas
+          and under reduced-motion. Skipped only while inline-editing the chrome. */}
+      {editable ? null : <SiteReveal />}
 
       {/* Theme-preview bar (shared SSOT) — hidden when embedded in a card iframe. */}
       {showBar && previewPages ? (

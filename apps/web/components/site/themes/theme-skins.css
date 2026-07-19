@@ -1080,3 +1080,97 @@
 .wielo-safari [data-section-type="room_gallery"] [class*="rounded"] {
   border-radius: var(--site-img-radius);
 }
+
+/* ======================================================================
+ * PER-THEME MOTION SIGNATURES  (Phase A — theme differentiation)
+ * ----------------------------------------------------------------------
+ * The shared scroll-reveal primitive lives in site-reveal.css: it hides
+ * `[data-reveal]` (only under `.wielo-reveal-ready`, added by SiteReveal when
+ * motion is allowed and we're not in the builder) and reveals it with `.in`.
+ * The FEEL of that reveal is a theme's own signature — set here by overriding
+ * `--reveal-from` / `--reveal-blur` / `--reveal-dur` / `--reveal-ease` on the
+ * theme root (they inherit down to every `[data-reveal]`). This is what makes
+ * OceansView, Safari and Royal — which share one layout — read as three
+ * different products in motion, not one layout recoloured.
+ *
+ * All of this is reduced-motion-safe: without the ready class nothing is hidden
+ * and no keyframe animation runs (the ken-burns/rule rules below are gated on
+ * `prefers-reduced-motion: no-preference` or the ready class).
+ * ==================================================================== */
+
+/* OCEANS VIEW — coastal: a gentle, medium-travel rise + soft fade. */
+.wielo-oceansview {
+  --reveal-from: translateY(20px);
+  --reveal-dur: 640ms;
+  --reveal-ease: cubic-bezier(0.16, 0.7, 0.3, 1);
+}
+
+/* SAFARI — savanna: slower, longer-travel fade with a warm blur-in, plus a
+   barely-there ken-burns drift on the hero/page-head imagery (both containers
+   clip overflow, so the scale stays inside its frame). Calm and cinematic. */
+.wielo-safari {
+  --reveal-from: translateY(34px);
+  --reveal-blur: blur(9px);
+  --reveal-dur: 1000ms;
+  --reveal-ease: cubic-bezier(0.2, 0.6, 0.15, 1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wielo-safari .ovhome .hero-bg img,
+  .wielo-safari .ovrooms .phead > img,
+  .wielo-safari .ovcontact .phead img {
+    animation: wielo-kenburns 24s ease-in-out infinite alternate;
+  }
+}
+@keyframes wielo-kenburns {
+  from {
+    transform: scale(1.01) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(0, -1.4%, 0);
+  }
+}
+
+/* ROYAL HOTEL — grand: crisp and restrained (luxury = calm). Small travel, no
+   blur, a long easeout settle — plus a thin champagne rule that draws itself in
+   beneath each revealed section heading. The rule is shown static (full width)
+   when motion is off, and only animates from 0 under the ready class, so
+   reduced-motion / no-JS visitors still see it. */
+.wielo-royal {
+  --reveal-from: translateY(10px);
+  --reveal-blur: none;
+  --reveal-dur: 900ms;
+  --reveal-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.wielo-royal .sec-head h2::after {
+  content: "";
+  display: block;
+  height: 2px;
+  width: 56px;
+  margin-top: 18px;
+  background: var(--site-accent, #b08948);
+}
+.wielo-reveal-ready.wielo-royal .sec-head[data-reveal] h2::after {
+  width: 0;
+  transition: width 900ms cubic-bezier(0.22, 0.61, 0.36, 1) 220ms;
+}
+.wielo-reveal-ready.wielo-royal .sec-head[data-reveal].in h2::after {
+  width: 56px;
+}
+
+/* MARMALADE — playful postcards: a slight rotate-and-settle on reveal (its tape
+   /tilt already reads distinct). No blur. Signature set now; the Marmalade
+   components emit `[data-reveal]` in a follow-up. */
+.wielo-marmalade {
+  --reveal-from: translateY(18px) rotate(-1.2deg);
+  --reveal-dur: 620ms;
+  --reveal-ease: cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+/* SABELA — dark editorial (ships as the `hotel` preset → `.wielo-hotel`): a
+   filmic, slow dark-to-light fade with a soft lift. */
+.wielo-hotel {
+  --reveal-from: translateY(26px);
+  --reveal-blur: blur(5px);
+  --reveal-dur: 1050ms;
+  --reveal-ease: cubic-bezier(0.25, 0.6, 0.2, 1);
+}

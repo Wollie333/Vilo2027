@@ -221,7 +221,10 @@ export function OceansViewRooms({
               key={r.id}
             >
               <div className="wrap">
-                <div className={reversed ? "split w-left rev" : "split w-left"}>
+                <div
+                  data-reveal
+                  className={reversed ? "split w-left rev" : "split w-left"}
+                >
                   {reversed ? (
                     <>
                       {detail}
@@ -246,7 +249,7 @@ export function OceansViewRooms({
         style={{ paddingBottom: "clamp(70px, 9vw, 130px)" }}
       >
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

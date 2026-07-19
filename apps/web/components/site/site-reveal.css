@@ -1,0 +1,52 @@
+/* ======================================================================
+ * SHARED SCROLL-REVEAL PRIMITIVE  (Phase A — per-theme motion system)
+ * ----------------------------------------------------------------------
+ * One dependency-free primitive that every theme's motion signature is built
+ * on. `SiteReveal` (client) adds `.wielo-reveal-ready` to the `.wielo-site-root`
+ * ONLY when motion is allowed and we're not in the builder — so `[data-reveal]`
+ * is hidden-then-revealed exclusively in that case. With reduced-motion / no-JS
+ * / SSR / builder, the class is absent and every `[data-reveal]` stays fully
+ * visible → zero CLS, no flash of missing content.
+ *
+ * The *look* of the reveal is theme-driven: each `.wielo-<slug>` block in
+ * theme-skins.css overrides `--reveal-from` / `--reveal-blur` / `--reveal-dur`
+ * / `--reveal-ease` (and adds its own hover micro-interactions), so the SAME
+ * markup animates differently per theme. Defaults below are a neutral, gentle
+ * rise used by any theme that doesn't customise them.
+ * ==================================================================== */
+.wielo-reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: var(--reveal-from, translateY(22px));
+  filter: var(--reveal-blur, none);
+  transition-property: opacity, transform, filter;
+  transition-duration: var(--reveal-dur, 720ms);
+  transition-timing-function: var(
+    --reveal-ease,
+    cubic-bezier(0.16, 0.7, 0.3, 1)
+  );
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.wielo-reveal-ready [data-reveal].in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Once revealed, drop the compositor hint so long pages don't hold layers. */
+.wielo-reveal-ready [data-reveal].in {
+  will-change: auto;
+}
+
+/* Belt-and-braces: even if the ready class is somehow present, honour the OS
+ * reduced-motion setting by showing everything immediately (globals.css already
+ * zeroes transitions site-wide, but this guarantees no lingering opacity:0). */
+@media (prefers-reduced-motion: reduce) {
+  .wielo-reveal-ready [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}

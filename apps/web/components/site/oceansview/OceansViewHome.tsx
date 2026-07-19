@@ -2,6 +2,8 @@ import "./oceansHome.css";
 // Lightbox slider styles (.ovroom-lightbox / .ovlb-*) live in oceansRoom.css.
 import "./oceansRoom.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type {
   GalleryImage,
@@ -299,7 +301,7 @@ export function OceansViewHome({
       {/* INTRO */}
       <section className="section">
         <div className="wrap">
-          <div className="split w-left">
+          <div className="split w-left" data-reveal>
             <div>
               <span className="tag">Welcome to {brandName}</span>
               <h2 className="lg" style={{ marginTop: 20 }}>
@@ -357,7 +359,12 @@ export function OceansViewHome({
           <div className="wrap">
             <div className="stats">
               {stats.slice(0, 4).map((st, i) => (
-                <div className="stat" key={i}>
+                <div
+                  className="stat"
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+                >
                   <b>{st.b}</b>
                   <span>{st.s}</span>
                 </div>
@@ -373,6 +380,7 @@ export function OceansViewHome({
           <div className="wrap">
             <div
               className="sec-head"
+              data-reveal
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -393,11 +401,13 @@ export function OceansViewHome({
               </a>
             </div>
             <div className="rooms">
-              {roomList.map((r) => (
+              {roomList.map((r, i) => (
                 <a
                   href={r.detailHref || r.bookHref || roomsHref}
                   className="room"
                   key={r.id}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
                 >
                   <div className="room-img">
                     {money(r.price, r.currency) ? (
@@ -443,7 +453,7 @@ export function OceansViewHome({
       {exps.length > 0 ? (
         <section className="section sand" id="experiences">
           <div className="wrap">
-            <div className="sec-head">
+            <div className="sec-head" data-reveal>
               <span className="tag">The experience</span>
               <h2 className="lg" style={{ marginTop: 18 }}>
                 Days you won&apos;t want to end
@@ -451,7 +461,12 @@ export function OceansViewHome({
             </div>
             <div className="exps">
               {exps.map((e, i) => (
-                <div className="exp" key={i}>
+                <div
+                  className="exp"
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+                >
                   {e.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -475,7 +490,7 @@ export function OceansViewHome({
       {/* VALUE / AMENITIES */}
       <section className="section">
         <div className="wrap">
-          <div className="sec-head center">
+          <div className="sec-head center" data-reveal>
             <span className="tag" style={{ justifyContent: "center" }}>
               Good to know
             </span>
@@ -485,7 +500,12 @@ export function OceansViewHome({
           </div>
           <div className="tiles">
             {VALUE_TILES.map((t, i) => (
-              <div className="tile" key={i}>
+              <div
+                className="tile"
+                key={i}
+                data-reveal
+                style={{ "--reveal-delay": `${i * 70}ms` } as CSSProperties}
+              >
                 <div className="ic">{t.icon}</div>
                 <h3>{t.title}</h3>
                 <p>{t.body}</p>
@@ -499,7 +519,7 @@ export function OceansViewHome({
       {shots.length > 0 ? (
         <section className="section sand">
           <div className="wrap">
-            <div className="sec-head">
+            <div className="sec-head" data-reveal>
               <span className="tag">A look around</span>
               <h2 className="lg" style={{ marginTop: 18 }}>
                 Take a look inside
@@ -516,6 +536,7 @@ export function OceansViewHome({
           <div className="wrap">
             <div
               className="split"
+              data-reveal
               style={{ alignItems: "center", marginBottom: 54 }}
             >
               <div>
@@ -576,7 +597,12 @@ export function OceansViewHome({
             {items.length > 0 ? (
               <div className="quotes">
                 {items.slice(0, 3).map((r, i) => (
-                  <div className="quote" key={i}>
+                  <div
+                    className="quote"
+                    key={i}
+                    data-reveal
+                    style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
+                  >
                     <span className="qm">&ldquo;</span>
                     <p>{r.body}</p>
                     <div className="who">
@@ -597,7 +623,7 @@ export function OceansViewHome({
       {/* CTA BANNER */}
       <section className="section">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}
