@@ -1,7 +1,31 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `99003e0` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt12 — MARMALADE COMPLETE + preview-theme carry fix; Sabela is next)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f2ff6b8` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt13 — SABELA COMPLETE + polish batch + floating social rail feature)
+
+> **pt13 batch (all live-verified on mana `?theme=hotel` unless noted):**
+> - **SABELA fully built** — every page bespoke (Home/Suites/Suite-detail/Specials/Special-detail/Contact/
+>   About/Experiences/Gallery/Journal/Article/Thank-you), preset `hotel`, scope `.sb*`. 3 themes now complete
+>   (OceansView, Marmalade, Sabela).
+> - **Sabela About** (`254b955`): the host/team section now ALWAYS renders (honest generic fallback when no
+>   host bio) — was omitted → page looked sparse vs the reference.
+> - **Sabela Suite-detail** (`254b955`): rebuilt to the OceansView room-detail architecture (breadcrumb →
+>   hero gallery → 2-col overview + STICKY book card → facts/specs/amenities → seasonal → good-to-know →
+>   reviews w/ rating-distribution → other suites). Verified: sticky card, 3 reviews + bars, 2 other suites.
+> - **Sabela Contact** (`aa02a30`): rebuilt per OceansView — prominent quote FORM + "How to reach us" details
+>   card (addr/phone/email) + full-width MAP + FAQ; dark fields legible (muted placeholder, gold focus).
+> - **Checkout legibility** (`254b955` fields + `317dac9` card): shared SiteCheckoutForm — muted placeholder +
+>   gold focus ring + border nudged toward ink; and on DARK themes the form/summary cards lift to a lighter
+>   warm-brown panel (`color-mix surface + 8% ink`, gated on `siteSurfaceIsDark` from the route) so they stand
+>   off the ebony page while inputs stay dark inset wells. Marmalade's light checkout unchanged. Verified:
+>   card rgb≈(45,42,35) > page rgb(20,18,13).
+> - **FLOATING SOCIAL RAIL** (`d8eb503` component+wiring, `f2ff6b8` settings toggle): NEW shared, theme-token
+>   `components/site/SiteSocialRail.tsx` — collapsible left-edge vertical bar of the host's socials
+>   (ig/fb/x/yt/li/website), mobile-aware, works light+dark. Rendered by `SiteChrome` on EVERY theme when
+>   `brand.showSocialRail` (reads `settings.socialRail.enabled`) AND ≥1 social link is set. Host toggle added
+>   to Website→Settings (`schemas.ts`+`actions.ts`+settings `page.tsx`/`SettingsForm.tsx`). **NOT live-seen on
+>   mana** — mana has no social links set + toggle off, so it correctly renders nothing; needs a host with
+>   real socials + the toggle on to appear.
 
 > **FIX `99003e0` (preview-theme carry) — affects ALL themes' preview.** The nav href helpers
 > (`siteBookHref`/`siteRoomHref`/`siteSpecialHref`/`siteSearchHref` in `lib/site/loadSitePage.ts`) dropped the
