@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-07-19 — Theme differentiation Phase A: per-theme scroll-reveal motion system (`392e6d3`).
+
+First phase of `THEME_DIFFERENTIATION_PLAN.md` — give each theme its own tasteful,
+minimal motion so the five stop reading as one layout recoloured (esp. OceansView /
+Safari / Royal, which share one layout).
+
+- **New shared runtime `SiteReveal` + `site-reveal.css`** — one dependency-free
+  primitive every theme's motion is built on. An `IntersectionObserver` adds `.in`
+  to `[data-reveal]` under `.wielo-site-root` (unobserving after; above-fold items
+  reveal on the next frame; a 2.3 s safety timer force-reveals stragglers). Plus a
+  single rAF `[data-parallax]` handler. Mounted once in `SiteChrome` (live +
+  preview; skipped while inline-editing chrome).
+- **Zero-CLS / reduced-motion-safe by construction** — the reveal CSS only hides
+  `[data-reveal]` under `.wielo-reveal-ready`, a class the runtime adds ONLY when
+  motion is allowed AND we're outside the builder (`.wielo-builder`). So
+  reduced-motion / no-JS / SSR / canvas never hide anything.
+- **`[data-reveal]` emitted from the shared OceansView Home + Rooms** (the layout
+  Safari + Royal reuse) — section headers, intro/reviews splits, room/experience/
+  tile/quote/stat cards (staggered via inline `--reveal-delay`), CTA banners. Hero
+  / LCP left static.
+- **Per-theme signatures** in `theme-skins.css` override `--reveal-from/-blur/-dur/
+  -ease` on the theme root so the SAME markup animates differently: OceansView
+  gentle rise; Safari slow warm blur-in + subtle hero ken-burns (gated on
+  no-preference; `.hero`/`.phead` already clip); Royal crisp restraint + a
+  champagne rule that draws in under section headings; Marmalade rotate-settle +
+  Sabela (`.wielo-hotel`) filmic fade staged for when those components emit reveals.
+- Gate: `tsc --noEmit` + `eslint` green. **Live-verified on the branch deploy** (mana,
+  `?theme=…`, via the authenticated browser, DOM/computed-style checks): all three
+  shared-layout themes mount the runtime (`wielo-reveal-ready` on the site root) and
+  reveal 20 `[data-reveal]` to opacity 1, with **distinct** resolved signatures —
+  OceansView `translateY(20px)`/640 ms; Safari `translateY(34px)`/1000 ms/`blur(9px)`
+  + `wielo-kenburns` hero drift; Royal `translateY(10px)`/900 ms + champagne rule
+  (`#B08948`, 56 px) under headings. No horizontal overflow. **Reduced-motion / no-JS
+  proven safe**: with the ready class absent, 0/20 reveals are hidden (all opacity 1)
+  and the champagne rule shows static — zero CLS.
+- **Next (Phase A cont.):** emit `[data-reveal]` from the Marmalade + Sabela bespoke
+  components (their signatures are already set) and the remaining OceansView pages;
+  then Phase B (structural layout divergence for Safari + Royal) and C (separate Safari
+  from Sabela). See `THEME_DIFFERENTIATION_PLAN.md`.
+
 ## 2026-07-19 — Safari becomes a 4th full theme + cross-theme refinement pass (errors · premium · fast).
 
 - **SAFARI is now a full designed theme** (`b51192c`, de-dup `6035f08`). It was palette-only; it now REUSES

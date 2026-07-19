@@ -96,6 +96,28 @@ a11y. All 5 themes are mobile-responsive + fast. The DIFFERENTIATION is what's l
 
 Do these as separate sessions/commits; verify each live on mana before moving on.
 
+> **PROGRESS (2026-07-19, commit `392e6d3`):** Phase A steps 1–3 DONE + live-verified
+> for the three shared-layout themes.
+> - ✅ Built `components/site/SiteReveal.tsx` (client runtime: IntersectionObserver →
+>   `.in` on `[data-reveal]`, rAF `[data-parallax]`) + `site-reveal.css` (the base
+>   primitive, driven by `--reveal-from/-blur/-dur/-ease`). Gated behind a
+>   `wielo-reveal-ready` class the runtime adds ONLY when motion is allowed AND not in
+>   the builder → reduced-motion/no-JS/SSR/canvas never hide anything (zero CLS).
+> - ✅ Mounted once in `SiteChrome` (live + preview; skipped while inline-editing chrome).
+> - ✅ Emitted `[data-reveal]` (+ staggered `--reveal-delay`) from the **shared
+>   OceansView Home + Rooms** (the layout Safari + Royal reuse).
+> - ✅ Per-theme signatures in `theme-skins.css`: OceansView gentle rise; Safari slow
+>   warm blur-in + `wielo-kenburns` hero drift; Royal crisp restraint + champagne rule
+>   under headings. Marmalade (rotate-settle) + Sabela=`.wielo-hotel` (filmic fade)
+>   signature VARS are set but those components don't emit `[data-reveal]` yet.
+> - ✅ Live-verified on mana via the authenticated browser (see CHANGELOG 2026-07-19).
+>
+> **REMAINING in Phase A:** emit `[data-reveal]` from (a) the rest of the OceansView
+> pages (About/Experiences/Specials/SpecialDetail/Contact/Gallery/Journal/Article +
+> RoomDetail), and (b) the **Marmalade + Sabela** bespoke components (so those two get
+> motion too — vars already staged). Optionally wire per-theme `[data-parallax]` where
+> a hero calls for it. Then Phase B + C below.
+
 ### PHASE A — a per-theme MOTION system (highest value, do first)
 Give every theme its own small, tasteful animation set so each FEELS alive + distinct,
 even before layouts diverge. Deliver as ONE shared, dependency-free primitive with
