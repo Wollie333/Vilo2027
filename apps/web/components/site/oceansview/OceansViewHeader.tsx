@@ -239,7 +239,7 @@ export function OceansViewHeader({
       </header>
 
       {/* Full-screen mobile drawer */}
-      <div className={`mnav${open ? "open" : ""}`} aria-hidden={!open}>
+      <div className={open ? "mnav open" : "mnav"} aria-hidden={!open}>
         <div className="mnav-top">
           <Brand brand={brand} href={homeHref} />
           <button

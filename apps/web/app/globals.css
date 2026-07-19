@@ -714,6 +714,21 @@ section[id^="sec-"] {
   }
 }
 
+/* Keyboard-focus visibility for tenant micro-sites (every theme). Interactive
+   elements get an accent-coloured ring on keyboard focus only (:focus-visible),
+   using the active theme's own --site-accent token — so mouse clicks stay clean
+   while keyboard users always see where they are. Form fields keep their own
+   rings; this covers links, buttons, summaries and roving-tabindex thumbnails
+   that previously fell back to the UA default outline. */
+.wielo-site-root a:focus-visible,
+.wielo-site-root button:focus-visible,
+.wielo-site-root summary:focus-visible,
+.wielo-site-root [role="button"]:focus-visible,
+.wielo-site-root [tabindex]:focus-visible {
+  outline: 2px solid var(--site-accent, #10b981);
+  outline-offset: 2px;
+}
+
 /* Sticky booking / summary card — the SINGLE rule shared by every right-hand card
    on a website's booking surfaces (checkout Summary + room-detail booking dock),
    so they behave IDENTICALLY: from desktop up they follow the scroll, clear the

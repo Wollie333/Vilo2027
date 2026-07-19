@@ -198,7 +198,11 @@
   border: none;
   color: var(--site-ink, #f1eadb);
   cursor: pointer;
-  padding: 6px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 /* over-hero (transparent, before scroll) — light text on the dark hero */
 .sbchrome .nav.over .brand-name,
@@ -407,8 +411,8 @@
   gap: 10px;
 }
 .sbchrome .foot-socials a {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--site-social-radius, 9999px);
   border: 1px solid var(--site-social-border, rgba(255, 255, 255, 0.16));
   background: var(--site-social-bg, rgba(255, 255, 255, 0.05));

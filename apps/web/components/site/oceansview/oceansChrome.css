@@ -137,8 +137,8 @@
   display: block;
   font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
   font-weight: 600;
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: 11px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--site-mute, #5e7884);
   margin-top: 3px;
@@ -181,7 +181,11 @@
   border: none;
   color: var(--site-ink, #0e2c3a);
   cursor: pointer;
-  padding: 6px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 /* over-image (transparent, before scroll) */
 .ovchrome .nav.over .brand-name,
