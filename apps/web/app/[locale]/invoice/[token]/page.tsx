@@ -71,7 +71,7 @@ export default async function PublicInvoicePage({
   const { data: invoice } = await admin
     .from("invoices")
     .select(
-      "id, invoice_number, status, issued_at, paid_at, total_amount, subtotal, currency, host_id, booking_id, guest_snapshot, line_items, hosted_token",
+      "id, invoice_number, status, issued_at, paid_at, total_amount, subtotal, vat_amount, currency, host_id, booking_id, guest_snapshot, line_items, hosted_token",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -162,13 +162,15 @@ export default async function PublicInvoicePage({
   }
 
   const discount = Number(lines.discount_amount ?? 0);
-  // VAT is whatever sits between the ex-VAT net (subtotal − discount) and the
-  // VAT-inclusive total the booking stored. > 0 ⇒ this is a tax invoice.
-  const vat =
-    Math.round(
-      (Number(invoice.total_amount) - (Number(invoice.subtotal) - discount)) *
-        100,
-    ) / 100;
+  // VAT is authoritative from the stored column — never re-derived from the
+  // totals. (Deriving it as `total − (subtotal − discount)` double-subtracted
+  // the discount, since `subtotal` is already stored net of it, so a coupon
+  // masqueraded as VAT — a non-VAT host's invoice showed phantom VAT = the
+  // discount and mislabelled itself a Tax Invoice.)
+  const vat = Number(invoice.vat_amount ?? 0);
+  // Show the subtotal PRE-discount so the itemized discount line foots to the
+  // total (stored `subtotal` is net of the discount: total − vat).
+  const subtotalGross = Number(invoice.subtotal) + discount;
   const isTaxInvoice = vat > 0.005;
   const isPaid = status === "paid";
 
@@ -211,7 +213,7 @@ export default async function PublicInvoicePage({
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
       totals={[
-        { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
+        { label: "Subtotal", value: formatMoney(subtotalGross, c) },
         ...(discount > 0
           ? [
               {

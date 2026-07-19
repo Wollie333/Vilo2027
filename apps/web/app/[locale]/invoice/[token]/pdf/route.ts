@@ -276,7 +276,9 @@ export async function GET(
       nights: lines.nights,
     },
     lines: lineRows,
-    subtotal: invoice.subtotal,
+    // Subtotal shown PRE-discount so the itemized discount line foots to the
+    // total (stored `subtotal` is net of the discount: total − vat).
+    subtotal: Number(invoice.subtotal) + Number(lines.discount_amount ?? 0),
     discountAmount: lines.discount_amount ?? 0,
     discountLabel: lines.coupon_code ?? null,
     seasonSummary: seasonSummary(lines.price_breakdown),

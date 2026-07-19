@@ -94,6 +94,38 @@ invoice for a coupon booking emitted `discount_amount:250, coupon_code:AUDIT10`.
 - Cosmetic: FK names `coupons_listing_id_fkey`/`_room_id_fkey` still say "listing"
   after the `property_id` column rename.
 
+## Live-green e2e — 2026-07-19 (real bookings, both VAT states)
+
+First true end-to-end exercise of the money path (0 coupon bookings existed before).
+Driven as a real authed guest through the 3-step checkout on `mana-bush-lodge`.
+
+- **Non-VAT host** — `SAVE20` (20% order) on Tamboti 2 nights (R10 800) →
+  guest preview −R2 160 → **server re-priced identically** (BK-0078: `coupon_id`,
+  `coupon_discount 2160`, total R8 640) → `redeem_coupon` fired (`coupon_redemptions`
+  row R2 160 + `redeemed_count` 0→1) → **coupon line item shows for guest** (trip
+  receipt) **and host** (booking Payments card) → invoice INV-0102 itemizes it.
+- **VAT-registered host** — set the property VAT number, `VATTEST20` (20% order) →
+  **VAT recomputed on the DISCOUNTED base**: R10 800 ex-VAT − R2 160 → R8 640,
+  VAT 15% = R1 296, total R9 936 (BK-0079). Invoice INV-0103 = **Tax Invoice** with a
+  proper **VAT (15%) R1 296** line beside the discount, foots to R9 936.
+
+### 🔧 FIXED — invoice showed phantom VAT = the discount (non-VAT hosts)
+Both invoice renderers stored `subtotal` NET of the discount (`total − vat`) yet showed
+a separate discount line, so the totals block couldn't foot. Worse, the **hosted page
+re-derived** VAT as `total − (subtotal − discount)` = `vat_stored + discount` → a non-VAT
+host's coupon invoice fabricated a VAT line equal to the discount and mislabelled itself a
+**Tax Invoice**. Fix (presentation-only, no stored-data change, no-discount invoices
+byte-identical): show Subtotal **pre-discount** (`subtotal + discount`) and trust the stored
+`vat_amount` (never re-derive). Files: `invoice/[token]/page.tsx`,
+`invoice/[token]/pdf/route.ts`. Verified live (hosted HTML + rastered PDF) for both VAT and
+non-VAT: Subtotal → Discount (CODE) → [VAT (15%) if registered] → Total, all footing.
+
+### Known behaviour (not changed) — redemption not released on cancel
+`on_booking_cancelled` releases blocked_dates + **special** redemptions, but NOT coupon
+redemptions — a cancelled/declined coupon booking keeps consuming `redeemed_count` +
+`per_guest_limit`. Defensible (anti cancel-rebook farming) but inconsistent with specials;
+founder to decide if cancel should return a coupon slot.
+
 ## Follow-ups / ideas
 - Preview could note "won't apply below R{min_spend}" when a minimum is set.
 - Copy-code affordance + clone-coupon on the list.
