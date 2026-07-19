@@ -300,7 +300,12 @@ export function SabelaHome({
               {galShots.map((g, i) => (
                 <div className={galSpan(i)} key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.url} alt={g.caption || brandName} />
+                  <img
+                    src={g.url}
+                    alt={g.caption || brandName}
+                    loading="lazy"
+                    decoding="async"
+                  />
                   {g.caption ? (
                     <span className="g-cap">{g.caption}</span>
                   ) : null}
@@ -345,7 +350,12 @@ export function SabelaHome({
                     {r.badge ? <span className="rc-tag">{r.badge}</span> : null}
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imageUrl} alt={r.name} />
+                      <img
+                        src={r.imageUrl}
+                        alt={r.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : null}
                   </div>
                   <div className="rc-body">
@@ -505,7 +515,12 @@ export function SabelaHome({
               ) : locPhoto ? (
                 <div className="loc-frame">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={locPhoto} alt={brandName} />
+                  <img
+                    src={locPhoto}
+                    alt={brandName}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
               ) : null}
             </div>

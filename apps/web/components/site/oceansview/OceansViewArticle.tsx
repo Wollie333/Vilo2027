@@ -151,7 +151,12 @@ export function OceansViewArticle({
                   <span className="av">
                     {post.authorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.authorAvatarUrl} alt={post.authorName} />
+                      <img
+                        src={post.authorAvatarUrl}
+                        alt={post.authorName}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       initials(post.authorName)
                     )}
@@ -234,7 +239,12 @@ export function OceansViewArticle({
                     <div className="p-img">
                       {rc ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={rc} alt={r.title} />
+                        <img
+                          src={rc}
+                          alt={r.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <div className="cover-ph" aria-hidden>
                           <span>{(r.title?.[0] ?? "•").toUpperCase()}</span>
@@ -258,6 +268,8 @@ export function OceansViewArticle({
             <img
               src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=2000&q=80"
               alt={brandName}
+              loading="lazy"
+              decoding="async"
             />
             <div className="banner-in">
               <h2>Come stay with us</h2>

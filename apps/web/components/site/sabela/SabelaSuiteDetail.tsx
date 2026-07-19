@@ -458,7 +458,12 @@ export function SabelaSuiteDetail({
                       {tag ? <span className="rc-tag">{tag}</span> : null}
                       {r.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.imageUrl} alt={r.name} />
+                        <img
+                          src={r.imageUrl}
+                          alt={r.name}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : null}
                     </div>
                     <div className="rc-body">

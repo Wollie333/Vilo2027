@@ -120,7 +120,12 @@ export function MarmaladeExperiences({
                     <article className="pc" key={`${e.title}-${i}`}>
                       <div className="pi">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img} alt={e.title} />
+                        <img
+                          src={img}
+                          alt={e.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                       <div className="cap">{e.title}</div>
                       {e.body ? (
@@ -142,7 +147,7 @@ export function MarmaladeExperiences({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 make a weekend of it

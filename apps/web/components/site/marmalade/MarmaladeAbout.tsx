@@ -171,7 +171,12 @@ export function MarmaladeAbout({
             <div className="frame-wrap">
               <div className="frame photo ar-45">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={storyImg} alt={brandName} />
+                <img
+                  src={storyImg}
+                  alt={brandName}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <span className="photo-cap">a corner of the house</span>
               </div>
               <span
@@ -226,10 +231,20 @@ export function MarmaladeAbout({
                 <div className="frame photo ar-45">
                   {hostPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={hostPhotoUrl} alt={`Your host at ${brandName}`} />
+                    <img
+                      src={hostPhotoUrl}
+                      alt={`Your host at ${brandName}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={storyImg} alt={brandName} />
+                    <img
+                      src={storyImg}
+                      alt={brandName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                   <span className="photo-cap">the two of us</span>
                 </div>
@@ -271,7 +286,12 @@ export function MarmaladeAbout({
                 <div className="g" key={i}>
                   <div className="im">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={g.url} alt={g.caption || brandName} />
+                    <img
+                      src={g.url}
+                      alt={g.caption || brandName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                   {g.caption ? <div className="cap">{g.caption}</div> : null}
                 </div>
@@ -286,7 +306,7 @@ export function MarmaladeAbout({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 come for breakfast

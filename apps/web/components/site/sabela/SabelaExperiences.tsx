@@ -112,7 +112,12 @@ export function SabelaExperiences({
                       {img ? (
                         <div className="ec-img">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={e.title} />
+                          <img
+                            src={img}
+                            alt={e.title}
+                            loading="lazy"
+                            decoding="async"
+                          />
                         </div>
                       ) : (
                         <div className="ec-img ec-ph">

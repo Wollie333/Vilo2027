@@ -133,7 +133,12 @@ export function MarmaladeArticle({
                   <span className="av">
                     {post.authorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.authorAvatarUrl} alt={post.authorName} />
+                      <img
+                        src={post.authorAvatarUrl}
+                        alt={post.authorName}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       initials(post.authorName)
                     )}
@@ -195,7 +200,12 @@ export function MarmaladeArticle({
                     <div className="pi">
                       {rc ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={rc} alt={r.title} />
+                        <img
+                          src={rc}
+                          alt={r.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <div className="cover-ph" aria-hidden>
                           <span>{(r.title?.[0] ?? "•").toUpperCase()}</span>

@@ -138,7 +138,12 @@ export function MarmaladeRooms({
                       {price ? <span className="pcprice">{price}</span> : null}
                       {r.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.imageUrl} alt={r.name} />
+                        <img
+                          src={r.imageUrl}
+                          alt={r.name}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : null}
                     </div>
                     <div className="cap">{r.name}</div>
@@ -180,7 +185,7 @@ export function MarmaladeRooms({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 the kettle&apos;s on

@@ -89,7 +89,12 @@ export function OceansViewExperiences({
                       {img ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={e.title} />
+                          <img
+                            src={img}
+                            alt={e.title}
+                            loading="lazy"
+                            decoding="async"
+                          />
                         </>
                       ) : (
                         <div className="exp-ph" aria-hidden>
@@ -117,6 +122,8 @@ export function OceansViewExperiences({
             <img
               src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=2000&q=80"
               alt={brandName}
+              loading="lazy"
+              decoding="async"
             />
             <div className="banner-in">
               <h2>Plan it, or don&apos;t</h2>

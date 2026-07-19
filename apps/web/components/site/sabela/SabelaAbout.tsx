@@ -165,7 +165,12 @@ export function SabelaAbout({
           <div className="split">
             <div className="split-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={introImg} alt={brandName} />
+              <img
+                src={introImg}
+                alt={brandName}
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div>
               <p className="lead ink">{lead}</p>
@@ -195,7 +200,12 @@ export function SabelaAbout({
           <div className="host">
             <div className="host-img">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={hostImg} alt={`Your host at ${brandName}`} />
+              <img
+                src={hostImg}
+                alt={`Your host at ${brandName}`}
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div>
               <span className="eyebrow">{hostEyebrow}</span>
@@ -246,7 +256,12 @@ export function SabelaAbout({
               {galShots.map((g, i) => (
                 <div className={galSpan(i)} key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.url} alt={g.caption || brandName} />
+                  <img
+                    src={g.url}
+                    alt={g.caption || brandName}
+                    loading="lazy"
+                    decoding="async"
+                  />
                   {g.caption ? (
                     <span className="g-cap">{g.caption}</span>
                   ) : null}

@@ -91,6 +91,8 @@ export function SabelaFooter({
                         quality: 85,
                       })}
                       alt={brand.name}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     initial

@@ -86,7 +86,12 @@ export function MarmaladeGallery({
                   <div className={rhythm} key={i}>
                     <div className="im">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={g.url} alt={g.caption || brandName} />
+                      <img
+                        src={g.url}
+                        alt={g.caption || brandName}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                     {g.caption ? <div className="cap">{g.caption}</div> : null}
                   </div>
@@ -102,7 +107,7 @@ export function MarmaladeGallery({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 better in person

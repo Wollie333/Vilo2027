@@ -149,7 +149,7 @@ export function OceansViewRooms({
             <div className="frame-wrap">
               <div className="frame ar-43">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img} alt={r.name} />
+                <img src={img} alt={r.name} loading="lazy" decoding="async" />
               </div>
               {price ? (
                 <div
@@ -239,7 +239,7 @@ export function OceansViewRooms({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <h2>Not sure which room?</h2>
               <p>

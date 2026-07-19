@@ -85,7 +85,12 @@ export function SabelaGallery({
               {shots.map((g, i) => (
                 <figure className="m" key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.url} alt={g.caption || brandName} />
+                  <img
+                    src={g.url}
+                    alt={g.caption || brandName}
+                    loading="lazy"
+                    decoding="async"
+                  />
                   {g.caption ? (
                     <figcaption className="cap">{g.caption}</figcaption>
                   ) : null}

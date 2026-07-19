@@ -218,7 +218,12 @@ export function OceansViewAbout({
             <div className="frame-wrap" style={{ position: "relative" }}>
               <div className="frame ar-45">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={storyImg} alt={brandName} />
+                <img
+                  src={storyImg}
+                  alt={brandName}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -277,10 +282,20 @@ export function OceansViewAbout({
                 <div className="frame ar-45">
                   {hostPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={hostPhotoUrl} alt={`Your host at ${brandName}`} />
+                    <img
+                      src={hostPhotoUrl}
+                      alt={`Your host at ${brandName}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={storyImg} alt={brandName} />
+                    <img
+                      src={storyImg}
+                      alt={brandName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                 </div>
               </div>
@@ -309,7 +324,7 @@ export function OceansViewAbout({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <h2>Come stay with us</h2>
               <p>

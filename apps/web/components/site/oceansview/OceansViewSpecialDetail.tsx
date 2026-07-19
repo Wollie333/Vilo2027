@@ -381,7 +381,12 @@ export function OceansViewSpecialDetail({
                       ) : null}
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={img} alt={s.title} />
+                        <img
+                          src={img}
+                          alt={s.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : null}
                     </div>
                     <div className="spb">

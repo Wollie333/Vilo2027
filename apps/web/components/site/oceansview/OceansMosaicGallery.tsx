@@ -70,6 +70,8 @@ export function OceansMosaicGallery({
               alt={img.caption ?? `${brandName} — photo ${i + 1}`}
               onClick={() => setIdx(i)}
               style={{ cursor: "zoom-in" }}
+              loading="lazy"
+              decoding="async"
             />
           </div>
         ))}
@@ -128,6 +130,8 @@ export function OceansMosaicGallery({
             src={shots[idx].url}
             alt={shots[idx].caption ?? `${brandName} — photo ${idx + 1}`}
             onClick={(e) => e.stopPropagation()}
+            loading="lazy"
+            decoding="async"
           />
           {multiple ? (
             <button

@@ -335,7 +335,12 @@ export function OceansViewHome({
             <div className="frame-wrap">
               <div className="frame ar-45">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={introImg} alt={`${brandName}`} />
+                <img
+                  src={introImg}
+                  alt={`${brandName}`}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -399,7 +404,12 @@ export function OceansViewHome({
                     ) : null}
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imageUrl} alt={r.name} />
+                      <img
+                        src={r.imageUrl}
+                        alt={r.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : null}
                   </div>
                   <div className="room-body">
@@ -440,7 +450,12 @@ export function OceansViewHome({
                 <div className="exp" key={i}>
                   {e.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={e.imageUrl} alt={e.title} />
+                    <img
+                      src={e.imageUrl}
+                      alt={e.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : null}
                   <div className="exp-b">
                     <h3>{e.title}</h3>
@@ -580,7 +595,12 @@ export function OceansViewHome({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={`${brandName}`} />
+            <img
+              src={ctaImg}
+              alt={`${brandName}`}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span
                 className="hero-chip"

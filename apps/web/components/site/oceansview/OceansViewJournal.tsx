@@ -31,7 +31,7 @@ function Cover({
     return (
       <div className={className}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={title} />
+        <img src={url} alt={title} loading="lazy" decoding="async" />
       </div>
     );
   }
@@ -194,6 +194,8 @@ export function OceansViewJournal({
             <img
               src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=2000&q=80"
               alt={brandName}
+              loading="lazy"
+              decoding="async"
             />
             <div className="banner-in">
               <h2>Come see it for yourself</h2>

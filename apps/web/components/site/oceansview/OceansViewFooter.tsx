@@ -90,6 +90,8 @@ export function OceansViewFooter({
                         quality: 85,
                       })}
                       alt={brand.name}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     initial

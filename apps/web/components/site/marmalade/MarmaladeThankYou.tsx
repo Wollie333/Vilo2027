@@ -119,7 +119,12 @@ export function MarmaladeThankYou({
                 <div className="tysum-top">
                   {roomImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={roomImageUrl} alt={roomName} />
+                    <img
+                      src={roomImageUrl}
+                      alt={roomName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : null}
                   <div>
                     <span className="tysum-eye">{brandName}</span>

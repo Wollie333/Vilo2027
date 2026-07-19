@@ -165,7 +165,12 @@ export function MarmaladeJournal({
                         ) : null}
                         {cover(p) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={cover(p) as string} alt={p.title} />
+                          <img
+                            src={cover(p) as string}
+                            alt={p.title}
+                            loading="lazy"
+                            decoding="async"
+                          />
                         ) : (
                           <div className="cover-ph" aria-hidden>
                             <span>{(p.title?.[0] ?? "•").toUpperCase()}</span>
@@ -197,7 +202,7 @@ export function MarmaladeJournal({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 read it from a good bed

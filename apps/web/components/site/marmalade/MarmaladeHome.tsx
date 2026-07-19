@@ -265,7 +265,12 @@ export function MarmaladeHome({
             <div className="frame-wrap">
               <div className="frame photo ar-45 tilt">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={introImg} alt={brandName} />
+                <img
+                  src={introImg}
+                  alt={brandName}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <span className="photo-cap">a corner of the house</span>
               </div>
               <span
@@ -315,7 +320,12 @@ export function MarmaladeHome({
                     ) : null}
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imageUrl} alt={r.name} />
+                      <img
+                        src={r.imageUrl}
+                        alt={r.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : null}
                   </div>
                   <div className="cap">{r.name}</div>
@@ -378,7 +388,12 @@ export function MarmaladeHome({
                 <div className="g" key={i}>
                   <div className="im">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={g.url} alt={g.caption || brandName} />
+                    <img
+                      src={g.url}
+                      alt={g.caption || brandName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                 </div>
               ))}
@@ -481,7 +496,12 @@ export function MarmaladeHome({
                 <div className="frame-wrap">
                   <div className="frame photo ar-43">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={shots[2]?.url || shots[0]?.url} alt={brandName} />
+                    <img
+                      src={shots[2]?.url || shots[0]?.url}
+                      alt={brandName}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                 </div>
               ) : null}
@@ -495,7 +515,7 @@ export function MarmaladeHome({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 the kettle&apos;s on

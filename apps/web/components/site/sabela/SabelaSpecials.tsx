@@ -146,7 +146,12 @@ export function SabelaSpecials({
                         <span className="sp-left">Only {s.remaining} left</span>
                       ) : null}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt={s.title} />
+                      <img
+                        src={img}
+                        alt={s.title}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                     <div className="sp-body">
                       <h3>{s.title}</h3>

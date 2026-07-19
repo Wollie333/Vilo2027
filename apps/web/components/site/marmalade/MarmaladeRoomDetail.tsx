@@ -409,7 +409,12 @@ export function MarmaladeRoomDetail({
                     ) : null}
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imageUrl} alt={r.name} />
+                      <img
+                        src={r.imageUrl}
+                        alt={r.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : null}
                   </div>
                   <div className="cap">{r.name}</div>

@@ -92,6 +92,8 @@ export function MarmaladeFooter({
                         quality: 85,
                       })}
                       alt={brand.name}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     initial

@@ -135,7 +135,12 @@ export function MarmaladeSpecials({
                         <span className="sp-left">Only {s.remaining} left</span>
                       ) : null}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt={s.title} />
+                      <img
+                        src={img}
+                        alt={s.title}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                     <div className="spb">
                       <h3>{s.title}</h3>
@@ -174,7 +179,7 @@ export function MarmaladeSpecials({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} />
+            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 first dibs

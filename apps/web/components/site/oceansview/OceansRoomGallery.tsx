@@ -158,6 +158,8 @@ export function OceansRoomGallery({
             src={shots[idx].url}
             alt={shots[idx].alt ?? `${roomName} — photo ${idx + 1}`}
             onClick={(e) => e.stopPropagation()}
+            loading="lazy"
+            decoding="async"
           />
           {multiple ? (
             <button
