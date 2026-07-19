@@ -10,9 +10,10 @@
 > checkout). Now they append `&theme=<previewThemeSlug>` when set. Checkout/search are token-themed BY DESIGN
 > (no bespoke per-theme layout) — they now inherit the previewed theme's colours/fonts/chrome. Verified: Book
 > from marmalade preview → `/book` renders `.mmchrome` + `--site-bg #F4ECDB` + `--site-accent #C8702E` + Gloock.
-> **Known minor gap:** the PREVIEW TOOLBAR chips (`.pb-link`, from `buildSitePreviewPages`) still drop the
-> theme — clicking a page via the top preview bar loses the previewed theme. Low priority; fix in
-> `buildSitePreviewPages` if it annoys.
+> **(Correction:** the PREVIEW TOOLBAR chips (`.pb-link`) are NOT broken — I mis-flagged them. Their raw
+> `href` is tenant-relative with no params BY DESIGN; the client interceptor `SitePreviewLinks.tsx` adds
+> `site`+`preview`+`theme` on every internal click. Verified: clicking a preview-bar chip keeps the theme.
+> No fix needed there.)
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
