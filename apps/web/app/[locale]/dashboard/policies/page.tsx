@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ShieldCheck } from "lucide-react";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PolicyLibrary, type PolicyCard } from "./PolicyLibrary";
@@ -45,12 +46,15 @@ export default async function PoliciesPage() {
 
   // Materialise the locked refund presets for this host (idempotent). Seed one
   // editable default Terms & Conditions doc too (privacy stays platform-wide).
-  await supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id });
-  await supabase.rpc("ensure_host_booking_terms", { p_host_id: host.id });
+  // Seeder RPCs are service_role-only (they bypass RLS to write for a host);
+  // host.id is the caller's own host, so running them via admin is safe.
+  const seed = createAdminClient();
+  await seed.rpc("ensure_host_policy_presets", { p_host_id: host.id });
+  await seed.rpc("ensure_host_booking_terms", { p_host_id: host.id });
   // Guarantee a default per type exists (cancellation prefers the Moderate
   // preset) so every listing without an explicit assignment still resolves a
   // policy — and refunds are enforceable. Idempotent.
-  await supabase.rpc("ensure_host_default_policies", { p_host_id: host.id });
+  await seed.rpc("ensure_host_default_policies", { p_host_id: host.id });
 
   const { data: policies } = await supabase
     .from("policies")

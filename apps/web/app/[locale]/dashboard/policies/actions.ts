@@ -6,6 +6,7 @@ import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { assertFullHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
 import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -63,10 +64,12 @@ async function fetchOwnedPolicy(
   return (data as PolicyRow | null) ?? null;
 }
 
-/** Materialise the locked refund presets for this host (idempotent). */
+/** Materialise the locked refund presets for this host (idempotent). Seeder RPCs
+ *  are service_role-only (they bypass RLS to write for a host); the caller's own
+ *  hostId is resolved server-side, so running them via the admin client is safe. */
 async function ensurePresets(hostId: string): Promise<void> {
-  const supabase = createServerClient();
-  await supabase.rpc("ensure_host_policy_presets", { p_host_id: hostId });
+  const admin = createAdminClient();
+  await admin.rpc("ensure_host_policy_presets", { p_host_id: hostId });
 }
 
 /**
@@ -76,8 +79,8 @@ async function ensurePresets(hostId: string): Promise<void> {
  * immediately valid on every listing lacking an explicit assignment.
  */
 async function ensureDefaults(hostId: string): Promise<void> {
-  const supabase = createServerClient();
-  await supabase.rpc("ensure_host_default_policies", { p_host_id: hostId });
+  const admin = createAdminClient();
+  await admin.rpc("ensure_host_default_policies", { p_host_id: hostId });
 }
 
 function validate(
@@ -675,9 +678,7 @@ export async function retirePolicyAction(
       .update({ is_default: true, status: "active" })
       .eq("id", replacement.id);
   }
-  await supabase.rpc("ensure_host_default_policies", {
-    p_host_id: host.hostId,
-  });
+  await ensureDefaults(host.hostId);
 
   revalidatePath("/dashboard/policies");
   return { ok: true };
