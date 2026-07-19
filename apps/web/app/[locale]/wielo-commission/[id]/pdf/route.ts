@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { loadCommissionStatement } from "@/lib/billing/commission-statement";
 import {
   getWieloBusinessProfile,
+  wieloLogoDataUri,
   wieloSnapshotToBusiness,
 } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
@@ -46,7 +47,9 @@ export async function GET(
     lines: stmt.lines,
     total: stmt.total,
     currency: stmt.currency,
-    logoUrl: null,
+    logoUrl: await wieloLogoDataUri(),
+    // No custom Wielo logo uploaded → show the Wielo roundel, not "MP" initials.
+    fallbackMark: { kind: "wielo" },
     brandName: await getBrandName(),
   });
 

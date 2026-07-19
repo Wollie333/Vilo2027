@@ -79,6 +79,8 @@ export type InvoiceProps = {
   legalLine?: string | null;
   /** Host logo (data URI or public URL) for the branded header. */
   logoUrl?: string | null;
+  /** Header mark when no logo is set — Wielo docs pass `{ kind: "wielo" }`. */
+  fallbackMark?: PdfMark | null;
   /** Configurable platform brand name (see lib/brand.ts). */
   brandName: string;
 };
@@ -92,6 +94,9 @@ export function buildIssuerFromHost(
     business?: InvoiceBusiness | null;
   },
   logoUrl?: string | null,
+  /** Mark to use when no logo is set (defaults to gradient initials). Wielo's
+   *  own documents pass `{ kind: "wielo" }` so the roundel shows, not "MP". */
+  fallbackMark?: PdfMark | null,
 ) {
   const name =
     host.business?.tradingName ??
@@ -110,7 +115,7 @@ export function buildIssuerFromHost(
   if (host.business?.vatNumber) meta.push(`VAT ${host.business.vatNumber}`);
   const mark: PdfMark = logoUrl
     ? { kind: "logo", url: logoUrl }
-    : { kind: "initials", text: initials(name) };
+    : (fallbackMark ?? { kind: "initials", text: initials(name) });
   return { mark, name, metaLines: meta };
 }
 
@@ -142,7 +147,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
   const isPaid = invoice.status === "paid";
   const isTax = invoice.vatAmount > 0;
   const kind = isTax ? "Tax Invoice" : "Invoice";
-  const issuer = buildIssuerFromHost(invoice.host, invoice.logoUrl);
+  const issuer = buildIssuerFromHost(
+    invoice.host,
+    invoice.logoUrl,
+    invoice.fallbackMark,
+  );
 
   const columns: PdfColumn[] = [
     { label: "#", flex: 0.4, align: "center" },

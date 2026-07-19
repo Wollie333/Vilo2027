@@ -1,8 +1,14 @@
 import {
+  Circle,
+  Defs,
   Document,
   Image,
+  LinearGradient,
   Page,
+  Path,
+  Stop,
   StyleSheet,
+  Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
@@ -21,7 +27,8 @@ import { BRAND } from "./styles";
 
 export type PdfMark =
   | { kind: "initials"; text: string }
-  | { kind: "logo"; url: string };
+  | { kind: "logo"; url: string }
+  | { kind: "wielo" };
 
 export type PdfColumn = {
   label: string;
@@ -89,6 +96,8 @@ export function PdfPaper(p: PdfPaperProps) {
             {p.issuer.mark.kind === "logo" ? (
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={p.issuer.mark.url} style={s.logo} />
+            ) : p.issuer.mark.kind === "wielo" ? (
+              <WieloRoundel />
             ) : (
               <Text style={s.markSquare}>{p.issuer.mark.text}</Text>
             )}
@@ -148,8 +157,9 @@ export function PdfPaper(p: PdfPaperProps) {
           </View>
         ) : null}
 
-        {/* line table */}
-        <View style={s.thead}>
+        {/* line table — header repeats on every page for multi-page ledgers
+            (e.g. long statements) so continuation rows keep their columns */}
+        <View style={s.thead} fixed>
           {p.columns.map((c, i) => (
             <Text
               key={i}
@@ -274,6 +284,44 @@ export function PdfPaper(p: PdfPaperProps) {
   );
 }
 
+// The Wielo roundel — a react-pdf port of the on-screen FinancialDocument mark
+// (gradient teal disc with a white "W"). Shown as the header mark on Wielo's own
+// platform documents when no custom Wielo logo has been uploaded.
+const WMARK = "M52 62 L79 138 L100 92 L121 138 L148 62";
+function WieloRoundel() {
+  return (
+    <Svg viewBox="0 0 200 200" style={s.roundel}>
+      <Defs>
+        <LinearGradient id="wbg" x1="0" y1="0" x2="200" y2="200">
+          <Stop offset="0" stopColor="#12B886" />
+          <Stop offset="1" stopColor="#0B7A5A" />
+        </LinearGradient>
+        <LinearGradient id="wf" x1="0" y1="0" x2="0" y2="200">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="1" stopColor="#C8EBDC" />
+        </LinearGradient>
+      </Defs>
+      <Circle cx="100" cy="100" r="100" fill="url(#wbg)" />
+      <Path
+        d={WMARK}
+        fill="none"
+        stroke="#075740"
+        strokeWidth="26"
+        strokeLinejoin="round"
+        transform="translate(6,7)"
+        opacity="0.9"
+      />
+      <Path
+        d={WMARK}
+        fill="none"
+        stroke="url(#wf)"
+        strokeWidth="26"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function Notes({ notes }: { notes: PdfNote[] }) {
   return (
     <>
@@ -325,6 +373,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     marginRight: 12,
   },
+  roundel: { width: 44, height: 44, marginRight: 12 },
   issuerText: { flex: 1 },
   bizName: {
     fontSize: 15,

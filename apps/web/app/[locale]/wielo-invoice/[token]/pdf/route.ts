@@ -110,6 +110,8 @@ export async function GET(
     },
     legalLine,
     logoUrl,
+    // No custom Wielo logo uploaded → show the Wielo roundel, not "MP" initials.
+    fallbackMark: { kind: "wielo" },
     brandName,
   });
 

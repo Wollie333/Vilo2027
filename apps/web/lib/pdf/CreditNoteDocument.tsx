@@ -8,6 +8,7 @@ import {
   PdfPaper,
   type PdfCell,
   type PdfColumn,
+  type PdfMark,
   type PdfNote,
 } from "./PdfPaper";
 
@@ -42,6 +43,8 @@ export type CreditNoteProps = {
   /** Very-small-print legal line under the footer. */
   legalLine?: string | null;
   logoUrl?: string | null;
+  /** Header mark when no logo is set — Wielo docs pass `{ kind: "wielo" }`. */
+  fallbackMark?: PdfMark | null;
   /** Configurable platform brand name (see lib/brand.ts). */
   brandName: string;
 };
@@ -51,7 +54,11 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
   const kind = note.docKind ?? "Credit note";
   // ASCII hyphen — Helvetica has no U+2212 MINUS SIGN glyph (it renders blank).
   const sign = note.positive ? "+" : "-";
-  const issuer = buildIssuerFromHost(note.host, note.logoUrl);
+  const issuer = buildIssuerFromHost(
+    note.host,
+    note.logoUrl,
+    note.fallbackMark,
+  );
 
   const balanceLabel =
     kind.toLowerCase() === "refund"
