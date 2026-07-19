@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `6561ebd` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt9 — Marmalade Rooms/Room-detail/Specials/Special-detail/Contact + contact phone/email)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `96c5144` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt10 — Marmalade About/Experiences/Gallery/Journal/Article; only Thank-you left)
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
@@ -75,6 +75,22 @@
   (generic `LocationSection` already rendered phone/email when present — the fix was the DATA).
   Marmalade contact's reference "reassurance" note was dropped (founder previously preferred the guest-review
   card carry that column — see the OceansView contact `c1814b2` precedent).
+- **Marmalade — About + Experiences + Gallery + Journal (index) + Article** all bespoke + LIVE-VERIFIED
+  (`96c5144`). `MarmaladeAbout` (`.mmabout`), `MarmaladeExperiences` (`.mmexp`), `MarmaladeGallery`
+  (`.mmgallery`), `MarmaladeJournal` (`.mmjournal`), `MarmaladeArticle` (`.mmarticle`). Wired: SitePageView
+  (about/experiences/gallery), blog index (`app/[locale]/site/blog/page.tsx`) + article
+  (`…/blog/[postSlug]/page.tsx`) behind `preset === "marmalade"`; prop interfaces mirror the OceansView
+  components 1:1. **pageHasHero:** About + Experiences + Article open full-bleed (true); Gallery + Journal
+  index open with a plain head (false — faithful to the marmalade references). Verified on mana
+  (`?site=mana&preview=1&theme=marmalade`, DOM + media-rule checks): About ("A house with stories"),
+  Experiences (empty-state — mana has no experiences content), Gallery (43 live photos), Journal (2 real
+  posts), Article (17-para body + related). Zero horizontal overflow on every page; responsive `@media`
+  collapse rules present (grids …@1040 →1@560, splits →1@860, tilts reset on phones).
+
+  **➡ MARMALADE IS NOW COMPLETE except THANK-YOU.** Every content/detail page is bespoke. The only Marmalade
+  page left is the **Thank-you** design — and NO theme has a bespoke thank-you yet (the booking/contact/quote/
+  custom goal LOGIC + tracking events already exist; only the pixel design is missing). See the THANK-YOU
+  section below — that's the next Phase-1 item, then start **Sabela**.
 
 ---
 
@@ -93,10 +109,11 @@ are transactional — token-themed, low priority).
 
 **Suggested order per theme:** Home → Rooms → Room detail → About → Contact → Specials (+ reuse the
 special-detail generic OR build a bespoke one) → Journal (index + article) → Experiences → Gallery →
-Thank-you. **Marmalade DONE + live-verified: Home, Rooms, Room detail, Specials, Special detail, Contact.**
-Next up (Marmalade): **About** (`docs/themes/marmalade/pages/About.html`) → **Journal** (index + article)
-→ **Experiences** → **Gallery** → **Thank-you**. Then start **Sabela** (preset `hotel`, `.sb*`). Sabela's
-generic contact will also show phone/email now (the data fix is theme-agnostic).
+Thank-you. **Marmalade DONE + live-verified: Home, Rooms, Room detail, Specials, Special detail, Contact, About,
+Experiences, Gallery, Journal (index + article).** ONLY **Thank-you** remains for Marmalade — and no theme
+has a bespoke thank-you yet (see the THANK-YOU section; logic/events exist, design missing). After Marmalade
+Thank-you, start **Sabela** (preset `hotel`, `.sb*`). Sabela's generic contact already shows phone/email now
+(the data fix is theme-agnostic).
 
 ### THANK-YOU (part of Phase 1) — the logic already exists, only the DESIGN is missing
 Routes: `app/[locale]/site/book/thank-you` (booking → **Purchase** pixel event) and
