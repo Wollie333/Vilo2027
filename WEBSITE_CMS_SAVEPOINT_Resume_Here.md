@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `392f377` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt7 — phased plan locked)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `326e908` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt8 — Marmalade HOME done + live-verified)
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
@@ -38,6 +38,19 @@
   **Book** CTA → special-locked checkout. Auto sub-menu mirrors rooms (`autoSpecials`/`expandAutoSpecials`/
   `specialMenuLinks`, inferred onto the specials nav item so existing sites get it).
 - **Rooms detail + auto "Rooms" sub-menu** already existed (`autoRooms`); specials mirrors it.
+- **Marmalade — HOME page bespoke + live-verified** (`326e908`) — first Marmalade PAGE (chrome
+  already existed). `marmalade/MarmaladeHome.tsx` + `marmaladeHome.css` (scoped `.mmhome`), ported
+  class-by-class from `docs/themes/marmalade/pages/Home.html` + `theme.css`. Same prop interface as
+  `OceansViewHome` + a `location` prop. Sections (in order): postcard HERO · availability bar
+  (shared `BookingSearchSection`, self-themed) · intro split · rooms postcards (live) · highlights
+  (3 static direct-booking value cards) · taped gallery (live) · reviews (live) · "Finding us"
+  location (live address + POIs + map iframe, conditional) · CTA banner. Routed in `SitePageView`
+  behind `preset === "marmalade" && page.kind === "home"`. **Verified on mana** via
+  `?site=mana&preview=1&theme=marmalade` (DOM + computed-style + layout-integrity): `.mmhome` mounts
+  in `.mmchrome`, 9 sections in order, live rooms (Leadwood/Marula/Tamboti + real prices), 6 gallery
+  photos, 3 reviews, address "Hazyview, Mpumalanga, ZA"; Gloock/Caveat fonts + terracotta `#C8702E`
+  accent + cream `#F4ECDB` bg all applied; no hidden/opacity-0 content, zero horizontal overflow.
+  (Screenshots kept timing out — the documented flakiness; DOM/computed-style is the reliable path.)
 
 ---
 
@@ -56,7 +69,8 @@ are transactional — token-themed, low priority).
 
 **Suggested order per theme:** Home → Rooms → Room detail → About → Contact → Specials (+ reuse the
 special-detail generic OR build a bespoke one) → Journal (index + article) → Experiences → Gallery →
-Thank-you. Start with **Marmalade Home**.
+Thank-you. **Marmalade Home is DONE + live-verified (`326e908`)** — next up: **Marmalade Rooms**
+(`docs/themes/marmalade/pages/Rooms.html`), then Room detail, then the rest, then Sabela.
 
 ### THANK-YOU (part of Phase 1) — the logic already exists, only the DESIGN is missing
 Routes: `app/[locale]/site/book/thank-you` (booking → **Purchase** pixel event) and
