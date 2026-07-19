@@ -1,0 +1,673 @@
+/*
+ * Marmalade House — bespoke "Postcards" home-page design, ported faithfully from
+ * the founder's reference (docs/themes/marmalade/theme.css + pages/Home.html body
+ * sections). Every selector is scoped to `.mmhome` so the ported base classes
+ * (.wrap/.section/.pc/.btn/.gal/...) never collide with the app; all colour /
+ * type / shape comes from the theme's `--site-*` tokens (with the reference's own
+ * hard fallbacks), so it stays on-theme and host-editable.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.mmhome {
+  color: var(--site-ink, #2c2620);
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  line-height: var(--site-leading-body, 1.6);
+}
+.mmhome * {
+  box-sizing: border-box;
+}
+.mmhome img {
+  display: block;
+  max-width: 100%;
+}
+.mmhome p {
+  margin: 0;
+}
+.mmhome a {
+  color: inherit;
+  text-decoration: none;
+}
+.mmhome h1,
+.mmhome h2,
+.mmhome h3,
+.mmhome h4 {
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-weight: var(--site-weight-heading, 400);
+  letter-spacing: var(--site-tracking-heading, 0);
+  line-height: var(--site-leading-heading, 1.05);
+  margin: 0;
+  color: var(--site-ink, #2c2620);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.mmhome .wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.mmhome .section {
+  padding: clamp(58px, 8vw, 112px) 0;
+}
+.mmhome .section-sm {
+  padding: clamp(38px, 5vw, 68px) 0;
+}
+.mmhome .soft {
+  background: var(--site-soft, #fbf4e6);
+}
+.mmhome .center {
+  text-align: center;
+}
+.mmhome .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--site-text-accent, 13px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c8702e);
+}
+.mmhome .hand {
+  font-family: var(--site-font-hand, "Caveat", cursive);
+  font-weight: 700;
+  color: var(--site-secondary, #9c3b52);
+  line-height: 1;
+}
+.mmhome .hand.lg {
+  font-size: clamp(1.8rem, 3.4vw, 2.7rem);
+}
+.mmhome .lead {
+  font-size: clamp(1.08rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--site-mute, #6f6354);
+  max-width: 58ch;
+}
+.mmhome .muted {
+  color: var(--site-mute, #6f6354);
+}
+.mmhome .sec-head {
+  max-width: 640px;
+  margin-bottom: clamp(32px, 4vw, 52px);
+}
+.mmhome .sec-head.center {
+  margin-inline: auto;
+  text-align: center;
+}
+.mmhome .sec-head h2 {
+  font-size: clamp(2rem, 4vw, 3.1rem);
+}
+.mmhome .sec-head .hand {
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  display: block;
+  margin-bottom: 2px;
+}
+.mmhome h2.lg {
+  font-size: var(--site-h2, clamp(2rem, 4vw, 3.2rem));
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.mmhome .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Karla", sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.mmhome .btn:hover {
+  transform: translateY(-2px);
+}
+.mmhome .btn-accent {
+  background: var(--site-accent, #c8702e);
+  color: var(--site-accent-ink, #fff);
+  border-radius: var(--site-btn-primary-radius, 999px);
+}
+.mmhome .btn-accent:hover {
+  background: var(--site-accent-deep, #a85820);
+}
+.mmhome .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #2c2620);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #e4d6be));
+}
+.mmhome .btn-ghost:hover {
+  background: var(--site-ink, #2c2620);
+  color: var(--site-bg, #f4ecdb);
+  border-color: var(--site-ink, #2c2620);
+}
+.mmhome .btn-light {
+  background: var(--site-surface, #fff);
+  color: var(--site-ink, #2c2620);
+}
+.mmhome .btn-sm {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 13.5px;
+}
+.mmhome .btn-lg {
+  height: 58px;
+  padding: 0 34px;
+  font-size: 16px;
+}
+.mmhome .btn-block {
+  display: flex;
+  width: 100%;
+}
+.mmhome .alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--site-accent, #c8702e);
+}
+.mmhome .alink svg {
+  transition: transform 0.25s;
+}
+.mmhome .alink:hover svg {
+  transform: translateX(5px);
+}
+
+/* striped placeholder so a slow/blocked photo never reads as blank */
+.mmhome .bg,
+.mmhome .pi,
+.mmhome .frame,
+.mmhome .g {
+  background-color: var(--site-soft-2, #efe3cb);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 11px,
+    color-mix(in srgb, var(--site-ink) 6%, transparent) 11px,
+    color-mix(in srgb, var(--site-ink) 6%, transparent) 22px
+  );
+}
+
+/* -- postcard primitives ------------------------------------------------- */
+.mmhome .tape {
+  position: absolute;
+  width: 96px;
+  height: 26px;
+  background: color-mix(in srgb, var(--site-accent, #c8702e) 32%, transparent);
+  box-shadow: 0 2px 6px rgba(44, 38, 32, 0.12);
+  z-index: 4;
+}
+.mmhome .tape.b {
+  background: color-mix(
+    in srgb,
+    var(--site-secondary, #9c3b52) 28%,
+    transparent
+  );
+}
+.mmhome .stamp {
+  width: 74px;
+  height: 90px;
+  background: var(--site-note, #f8dca0);
+  border: 2px dashed var(--site-accent, #c8702e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Gloock", serif);
+  font-size: 1.7rem;
+  color: var(--site-accent-deep, #a85820);
+}
+
+/* -- postcard hero ------------------------------------------------------- */
+.mmhome .phero {
+  position: relative;
+  min-height: clamp(560px, 86vh, 820px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.mmhome .phero .bg {
+  position: absolute;
+  inset: 0;
+}
+.mmhome .phero .bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mmhome .phero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 22, 16, 0.16) 30%,
+    rgba(28, 22, 16, 0.5)
+  );
+}
+.mmhome .postcard {
+  position: relative;
+  z-index: 3;
+  background: var(--site-surface, #fff);
+  width: min(640px, 92%);
+  padding: 32px 36px 36px;
+  text-align: center;
+  box-shadow: 0 50px 90px -32px rgba(28, 22, 16, 0.66);
+  border-radius: var(--site-radius-sm, 10px);
+  margin-bottom: clamp(42px, 8vh, 96px);
+  transform: rotate(-1.1deg);
+}
+.mmhome .postcard .stamp {
+  position: absolute;
+  right: 24px;
+  top: -26px;
+  transform: rotate(6deg);
+}
+.mmhome .postcard .eye {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c8702e);
+}
+.mmhome .postcard h1 {
+  font-size: var(--site-h1, clamp(2.6rem, 5.4vw, 4.6rem));
+  margin-top: 14px;
+}
+.mmhome .postcard h1 em {
+  font-style: normal;
+  color: var(--site-accent, #c8702e);
+}
+.mmhome .postcard .hand {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  margin-top: 10px;
+}
+.mmhome .postcard .sub {
+  color: var(--site-mute, #6f6354);
+  margin-top: 14px;
+  max-width: 48ch;
+  margin-inline: auto;
+}
+.mmhome .postcard .pcta {
+  display: flex;
+  gap: 13px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+/* -- availability bar (widget wrapper only) ------------------------------ */
+.mmhome .mmavail {
+  position: relative;
+  z-index: 5;
+  padding: clamp(40px, 5vw, 64px) 0 0;
+}
+
+/* -- split (story) ------------------------------------------------------- */
+.mmhome .split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+}
+.mmhome .split.w-left {
+  grid-template-columns: 1.08fr 0.92fr;
+}
+.mmhome .frame-wrap {
+  position: relative;
+}
+.mmhome .frame {
+  overflow: hidden;
+  border-radius: var(--site-img-radius, 14px);
+  box-shadow: var(--site-img-shadow, 0 24px 50px -28px rgba(44, 38, 32, 0.45));
+}
+.mmhome .frame.photo {
+  background: #fff;
+  padding: 14px 14px 50px;
+  border-radius: var(--site-radius-sm, 10px);
+  box-shadow: 0 30px 56px -30px rgba(44, 38, 32, 0.5);
+}
+.mmhome .frame.photo img {
+  border-radius: 4px;
+}
+.mmhome .frame img,
+.mmhome .frame iframe {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.mmhome .frame:hover img {
+  transform: scale(1.04);
+}
+.mmhome .frame.tilt {
+  transform: rotate(-1.6deg);
+}
+.mmhome .ar-43 {
+  aspect-ratio: 4/3;
+}
+.mmhome .ar-45 {
+  aspect-ratio: 4/5;
+}
+.mmhome .photo-cap {
+  font-family: var(--site-font-hand, "Caveat", cursive);
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--site-ink, #2c2620);
+  text-align: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+}
+
+/* -- postcard cards (rooms + highlights) --------------------------------- */
+.mmhome .pcgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+.mmhome .pc {
+  position: relative;
+  background: var(--site-surface, #fff);
+  padding: 13px 13px 18px;
+  box-shadow: 0 26px 50px -30px rgba(44, 38, 32, 0.5);
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.mmhome .pcgrid .pc:nth-child(3n + 1) {
+  transform: rotate(-1.6deg);
+}
+.mmhome .pcgrid .pc:nth-child(3n + 2) {
+  transform: rotate(1deg);
+}
+.mmhome .pcgrid .pc:nth-child(3n) {
+  transform: rotate(-0.6deg);
+}
+.mmhome .pc:hover {
+  transform: rotate(0) translateY(-6px);
+  box-shadow: var(--site-card-shadow, 0 30px 56px -28px rgba(44, 38, 32, 0.5));
+  z-index: 2;
+}
+.mmhome .pc .pi {
+  position: relative;
+  aspect-ratio: var(--site-card-ratio, 4/3);
+  overflow: hidden;
+}
+.mmhome .pc .pi img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.mmhome .pc:hover .pi img {
+  transform: scale(1.05);
+}
+.mmhome .pc .pcprice {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--site-surface, #fff);
+  color: var(--site-ink, #2c2620);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-family: var(--site-font-heading, "Gloock", serif);
+  font-size: 14px;
+  box-shadow: 0 8px 18px -8px rgba(44, 38, 32, 0.5);
+}
+.mmhome .pc .cap {
+  font-family: var(--site-font-hand, "Caveat", cursive);
+  font-weight: 700;
+  font-size: 1.7rem;
+  text-align: center;
+  margin-top: 12px;
+  color: var(--site-ink, #2c2620);
+}
+.mmhome .pc .meta {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-mute, #6f6354);
+  margin-top: 2px;
+}
+.mmhome .pc .pcbody {
+  padding: 6px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.mmhome .pc .pcbody p {
+  font-size: 14px;
+  color: var(--site-mute, #6f6354);
+  line-height: 1.5;
+  margin-top: 8px;
+  text-align: center;
+  flex: 1;
+}
+/* highlights: a centred no-photo postcard card */
+.mmhome .pc.pc-note {
+  padding: 30px 26px;
+  text-align: center;
+}
+.mmhome .pc.pc-note h3 {
+  font-size: 1.4rem;
+  margin-top: 4px;
+}
+.mmhome .pc.pc-note p {
+  font-size: 14.5px;
+  color: var(--site-mute, #6f6354);
+  line-height: 1.55;
+  margin-top: 10px;
+}
+
+/* -- amenity list -------------------------------------------------------- */
+.mmhome .amen {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 32px;
+}
+.mmhome .amen .a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+.mmhome .amen .a svg {
+  color: var(--site-accent, #c8702e);
+  flex-shrink: 0;
+}
+
+/* -- reviews (pinned postcards) ------------------------------------------ */
+.mmhome .reviews {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+.mmhome .review {
+  position: relative;
+  background: var(--site-surface, #fff);
+  padding: 30px 28px 26px;
+  box-shadow: 0 26px 50px -30px rgba(44, 38, 32, 0.5);
+}
+.mmhome .reviews .review:nth-child(1) {
+  transform: rotate(-1.4deg);
+}
+.mmhome .reviews .review:nth-child(2) {
+  transform: rotate(0.8deg);
+  background: var(--site-note, #f8dca0);
+}
+.mmhome .reviews .review:nth-child(3) {
+  transform: rotate(-0.5deg);
+}
+.mmhome .review .stars {
+  color: #e0913e;
+  letter-spacing: 2px;
+  font-size: 15px;
+}
+.mmhome .review p {
+  font-family: var(--site-font-heading, "Gloock", serif);
+  font-size: 1.18rem;
+  line-height: 1.4;
+  margin: 14px 0 18px;
+  color: var(--site-ink, #2c2620);
+}
+.mmhome .review .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mmhome .review .av {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--site-tint, #f6e6c8);
+  color: var(--site-accent-deep, #a85820);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Gloock", serif);
+  font-size: 15px;
+}
+.mmhome .review .nm {
+  font-weight: 700;
+  font-size: 14px;
+}
+.mmhome .review .lo {
+  font-size: 12.5px;
+  color: var(--site-mute, #6f6354);
+}
+
+/* -- gallery (taped photos) ---------------------------------------------- */
+.mmhome .gal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.mmhome .gal .g {
+  position: relative;
+  background: #fff;
+  padding: 11px 11px 16px;
+  box-shadow: 0 22px 44px -28px rgba(44, 38, 32, 0.5);
+}
+.mmhome .gal .g:nth-child(4n + 1) {
+  transform: rotate(-1.6deg);
+}
+.mmhome .gal .g:nth-child(4n + 2) {
+  transform: rotate(1.2deg);
+}
+.mmhome .gal .g:nth-child(4n + 3) {
+  transform: rotate(-0.7deg);
+}
+.mmhome .gal .g:nth-child(4n) {
+  transform: rotate(1.5deg);
+}
+.mmhome .gal .g .im {
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+.mmhome .gal .g .im img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s;
+}
+.mmhome .gal .g:hover .im img {
+  transform: scale(1.06);
+}
+
+/* -- banner / CTA -------------------------------------------------------- */
+.mmhome .banner {
+  position: relative;
+  border-radius: var(--site-radius, 16px);
+  overflow: hidden;
+  padding: clamp(48px, 7vw, 92px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  color: #fff;
+}
+.mmhome .banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.mmhome .banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    160deg,
+    rgba(44, 38, 32, 0.72),
+    rgba(44, 38, 32, 0.42)
+  );
+}
+.mmhome .banner-in {
+  position: relative;
+  z-index: 2;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.mmhome .banner-in h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+}
+.mmhome .banner-in p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 16px auto 0;
+  max-width: 46ch;
+}
+.mmhome .banner-in .pcta {
+  display: flex;
+  gap: 13px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .mmhome .pcgrid,
+  .mmhome .reviews {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mmhome .gal {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 860px) {
+  .mmhome .split {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .mmhome .split.rev .frame-wrap {
+    order: -1;
+  }
+}
+@media (max-width: 560px) {
+  .mmhome .wrap {
+    padding: 0 20px;
+  }
+  .mmhome .pcgrid,
+  .mmhome .reviews,
+  .mmhome .gal,
+  .mmhome .amen {
+    grid-template-columns: 1fr;
+  }
+  .mmhome .pcgrid .pc,
+  .mmhome .gal .g {
+    transform: none !important;
+  }
+}
