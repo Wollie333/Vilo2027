@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";
-import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 import { CommissionSavedStat } from "./CommissionSavedStat";
 import { VLogo } from "./VLogo";
@@ -81,8 +81,11 @@ export async function Hero() {
   const brandName = await getBrandName();
 
   // Real, platform-wide commission saved across every host (all-time).
-  // Single scalar from a SECURITY DEFINER RPC — no per-host data exposed.
-  const supabase = createServerClient();
+  // Single scalar from a SECURITY DEFINER RPC — no per-host data exposed. Read
+  // with the service-role client (server-only) so the RPC can be locked down: it
+  // is no longer callable by anon over PostgREST (would otherwise expose a
+  // GMV-derived figure to anyone with the publishable key).
+  const supabase = createAdminClient();
   const { data: commissionSaved } = await supabase.rpc(
     "fetch_platform_commission_saved",
   );

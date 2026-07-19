@@ -26,12 +26,9 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 4 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
+### 1 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
-- `check_feature_permission`
-- `fetch_platform_commission_saved`
 - `get_listing_policy_summary`
-- `product_units_sold`
 
 ### 1 × SECURITY INVOKER trigger writing to a DIFFERENT RLS table — if the target's policy excludes the user who fired the trigger, the write matches **zero rows and says nothing** (this is the `view_count` bug). VERIFY each hit: it is safe if every writer reaches it through a SECURITY DEFINER function.
 
