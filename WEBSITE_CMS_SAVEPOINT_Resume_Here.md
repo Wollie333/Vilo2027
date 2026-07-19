@@ -1,185 +1,180 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `8dffc19` · **Vercel: auto-deploys on push**
-**Updated:** 2026-07-19 (pt6)
-
-## 🗺️ FOUNDER ROADMAP (captured 2026-07-19) — the big picture
-The end goal: wizard → pick one of the designed themes → a **professional site** where EVERY page is a
-pixel-perfect mirror of that theme's reference design, header/footer included, populated with the host's
-details + the **AI content from the relevant page's wizard step**. Track order:
-1. **Specials DETAIL pages** (like room detail) + auto "Specials" sub-menu — ✅ **DONE (commit `930bd2f`),
-   live-verified on mana** (DOM — screenshots were failing that session). Route
-   `app/[locale]/site/specials/[specialSlug]` → `SiteSpecialView` → `OceansViewSpecialDetail` (`.ovsd`,
-   bespoke) + `GenericSpecialDetail` fallback for other themes. `loadSiteSpecialPage` loads the offer +
-   other offers (same guards as the listing → 404 if expired/sold-out). Listing cards now say **"View
-   offer"** → `/specials/<slug>` (`SpecialCard.detailHref`, preview-aware `siteSpecialHref`); the detail's
-   "Book this offer" keeps the special-locked checkout href (`data-wielo-book`). Auto "Specials" dropdown:
-   `autoSpecials` flag + `expandAutoSpecials` + `specialMenuLinks`, INFERRED onto the specials nav item at
-   load (so existing sites like mana get it without a menu rebuild). Verified on mana: 3 cards → "View
-   offer", nav dropdown lists all 3 offers, detail renders (breadcrumb/hero/facts/sticky Book→checkout/more
-   offers). Applies to ALL themes (bespoke oceansview + generic fallback).
-2. **Thank-you pages** — the dynamic/action-aware/tracking LOGIC ALREADY EXISTS:
-   `app/[locale]/site/book/thank-you` (booking → Purchase) + `app/[locale]/site/thank-you/[[...goal]]`
-   with GOAL templates `contact`/`quote`/`custom` (each fires `Lead`, host per-form copy overrides).
-   MISSING = the bespoke pixel-perfect DESIGN per theme (a `Thank You.html` exists in every theme folder).
-   → build `OceansViewThankYou` over the existing goal/event/copy logic; skin the others.
-3. **All-themes pixel-perfect PAGES + AI content** — OceansView pages + all-3 chrome done. Marmalade/Sabela
-   PAGES reach pixel-perfect via the SKIN model (`theme-skins.css` over generic blocks, per
-   `docs/themes/THEME_SKIN_STANDARD.md`), each page pulling its wizard AI content. Largest track.
-   (Founder said "4 themes" — only 3 have reference designs: oceansview, marmalade, sabela → confirm a 4th.)
-
-> This file is COMMITTED (the previous savepoint was lost because it was never committed —
-> don't let that happen again: commit + push before ending a session).
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `392f377` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt7 — phased plan locked)
+**This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
 
-## How to see the work (the live branch)
+## 🎯 THE PLAN (founder's phasing — do them IN THIS ORDER)
 
-- **Branch deploy (auto-updates on every push):**
-  `https://vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`
-- **The real OceansView test site is `mana`** (subdomain on `host_websites`). Reach its pages via:
-  - `…/site/rooms?site=mana&preview=1` · `…/site/specials?...` · `…/site/contact?...`
-  - `…/site?site=mana&preview=1` (home) · `…/site/about?...` · `…/site/blog?...` (Journal)
-  - `…/site/blog/<post-slug>?site=mana&preview=1` (article)
-  - `&preview=1` renders drafts + regardless of publish state. Public (non-preview) needs the site published.
-- **NOTE:** the old `vilotest` fixture is LOCAL-only and 404s on the deploy — use `mana`.
-- Vercel project `prj_ia39tAuJTTErlViwZXjgNHWKU7xZ`, team `team_HBP2Mcif9OcWL3w4hJXlAXDt`.
+1. **PHASE 1 — Pixel-perfect design for EVERY theme × EVERY page (incl. header + footer).** ← **WE ARE HERE**
+   Each page must be a pixel-perfect mirror of that theme's reference design, with the host's details wired
+   in. OceansView is DONE (all pages + chrome, founder-confirmed pixel-perfect). Next: **Marmalade**, then
+   **Sabela**. (Founder said "4 themes" — only 3 have reference designs; confirm if a 4th exists.)
+2. **PHASE 2 — Wire in the AI-wizard TEXT + IMAGES** per page (each page pulls the content from its relevant
+   wizard step — `content_profile` + assembled live data). Some of this is already wired on OceansView
+   (hero/story/experiences/faq from `content_profile`); Phase 2 makes it complete + correct on every theme.
+3. **PHASE 3 — Builder CUSTOMISATION options** (host can restyle/edit per element in the builder).
 
----
-
-## The build pattern (how every bespoke OceansView page is added)
-
-Content is decoupled from skin. A bespoke page = **a scoped React component + a scoped CSS file +
-a routing hook**, fed by `content_profile` (host wizard copy) + live `SiteData`
-(`assembleSiteDataByType`), with **account-derived fallbacks**, and **demo copy / omit** as the last
-resort (never fabricate specifics — mirror the About page).
-
-- Component + CSS live in `apps/web/components/site/oceansview/` (CSS scoped `.ov<page>`).
-- **Full-site pages** (home/about/rooms/specials/contact) are routed in
-  `apps/web/components/site/SitePageView.tsx` behind
-  `ctx.theme.preset === "oceansview" && result.page.kind === "<kind>"` (place BEFORE the `result.doc`
-  / generic fallbacks). Set `pageHasHero` when the page opens with a full-bleed hero.
-- **Blog/Journal** is NOT in SitePageView — it has its own routes:
-  `apps/web/app/[locale]/site/blog/page.tsx` (index) and `…/site/blog/[postSlug]/page.tsx` (article).
-  Hooked behind `ctx.theme.preset === "oceansview"`.
-- Design source of truth: `docs/themes/oceansview/pages/*.html` + `docs/themes/oceansview/theme.css`
-  (token values under the `lagoon` block). Port class-by-class; keep `--site-*` tokens with the
-  reference's hard fallbacks so it stays on-brand + host-editable.
-
-### ⚠️ Gotchas (all real, all bit us this session)
-- **No `apps/web/.env.local` in this worktree** → `pnpm build` fails locally with ~460
-  `createAdminClient: …SUPABASE… must be set` prerender errors on UNRELATED pages (login/register).
-  That's env-only; the SAME commit builds green on Vercel. To build/verify locally you need the keys.
-- **Build OOMs** at Node's 2 GB default (box has ~8 GB RAM). Build with
-  `NODE_OPTIONS="--max-old-space-size=4096" pnpm build`. Disk filled up too — reclaim via deleting
-  `AppData/Local/npm-cache` (stale; project is pnpm) + `apps/web/.next` + `pnpm store prune`.
-- **prettier-plugin-tailwindcss mangles `className` template literals** (pre-commit hook strips the
-  leading space inside `${…}`, e.g. `section${x?" sand":""}` → dead class `sectionsand`). Use
-  plain-string ternaries: `className={x ? "section sand" : "section"}`. Verify post-commit with grep.
+**End state:** wizard → host picks a theme → a professional site with every page designed + AI-populated + editable.
 
 ---
 
-## ✅ DONE + verified live on the branch (mana)
+## ✅ DONE + LIVE-VERIFIED (on `mana`, this arc)
 
-| Page | Component / CSS | Notes |
-|------|-----------------|-------|
-| Home | `OceansViewHome` / `oceansHome.css` | (earlier arc) |
-| About | `OceansViewAbout` / `oceansAbout.css` | (earlier arc) |
-| Room detail | `OceansViewRoomDetail` / `oceansRoom.css` | (earlier arc) |
-| **Rooms** | `OceansViewRooms` / `oceansRooms.css` | live `rooms_preview`, alternating splits, price badge, facts, empty-state, CTA. Blurb clamped to 4 lines (`1e69ed7`). |
-| **Specials/Offers** | `OceansViewSpecials` / `oceansSpecials.css` | live `specials_preview` grid, badge/now-was-save, empty-state, CTA. |
-| **Contact** | `OceansViewContact` + `OceansContactForm` (client) / `oceansContact.css` | real lead form → `/api/website-enquiry` (host inbox); live location card + Google map; **FAQ = wizard `content_profile.contact.faq` → real property `policies` → omit** (`3b54e11`, standard-aligned). |
-
-All verified live on `…?site=mana&preview=1` with real data (Leadwood/Marula rooms, 3 specials,
-Hazyview map, policy FAQ). Contact form correctly DISABLED in preview.
-
----
-
-## ✅ Journal — DONE + LIVE-VERIFIED on mana (this session)
-
-**`OceansViewJournal` (index) + `OceansViewArticle` (article) + `oceansJournal.css`, both /site/blog
-routes behind the oceansview guard.** tsc green, Vercel READY, both surfaces screenshotted live:
-- **Index** (`…/site/blog?site=mana&preview=1`): gradient page-head "The journal", featured split,
-  3-up grid. Founder's 2 posts (`first-timers-guide-bush-safari`, `five-reasons-book-lodge-directly`,
-  author "Wollie Steenkamp") now HAVE cover images.
-- **Article** (`…/site/blog/<slug>?...`): full-bleed hero, prose, author block, "keep reading" strip.
-
-### Fix made (commit `1b06a95`): article "keep reading" was empty
-`loadRelatedPosts` (in `lib/site/loadSitePage.ts`) returned `[]` whenever a post had no `category_id`
-(the seeded posts have none), so the strip was omitted and left a ~260px void before the CTA. Now:
-prefer same-category, then FILL from the site's most-recent other published posts (limit 3, excl.
-current). Verified live — the strip shows the sibling post. Also benefits the generic-theme article.
-
-### Still-open Journal design ideas (not blocking; founder judges on the branch)
-- **Category filter chips** in the reference aren't built (need client filtering + category on
-  `BlogIndexPost`, not currently selected by `loadSiteBlogIndex`).
-- **Newsletter** block is a CTA button to Contact (not a real signup).
-
-## ✅ Theme-scoped HEADER + FOOTER — DONE + LIVE-VERIFIED on mana (commit `f83f0d0`)
-
-The OceansView pages rendered bespoke CONTENT but still used the generic token-driven `SiteChrome`
-header/footer. Built the founder's bespoke chrome (scoped `.ovchrome`, ported from
-`docs/themes/oceansview/header.html` + `footer.html` + `theme.css`):
-- **`OceansViewHeader.tsx`** (client) — fixed bar, transparent over the hero → solid/blurred + dark
-  text on scroll; monogram/logo + wordmark; nav-links with active state; **CSS hover "Suites" dropdown
-  (auto-populated with the live rooms)**; coral "Book a stay" CTA; full-screen burger drawer. Reserves
-  84px on hero-less pages. Own scroll listener (doesn't use StickyHeader).
-- **`OceansViewFooter.tsx`** (server) — dark-navy 4-col: brand (+blurb when tagline set), "Explore"
-  (live menu), "Stay" (book + contact), "Keep in touch" (→ contact CTA), legal row (© + Powered-by-Wielo
-  + socials). Blurb/socials omitted when unset (mana has neither).
-- Rendered by `SiteChrome` behind `preset === "oceansview"` (new `preset` prop); **every public /site
-  route now passes `preset={ctx.theme.preset}`**. Nav-href helpers moved to `lib/site/navHref.ts` so the
-  client header imports them without SiteChrome's server graph.
-- ⚠️ prettier-tailwind bit us AGAIN: it stripped the space in `className={`nav-link${a?" active":""}`}` →
-  `nav-linkactive`. Fixed with a plain-string ternary (folded into `f83f0d0`). Verified post-hook.
-- Live-verified on Home/Rooms/Contact/Article: transparent→solid header, dropdown (3 live rooms), coral
-  CTA, dark-navy footer. Mobile drawer structure verified via DOM (burger + 11 links + book).
-- **NOTE:** the builder/brand-preview canvases still render the GENERIC chrome (not wired) — only the live
-  /site routes got the bespoke chrome. Also the blog `[postSlug]` route passes no `bookHref`, so the
-  article header shows no "Book a stay" CTA (pre-existing route data, not a chrome bug).
-
-### ✅ ALL THREE designed themes now have bespoke chrome (commit `c957d00`)
-Same pattern applied to the other two designed themes; `SiteChrome` dispatches via a
-`THEME_CHROME` registry (`preset → {Header, Footer}`, uniform prop interface). Verified live on
-mana via `?site=mana&preview=1&theme=<slug>`:
-- **Marmalade** (`preset: marmalade`, scope `.mmchrome`) — floating cream **pill nav** (fixed, blurred,
-  subtle lift on scroll, NO colour inversion — `transparent` governs only the spacer), CSS dropdown,
-  mobile drawer; footer cols Explore / Stay / "Notes from the kitchen". `components/site/marmalade/`.
-- **Sabela** (`preset: hotel`, scope `.sbchrome`) — dark-first editorial nav: transparent over hero →
-  solid ebony/warm-bone on scroll, GOLD accents + gold-underline active; top-sliding drawer; footer cols
-  Explore / Stay / "From the bush". `components/site/sabela/`.
-- Presets with NO reference design (`warm`/`coastal`/`safari`) fall through to the generic chrome.
-- Built by two subagents (ported class-by-class from `docs/themes/<slug>/`), wired + live-verified by me.
-- **NOTE:** when previewing mana with a non-oceansview theme, the PAGE CONTENT is generic (mana's
-  bespoke content only renders under `preset===oceansview`) — but the CHROME is the bespoke theme chrome,
-  which is what we verified. A real marmalade/hotel SITE would have its own content + this chrome.
-
-**NEXT: founder smoke test of the wizard→content pull-through, then remaining generic pages
-(experiences, gallery, booking flow).**
-
-## ✅ Contact — follow-up fixes DONE + LIVE-VERIFIED on mana (commits `16706c7`, `c1814b2`)
-- **Empty phone row removed:** the phone `.drow` in `OceansViewContact.tsx` rendered unconditionally,
-  so mana (address, no phone) showed a lone phone icon. Now guarded like email/address.
-- **Founder flagged the empty band** in the right info column beside the tall form → filled it with a
-  real **guest review** testimonial card (`.qcard`: 5 stars + quote + author monogram), top-rated item
-  from live `reviews`. Added `"reviews"` to the contact `assembleSiteDataByType` set + a `review` prop.
-  Omitted when a site has no reviews (never fabricated).
-- **`c1814b2`:** removed the tan "reassurance" card; the info card now shows the **COMPLETE business
-  address** ("Portion 14, Kiepersol Road, Hazyview, Mpumalanga, 1242, ZA") + a street-level map. Shared
-  `location.address` stays city/province only (privacy); `LocationData` gained `fullAddress`
-  (address_line1/2 + city/province/postal/country) which ONLY the contact page reads. Falls back to the
-  locality when no street line is set.
+- **OceansView — ALL pages bespoke + pixel-perfect** (founder-confirmed): Home, About, Rooms, Room detail,
+  Specials, **Special detail**, Contact, Journal (index + article), Experiences, Gallery. Components in
+  `apps/web/components/site/oceansview/` (`OceansView*.tsx` + `oceans*.css`, scoped `.ov*`).
+  A per-page fidelity audit + fix pass (`8dffc19`) closed all minor deviations.
+- **Bespoke CHROME (header + footer) for ALL 3 designed themes** via a registry: OceansView, Marmalade,
+  Sabela. `SiteChrome.tsx` has `const THEME_CHROME: Record<preset,{Header,Footer}>` and dispatches on
+  `preset`. Components: `oceansview/OceansView{Header,Footer}` (`.ovchrome`), `marmalade/Marmalade{Header,
+  Footer}` (`.mmchrome`), `sabela/Sabela{Header,Footer}` (`.sbchrome`). Every public `/site` route passes
+  `preset={ctx.theme.preset}`.
+- **Specials/offer DETAIL pages + auto "Specials" sub-menu** (`930bd2f`) — applies to ALL themes (bespoke
+  OceansView `.ovsd` + `GenericSpecialDetail` fallback). Route `app/[locale]/site/specials/[specialSlug]` →
+  `SiteSpecialView`; `loadSiteSpecialPage`. Listing cards say **"View offer"** → detail; detail has the
+  **Book** CTA → special-locked checkout. Auto sub-menu mirrors rooms (`autoSpecials`/`expandAutoSpecials`/
+  `specialMenuLinks`, inferred onto the specials nav item so existing sites get it).
+- **Rooms detail + auto "Rooms" sub-menu** already existed (`autoRooms`); specials mirrors it.
 
 ---
 
-## Remaining OceansView pages (not yet bespoke)
-`experiences`, `gallery`, and the booking system pages (`search_results`, `checkout`, `thank-you`)
-still render generic. Experiences + Gallery designs exist in `docs/themes/oceansview/pages/`.
+## 🔜 PHASE 1 — REMAINING WORK (the immediate track)
 
-## Verification protocol (Principle #9 — non-negotiable)
-Never "done" until SEEN working on the real branch render. This session's loop: edit → commit →
-push → Vercel auto-deploys → open `…?site=mana&preview=1` in the browser → screenshot/confirm.
-Two commits deploy sequentially, so wait for the LATER one's deploy to alias before re-checking.
+Build **bespoke PAGE components for Marmalade + Sabela**, page by page, exactly like OceansView. Chrome is
+already done for both; only the PAGES are still generic.
+
+Per theme, the page set (from `docs/themes/<theme>/pages/*.html`) is ~11 pages:
+Home · About · Rooms/**Suites** · Room/**Suite** detail · Specials · **Special detail** · Contact ·
+Journal (index) · Journal Post · Experiences · Gallery · **Thank You** · (Booking/Checkout + Search Results
+are transactional — token-themed, low priority).
+
+> **Note (Sabela naming):** Sabela calls rooms **"Suites"** (`Suites.html`/`Suite.html`) — but the DB
+> `page.kind`/route is still `rooms`/`/rooms/<slug>`; just label it "Suites" in the design.
+
+**Suggested order per theme:** Home → Rooms → Room detail → About → Contact → Specials (+ reuse the
+special-detail generic OR build a bespoke one) → Journal (index + article) → Experiences → Gallery →
+Thank-you. Start with **Marmalade Home**.
+
+### THANK-YOU (part of Phase 1) — the logic already exists, only the DESIGN is missing
+Routes: `app/[locale]/site/book/thank-you` (booking → **Purchase** pixel event) and
+`app/[locale]/site/thank-you/[[...goal]]` (form goals **contact/quote/custom**, each fires **Lead**, host
+per-form copy overrides the goal defaults). Both sit in `SiteChrome` (theme chrome ✓) + fire tracking
+events ✓. **Missing = the bespoke pixel-perfect design** (`Thank You.html` exists in every theme folder).
+Build `<Theme>ThankYou` over the existing goal/event/copy logic. (Founder's "3 thank-you pages" =
+booking / contact-quote / custom — already modelled by the goal templates.)
+
+---
+
+## 🧭 THEME → PRESET MAPPING (dispatch keys)
+
+| Design (docs/themes) | `theme.preset` | skin class | chrome scope | page scope convention |
+|---|---|---|---|---|
+| oceansview | `oceansview` | `.wielo-oceansview` | `.ovchrome` | `.ov*` (ovhome, ovabout, …) |
+| marmalade  | `marmalade`  | `.wielo-marmalade` | `.mmchrome` | use `.mm*` (mmhome, …) |
+| sabela     | **`hotel`**  | `.wielo-hotel`     | `.sbchrome` | use `.sb*` (sbhome, …) |
+
+Sabela's Ebony palette == the `hotel` preset, so Sabela sites/preview use `preset: "hotel"` and
+`?theme=hotel`. Presets with no reference design (warm/coastal/safari) keep the generic chrome + generic pages.
+
+---
+
+## 🏗️ THE BUILD PATTERN (how each bespoke page is added — proven this session)
+
+A bespoke page = **a scoped React component + a scoped CSS file + a routing hook**, fed by `content_profile`
+(host wizard copy) + live `SiteData` (`assembleSiteDataByType`), with **account-derived fallbacks**, and
+**demo copy / OMIT** as the last resort (never fabricate specifics — omit-rather-than-fabricate).
+
+1. **Component + CSS** in `apps/web/components/site/<theme>/` (`<Theme><Page>.tsx` + `<theme><Page>.css`,
+   every selector scoped e.g. `.mmhome`). Port **class-by-class** from `docs/themes/<theme>/pages/<Page>.html`
+   + the theme stylesheet (`theme.css`; Sabela's is `theme.source.css`). Keep `--site-*` tokens WITH the
+   reference's hard fallbacks so it's on-brand + host-editable.
+2. **Full-site pages** (home/about/rooms/specials/contact/experiences/gallery) route in
+   `apps/web/components/site/SitePageView.tsx` behind
+   `ctx.theme.preset === "<preset>" && result.page.kind === "<kind>"` — placed BEFORE the generic
+   `result.doc` fallback. Pass `preset={ctx.theme.preset}` + `pageHasHero` to `SiteChrome`. Assemble the
+   page's data (copy from `content_profile`, live data from `assembleSiteDataByType`).
+3. **Room/Suite DETAIL** routes in `components/site/SiteRoomView.tsx` (branch `preset === "<preset>"`).
+   **Special DETAIL** routes in `components/site/SiteSpecialView.tsx` (branch `preset === "<preset>"`; else
+   `GenericSpecialDetail`). **Journal** is separate: `app/[locale]/site/blog/page.tsx` (index) +
+   `…/blog/[postSlug]/page.tsx` (article), behind the preset guard. **Thank-you**:
+   `app/[locale]/site/thank-you/[[...goal]]/page.tsx` + `…/book/thank-you/page.tsx`.
+4. **Data wiring** — copy the OceansView branch for the same page kind as your template (it shows exactly
+   which `content_profile` slots + `assembleSiteDataByType` keys each page uses). `content_profile` shape is
+   in `apps/web/lib/website/contentProfile.schema.ts` (hero, about.story, host bio, experiences{intro,items},
+   contact.faq, …). `SiteData` types in `apps/web/lib/site/types.ts`.
+5. **Verify** live on mana (see below), then commit + push per page.
+
+### ⚡ Efficient method used this session (works well)
+Delegate the mechanical port to a **subagent**: give it the reference HTML + theme CSS + an existing
+OceansView component as the exact template + the prop interface + the gotchas; it produces the component +
+scoped CSS + runs tsc/lint. The **main agent wires the SitePageView/route branch + assembles data + verifies
+live** (the integration + Principle-#9 check stays with the main agent). Spawn 2–3 page-builders in parallel.
+
+---
+
+## 🔍 VERIFICATION (Principle #9 — never "done" until SEEN on the live render)
+
+- **mana** is the real OceansView test site on the deploy. Reach any page:
+  `…/site/<page>?site=mana&preview=1` (home = `…/site?site=mana&preview=1`).
+- **To verify a DIFFERENT theme on mana, add `&theme=<slug>`** (`marmalade` / `hotel` / `oceansview`).
+  This hits the theme-preview resolver (`loadSitePage`, `ctx.previewThemeSlug`) which renders the theme's
+  page templates; your `preset === "<preset>"` branch in SitePageView then fires and renders the bespoke
+  component with mana's live content. **This is how you verify Marmalade/Sabela pages before any real
+  site of that theme exists.**
+- **Room/Special detail slugs on mana:** rooms `leadwood-suite`, `marula-family-suite`,
+  `tamboti-star-bed-suite`; specials `mana-stay-4-pay-3`, `mana-honeymoon-star-bed`, `mana-locals-midweek`
+  (paths are `/en/site/rooms/<slug>` and `/en/site/specials/<slug>`).
+- **Experiences + Gallery 404 on the plain URL** (mana has no page rows for them) — reach them via
+  `&theme=oceansview` (or `&theme=<slug>` for other themes). Experiences shows the empty-state (mana has no
+  experiences content); Gallery shows mana's real photos.
+- **Deploy protection:** the branch alias is behind Vercel auth. Use the founder's authenticated
+  **Claude-in-Chrome** browser to view/screenshot. `mcp__…__web_fetch_vercel_url` only returns edge-CACHED
+  pages (force-dynamic routes 302 to SSO). **Browser screenshots were FLAKY this session** (script-injection
+  timeouts) — fall back to `javascript_tool` DOM queries (reliable) to confirm structure/hrefs/attrs, and
+  retry screenshots after a fresh navigate + `wait`.
+- Wait for the LATER of two rapid deploys to reach READY (branch alias serves the newest); builds ≈ 5–6 min.
+  Check via `mcp__…__list_deployments` / `get_deployment` (project `prj_ia39tAuJTTErlViwZXjgNHWKU7xZ`,
+  team `team_HBP2Mcif9OcWL3w4hJXlAXDt`, alias `vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`).
+
+---
+
+## ⚠️ GOTCHAS (all bit us — all real)
+
+- **prettier-plugin-tailwindcss STRIPS the leading space in a `className` template literal**
+  (`className={`nav-link${a?" active":""}`}` → dead class `nav-linkactive`). ALWAYS use a plain-string
+  ternary: `className={a ? "nav-link active" : "nav-link"}`. Grep `className={\`` after every commit
+  (the pre-commit hook runs prettier). Interpolating a FULL class string is fine — only the conditional
+  leading space breaks.
+- **No `apps/web/.env.local` in this worktree** → `pnpm build` fails locally with ~460 unrelated
+  `createAdminClient …SUPABASE… must be set` prerender errors, AND you **can't reseed DB PageDocs**
+  (service-role writes). So the SKIN model (`theme-skins.css` + PageDoc reseed) is BLOCKED here — that's the
+  reason we do bespoke components (also matches OceansView + is what the founder wants). Gate commits with
+  `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` + `pnpm lint` + the Vercel build + the live render.
+- **Build OOMs** at Node's 2 GB default → `NODE_OPTIONS="--max-old-space-size=4096"`.
+- **Bash CWD persists** between calls — a second `cd apps/web` after an earlier one fails ("No such file");
+  use absolute `cd` paths.
+- Never pipe stderr into `database.types.ts` (corrupts it). No Docker / local Supabase — see CLAUDE.md.
+
+---
+
+## 🔑 KEY FILES
+
+- Reference designs: `docs/themes/<theme>/pages/*.html` + `theme.css` (Sabela: `theme.source.css`) +
+  `header.html`/`footer.html` + `base.md`. Standard: `docs/themes/THEME_SKIN_STANDARD.md` (note §6b: chrome
+  is a per-theme "signature shell" — the sanctioned "extend the chrome" path we took).
+- Page routing: `apps/web/components/site/SitePageView.tsx` (copy an OceansView branch as your template).
+- Detail routes: `SiteRoomView.tsx`, `SiteSpecialView.tsx`. Journal: `app/[locale]/site/blog/**`.
+- Chrome registry + dispatch: `apps/web/components/site/SiteChrome.tsx` (`THEME_CHROME`).
+- Data + nav + href helpers: `apps/web/lib/site/loadSitePage.ts` (`assembleSiteDataByType`,
+  `loadSiteRoomPage`, `loadSiteSpecialPage`, `siteRoomHref`/`siteSpecialHref`/`siteBookHref`,
+  `expandAutoRooms`/`expandAutoSpecials`). Nav-href helpers: `lib/site/navHref.ts`.
+- Types: `lib/site/types.ts`. Content-profile schema: `lib/website/contentProfile.schema.ts`.
+  Default menu (auto flags): `lib/website/defaultMenu.ts`.
+- Templates to copy: the whole `apps/web/components/site/oceansview/` folder + `marmalade/` + `sabela/`
+  chrome components.
 
 ## Key memories
-`oceansview-cms-worktree-env` · `oceansview-bespoke-pages-status` (in the project memory dir).
+`oceansview-bespoke-pages-status` · `oceansview-cms-worktree-env` (in the project memory dir).
