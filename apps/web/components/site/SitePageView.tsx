@@ -42,6 +42,7 @@ import { MarmaladeContact } from "./marmalade/MarmaladeContact";
 import { MarmaladeAbout } from "./marmalade/MarmaladeAbout";
 import { MarmaladeExperiences } from "./marmalade/MarmaladeExperiences";
 import { MarmaladeGallery } from "./marmalade/MarmaladeGallery";
+import { SabelaHome } from "./sabela/SabelaHome";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
@@ -353,6 +354,85 @@ export async function SitePageView({
               gallery={extras.gallery?.images}
               location={extras.location}
               bookingData={extras.booking_search}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Sabela — the founder's bespoke dark editorial HOME (preset `hotel`). Same
+  // content-persistence contract as the other themes: hero copy + story from
+  // content_profile, live listing data (rooms/reviews/gallery/location) assembled
+  // per-type, demo copy as fallback only. Renders in the Sabela chrome (`.sbchrome`).
+  if (ctx.theme.preset === "hotel" && result.page.kind === "home") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "reviews", "gallery", "location"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const roomsHref = roomsHrefRaw ?? "/rooms";
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SabelaHome
+              brandName={ctx.brand.name}
+              roomsHref={roomsHref}
+              bookHref={headerBookHref ?? roomsHref}
+              interactive={!ctx.preview}
+              heroHeadline={cp.home?.hero?.headline ?? null}
+              heroSubheadline={
+                cp.home?.hero?.subheadline ?? cp.brand?.tagline ?? null
+              }
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              experiences={experiences}
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+              location={extras.location}
             />
           </SiteChrome>
         </SiteThemeRoot>

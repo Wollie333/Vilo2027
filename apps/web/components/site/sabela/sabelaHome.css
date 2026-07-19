@@ -1,0 +1,712 @@
+/*
+ * Sabela Lodge — bespoke HOME page, ported faithfully from the founder's
+ * reference (docs/themes/sabela/pages/Home.html body + theme.source.css). Every
+ * selector is scoped to `.sbhome` so the ported base classes
+ * (.wrap/.section/.hero-full/.room-card/.gallery/...) never collide with the app
+ * or the `.sbchrome` header/footer; all colour / type / shape comes from the
+ * theme's `--site-*` tokens with the reference's own hard fallbacks — so it stays
+ * on-brand (Ebony dark + gold) AND host-editable. Sabela is DARK-first:
+ * warm-bone ink (#F1EADB) on deep ebony (#14120D), brand gold (#C9A24A) accent.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.sbhome {
+  color: var(--site-ink, #f1eadb);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.7);
+  -webkit-font-smoothing: antialiased;
+}
+.sbhome * {
+  box-sizing: border-box;
+}
+.sbhome img {
+  display: block;
+  max-width: 100%;
+}
+.sbhome p {
+  margin: 0;
+}
+.sbhome a {
+  color: inherit;
+  text-decoration: none;
+}
+.sbhome h1,
+.sbhome h2,
+.sbhome h3,
+.sbhome h4 {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, 0);
+  color: var(--site-ink, #f1eadb);
+  margin: 0;
+  line-height: var(--site-leading-heading, 1.07);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.sbhome .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.sbhome .section {
+  padding: clamp(72px, 9vw, 128px) 0;
+}
+.sbhome .section-sm {
+  padding: clamp(52px, 6vw, 84px) 0;
+}
+.sbhome .soft-bg {
+  background: var(--site-soft, #1a1710);
+}
+.sbhome .center {
+  text-align: center;
+}
+.sbhome .muted {
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- eyebrow ------------------------------------------------------------- */
+.sbhome .eyebrow {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent, #c9a24a);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.sbhome .eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1.5px;
+  background: var(--site-accent, #c9a24a);
+  opacity: 0.6;
+}
+.sbhome .eyebrow.center {
+  justify-content: center;
+}
+.sbhome .eyebrow.no-rule::before {
+  display: none;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.sbhome .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: 9999px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1),
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.sbhome .btn:hover {
+  transform: translateY(-2px);
+}
+.sbhome .btn:active {
+  transform: translateY(0);
+}
+.sbhome .btn-primary {
+  background: var(--site-btn-primary-bg, var(--site-accent, #c9a24a));
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  border-color: var(--site-btn-primary-border, transparent);
+  border-radius: var(--site-btn-primary-radius, 9999px);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 75%, transparent);
+}
+.sbhome .btn-primary:hover {
+  box-shadow: 0 20px 38px -12px
+    color-mix(in srgb, var(--site-accent, #c9a24a) 80%, transparent);
+}
+.sbhome .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #f1eadb);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #2b2618));
+  border-radius: var(--site-btn-secondary-radius, 9999px);
+}
+.sbhome .btn-ghost:hover {
+  background: var(--site-soft, #1a1710);
+  border-color: var(--site-accent, #c9a24a);
+}
+.sbhome .btn-light {
+  background: var(--site-btn-light-bg, #c9a24a);
+  color: var(--site-btn-light-ink, #15120b);
+}
+.sbhome .btn-on-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+}
+.sbhome .btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sbhome .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 16px;
+}
+.sbhome .link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--site-accent, #c9a24a);
+  font-size: 15px;
+}
+.sbhome .link-arrow svg {
+  transition: transform 0.2s;
+}
+.sbhome .link-arrow:hover svg {
+  transform: translateX(4px);
+}
+
+/* -- section headers ----------------------------------------------------- */
+.sbhome .sec-head {
+  max-width: 640px;
+}
+.sbhome .sec-head.center {
+  margin: 0 auto;
+  text-align: center;
+}
+.sbhome .sec-head h2 {
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  margin-top: 16px;
+}
+.sbhome .sec-head p {
+  margin-top: 18px;
+}
+
+/* -- inline rating ------------------------------------------------------- */
+.sbhome .rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.sbhome .rating-inline .stars {
+  color: #f5a623;
+  letter-spacing: 1px;
+}
+
+/* -- HERO (full-bleed) --------------------------------------------------- */
+.sbhome .hero {
+  position: relative;
+}
+.sbhome .hero-full {
+  position: relative;
+  min-height: 94vh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.sbhome .hero-full .hero-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.04);
+}
+.sbhome .hero-full .hero-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(
+    --site-hero-overlay,
+    linear-gradient(
+      180deg,
+      rgba(7, 6, 4, 0.26) 0%,
+      rgba(7, 6, 4, 0.4) 40%,
+      rgba(5, 4, 2, 0.88) 100%
+    )
+  );
+}
+.sbhome .hero-full .hero-content {
+  position: relative;
+  z-index: 2;
+  padding-bottom: clamp(56px, 8vw, 104px);
+  color: #fff;
+  max-width: 760px;
+}
+.sbhome .hero-full h1 {
+  color: #fff;
+  font-size: clamp(2.8rem, 6.4vw, 5.6rem);
+}
+.sbhome .hero-full .hero-sub {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+  line-height: 1.55;
+  margin-top: 22px;
+  max-width: 56ch;
+}
+.sbhome .hero-full .eyebrow {
+  color: #fff;
+}
+.sbhome .hero-full .eyebrow::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+.sbhome .hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+.sbhome .hero-scroll {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.sbhome .hero-scroll .mouse {
+  width: 24px;
+  height: 38px;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  position: relative;
+}
+.sbhome .hero-scroll .mouse::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 7px;
+  border-radius: 3px;
+  background: #fff;
+  animation: sbhome-scrolldot 1.8s infinite;
+}
+@keyframes sbhome-scrolldot {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  40% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+    transform: translate(-50%, 9px);
+  }
+}
+
+/* -- HIGHLIGHTS / features ---------------------------------------------- */
+.sbhome .feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.4vw, 36px);
+  margin-top: clamp(40px, 5vw, 64px);
+}
+.sbhome .feature .f-ic {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--site-radius-sm, 3px);
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-icon-color, var(--site-secondary, #e7dcc4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.sbhome .feature h3 {
+  font-size: 1.35rem;
+  margin-bottom: 10px;
+}
+.sbhome .feature p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.0125rem;
+  line-height: 1.65;
+}
+
+/* -- GALLERY (mosaic) ---------------------------------------------------- */
+.sbhome .gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 200px;
+  gap: 14px;
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.sbhome .gallery .g {
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius, 4px));
+  position: relative;
+}
+.sbhome .gallery .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.sbhome .gallery .g:hover img {
+  transform: scale(1.06);
+}
+.sbhome .gallery .span2 {
+  grid-column: span 2;
+}
+.sbhome .gallery .row2 {
+  grid-row: span 2;
+}
+.sbhome .gallery .g-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 22px 16px 12px;
+  font-size: 12.5px;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(5, 4, 2, 0.72));
+}
+
+/* -- SUITES / room cards ------------------------------------------------- */
+.sbhome .rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.sbhome .room-card {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  overflow: hidden;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.sbhome .room-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--site-card-shadow, 0 30px 60px -34px rgba(0, 0, 0, 0.32));
+}
+.sbhome .room-card .rc-img {
+  position: relative;
+  aspect-ratio: var(--site-card-ratio, 4/3);
+  overflow: hidden;
+  background: var(--site-soft-2, #221e15);
+}
+.sbhome .room-card .rc-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.sbhome .room-card:hover .rc-img img {
+  transform: scale(1.05);
+}
+.sbhome .rc-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: color-mix(in srgb, var(--site-bg, #14120d) 88%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--site-ink, #f1eadb);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: 9999px;
+}
+.sbhome .room-card .rc-body {
+  padding: 24px 24px 26px;
+}
+.sbhome .room-card .rc-body h3 {
+  font-size: 1.4rem;
+  margin-bottom: 7px;
+}
+.sbhome .room-card .rc-meta {
+  font-size: 13.5px;
+  color: var(--site-mute, #a99b7f);
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.sbhome .room-card .rc-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sbhome .room-card .rc-desc {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.sbhome .rc-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--site-line, #2b2618);
+  padding-top: 18px;
+}
+.sbhome .price {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: 1.55rem;
+  color: var(--site-ink, #f1eadb);
+  line-height: 1;
+}
+.sbhome .price small {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  letter-spacing: 0;
+}
+
+/* -- STATS band ---------------------------------------------------------- */
+.sbhome .stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(28px, 5vw, 72px);
+  text-align: center;
+}
+.sbhome .stat {
+  min-width: 120px;
+}
+.sbhome .stat .n {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  color: var(--site-accent, #c9a24a);
+  line-height: 1;
+}
+.sbhome .stat .l {
+  font-size: 13.5px;
+  color: var(--site-mute, #a99b7f);
+  margin-top: 8px;
+}
+
+/* -- REVIEWS ------------------------------------------------------------- */
+.sbhome .rating-hero {
+  display: flex;
+  align-items: center;
+  gap: clamp(28px, 4vw, 64px);
+  flex-wrap: wrap;
+}
+.sbhome .rating-hero .score {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 800;
+  font-size: clamp(3.6rem, 7vw, 6rem);
+  line-height: 0.9;
+  color: var(--site-ink, #f1eadb);
+}
+.sbhome .rating-hero .score small {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--site-mute, #a99b7f);
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+}
+.sbhome .reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.sbhome .review {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
+  padding: 30px;
+}
+.sbhome .review .stars {
+  color: #f5a623;
+  letter-spacing: 2px;
+  font-size: 15px;
+}
+.sbhome .review p {
+  font-size: 1.075rem;
+  line-height: 1.66;
+  margin: 16px 0 22px;
+  color: var(--site-ink, #f1eadb);
+}
+.sbhome .review .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sbhome .review .avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-secondary, #e7dcc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.sbhome .review .who .nm {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.sbhome .review .who .dt {
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- LOCATION ------------------------------------------------------------ */
+.sbhome .loc {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+.sbhome .loc-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 26px;
+}
+.sbhome .loc-detail .ld {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.sbhome .loc-detail .ld i {
+  color: var(--site-accent, #c9a24a);
+  margin-top: 3px;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.sbhome .loc-detail .ld .t {
+  font-weight: 600;
+  font-size: 15px;
+}
+.sbhome .loc-detail .ld .d {
+  font-size: 14px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbhome .loc-frame {
+  position: relative;
+  aspect-ratio: 16/11;
+  border-radius: var(--site-radius-lg, 6px);
+  overflow: hidden;
+  background: var(--site-soft-2, #221e15);
+}
+.sbhome .loc-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* -- CTA band ------------------------------------------------------------ */
+.sbhome .cta-band {
+  background: var(--site-cta-bg, #221e15);
+  color: var(--site-cta-ink, #f1eadb);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(48px, 7vw, 90px) clamp(28px, 5vw, 72px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sbhome .cta-band .zero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 9999px;
+}
+.sbhome .cta-band h2 {
+  color: var(--site-cta-ink, #f1eadb);
+  font-size: clamp(2rem, 3.8vw, 3.2rem);
+  margin-top: 18px;
+}
+.sbhome .cta-band p {
+  color: var(--site-cta-ink, #f1eadb);
+  opacity: 0.8;
+  font-size: 1.15rem;
+  margin: 18px auto 0;
+  max-width: 46ch;
+}
+.sbhome .cta-band .hero-cta-row {
+  justify-content: center;
+  margin-top: 34px;
+}
+.sbhome .cta-band .glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--site-cta-accent, #c9a24a) 26%, transparent),
+    transparent 70%
+  );
+  top: -160px;
+  right: -80px;
+  pointer-events: none;
+}
+
+/* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .sbhome .feature-grid,
+  .sbhome .rooms-grid,
+  .sbhome .reviews-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sbhome .loc {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .sbhome .wrap {
+    padding: 0 20px;
+  }
+  .sbhome .feature-grid,
+  .sbhome .rooms-grid,
+  .sbhome .reviews-grid,
+  .sbhome .gallery {
+    grid-template-columns: 1fr;
+  }
+  .sbhome .gallery {
+    grid-auto-rows: 220px;
+  }
+  .sbhome .gallery .span2 {
+    grid-column: span 1;
+  }
+  .sbhome .gallery .row2 {
+    grid-row: span 1;
+  }
+  .sbhome .sec-head.between {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
