@@ -13,6 +13,7 @@ import {
   Paintbrush,
   Palette,
   Rocket,
+  Share2,
   ShieldAlert,
   Sparkles,
   Trash2,
@@ -75,6 +76,7 @@ type SettingsState = {
   capiTokenSet: boolean;
   blogHeading: string;
   blogIntro: string;
+  socialRail: { enabled: boolean };
 };
 
 // ── Layout primitives (mockup .sblock / .setrow / .sw / .field) ──
@@ -248,6 +250,7 @@ export function SettingsForm({
         metaCapiEnabled: state.metaCapiEnabled,
         blogHeading: state.blogHeading.trim(),
         blogIntro: state.blogIntro.trim(),
+        socialRail: { enabled: state.socialRail.enabled },
       });
       if (!res.ok) {
         toast.error(
@@ -588,6 +591,23 @@ export function SettingsForm({
             </Setrow>
           </>
         ) : null}
+      </Sblock>
+
+      {/* SOCIAL MEDIA RAIL */}
+      <Sblock
+        icon={Share2}
+        title="Social media rail"
+        desc="A floating bar of your social links, shown on every public page."
+      >
+        <Setrow
+          title="Show the social media rail"
+          desc="Show a floating bar of your social links on every page. Uses the social links from your brand settings."
+        >
+          <Sw
+            on={state.socialRail.enabled}
+            onChange={(v) => set("socialRail", { enabled: v })}
+          />
+        </Setrow>
       </Sblock>
 
       {/* POP-UP */}

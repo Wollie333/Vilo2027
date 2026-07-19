@@ -77,6 +77,10 @@ export default async function WebsiteSettingsPage({
     intro?: string;
   };
 
+  const socialRail = (data.settings.socialRail ?? {}) as {
+    enabled?: boolean;
+  };
+
   const payments = (data.settings.payments ?? {}) as {
     paystack?: boolean;
     eft?: boolean;
@@ -130,6 +134,7 @@ export default async function WebsiteSettingsPage({
         capiTokenSet: Boolean(capiRow?.meta_capi_access_token),
         blogHeading: blog.heading ?? "",
         blogIntro: blog.intro ?? "",
+        socialRail: { enabled: socialRail.enabled === true },
       }}
     />
   );

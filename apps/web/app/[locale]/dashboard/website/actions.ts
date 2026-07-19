@@ -3394,6 +3394,7 @@ export async function saveWebsiteSettingsAction(
     metaCapiEnabled,
     blogHeading,
     blogIntro,
+    socialRail,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -3476,6 +3477,9 @@ export async function saveWebsiteSettingsAction(
     blog: {
       heading: blogHeading.trim(),
       intro: blogIntro.trim(),
+    },
+    socialRail: {
+      enabled: socialRail.enabled,
     },
   };
 

@@ -728,6 +728,12 @@ export const websiteSettingsSchema = z.object({
   // theme's blog index is section-driven, so these apply to generic themes.
   blogHeading: z.string().trim().max(80).default(""),
   blogIntro: z.string().trim().max(200).default(""),
+  // Floating social rail — a fixed bar of the host's social links shown on every
+  // public page. Stored under `settings.socialRail`. The render side only shows
+  // it when enabled AND the host actually has social links set (in brand).
+  socialRail: z
+    .object({ enabled: z.boolean().default(false) })
+    .default({ enabled: false }),
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;
