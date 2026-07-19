@@ -180,6 +180,9 @@ export default async function PublicInvoicePage({
       brandName={brandName}
       brandTagline="Direct booking"
       from={{ name: party.name, lines: party.lines }}
+      fromMark={
+        party.logoUrl ? { kind: "logo", url: party.logoUrl } : undefined
+      }
       to={{
         label: "Billed to",
         party: {

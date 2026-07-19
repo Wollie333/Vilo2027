@@ -1,13 +1,20 @@
 "use client";
 
-import { Building2, Loader2, Save } from "lucide-react";
+import { Building2, ImagePlus, Loader2, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { WieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 
-import { saveWieloBusinessAction } from "./actions";
+import { saveWieloBusinessAction, uploadWieloLogoAction } from "./actions";
+
+// Public URL for a host-logos storage path (the bucket is public-read).
+function logoUrlFor(path: string): string | null {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base || !path) return null;
+  return `${base}/storage/v1/object/public/host-logos/${path}`;
+}
 
 type Field = keyof WieloBusinessProfile;
 
@@ -76,6 +83,8 @@ export function WieloBusinessForm({
   const router = useRouter();
   const [values, setValues] = useState<WieloBusinessProfile>(initial);
   const [pending, start] = useTransition();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const dirty = (Object.keys(values) as Field[]).some(
     (k) => (values[k] ?? "").trim() !== (initial[k] ?? "").trim(),
@@ -83,6 +92,32 @@ export function WieloBusinessForm({
 
   function set(key: Field, v: string) {
     setValues((prev) => ({ ...prev, [key]: v }));
+  }
+
+  const logoPreview = values.logo_path ? logoUrlFor(values.logo_path) : null;
+
+  async function onPickLogo(file: File) {
+    if (file.size > 2_000_000) {
+      toast.error("Logo must be under 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = () => reject(new Error("Could not read the file."));
+        r.readAsDataURL(file);
+      });
+      const res = await uploadWieloLogoAction({ dataUrl });
+      set("logo_path", res.path);
+      toast.success("Logo uploaded — click Save to apply.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   function save() {
@@ -122,6 +157,64 @@ export function WieloBusinessForm({
         the platform equivalent of a host&apos;s business details. Frozen onto
         each invoice at the moment it&apos;s issued.
       </p>
+
+      {/* Logo — shown top-left on every Wielo → user financial document. */}
+      <div className="mt-4">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+          Logo
+        </span>
+        <div className="mt-1.5 flex items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[12px] border border-brand-line bg-brand-light">
+            {logoPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoPreview}
+                alt="Wielo logo"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <ImagePlus className="h-5 w-5 text-brand-mute" />
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onPickLogo(f);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-brand-line px-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4" />
+            )}
+            {uploading ? "Uploading…" : logoPreview ? "Replace" : "Upload logo"}
+          </button>
+          {logoPreview ? (
+            <button
+              type="button"
+              onClick={() => set("logo_path", "")}
+              disabled={uploading}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
+              title="Remove logo"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        <span className="mt-1 block text-[11px] text-brand-mute">
+          PNG, JPG, WebP or SVG, under 2 MB. Save to apply.
+        </span>
+      </div>
 
       <div className="mt-4 space-y-4">
         {FIELDS.map((f) => (

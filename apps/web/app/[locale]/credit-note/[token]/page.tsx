@@ -81,6 +81,9 @@ export default async function PublicCreditNotePage({
       brandName={brandName}
       brandTagline="Credit note"
       from={{ name: party.name, lines: party.lines }}
+      fromMark={
+        party.logoUrl ? { kind: "logo", url: party.logoUrl } : undefined
+      }
       to={{
         label: "Credited to",
         party: {

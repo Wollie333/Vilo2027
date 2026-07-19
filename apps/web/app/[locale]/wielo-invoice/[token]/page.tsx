@@ -8,6 +8,7 @@ import {
 import {
   getPlatformInvoiceBanking,
   wieloIssuerLines,
+  wieloLogoPublicUrl,
   type WieloBusinessProfile,
 } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
@@ -69,6 +70,11 @@ export default async function PublicWieloInvoicePage({
   // Wielo's bank details always print on the invoice (bottom-left card). The
   // payment reference is always the invoice number (rendered by the card).
   const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
+  const wieloLogo = await wieloLogoPublicUrl();
+  const legalLine =
+    issuer.name.toLowerCase() === brandName.toLowerCase()
+      ? null
+      : `${issuer.name} trading as ${brandName}`;
 
   const lineRows: DocLine[] = lines.map((l) => ({
     title: l.description,
@@ -88,7 +94,9 @@ export default async function PublicWieloInvoicePage({
       brandName={brandName}
       brandTagline="Direct booking platform"
       from={issuer}
-      fromMark={{ kind: "wielo" }}
+      fromMark={
+        wieloLogo ? { kind: "logo", url: wieloLogo } : { kind: "wielo" }
+      }
       to={{
         label: "Billed to",
         party: {
@@ -145,6 +153,7 @@ export default async function PublicWieloInvoicePage({
         title: `Thank you for choosing ${brandName}.`,
         subtitle: "Keep this invoice for your records.",
       }}
+      legalLine={legalLine}
     />
   );
 }

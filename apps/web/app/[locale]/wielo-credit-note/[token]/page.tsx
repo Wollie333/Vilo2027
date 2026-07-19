@@ -8,6 +8,7 @@ import {
 import {
   wieloCreditNoteLabels,
   wieloIssuerLines,
+  wieloLogoPublicUrl,
   type WieloBusinessProfile,
   type WieloCreditNoteKind,
 } from "@/lib/billing/wielo-invoice";
@@ -72,6 +73,11 @@ export default async function PublicWieloCreditNotePage({
   const hasVat = vat > 0.005;
   const cancelled = cn.status === "cancelled";
   const sign = labels.positive ? "+" : "−";
+  const wieloLogo = await wieloLogoPublicUrl();
+  const legalLine =
+    issuer.name.toLowerCase() === brandName.toLowerCase()
+      ? null
+      : `${issuer.name} trading as ${brandName}`;
 
   const lineRows: DocLine[] = lines.map((l) => ({
     title: l.description,
@@ -90,7 +96,9 @@ export default async function PublicWieloCreditNotePage({
       brandName={brandName}
       brandTagline="Direct booking platform"
       from={issuer}
-      fromMark={{ kind: "wielo" }}
+      fromMark={
+        wieloLogo ? { kind: "logo", url: wieloLogo } : { kind: "wielo" }
+      }
       to={{
         label: labels.toLabel,
         party: {
@@ -127,6 +135,7 @@ export default async function PublicWieloCreditNotePage({
       pdfHref={`/${params.locale}/wielo-credit-note/${cn.hosted_token}/pdf`}
       footerTitle={cn.reason ? "Reason" : undefined}
       footerNote={cn.reason ?? undefined}
+      legalLine={legalLine}
     />
   );
 }

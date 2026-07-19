@@ -60,6 +60,8 @@ export type PdfPaperProps = {
   thanks?: { title: string; subtitle?: string } | null;
   stamp?: string | null;
   runningFooter: { left: string; right: string };
+  /** Very-small-print legal line under the footer (e.g. "X trading as Wielo"). */
+  legalLine?: string | null;
 };
 
 const POS = "#047857";
@@ -71,11 +73,14 @@ export function PdfPaper(p: PdfPaperProps) {
       <Page size="A4" style={s.page}>
         {/* running footer — repeats on every page, bottom corners */}
         <View fixed style={s.pageFooter}>
-          <Text style={s.pfLeft}>{p.runningFooter.left}</Text>
-          <View style={s.pfRight}>
-            <View style={s.pwmark} />
-            <Text style={s.pfRightText}>{p.runningFooter.right}</Text>
+          <View style={s.pageFooterRow}>
+            <Text style={s.pfLeft}>{p.runningFooter.left}</Text>
+            <View style={s.pfRight}>
+              <View style={s.pwmark} />
+              <Text style={s.pfRightText}>{p.runningFooter.right}</Text>
+            </View>
           </View>
+          {p.legalLine ? <Text style={s.pfLegal}>{p.legalLine}</Text> : null}
         </View>
 
         {/* header */}
@@ -553,15 +558,23 @@ const s = StyleSheet.create({
   // running footer (fixed)
   pageFooter: {
     position: "absolute",
-    bottom: 22,
+    bottom: 20,
     left: 40,
     right: 40,
     paddingTop: 7,
     borderTopWidth: 1,
     borderTopColor: BRAND.line,
+  },
+  pageFooterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  pfLegal: {
+    fontSize: 6.5,
+    color: BRAND.mute,
+    textAlign: "center",
+    marginTop: 3,
   },
   pfLeft: { fontSize: 8, color: BRAND.mute },
   pfRight: { flexDirection: "row", alignItems: "center", gap: 5 },

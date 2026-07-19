@@ -69,6 +69,36 @@ export const getWieloBusinessProfile = cache(
   },
 );
 
+// The Wielo platform logo (uploaded in admin → platform settings) shown top-left
+// on every Wielo → user document. Read LIVE from the current profile so a new
+// upload reflects everywhere immediately. `...PublicUrl` for the on-screen page,
+// `...DataUri` for the PDF (a data URI avoids any render-time fetch/CORS issue).
+export async function wieloLogoPublicUrl(): Promise<string | null> {
+  const profile = await getWieloBusinessProfile();
+  if (!profile.logo_path?.trim()) return null;
+  const { data } = createAdminClient()
+    .storage.from("host-logos")
+    .getPublicUrl(profile.logo_path);
+  return data?.publicUrl ?? null;
+}
+
+export async function wieloLogoDataUri(): Promise<string | null> {
+  const profile = await getWieloBusinessProfile();
+  if (!profile.logo_path?.trim()) return null;
+  try {
+    const { data } = createAdminClient()
+      .storage.from("host-logos")
+      .getPublicUrl(profile.logo_path);
+    const res = await fetch(data.publicUrl);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const ct = res.headers.get("content-type") || "image/png";
+    return `data:${ct};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export type InvoiceBankingBlock = {
   bankName: string;
   accountHolder: string;

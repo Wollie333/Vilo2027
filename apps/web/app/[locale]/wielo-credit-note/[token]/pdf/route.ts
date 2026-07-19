@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   wieloCreditNoteLabels,
+  wieloLogoDataUri,
   wieloSnapshotToBusiness,
   type WieloBusinessProfile,
   type WieloCreditNoteKind,
@@ -39,6 +40,13 @@ export async function GET(
   ) as LineItem[];
   const kind = cn.kind as WieloCreditNoteKind;
   const labels = wieloCreditNoteLabels(kind, Number(cn.signed_amount));
+  const brandName = await getBrandName();
+  const logoUrl = await wieloLogoDataUri();
+  const issuerName = snap.legal_name?.trim() || brandName;
+  const legalLine =
+    issuerName.toLowerCase() === brandName.toLowerCase()
+      ? null
+      : `${issuerName} trading as ${brandName}`;
 
   const buffer = await renderCreditNotePdf({
     creditNoteNumber: cn.credit_note_number,
@@ -67,8 +75,9 @@ export async function GET(
     })),
     total: Number(cn.total_amount),
     currency: cn.currency,
-    logoUrl: null,
-    brandName: await getBrandName(),
+    legalLine,
+    logoUrl,
+    brandName,
   });
 
   return new NextResponse(new Uint8Array(buffer), {

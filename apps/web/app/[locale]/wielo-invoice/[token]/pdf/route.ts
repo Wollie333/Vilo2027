@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   getPlatformInvoiceBanking,
+  wieloLogoDataUri,
   wieloSnapshotToBusiness,
   type WieloBusinessProfile,
 } from "@/lib/billing/wielo-invoice";
@@ -47,6 +48,12 @@ export async function GET(
   const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
   const brandName = await getBrandName();
   const isPaid = invoice.status === "paid";
+  const logoUrl = await wieloLogoDataUri();
+  const issuerName = snap.legal_name?.trim() || brandName;
+  const legalLine =
+    issuerName.toLowerCase() === brandName.toLowerCase()
+      ? null
+      : `${issuerName} trading as ${brandName}`;
 
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,
@@ -101,7 +108,8 @@ export async function GET(
         ? `Questions about this invoice? Contact ${snap.email}.`
         : "Keep this invoice for your records.",
     },
-    logoUrl: null,
+    legalLine,
+    logoUrl,
     brandName,
   });
 

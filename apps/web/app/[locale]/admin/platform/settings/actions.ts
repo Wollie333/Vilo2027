@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -185,6 +187,51 @@ export const saveWieloBusinessAction = withAdminAudit<
     });
     if (error) throw new Error(error.message);
     return { result: { ok: true }, after: value };
+  },
+);
+
+// Upload the Wielo platform logo (shown top-left on every Wielo → user financial
+// document). Stored in the host-logos bucket under a wielo-business/ prefix (a
+// public bucket, same as host business logos). Returns the storage path; the
+// form then persists it via saveWieloBusinessAction. Admin only + audited.
+const wieloLogoSchema = z.object({
+  // A data: URL (base64). Kept modest — a logo, not a hero image.
+  dataUrl: z.string().max(3_500_000),
+  reason: z.string().optional(),
+});
+
+export const uploadWieloLogoAction = withAdminAudit<
+  z.infer<typeof wieloLogoSchema>,
+  { ok: true; path: string }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.wielo_logo",
+    targetType: "platform_setting",
+    getTargetId: () => WIELO_BUSINESS_SETTING_ID,
+  },
+  async (args, service) => {
+    const parsed = wieloLogoSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const m = /^data:(image\/(png|jpeg|jpg|webp|svg\+xml));base64,(.+)$/.exec(
+      parsed.data.dataUrl,
+    );
+    if (!m) throw new Error("Upload a PNG, JPG, WebP or SVG image.");
+    const contentType = m[1];
+    const ext =
+      m[2] === "svg+xml" ? "svg" : m[2] === "jpeg" ? "jpg" : (m[2] as string);
+    const bytes = Buffer.from(m[3], "base64");
+    if (bytes.length > 2_000_000) throw new Error("Logo must be under 2 MB.");
+
+    const path = `wielo-business/logo-${randomUUID()}.${ext}`;
+    const { error } = await service.storage
+      .from("host-logos")
+      .upload(path, bytes, { contentType, upsert: true });
+    if (error) throw new Error(error.message);
+
+    return { result: { ok: true, path }, after: { path } };
   },
 );
 

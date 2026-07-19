@@ -75,6 +75,8 @@ export type InvoiceProps = {
   notes?: PdfNote[] | null;
   /** Thanks band (bottom). Falls back to a generic thank-you. */
   thanks?: { title: string; subtitle?: string } | null;
+  /** Very-small-print legal line under the footer. */
+  legalLine?: string | null;
   /** Host logo (data URI or public URL) for the branded header. */
   logoUrl?: string | null;
   /** Configurable platform brand name (see lib/brand.ts). */
@@ -255,6 +257,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
         left: `${issuer.name} · ${kind} ${invoice.invoiceNumber}`,
         right: `Issued via ${invoice.brandName} · wielo.co.za`,
       }}
+      legalLine={invoice.legalLine}
     />
   );
 }

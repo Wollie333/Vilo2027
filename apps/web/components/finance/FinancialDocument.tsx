@@ -143,6 +143,8 @@ export type FinancialDocumentProps = {
 
   /** Running footer at the foot of the paper. Auto-derived when omitted. */
   runningFooter?: { left: string; right: string } | null;
+  /** Very-small-print legal line under the footer (e.g. "X trading as Wielo"). */
+  legalLine?: string | null;
 
   backHref?: string;
   pdfHref: string;
@@ -551,12 +553,19 @@ export function FinancialDocument(p: FinancialDocumentProps) {
             ) : null}
 
             {/* ── running footer ── */}
-            <div className="mt-6 flex items-center justify-between gap-3 border-t border-[#E4EFE8] pt-2 text-[10.5px] text-brand-mute">
-              <span className="truncate">{runningFooter.left}</span>
-              <span className="flex shrink-0 items-center gap-1.5">
-                <span className="brand-gradient h-[15px] w-[15px] rounded-[4px]" />
-                {runningFooter.right}
-              </span>
+            <div className="mt-6 border-t border-[#E4EFE8] pt-2">
+              <div className="flex items-center justify-between gap-3 text-[10.5px] text-brand-mute">
+                <span className="truncate">{runningFooter.left}</span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span className="brand-gradient h-[15px] w-[15px] rounded-[4px]" />
+                  {runningFooter.right}
+                </span>
+              </div>
+              {p.legalLine ? (
+                <div className="mt-1.5 text-center text-[9px] leading-tight text-brand-mute/75">
+                  {p.legalLine}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

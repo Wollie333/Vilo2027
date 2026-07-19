@@ -39,6 +39,8 @@ export type CreditNoteProps = {
   lines: { label: string; amount: number }[];
   total: number;
   currency: string;
+  /** Very-small-print legal line under the footer. */
+  legalLine?: string | null;
   logoUrl?: string | null;
   /** Configurable platform brand name (see lib/brand.ts). */
   brandName: string;
@@ -130,6 +132,7 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
         left: `${issuer.name} · ${kind} ${note.creditNoteNumber}`,
         right: `Issued via ${note.brandName} · wielo.co.za`,
       }}
+      legalLine={note.legalLine}
     />
   );
 }

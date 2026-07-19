@@ -60,6 +60,11 @@ export default async function ReceiptRecordPage({
         />
       }
       from={{ name: receipt.party.name, lines: receipt.party.lines }}
+      fromMark={
+        receipt.party.logoUrl
+          ? { kind: "logo", url: receipt.party.logoUrl }
+          : undefined
+      }
       to={{
         label: "Received from",
         party: { name: receipt.guest.name ?? "Guest", lines: toLines },

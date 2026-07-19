@@ -19,6 +19,8 @@ export type DocHostParty = {
   name: string; // business trading/legal name, else host display name
   lines: string[]; // address + vat + reg + contact, for the "From" block
   banking: DocBanking | null;
+  /** Public URL of the business logo (host-logos bucket), or null. */
+  logoUrl: string | null;
 };
 
 /**
@@ -69,7 +71,7 @@ export async function getHostParty(
       ? admin
           .from("businesses")
           .select(
-            "legal_name, trading_name, vat_number, company_registration_number, address_line1, address_line2, city, postal_code, country",
+            "legal_name, trading_name, vat_number, company_registration_number, address_line1, address_line2, city, postal_code, country, logo_path",
           )
           .eq("id", bizId)
           .maybeSingle()
@@ -150,5 +152,15 @@ export async function getHostParty(
     }
   }
 
-  return { name, lines, banking };
+  // Business logo (host-logos bucket) as a public URL for the on-screen docs.
+  let logoUrl: string | null = null;
+  const logoPath = (biz as { logo_path?: string | null } | null)?.logo_path;
+  if (logoPath) {
+    const { data: pub } = admin.storage
+      .from("host-logos")
+      .getPublicUrl(logoPath);
+    logoUrl = pub?.publicUrl ?? null;
+  }
+
+  return { name, lines, banking, logoUrl };
 }

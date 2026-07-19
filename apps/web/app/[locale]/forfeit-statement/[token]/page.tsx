@@ -94,6 +94,9 @@ export default async function PublicForfeitStatementPage({
       brandName={brandName}
       brandTagline="Forfeit statement"
       from={{ name: party.name, lines: party.lines }}
+      fromMark={
+        party.logoUrl ? { kind: "logo", url: party.logoUrl } : undefined
+      }
       to={{
         label: "Guest",
         party: {
