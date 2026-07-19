@@ -1,6 +1,6 @@
 import "./sabelaHome.css";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type {
   GalleryImage,
   ReviewsData,
@@ -271,13 +271,18 @@ export function SabelaHome({
       {/* HIGHLIGHTS (direct-booking value props) */}
       <section className="section" data-section="highlights">
         <div className="wrap">
-          <div className="sec-head">
+          <div className="sec-head" data-reveal>
             <span className="eyebrow">Why book direct</span>
             <h2>Nothing between you and your stay</h2>
           </div>
           <div className="feature-grid">
             {HIGHLIGHTS.map((h, i) => (
-              <div className="feature" key={i}>
+              <div
+                className="feature"
+                key={i}
+                data-reveal
+                style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
+              >
                 <div className="f-ic">{h.icon}</div>
                 <h3>{h.title}</h3>
                 <p>{h.body}</p>
@@ -291,7 +296,7 @@ export function SabelaHome({
       {galShots.length > 0 ? (
         <section className="section-sm soft-bg" data-section="gallery">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="eyebrow center no-rule">
                 Moments at {brandName}
               </span>
@@ -299,7 +304,12 @@ export function SabelaHome({
             </div>
             <div className="gallery">
               {galShots.map((g, i) => (
-                <div className={galSpan(i)} key={i}>
+                <div
+                  className={galSpan(i)}
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 70}ms` } as CSSProperties}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={siteImageUrl(g.url, { width: 1200 })}
@@ -323,6 +333,7 @@ export function SabelaHome({
           <div className="wrap">
             <div
               className="sec-head between"
+              data-reveal
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -341,11 +352,13 @@ export function SabelaHome({
               </a>
             </div>
             <div className="rooms-grid">
-              {roomList.map((r) => (
+              {roomList.map((r, i) => (
                 <a
                   href={r.detailHref || r.bookHref || roomsHref}
                   className="room-card"
                   key={r.id}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
                 >
                   <div className="rc-img">
                     {r.badge ? <span className="rc-tag">{r.badge}</span> : null}
@@ -394,7 +407,12 @@ export function SabelaHome({
           <div className="wrap">
             <div className="stats">
               {stats.slice(0, 4).map((st, i) => (
-                <div className="stat" key={i}>
+                <div
+                  className="stat"
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+                >
                   <div className="n">{st.n}</div>
                   <div className="l">{st.l}</div>
                 </div>
@@ -408,7 +426,7 @@ export function SabelaHome({
       {reviewItems.length > 0 || avg != null ? (
         <section className="section" data-section="reviews">
           <div className="wrap">
-            <div className="rating-hero">
+            <div className="rating-hero" data-reveal>
               {avg != null ? (
                 <div className="score">
                   {avg.toFixed(2)}
@@ -440,7 +458,12 @@ export function SabelaHome({
             {reviewItems.length > 0 ? (
               <div className="reviews-grid">
                 {reviewItems.slice(0, 3).map((r, i) => (
-                  <div className="review" key={i}>
+                  <div
+                    className="review"
+                    key={i}
+                    data-reveal
+                    style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
+                  >
                     <div className="stars">
                       {"★".repeat(
                         Math.max(1, Math.min(5, Math.round(r.rating))),
@@ -466,7 +489,7 @@ export function SabelaHome({
       {location?.address ? (
         <section className="section soft-bg" data-section="location">
           <div className="wrap">
-            <div className="loc">
+            <div className="loc" data-reveal>
               <div>
                 <span className="eyebrow">Getting here</span>
                 <h2
@@ -532,7 +555,7 @@ export function SabelaHome({
       {/* CTA */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <span className="zero-badge">
               <svg

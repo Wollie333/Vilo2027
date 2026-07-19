@@ -223,7 +223,7 @@ export function MarmaladeHome({
       {/* INTRO (split) */}
       <section className="section">
         <div className="wrap">
-          <div className="split w-left">
+          <div className="split w-left" data-reveal>
             <div>
               <span className="eyebrow">Welcome in</span>
               <h2 className="lg" style={{ marginTop: 16 }}>
@@ -289,6 +289,7 @@ export function MarmaladeHome({
           <div className="wrap">
             <div
               className="sec-head"
+              data-reveal
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -306,7 +307,7 @@ export function MarmaladeHome({
                 All rooms {Arrow}
               </a>
             </div>
-            <div className="pcgrid">
+            <div className="pcgrid" data-reveal>
               {roomList.map((r) => (
                 <a
                   href={r.detailHref || r.bookHref || roomsHref}
@@ -350,11 +351,11 @@ export function MarmaladeHome({
       {/* HIGHLIGHTS (direct-booking value props, postcard cards) */}
       <section className="section">
         <div className="wrap">
-          <div className="sec-head center">
+          <div className="sec-head center" data-reveal>
             <span className="hand">a few good reasons</span>
             <h2>Why book with us</h2>
           </div>
-          <div className="pcgrid">
+          <div className="pcgrid" data-reveal>
             {HIGHLIGHTS.map((h, i) => (
               <div className="pc pc-note" key={i}>
                 <span
@@ -380,11 +381,11 @@ export function MarmaladeHome({
       {galShots.length > 0 ? (
         <section className="section soft">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">a look around</span>
               <h2>The house, in snapshots</h2>
             </div>
-            <div className="gal">
+            <div className="gal" data-reveal>
               {galShots.map((g, i) => (
                 <div className="g" key={i}>
                   <div className="im">
@@ -407,11 +408,11 @@ export function MarmaladeHome({
       {items.length > 0 ? (
         <section className="section">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">the guest book</span>
               <h2>What people write home</h2>
             </div>
-            <div className="reviews">
+            <div className="reviews" data-reveal>
               {items.slice(0, 3).map((r, i) => (
                 <div className="review" key={i}>
                   <span
@@ -444,7 +445,7 @@ export function MarmaladeHome({
       {location?.address ? (
         <section className="section soft">
           <div className="wrap">
-            <div className="split">
+            <div className="split" data-reveal>
               <div>
                 <span className="eyebrow">Finding us</span>
                 <h2 className="lg" style={{ marginTop: 14 }}>
@@ -516,7 +517,7 @@ export function MarmaladeHome({
       {/* CTA (banner) */}
       <section className="section">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}
