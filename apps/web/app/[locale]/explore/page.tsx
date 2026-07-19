@@ -6,6 +6,7 @@ import {
   type BrowseSearchParams,
 } from "@/app/_components/browse/searchListings";
 import { getBrandName } from "@/lib/brand";
+import { directoryPriorityCountry } from "@/lib/geo/directoryCountry";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -28,7 +29,13 @@ export default async function ExplorePage({
 }) {
   const supabase = createServerClient();
   const brandName = await getBrandName();
-  const result = await searchListings(supabase, searchParams, "/explore");
+  const priorityCountry = await directoryPriorityCountry();
+  const result = await searchListings(
+    supabase,
+    searchParams,
+    "/explore",
+    priorityCountry,
+  );
 
   return (
     <div className="bg-brand-light text-brand-ink">

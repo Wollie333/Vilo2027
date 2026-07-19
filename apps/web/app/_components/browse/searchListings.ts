@@ -85,6 +85,10 @@ export async function searchListings(
   supabase: ReturnType<typeof createServerClient>,
   searchParams: BrowseSearchParams | undefined,
   basePath: string,
+  // The directory country to float to the top ("prioritise, don't hide"). Pass
+  // null / "" to show every country in the normal sort. The caller only sets
+  // this when there are ≥2 countries with listings (else it's a no-op).
+  priorityCountry?: string | null,
 ): Promise<BrowseResult> {
   const where = (searchParams?.where ?? "").trim();
   const type = searchParams?.type ?? "";
@@ -99,67 +103,118 @@ export async function searchListings(
 
   const hasFilters = where.length > 0 || type !== "" || guests != null;
 
-  let query = supabase
-    .from("properties")
-    .select(
-      "id, slug, name, city, province, base_price, currency, vat_number, vat_rate, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
-      { count: "exact" },
-    )
-    .eq("is_published", true)
-    // MVP: accommodation only — experiences/tour guides ship later.
-    .eq("property_type", "accommodation")
-    .is("deleted_at", null);
+  const LISTING_SELECT =
+    "id, slug, name, city, province, base_price, currency, vat_number, vat_rate, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
 
-  if (where.length > 0) {
-    // Search city + province + listing name. PostgREST `or` filter — the term
-    // MUST be run through sanitizeSearch (strips , ( ) % _ etc.) or a public
-    // visitor could inject extra OR-conditions into the filter grammar.
-    const safe = sanitizeSearch(where);
-    if (safe.length > 0) {
-      const pat = `%${safe}%`;
-      query = query.or(
-        `name.ilike.${pat},city.ilike.${pat},province.ilike.${pat}`,
+  // Precompute the free-text + type/category filter specs ONCE so the exact same
+  // filters apply across every query below (the single query, or the two country
+  // buckets + the total count when prioritising).
+  //   `where` MUST be run through sanitizeSearch (strips , ( ) % _ etc.) or a
+  //   public visitor could inject extra OR-conditions into the filter grammar.
+  const wherePat =
+    where.length > 0
+      ? (() => {
+          const safe = sanitizeSearch(where);
+          return safe.length > 0 ? `%${safe}%` : "";
+        })()
+      : "";
+  // Treat `type` as a category slug: look it up + include every descendant id,
+  // falling back to the legacy accommodation_type column for un-backfilled rows.
+  let categoryOr: string | null = null;
+  let legacyType: string | null = null;
+  if (type && type !== "accommodation") {
+    const category = await getCategoryBySlug(type);
+    if (category) {
+      const ids = await getDescendantIds(category.id);
+      categoryOr = `category_id.in.(${ids.join(",")}),accommodation_type.eq.${type}`;
+    } else {
+      legacyType = type;
+    }
+  }
+
+  // The listings query (full select + sort), optionally constrained to / away
+  // from the priority country for the two-bucket ordering.
+  function buildListings(country: "eq" | "neq" | null) {
+    let q = supabase
+      .from("properties")
+      // MVP: accommodation only — experiences/tour guides ship later.
+      .select(LISTING_SELECT, { count: "exact" })
+      .eq("is_published", true)
+      .eq("property_type", "accommodation")
+      .is("deleted_at", null);
+    if (wherePat) {
+      q = q.or(
+        `name.ilike.${wherePat},city.ilike.${wherePat},province.ilike.${wherePat}`,
       );
     }
+    if (categoryOr) q = q.or(categoryOr);
+    else if (legacyType) q = q.eq("accommodation_type", legacyType);
+    if (guests) q = q.gte("max_guests", guests);
+    if (country === "eq" && priorityCountry)
+      q = q.eq("country", priorityCountry);
+    else if (country === "neq" && priorityCountry)
+      q = q.neq("country", priorityCountry);
+    if (sort === "price_asc")
+      q = q.order("base_price", { ascending: true, nullsFirst: false });
+    else if (sort === "price_desc")
+      q = q.order("base_price", { ascending: false, nullsFirst: false });
+    else if (sort === "rating")
+      q = q.order("avg_rating", { ascending: false, nullsFirst: false });
+    else q = q.order("created_at", { ascending: false });
+    return q;
   }
-  if (type) {
-    if (type === "accommodation") {
-      // Base query already filters to accommodation — nothing more to do.
-    } else {
-      // Treat `type` as a category slug. Look it up in the taxonomy and include
-      // every descendant id when filtering. Fall back to the legacy
-      // accommodation_type text column for listings not yet backfilled.
-      const category = await getCategoryBySlug(type);
-      if (category) {
-        const ids = await getDescendantIds(category.id);
-        const idList = `(${ids.join(",")})`;
-        query = query.or(
-          `category_id.in.${idList},accommodation_type.eq.${type}`,
-        );
-      } else {
-        query = query.eq("accommodation_type", type);
-      }
+
+  // A head count of every match (both buckets) — the total for pagination.
+  function buildTotalCount() {
+    let q = supabase
+      .from("properties")
+      .select("id", { count: "exact", head: true })
+      .eq("is_published", true)
+      .eq("property_type", "accommodation")
+      .is("deleted_at", null);
+    if (wherePat) {
+      q = q.or(
+        `name.ilike.${wherePat},city.ilike.${wherePat},province.ilike.${wherePat}`,
+      );
     }
-  }
-  if (guests) {
-    query = query.gte("max_guests", guests);
+    if (categoryOr) q = q.or(categoryOr);
+    else if (legacyType) q = q.eq("accommodation_type", legacyType);
+    if (guests) q = q.gte("max_guests", guests);
+    return q;
   }
 
-  if (sort === "price_asc") {
-    query = query.order("base_price", { ascending: true, nullsFirst: false });
-  } else if (sort === "price_desc") {
-    query = query.order("base_price", { ascending: false, nullsFirst: false });
-  } else if (sort === "rating") {
-    query = query.order("avg_rating", { ascending: false, nullsFirst: false });
+  const priority =
+    priorityCountry && priorityCountry.length > 0 ? priorityCountry : null;
+
+  let listings: BrowseResult["listings"] | null = null;
+  let totalCount = 0;
+
+  if (priority) {
+    // Bucket A = the priority country, bucket B = everyone else. They partition
+    // all listings (country is NOT NULL), so we slice the requested page window
+    // across the A→B boundary: A supplies [rangeStart, a), B fills the rest.
+    const aRes = await buildListings("eq").range(rangeStart, rangeEnd);
+    const a = aRes.count ?? 0;
+    const aRows = aRes.data ?? [];
+    let bRows: NonNullable<typeof aRes.data> = [];
+    if (rangeEnd >= a) {
+      const bRes = await buildListings("neq").range(
+        Math.max(0, rangeStart - a),
+        rangeEnd - a,
+      );
+      bRows = bRes.data ?? [];
+    }
+    const { count: total } = await buildTotalCount();
+    totalCount = total ?? 0;
+    listings = [...aRows, ...bRows] as unknown as BrowseResult["listings"];
   } else {
-    query = query.order("created_at", { ascending: false });
+    const { data, count } = await buildListings(null).range(
+      rangeStart,
+      rangeEnd,
+    );
+    listings = (data ?? []) as unknown as BrowseResult["listings"];
+    totalCount = count ?? 0;
   }
-
-  query = query.range(rangeStart, rangeEnd);
-
-  const { data: listings, count } = await query;
-
-  const totalCount = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / BROWSE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const prevHref =

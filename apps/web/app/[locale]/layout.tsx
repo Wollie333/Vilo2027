@@ -9,12 +9,15 @@ import NextTopLoader from "nextjs-toploader";
 import { PlatformMarketing } from "@/components/analytics/PlatformMarketing";
 import { BrandProvider } from "@/components/brand/BrandProvider";
 import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
+import { CountryProvider } from "@/components/geo/CountryProvider";
 import { BusyHost } from "@/components/ui/busy-host";
 import { ModalHost } from "@/components/ui/modal-host";
 import { ProgressHost } from "@/components/ui/progress-host";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
 import { getBranding, getBrandName } from "@/lib/brand";
+import { resolveDirectoryCountry } from "@/lib/geo/directoryCountry";
+import { getListedCountries } from "@/lib/geo/listedCountries";
 import { getDisplayRates } from "@/lib/fx";
 import { getPlatformTracking } from "@/lib/integrations/meta";
 
@@ -64,14 +67,17 @@ export default async function RootLayout({
   // Enable static rendering for this request's locale.
   setRequestLocale(locale);
 
-  const [branding, rates, messages, platformTracking] = await Promise.all([
-    getBranding(),
-    getDisplayRates(),
-    getMessages(),
-    getPlatformTracking(),
-  ]);
+  const [branding, rates, messages, platformTracking, listedCountries] =
+    await Promise.all([
+      getBranding(),
+      getDisplayRates(),
+      getMessages(),
+      getPlatformTracking(),
+      getListedCountries(),
+    ]);
   const hasPlatformTracking = Object.values(platformTracking).some(Boolean);
   const displayCurrency = cookies().get("vilo_display_ccy")?.value ?? null;
+  const directoryCountry = resolveDirectoryCountry();
   // On a host's own micro-site (tenant domain), the host's OWN pixel is loaded
   // by SiteMarketing. Do NOT also load the Wielo platform pixel there, or a
   // host-website booking would cross-fire onto Wielo's pixel. The Wielo pixel is
@@ -102,14 +108,19 @@ export default async function RootLayout({
         ) : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <BrandProvider value={branding}>
-            <CurrencyProvider initialCurrency={displayCurrency} rates={rates}>
-              {children}
-              <CookieBanner />
-              <Toaster richColors position="top-center" />
-              <ModalHost />
-              <BusyHost />
-              <ProgressHost />
-            </CurrencyProvider>
+            <CountryProvider
+              country={directoryCountry}
+              countries={listedCountries}
+            >
+              <CurrencyProvider initialCurrency={displayCurrency} rates={rates}>
+                {children}
+                <CookieBanner />
+                <Toaster richColors position="top-center" />
+                <ModalHost />
+                <BusyHost />
+                <ProgressHost />
+              </CurrencyProvider>
+            </CountryProvider>
           </BrandProvider>
         </NextIntlClientProvider>
       </body>

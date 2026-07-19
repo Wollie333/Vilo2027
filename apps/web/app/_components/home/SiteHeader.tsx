@@ -19,6 +19,7 @@ import { Link } from "@/i18n/navigation";
 import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
+import { CountrySelector } from "@/components/geo/CountrySelector";
 import { createClient } from "@/lib/supabase/client";
 
 import { UtilityBar } from "./UtilityBar";
@@ -177,6 +178,9 @@ export function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {/* Directory country — auto-detected, overridable. Prioritises the
+                visitor's country in the listings. Self-hides below 2 countries. */}
+            <CountrySelector className="hidden sm:inline-flex" />
             {/* Display-currency picker — self-hides when the flag is off. Lets a
                 guest browse (and, on USD, pay via PayPal) in their currency. */}
             <CurrencySwitcher className="hidden sm:inline-flex" />
@@ -243,9 +247,15 @@ export function SiteHeader() {
                 </Link>
               ))}
 
-              {/* Currency picker for phones (the header one is sm+). Self-hides
-                  when the flag is off. */}
+              {/* Country + currency pickers for phones (the header ones are
+                  sm+). Each self-hides when it has nothing to offer. */}
               <div className="mt-2 flex items-center justify-between gap-2 border-t border-brand-line px-2 pt-3 sm:hidden">
+                <span className="text-[13px] font-medium text-brand-mute">
+                  Country
+                </span>
+                <CountrySelector />
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 px-2 sm:hidden">
                 <span className="text-[13px] font-medium text-brand-mute">
                   Currency
                 </span>

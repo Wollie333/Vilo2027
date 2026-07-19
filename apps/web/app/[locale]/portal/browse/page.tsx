@@ -8,6 +8,7 @@ import {
 import { SearchBar } from "@/app/[locale]/explore/SearchBar";
 import { TypeChips } from "@/app/[locale]/explore/TypeChips";
 import { getBrandName } from "@/lib/brand";
+import { directoryPriorityCountry } from "@/lib/geo/directoryCountry";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -27,7 +28,13 @@ export default async function PortalBrowsePage({
 }) {
   const supabase = createServerClient();
   const brandName = await getBrandName();
-  const result = await searchListings(supabase, searchParams, "/portal/browse");
+  const priorityCountry = await directoryPriorityCountry();
+  const result = await searchListings(
+    supabase,
+    searchParams,
+    "/portal/browse",
+    priorityCountry,
+  );
 
   return (
     <div>
