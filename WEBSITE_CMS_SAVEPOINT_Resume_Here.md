@@ -1,12 +1,33 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `7933e68` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt15 — SAFARI is now a 4th full theme + cross-theme refinement pass)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `0874a5b` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt16 — ROYAL HOTEL is a 5th theme + image-quality tuning)
 
 > ## 🧭 WHERE WE ARE (read this first)
-> **PHASE 1 COMPLETE + FOUR full themes.** OceansView, Marmalade, Sabela (=`hotel`), and now **SAFARI**
-> (=`safari`, "NenGama Lodge") all render bespoke pages. Verify on mana via
-> `?site=mana&preview=1&theme=<oceansview|marmalade|hotel|safari>`.
+> **FIVE full themes.** OceansView, Marmalade, Sabela (=`hotel`), Safari (=`safari`, "NenGama Lodge"), and
+> now **ROYAL HOTEL** (=`royal`) all render bespoke pages. Verify on mana via
+> `?site=mana&preview=1&theme=<oceansview|marmalade|hotel|safari|royal>`.
+>
+> **⚠️ GOLDEN-RULE DEBT (founder: "no two themes the same"):** OceansView, Safari AND Royal now share the
+> SAME layout (Safari + Royal reuse OceansView's components via `usesOceansViewLayout()` in
+> `lib/site/themeFamily.ts`); they differ by palette/font/radius only. The founder ACCEPTED this for Royal
+> ("faithful now, distinct later"). **Distinct-later backlog:** (1) Royal — wire Archivo (uses grotesk/
+> Bricolage now), the R-monogram brand tile, the grand-hotel logos/amenities sections; (2) re-compose a page
+> or two per reuse-theme so the LAYOUT diverges, not just the skin; (3) the founder also flagged Safari +
+> Sabela/hotel "feel like the same theme" (both warm-earth lodge + serif) — differentiate.
+>
+> **ROYAL HOTEL (pt16, `0874a5b`, code done — LIVE-VERIFY PENDING the deploy):** grand hotel — white ground,
+> warm-charcoal ink, champagne-gold accent (#B08948) + espresso secondary, tight grotesk, refined `md`
+> corners. REUSES OceansView pages + chrome (like Safari) re-skinned via the `.wielo-royal` block. Added:
+> `royal` preset (themes.ts), `.wielo-royal` colour tokens (theme-skins.css), `usesOceansViewLayout()` helper
+> (refactored all guards), `THEME_CHROME.royal` → OceansView chrome. Reference in `docs/themes/royalhotel/`.
+> NOTE: verify AFTER the `0874a5b` deploy is READY — on an older deploy `?theme=royal` falls back to `warm`
+> (preset unknown) so you'll see warm off-white + no `.ovhome`; that's a stale-deploy artifact, not a bug.
+>
+> **IMAGE QUALITY (pt15/16, `cd5de81`):** founder wants premium photos for guests. `siteImageUrl` default
+> quality 72→82 (WebP; +~1KB, visually lossless); full-bleed hero/cover/lightbox widths 2000→2560 (retina).
+> Transform never upscales. Verified: mana photo @800/q82 = 200/webp/~28KB vs 138KB original. Can go q90 for
+> max fidelity (~30-40% larger).
 >
 > **SAFARI (pt15, `b51192c`+`6035f08`, VERIFIED live):** Safari was palette-only. It now REUSES the
 > OceansView bespoke page components (same layout convention per page) re-skinned to the savanna palette,
