@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-19 — Theme differentiation Phase B: Royal Rooms + Room-detail forked — Royal fully decoupled (`c24882d`).
+
+Completes Royal's structural fork. Royal no longer routes through ANY shared
+OceansView page — it has its own Home + Rooms + Room-detail components.
+
+- **`RoyalRooms.tsx` + `royalRooms.css` (`.rrooms`)** and **`RoyalRoomDetail.tsx`
+  + `royalRoom.css` (`.rroom`)**, forked from the OceansView room layout (which
+  the Royal reference matches) then given a grand-hotel treatment: a **centred
+  formal Rooms page-head** + a thin **champagne rule** under each room name and
+  each room-detail section heading. Palette/type stay token-driven via the
+  `.wielo-royal` skin (Archivo, champagne).
+- The forked room-detail CSS **preserves the literal `.ovroom-lightbox`/`.ovlb-*`**
+  classes (the shared `OceansRoomGallery` emits them inline) while re-scoping the
+  layout to `.rroom`; RoyalRoomDetail reuses the shared gallery + book card. Same
+  live-data contract (rooms_preview / reviews / seasonal_pricing).
+- **Routing:** `preset==='royal'` branches for rooms (SitePageView) + room-detail
+  (SiteRoomView), both ABOVE the shared `usesOceansViewLayout` branch.
+- **Honest finding (recorded in the plan):** Royal's Rooms/Room-detail reference is
+  structurally the SAME as OceansView's, so this fork is mainly code decoupling +
+  coherence with the bespoke home — the divergence is the grand-hotel page-head /
+  champagne rules, not a new layout. The real remaining differentiation is the
+  **Safari fork** (from scratch) + Phase C. tsc + eslint + prettier green.
+
 ## 2026-07-19 — Theme differentiation Phase B: bespoke grand-hotel Royal home + Archivo font (`6e6cdef`).
 
 First structural fork of **Phase B** (`THEME_DIFFERENTIATION_PLAN.md`). Royal

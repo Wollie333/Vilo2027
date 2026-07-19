@@ -2,7 +2,35 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢 SAVE POINT (2026-07-19 pt20) — PHASE B STARTED: Royal home forked (bespoke grand-hotel) + live-verified. NEXT: Royal Rooms/RoomDetail → Safari fork → Phase C.
+## 🟢🟢🟢 SAVE POINT (2026-07-20 pt21) — PHASE B: ROYAL FULLY FORKED (Home + Rooms + Room-detail) + live-verified. NEXT: Safari fork (from scratch) → Phase C.
+
+**Branch `feature/website-cms-10min-wizard`, pushed `c24882d`, deploy READY.**
+
+- **Royal is now completely decoupled from OceansView** — its own Home + Rooms + Room-detail components + stylesheets.
+  Home (`6e6cdef`) is a genuinely distinct grand-hotel layout (`.rhome`). Rooms + Room-detail (`c24882d`) fork the
+  OceansView room layout (which the Royal reference matches structurally) into `.rrooms`/`.rroom` with a grand-hotel
+  treatment (centred formal Rooms page-head + champagne rules under room names & section heads; Archivo via the skin).
+  The forked room-detail CSS PRESERVES the literal `.ovroom-lightbox`/`.ovlb-*` classes (shared OceansRoomGallery emits
+  them inline) while re-scoping to `.rroom`; RoyalRoomDetail reuses the shared OceansRoomGallery + OceansBookCard.
+- **Live-verified on mana** (authenticated browser, DOM/computed-style): Royal rooms = `.rrooms` (centred page-head,
+  champagne #B08948 room-name rule, Archivo, 3 live rooms, no overflow); Royal room-detail (`/site/rooms/leadwood-suite`)
+  = `.rroom` (gallery grid styled + images loaded, book card, champagne #B08948 section rules, Archivo, no overflow;
+  lightbox CSS proven present via a `.ovroom-lightbox.open` probe → position:fixed/z90/flex). Home re-verified earlier.
+  Regression: `preset==='royal'` branches sit above the shared `usesOceansViewLayout` branches, so Safari/OceansView
+  still render `.ovrooms`/`.ovroom` (pattern already proven on home).
+- **FINDING (recorded in plan):** Royal's Rooms/Room-detail reference is structurally the SAME as OceansView's, so this
+  fork is mainly code decoupling + coherence — the divergence is the grand-hotel page-head/champagne rules, not a new
+  layout. The real remaining differentiation value is the **Safari fork** + Phase C.
+- **NEXT — SAFARI FORK (from scratch, high value).** Safari currently 100% clones OceansView (all pages via
+  `usesOceansViewLayout`) and has NO bespoke design dir — design a genuinely distinct editorial/photography-forward
+  savanna-lodge composition (start with Home: own `components/site/safari/*` + CSS, re-composed — full-bleed alternating
+  story bands / a different rooms presentation, not a recolour). Route a `preset==='safari'` home branch above the
+  shared branch (same pattern as Royal). Then **Phase C** (push Safari further from Sabela: type scale + rhythm +
+  imagery). Full plan in `THEME_DIFFERENTIATION_PLAN.md`. Honesty rule holds: no fabricated press/awards/amenities.
+
+---
+
+## 🟢🟢 SAVE POINT (2026-07-19 pt20) — PHASE B STARTED: Royal home forked (bespoke grand-hotel) + live-verified.
 
 **Branch `feature/website-cms-10min-wizard`, pushed `6e6cdef`, deploy READY.**
 

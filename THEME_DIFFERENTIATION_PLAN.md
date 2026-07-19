@@ -186,8 +186,29 @@ they stop cloning OceansView.
 > Archivo wired as a real font role (`archivo`); routing = a `preset==='royal'` home
 > branch ABOVE the shared `usesOceansViewLayout` branch in SitePageView. Live-verified
 > on mana: Royal home = `.rhome` w/ new sections + Archivo, reveals settle, no overflow;
-> Safari/OceansView home still `.ovhome`. **REMAINING:** Royal Rooms + Room-detail
-> (SiteRoomView), then the whole Safari fork, then Phase C.
+> Safari/OceansView home still `.ovhome`.
+>
+> **PROGRESS (2026-07-20, commit `c24882d`) — Royal ROOMS + ROOM-DETAIL forked → Royal
+> FULLY decoupled.** `RoyalRooms.tsx` + `royalRooms.css` (`.rrooms`) + `RoyalRoomDetail.tsx`
+> + `royalRoom.css` (`.rroom`), forked from the OceansView room layout (the Royal reference
+> matches it) with a grand-hotel treatment (centred Rooms page-head + champagne rules under
+> room names & section heads). Forked room-detail CSS preserves the literal `.ovroom-lightbox`
+> /`.ovlb-*` classes (shared OceansRoomGallery emits them inline). Routed via `preset==='royal'`
+> branches above the shared branches (SitePageView rooms + SiteRoomView). Live-verified on mana
+> (`.rrooms`/`.rroom`, champagne rules, Archivo, gallery + lightbox CSS + book card, no overflow).
+> **REMAINING in Phase B: the whole Safari fork (from scratch).** Then Phase C.
+
+> **FINDING (2026-07-19) — Royal Rooms/Room-detail ≈ OceansView layout.**
+> `docs/themes/royalhotel/pages/{Rooms,Room}.html` are structurally the SAME as the
+> OceansView Rooms/Room-detail (OceansViewRooms already ships the included chip bar +
+> float-badge prices + alternating `.split w-left` rows the reference uses). So forking
+> Royal's Rooms/Room-detail is low-value: a pure copy-rename renders identically (just
+> duplicated code), and the `.wielo-royal` skin already recolours `.ovrooms`/`.ovroom`
+> to champagne/charcoal/Archivo. Room-*detail* pages are inherently similar across hotel
+> themes. **Decision: skip Royal Rooms/Room-detail forks** unless a concrete redesign is
+> wanted; the real remaining differentiation is the **Safari fork** (from scratch — no
+> reference dir, currently 100% clones OceansView) and **Phase C**. Room-detail routing
+> hook (if ever forked): a `preset==='royal'` branch above line ~138 in `SiteRoomView.tsx`.
 
 Pragmatic route: fork the specific pages where the design
 differs most (start with **Home** + **Rooms** + **Room detail**, the highest-traffic),
