@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SiteChrome } from "@/components/site/SiteChrome";
+import { MarmaladeThankYou } from "@/components/site/marmalade/MarmaladeThankYou";
 import {
   SectionShell,
   SectionHeading,
@@ -152,13 +153,25 @@ export default async function SiteFormThankYouPage({
             : undefined
         }
         previewPages={previewPages}
-        pageHasHero={false}
+        pageHasHero={ctx.theme.preset === "marmalade"}
       >
         {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
-        <SectionShell width="narrow">
-          <SectionHeading className="mb-3">{heading}</SectionHeading>
-          <Muted className="text-center text-base">{message}</Muted>
-        </SectionShell>
+        {ctx.theme.preset === "marmalade" ? (
+          <MarmaladeThankYou
+            brandName={ctx.brand.name}
+            handLine={goalCopy.eyebrow.toLowerCase()}
+            heading={heading}
+            message={message}
+            confirmed
+            primaryCta={{ label: "Back home", href: "/" }}
+            secondaryCta={{ label: "Say hello", href: "/contact" }}
+          />
+        ) : (
+          <SectionShell width="narrow">
+            <SectionHeading className="mb-3">{heading}</SectionHeading>
+            <Muted className="text-center text-base">{message}</Muted>
+          </SectionShell>
+        )}
       </SiteChrome>
     </SiteThemeRoot>
   );

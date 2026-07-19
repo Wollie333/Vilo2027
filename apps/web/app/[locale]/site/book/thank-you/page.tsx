@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FirePurchase } from "@/components/site/FirePurchase";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { BookingConfirmationCard } from "@/components/site/BookingConfirmationCard";
+import { MarmaladeThankYou } from "@/components/site/marmalade/MarmaladeThankYou";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import {
   getHostWebsiteCapi,
@@ -270,6 +271,63 @@ export default async function SiteThankYouPage({
     }
   }
 
+  // Shared copy + rows (used by both the generic card and the bespoke themes).
+  const firstName = booking.guest_name ? booking.guest_name.split(" ")[0] : "";
+  const heading = isConfirmed
+    ? "You're booked in 🎉"
+    : isEftPending
+      ? "Almost there — complete your transfer"
+      : "We're confirming your payment";
+  const message = isConfirmed
+    ? `Thanks${firstName ? `, ${firstName}` : ""} — a confirmation is on its way to your email.`
+    : isEftPending
+      ? "Your booking is reserved. Transfer the amount below using your booking reference and the host will confirm once it reflects."
+      : "This can take a moment. We'll email your confirmation as soon as it's settled.";
+  const totalStr = money(total, currency) ?? "—";
+  const eftRows = eft
+    ? [
+        { label: "Account holder", value: eft.account_holder },
+        { label: "Bank", value: eft.bank_name },
+        { label: "Account number", value: eft.account_number },
+        { label: "Branch code", value: eft.branch_code },
+        { label: "Account type", value: eft.account_type },
+        { label: "Use reference", value: booking.reference ?? "—" },
+      ]
+    : null;
+  const genericRows = [
+    { label: "Reference", value: booking.reference ?? "—" },
+    {
+      label: "Dates",
+      value:
+        booking.check_in && booking.check_out
+          ? `${booking.check_in} → ${booking.check_out}`
+          : "—",
+    },
+    { label: "Guests", value: String(booking.guests_count ?? "—") },
+  ];
+
+  const isMarmalade = ctx.theme.preset === "marmalade";
+  // Marmalade summary rows (reference is shown in its own chip): arrive / depart /
+  // guests·nights, with the amount folded in as a row when it's still to be paid.
+  const nights =
+    booking.check_in && booking.check_out
+      ? Math.max(
+          0,
+          Math.round(
+            (Date.parse(booking.check_out) - Date.parse(booking.check_in)) /
+              86_400_000,
+          ),
+        )
+      : 0;
+  const mmRows = [
+    { label: "Arrive", value: booking.check_in ?? "—" },
+    { label: "Depart", value: booking.check_out ?? "—" },
+    {
+      label: "Guests · nights",
+      value: `${booking.guests_count ?? "—"} · ${nights || "—"}`,
+    },
+  ];
+
   return (
     <SiteThemeRoot theme={ctx.theme}>
       <SiteChrome
@@ -288,54 +346,52 @@ export default async function SiteThankYouPage({
         preset={ctx.theme.preset}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
-        pageHasHero={false}
+        pageHasHero={isMarmalade}
       >
         <FirePurchase purchase={purchase} />
-        <BookingStyleOverlay
-          node={bookingStyle}
-          sectionType="booking_confirmation"
-        >
-          <BookingConfirmationCard
-            heading={
+        {isMarmalade ? (
+          <MarmaladeThankYou
+            brandName={ctx.brand.name}
+            handLine={
               isConfirmed
-                ? "You're booked in 🎉"
+                ? "see you soon!"
                 : isEftPending
-                  ? "Almost there — complete your transfer"
-                  : "We're confirming your payment"
+                  ? "almost there!"
+                  : "one moment…"
             }
-            message={
+            heading={heading}
+            message={message}
+            confirmed={isConfirmed}
+            reference={booking.reference}
+            rows={
+              isEftPending
+                ? [...mmRows, { label: "Amount to transfer", value: totalStr }]
+                : mmRows
+            }
+            total={isEftPending ? null : totalStr}
+            eft={eftRows}
+            primaryCta={{ label: "Back to home", href: "/" }}
+            secondaryCta={{ label: "Get in touch", href: "/contact" }}
+            footnote={
               isConfirmed
-                ? `Thanks${booking.guest_name ? `, ${booking.guest_name.split(" ")[0]}` : ""} — a confirmation is on its way to your email.`
-                : isEftPending
-                  ? "Your booking is reserved. Transfer the amount below using your booking reference and the host will confirm once it reflects."
-                  : "This can take a moment. We'll email your confirmation as soon as it's settled."
-            }
-            rows={[
-              { label: "Reference", value: booking.reference ?? "—" },
-              {
-                label: "Dates",
-                value:
-                  booking.check_in && booking.check_out
-                    ? `${booking.check_in} → ${booking.check_out}`
-                    : "—",
-              },
-              { label: "Guests", value: String(booking.guests_count ?? "—") },
-            ]}
-            total={money(total, currency) ?? "—"}
-            eft={
-              eft
-                ? [
-                    { label: "Account holder", value: eft.account_holder },
-                    { label: "Bank", value: eft.bank_name },
-                    { label: "Account number", value: eft.account_number },
-                    { label: "Branch code", value: eft.branch_code },
-                    { label: "Account type", value: eft.account_type },
-                    { label: "Use reference", value: booking.reference ?? "—" },
-                  ]
+                ? "Booked direct — no booking fees were charged."
                 : null
             }
           />
-        </BookingStyleOverlay>
+        ) : (
+          <BookingStyleOverlay
+            node={bookingStyle}
+            sectionType="booking_confirmation"
+          >
+            <BookingConfirmationCard
+              heading={heading}
+              message={message}
+              rows={genericRows}
+              total={totalStr}
+              eft={eftRows}
+            />
+          </BookingStyleOverlay>
+        )}
       </SiteChrome>
     </SiteThemeRoot>
   );

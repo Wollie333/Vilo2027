@@ -1,0 +1,320 @@
+/*
+ * Marmalade House — bespoke "Postcards" thank-you / confirmation page, ported
+ * faithfully from the founder's reference (docs/themes/marmalade/pages/Thank
+ * You.html — the `.tyhero` section + its inline <style>). Every selector is
+ * scoped to `.mmty` so the ported base classes never collide with the app; all
+ * colour / type / shape comes from the theme's `--site-*` tokens (with the
+ * reference's own hard fallbacks), so it stays on-theme and host-editable.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.mmty {
+  color: var(--site-ink, #2c2620);
+  font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
+  line-height: var(--site-leading-body, 1.6);
+}
+.mmty * {
+  box-sizing: border-box;
+}
+.mmty img {
+  display: block;
+  max-width: 100%;
+}
+.mmty p {
+  margin: 0;
+}
+.mmty a {
+  color: inherit;
+  text-decoration: none;
+}
+.mmty h1,
+.mmty h3 {
+  font-family: var(--site-font-heading, "Gloock", Georgia, serif);
+  font-weight: var(--site-weight-heading, 400);
+  letter-spacing: var(--site-tracking-heading, 0);
+  line-height: var(--site-leading-heading, 1.05);
+  margin: 0;
+  color: var(--site-ink, #2c2620);
+  text-wrap: balance;
+}
+.mmty .muted {
+  color: var(--site-mute, #6f6354);
+}
+.mmty .hand {
+  font-family: var(--site-font-hand, "Caveat", cursive);
+  font-weight: 700;
+  color: var(--site-secondary, #9c3b52);
+  line-height: 1;
+}
+.mmty .hand.lg {
+  font-size: clamp(1.8rem, 3.4vw, 2.7rem);
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.mmty .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-family: var(--site-font-body, "Karla", sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.mmty .btn:hover {
+  transform: translateY(-2px);
+}
+.mmty .btn-accent {
+  background: var(--site-accent, #c8702e);
+  color: var(--site-accent-ink, #fff);
+  border-radius: var(--site-btn-primary-radius, 999px);
+}
+.mmty .btn-accent:hover {
+  background: var(--site-accent-deep, #a85820);
+}
+.mmty .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #2c2620);
+  border-color: var(--site-btn-secondary-border, var(--site-line, #e4d6be));
+}
+.mmty .btn-ghost:hover {
+  background: var(--site-ink, #2c2620);
+  color: var(--site-bg, #f4ecdb);
+  border-color: var(--site-ink, #2c2620);
+}
+
+/* -- stamp (postcard) ---------------------------------------------------- */
+.mmty .stamp {
+  width: 62px;
+  height: 76px;
+  background: var(--site-note, #f8dca0);
+  border: 2px dashed var(--site-accent, #c8702e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Gloock", serif);
+  font-size: 1.5rem;
+  color: var(--site-accent-deep, #a85820);
+}
+
+/* -- hero ---------------------------------------------------------------- */
+.mmty .tyhero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: clamp(72px, 12vw, 120px) 20px 60px;
+}
+.mmty .tyhero .bg {
+  position: absolute;
+  inset: 0;
+  background-color: var(--site-soft-2, #efe3cb);
+}
+.mmty .tyhero .bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mmty .tyhero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 22, 16, 0.5);
+}
+
+/* -- card ---------------------------------------------------------------- */
+.mmty .tycard {
+  position: relative;
+  z-index: 2;
+  background: var(--site-surface, #fff);
+  width: min(620px, 94vw);
+  padding: clamp(26px, 4vw, 48px);
+  text-align: center;
+  box-shadow: 0 50px 90px -32px rgba(28, 22, 16, 0.7);
+  border-radius: var(--site-radius-sm, 10px);
+  transform: rotate(-1deg);
+}
+.mmty .tycard .stamp {
+  position: absolute;
+  right: 24px;
+  top: -26px;
+  transform: rotate(6deg);
+}
+
+/* -- confirmation check / pending clock ---------------------------------- */
+.mmty .tychk {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--site-seal, #3c5234);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  animation: mmty-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.mmty .tychk.pending {
+  background: var(--site-accent, #c8702e);
+}
+@keyframes mmty-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.mmty .ty-hand {
+  display: block;
+  margin-top: 14px;
+}
+.mmty .tycard h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-top: 4px;
+}
+.mmty .ty-msg {
+  margin-top: 10px;
+  max-width: 44ch;
+  margin-inline: auto;
+}
+.mmty .ty-msg b {
+  color: var(--site-ink, #2c2620);
+}
+
+/* -- reference chip ------------------------------------------------------ */
+.mmty .tyref {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6f6354);
+  background: var(--site-soft, #fbf4e6);
+  padding: 9px 16px;
+  border-radius: 999px;
+}
+.mmty .tyref b {
+  color: var(--site-ink, #2c2620);
+}
+
+/* -- summary block ------------------------------------------------------- */
+.mmty .tysum {
+  margin-top: 24px;
+  border: 1.5px dashed var(--site-line, #e4d6be);
+  border-radius: var(--site-radius-sm, 10px);
+  overflow: hidden;
+  text-align: left;
+}
+.mmty .tysum-top {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  background: var(--site-soft, #fbf4e6);
+}
+.mmty .tysum-top img {
+  width: 74px;
+  height: 74px;
+  border-radius: var(--site-radius-sm, 10px);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.mmty .tysum-eye {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6f6354);
+}
+.mmty .tysum-top h3 {
+  font-size: 1.3rem;
+  margin-top: 4px;
+}
+.mmty .tysum-note {
+  font-size: 12.5px;
+  color: var(--site-mute, #6f6354);
+  margin-top: 4px;
+}
+.mmty .tyrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1.5px dashed var(--site-line, #e4d6be);
+  font-size: 14px;
+  color: var(--site-mute, #6f6354);
+}
+.mmty .tyrow b {
+  color: var(--site-ink, #2c2620);
+  font-weight: 700;
+  text-align: right;
+}
+.mmty .tybank {
+  padding: 14px 16px 4px;
+  border-top: 1.5px dashed var(--site-line, #e4d6be);
+  background: var(--site-soft, #fbf4e6);
+}
+.mmty .tybank-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6f6354);
+  margin-bottom: 4px;
+}
+.mmty .tybank .tyrow {
+  border-top: none;
+  padding: 6px 0;
+}
+
+/* -- actions / footnote -------------------------------------------------- */
+.mmty .tyacts {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.mmty .tyfoot {
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+/* -- responsive tightening ----------------------------------------------- */
+@media (max-width: 560px) {
+  .mmty .tycard {
+    transform: none;
+  }
+  .mmty .tycard .stamp {
+    right: 14px;
+    top: -22px;
+  }
+  .mmty .btn {
+    height: 48px;
+    padding: 0 22px;
+  }
+  .mmty .tyacts .btn {
+    flex: 1 1 100%;
+  }
+  .mmty .tysum-top img {
+    width: 60px;
+    height: 60px;
+  }
+}
