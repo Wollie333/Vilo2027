@@ -9,6 +9,7 @@ import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewArticle } from "@/components/site/oceansview/OceansViewArticle";
+import { MarmaladeArticle } from "@/components/site/marmalade/MarmaladeArticle";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
   buildSitePreviewPages,
@@ -145,10 +146,21 @@ export default async function SiteBlogPostPage({
               : undefined
           }
           previewPages={previewPages}
-          pageHasHero={ctx.theme.preset === "oceansview"}
+          pageHasHero={
+            ctx.theme.preset === "oceansview" ||
+            ctx.theme.preset === "marmalade"
+          }
         >
           {ctx.theme.preset === "oceansview" ? (
             <OceansViewArticle
+              brandName={ctx.brand.name}
+              post={post}
+              related={relatedPosts}
+              socials={ctx.brand.socials}
+              asset={siteAsset}
+            />
+          ) : ctx.theme.preset === "marmalade" ? (
+            <MarmaladeArticle
               brandName={ctx.brand.name}
               post={post}
               related={relatedPosts}

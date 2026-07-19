@@ -6,6 +6,7 @@ import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewJournal } from "@/components/site/oceansview/OceansViewJournal";
+import { MarmaladeJournal } from "@/components/site/marmalade/MarmaladeJournal";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
   buildSitePreviewPages,
@@ -87,6 +88,14 @@ export default async function SiteBlogIndexPage({
       >
         {ctx.theme.preset === "oceansview" ? (
           <OceansViewJournal
+            brandName={ctx.brand.name}
+            heading={ctx.blog.heading}
+            intro={ctx.blog.intro}
+            posts={posts}
+            asset={siteAsset}
+          />
+        ) : ctx.theme.preset === "marmalade" ? (
+          <MarmaladeJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}
             intro={ctx.blog.intro}

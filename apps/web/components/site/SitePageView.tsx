@@ -39,6 +39,9 @@ import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
 import { MarmaladeContact } from "./marmalade/MarmaladeContact";
+import { MarmaladeAbout } from "./marmalade/MarmaladeAbout";
+import { MarmaladeExperiences } from "./marmalade/MarmaladeExperiences";
+import { MarmaladeGallery } from "./marmalade/MarmaladeGallery";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
@@ -406,6 +409,77 @@ export async function SitePageView({
             pageHasHero
           >
             <OceansViewAbout
+              brandName={ctx.brand.name}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              tagline={cp.brand?.tagline ?? null}
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              hostBioBody={cp.about?.hostBio?.body ?? null}
+              hostPhotoUrl={
+                cp.about?.hostBio?.photoPath
+                  ? (websiteAssetUrl(cp.about.hostBio.photoPath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Marmalade — bespoke ABOUT design (postcards). Story + host bio from
+  // content_profile; stats/imagery from live data; demo fallback only.
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "about") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "reviews", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <MarmaladeAbout
               brandName={ctx.brand.name}
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
@@ -916,6 +990,65 @@ export async function SitePageView({
     );
   }
 
+  // Marmalade — bespoke EXPERIENCES design (postcards). Cards from the host's
+  // wizard content_profile.experiences; empty → a tasteful "coming soon" state.
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "experiences") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <MarmaladeExperiences
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={cp.experiences?.intro ?? null}
+              experiences={experiences}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   // Oceans View — bespoke GALLERY design. A mosaic of the property's LIVE photos
   // (assembleSiteDataByType "gallery") with a lightbox; empty → "photos coming
   // soon" (never fabricated). Same chrome + CTA as the other bespoke pages.
@@ -952,6 +1085,54 @@ export async function SitePageView({
             pageHasHero
           >
             <OceansViewGallery
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={null}
+              images={extras.gallery?.images ?? []}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Marmalade — bespoke GALLERY design (taped photo album). Live photos only;
+  // empty → "photos coming soon". Opens with a plain head (no full-bleed hero).
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "gallery") {
+    const sbx = createAdminClient();
+    const [extras, roomsHrefRaw] = await Promise.all([
+      assembleSiteDataByType(sbx, ctx, new Set(["gallery"] as const)),
+      findRoomsIndexHref(ctx),
+    ]);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+          >
+            <MarmaladeGallery
               brandName={ctx.brand.name}
               heading={null}
               intro={null}
