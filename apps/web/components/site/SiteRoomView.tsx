@@ -134,7 +134,7 @@ export async function SiteRoomView({
   // dedicated component wired to the room's real data (reviews, seasonal rates,
   // other rooms), inside the themed chrome. Bypasses the generic dock/PageDoc
   // paths for this theme only.
-  if (ctx.theme.preset === "oceansview") {
+  if (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") {
     const sbx = createAdminClient();
     const extras = await assembleSiteDataByType(
       sbx,

@@ -79,6 +79,9 @@ const THEME_CHROME: Record<
   { Header: typeof OceansViewHeader; Footer: typeof OceansViewFooter }
 > = {
   oceansview: { Header: OceansViewHeader, Footer: OceansViewFooter },
+  // Safari reuses the OceansView chrome (token-driven) — under `.wielo-safari`
+  // it renders in the savanna palette, matching Safari's reused OceansView pages.
+  safari: { Header: OceansViewHeader, Footer: OceansViewFooter },
   marmalade: { Header: MarmaladeHeader, Footer: MarmaladeFooter },
   hotel: { Header: SabelaHeader, Footer: SabelaFooter },
 };

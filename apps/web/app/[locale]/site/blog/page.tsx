@@ -85,9 +85,11 @@ export default async function SiteBlogIndexPage({
             : undefined
         }
         previewPages={previewPages}
-        pageHasHero={ctx.theme.preset === "oceansview"}
+        pageHasHero={
+          ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari"
+        }
       >
-        {ctx.theme.preset === "oceansview" ? (
+        {ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari" ? (
           <OceansViewJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}

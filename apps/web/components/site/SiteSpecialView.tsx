@@ -275,7 +275,8 @@ export async function SiteSpecialView({
           // the header solid so links stay legible (matches room detail).
           pageHasHero={false}
         >
-          {ctx.theme.preset === "oceansview" ? (
+          {ctx.theme.preset === "oceansview" ||
+          ctx.theme.preset === "safari" ? (
             <OceansViewSpecialDetail
               special={special}
               otherSpecials={otherSpecials}

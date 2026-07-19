@@ -149,10 +149,12 @@ export default async function SiteBlogPostPage({
           previewPages={previewPages}
           pageHasHero={
             ctx.theme.preset === "oceansview" ||
+            ctx.theme.preset === "safari" ||
             ctx.theme.preset === "marmalade"
           }
         >
-          {ctx.theme.preset === "oceansview" ? (
+          {ctx.theme.preset === "oceansview" ||
+          ctx.theme.preset === "safari" ? (
             <OceansViewArticle
               brandName={ctx.brand.name}
               post={post}

@@ -88,6 +88,42 @@
   --site-intro-eyebrow-fg: var(--site-secondary);
 }
 
+/* ======================================================================
+ * SAFARI — unfenced wilderness lodge (sand · bark · ochre)
+ * Reuses the OceansView bespoke page components (.ov*) — same layout
+ * "convention", re-skinned to the savanna palette. These are the SAME derived
+ * tokens the .ov* CSS reads (--site-navy/-soft/-tint/…); giving them warm
+ * values means nothing falls back to OceansView's navy/coral. The core
+ * --site-* palette (bg/surface/ink/accent = sand/ochre) + the elegant serif
+ * heading + sharp `sm` radius come from the `safari` preset via buildSiteVars,
+ * so Safari reads distinctly (serif + sharp) even on the shared layout.
+ * ==================================================================== */
+.wielo-safari {
+  --site-soft: #eee1c9; /* warm sand fill for alternating bands */
+  --site-soft-2: #e6d6b8;
+  --site-sand: #eee1c9;
+  --site-navy: #241b0e; /* deep bark anchor for dark sections + footer */
+  --site-navy-2: #342a16;
+  --site-navy-ink: #f1e7d0; /* warm bone text on the bark bands */
+  --site-navy-mute: #c4b291;
+  --site-accent-deep: #8a4f1f; /* burnt ochre for tint text */
+  --site-secondary-deep: #8a4f1f;
+  --site-tint: #efe2c7; /* soft ochre tint for chips/pills */
+
+  /* Hero display defaults (generic HeroSection fallback; bespoke .ov* carries
+     its own clamps). Kept for parity + any generic-rendered Safari page. */
+  --site-hero-title-size: clamp(3rem, 8vw, 6.4rem);
+  --site-hero-title-weight: 700;
+  --site-hero-title-lh: 0.98;
+  --site-hero-title-ls: -0.01em;
+  --site-hero-sub-size: clamp(1.05rem, 1.6vw, 1.35rem);
+
+  --site-intro-badge-bg: var(--site-surface);
+  --site-intro-badge-fg: var(--site-ink);
+  --site-intro-badge-value: var(--site-accent);
+  --site-intro-eyebrow-fg: var(--site-accent);
+}
+
 /* --- Coral conversion CTAs -------------------------------------------------
  * In the reference, the big "book" actions are coral (btn-coral): the hero and
  * the closing CTA banner. Elsewhere the aqua primary stays. Components read
