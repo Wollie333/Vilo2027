@@ -166,8 +166,21 @@ export async function GET(
     business = shapeBusiness(biz as BusinessRow | null);
   }
 
+  const nightsForNote =
+    quote.check_in && quote.check_out
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(quote.check_out).getTime() -
+              new Date(quote.check_in).getTime()) /
+              86_400_000,
+          ),
+        )
+      : null;
+
   const lineRows: {
     description: string;
+    note?: string | null;
     quantity: number;
     unit_price: number;
     subtotal: number;
@@ -176,6 +189,10 @@ export async function GET(
       description: isCustomQuote
         ? (quote.title ?? "Quote")
         : `${listingObj?.name ?? "Stay"} — base`,
+      note:
+        !isCustomQuote && nightsForNote
+          ? `${nightsForNote} night${nightsForNote === 1 ? "" : "s"}`
+          : null,
       quantity: 1,
       unit_price: quote.base_amount,
       subtotal: quote.base_amount,

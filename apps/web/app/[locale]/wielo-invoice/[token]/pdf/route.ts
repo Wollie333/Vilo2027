@@ -7,6 +7,7 @@ import {
 } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { renderInvoicePdf } from "@/lib/pdf/render";
+import { formatDate } from "@/lib/pdf/styles";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function GET(
   const { data: invoice } = await supabase
     .from("wielo_invoices")
     .select(
-      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, wielo_snapshot, buyer_snapshot, line_items",
+      "invoice_number, status, issued_at, paid_at, currency, subtotal, vat_amount, total_amount, wielo_snapshot, buyer_snapshot, line_items",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -51,6 +52,13 @@ export async function GET(
     invoiceNumber: invoice.invoice_number,
     status: invoice.status as "draft" | "issued" | "paid" | "cancelled",
     issuedAt: invoice.issued_at,
+    facts: [
+      { label: "Invoice date", value: formatDate(invoice.issued_at) },
+      ...(isPaid && invoice.paid_at
+        ? [{ label: "Paid on", value: formatDate(invoice.paid_at) }]
+        : []),
+      { label: "Account", value: buyer.email ?? "—" },
+    ],
     host: {
       displayName: snap.legal_name ?? null,
       handle: null,

@@ -115,12 +115,21 @@ export default async function PublicInvoicePage({
   // Line items. Add-on invoices carry only `addons[]` (no base stay / rooms),
   // so skip the base-row synthesis for them — otherwise a phantom "— base" row
   // with no amount appears.
+  // Short "why" line under each stay row — nights + the date range.
+  const stayNote = lines.nights
+    ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}${
+        lines.check_in && lines.check_out
+          ? ` · ${fmtDate(lines.check_in)} – ${fmtDate(lines.check_out)}`
+          : ""
+      }`
+    : null;
   const lineRows: DocLine[] = [];
   if (lines.kind !== "addon") {
     if (lines.scope === "rooms" && (lines.rooms ?? []).length > 0) {
       for (const r of lines.rooms) {
         lineRows.push({
           title: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
+          sub: stayNote,
           amount: formatMoney(r.base_amount, c),
         });
         if (r.cleaning_fee > 0) {
@@ -133,9 +142,7 @@ export default async function PublicInvoicePage({
     } else {
       lineRows.push({
         title: `${lines.listing_name ?? "Stay"} — base`,
-        sub: lines.nights
-          ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}`
-          : null,
+        sub: stayNote,
         amount: formatMoney(lines.base_amount, c),
       });
       if (lines.cleaning_fee > 0) {

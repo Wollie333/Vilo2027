@@ -106,6 +106,7 @@ export default async function PublicWieloInvoicePage({
         ...(invoice.paid_at
           ? [{ label: "Paid on", value: fmtDate(invoice.paid_at) }]
           : []),
+        { label: "Account", value: buyer.email ?? "—" },
       ]}
       lineHeaders={{
         desc: "Item & Description",

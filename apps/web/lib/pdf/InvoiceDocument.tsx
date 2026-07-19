@@ -3,6 +3,7 @@ import {
   PdfPaper,
   type PdfCell,
   type PdfColumn,
+  type PdfFact,
   type PdfFootRow,
   type PdfMark,
   type PdfNote,
@@ -68,6 +69,8 @@ export type InvoiceProps = {
   vatAmount: number;
   totalAmount: number;
   currency: string;
+  /** Facts card rows (Invoice date / Terms / Due date / Booking ref…). */
+  facts?: PdfFact[] | null;
   /** Notes / Terms shown in the foot. Defaults to a generic booking note. */
   notes?: PdfNote[] | null;
   /** Thanks band (bottom). Falls back to a generic thank-you. */
@@ -79,7 +82,13 @@ export type InvoiceProps = {
 };
 
 export function buildIssuerFromHost(
-  host: InvoiceProps["host"],
+  host: {
+    displayName: string | null;
+    handle: string | null;
+    email: string | null;
+    phone: string | null;
+    business?: InvoiceBusiness | null;
+  },
   logoUrl?: string | null,
 ) {
   const name =
@@ -170,7 +179,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
   if (isTax)
     totals.push({ label: "VAT", value: formatMoney(invoice.vatAmount, c) });
 
-  const facts = [
+  const facts: PdfFact[] = invoice.facts ?? [
     { label: "Invoice date", value: formatDate(invoice.issuedAt) },
   ];
 

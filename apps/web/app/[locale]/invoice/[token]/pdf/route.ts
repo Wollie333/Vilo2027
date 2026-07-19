@@ -8,6 +8,7 @@ import {
 import { getBrandName } from "@/lib/brand";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderInvoicePdf } from "@/lib/pdf/render";
+import { formatDate } from "@/lib/pdf/styles";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -151,7 +152,7 @@ export async function GET(
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, host_id, host_snapshot, guest_snapshot, line_items",
+      "invoice_number, status, issued_at, paid_at, currency, subtotal, vat_amount, total_amount, host_id, host_snapshot, guest_snapshot, line_items",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -166,8 +167,19 @@ export async function GET(
   const host = invoice.host_snapshot as Snap;
   const guest = invoice.guest_snapshot as GuestSnap;
 
+  // A short "why" line under each stay row — nights + the date range.
+  const stayNote =
+    lines.nights && lines.nights > 0
+      ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}${
+          lines.check_in && lines.check_out
+            ? ` · ${formatDate(lines.check_in)} – ${formatDate(lines.check_out)}`
+            : ""
+        }`
+      : null;
+
   const lineRows: {
     description: string;
+    note?: string | null;
     quantity: number;
     unit_price: number;
     subtotal: number;
@@ -184,6 +196,7 @@ export async function GET(
       for (const r of lines.rooms) {
         lineRows.push({
           description: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
+          note: stayNote,
           quantity: 1,
           unit_price: r.base_amount,
           subtotal: r.base_amount,
@@ -200,6 +213,7 @@ export async function GET(
     } else {
       lineRows.push({
         description: `${lines.listing_name ?? "Stay"} — base`,
+        note: stayNote,
         quantity: 1,
         unit_price: lines.base_amount,
         subtotal: lines.base_amount,
@@ -225,11 +239,23 @@ export async function GET(
 
   const banking = buildBanking(host.banking, host.booking_ref ?? null);
   const business = buildBusiness(host.business);
+  const isPaid = invoice.status === "paid";
+
+  const facts = [
+    { label: "Invoice date", value: formatDate(invoice.issued_at) },
+    ...(isPaid && invoice.paid_at
+      ? [{ label: "Paid on", value: formatDate(invoice.paid_at) }]
+      : []),
+    ...(host.booking_ref
+      ? [{ label: "Booking ref", value: host.booking_ref }]
+      : []),
+  ];
 
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,
     status: invoice.status as "draft" | "issued" | "paid" | "cancelled",
     issuedAt: invoice.issued_at,
+    facts,
     host: {
       displayName: host.display_name ?? null,
       handle: host.handle ?? null,

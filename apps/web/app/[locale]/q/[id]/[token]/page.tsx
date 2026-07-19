@@ -180,6 +180,10 @@ export default async function PublicQuotePage({
           ) as string[],
         },
       }}
+      balance={{
+        label: "Quote Total",
+        value: fmt(vatRate > 0 ? grossTotal : exVatTotal, c),
+      }}
       metaRows={[
         ...(isCustomQuote
           ? [{ label: "Quote", value: quote.title ?? "Custom quote" }]
