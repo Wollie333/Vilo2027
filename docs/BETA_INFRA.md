@@ -1,7 +1,8 @@
-# Beta infra — CSP, secrets, workers, region
+# Beta infra — CSP, secrets, workers
 
-> Status of the four pre-beta infra items, 2026-07-19. ✅ = done/verified by me ·
+> Status of the pre-beta infra items, 2026-07-19. ✅ = done/verified by me ·
 > 👤 = needs your account/keys (I can't do it) · ⚠️ = wired but needs a real device/live keys.
+> (The af-south-1 region move was dropped — not needed.)
 
 ---
 
@@ -52,13 +53,22 @@ the bearer.)
 | Secret | Why it blocks beta |
 |---|---|
 | `PAYSTACK_SECRET_KEY` / `PAYSTACK_WEBHOOK_SECRET` | card payments + webhook verify (🔴 gate) |
-| `PAYPAL_CLIENT_SECRET` / `PAYPAL_WEBHOOK_ID` | PayPal payments + webhook verify (🔴 gate) |
-| `PAYMENT_CIPHER_KEY` | decrypts each host's own gateway secret — payments fail without it |
-| `BANKING_CIPHER_KEY` | decrypts EFT account numbers on invoices/PDFs |
+| `PAYPAL_CLIENT_SECRET` | PayPal payments (🔴 gate). *No `PAYPAL_WEBHOOK_ID` needed for beta — the booking path uses the return redirect + `booking-reconcile-worker`, not a webhook.* |
+| `PAYMENT_CIPHER_KEY` | encrypts each host's own gateway secret |
+| `BANKING_CIPHER_KEY` | encrypts EFT account numbers |
 | `ICAL_TOKEN_SECRET` | iCal export (throws if unset) |
 | `RESEND_API_KEY` / `EMAIL_FROM_ADDRESS` | transactional email |
 | `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_*` | core |
 | `EMAIL_WORKER_SECRET` | must equal the Vault `email_worker_secret` value (they matched — email drained live) |
+
+**🔴 CIPHER KEYS — verified NOT yet applied to the current data.** Every stored
+EFT account number (3 rows) and host gateway secret (2 rows) is **plaintext** (no
+`v1.` prefix). That's fine — it's test data, and the columns round-trip
+transparently when the key is unset — BUT it means `BANKING_CIPHER_KEY` /
+`PAYMENT_CIPHER_KEY` **must be set in Vercel prod BEFORE any real beta host enters
+banking or connects a gateway**, or their real secrets land in the DB unencrypted.
+Set the keys first; the existing test rows can be left (harmless) or re-saved to
+encrypt them.
 
 **Inert-until-set (safe to defer past beta):** `TURNSTILE_*` (honeypot covers it),
 `NEXT_PUBLIC_SENTRY_DSN` / `NEXT_PUBLIC_POSTHOG_KEY` (deferred by design),
@@ -88,50 +98,18 @@ Verified this session:
   it calls `/api/register-push-token` → trigger a notification → confirm receipt.
   (Your action — needs a physical device token.)
 
----
-
-## 4. af-south-1 (Cape Town) region move — 👤 runbook (do it NOW, while the DB is empty)
-
-**I cannot execute this** — it's a Supabase project-level operation (create
-projects, dump/restore, DNS, secrets) that needs your Supabase + Vercel accounts.
-A project's region **cannot** be changed in place.
-
-**🔑 Do it before beta.** Per the pre-MVP data policy the DB has **no data worth
-preserving**, so the move is a clean re-provision, not a data migration — the
-hardest part (dumping/restoring live data + auth users + storage) doesn't exist
-yet. Every hour of real beta data makes this harder.
-
-### Runbook (empty-DB path — the easy one)
-1. **Create** a new Supabase project in **`af-south-1` (Cape Town)**.
-2. **Link + push schema:** `supabase link --project-ref <new-ref>` →
-   `supabase db push --linked` (re-runs every migration in order).
-3. **Regenerate types** against the new project (`supabase gen types … --linked`).
-4. **Deploy Edge Functions:** `supabase functions deploy <each>` and re-add the
-   Edge secrets (§2) in the new project's dashboard.
-5. **Recreate Vault secrets** (§2 list) via the SQL Editor —
-   `vault.create_secret(url, name, desc)` for each worker (same values as today).
-6. **Recreate pg_cron jobs** — they live in the DB; if not covered by a migration,
-   re-run the cron migrations (they are). Verify with `SELECT * FROM cron.job`.
-7. **Re-seed** if desired (`supabase/seed.sql` + the starter accounts).
-8. **Repoint the app:** update Vercel env `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (+ Edge/DB URLs) to
-   the new project → redeploy.
-9. **Smoke test:** sign in, create a listing, run a booking; confirm workers fire
-   (queues drain), and re-run the 401 probe on the worker endpoints.
-10. **Storage buckets:** re-create the buckets + policies (migrations cover the
-    `storage.*` policies; bucket rows may need re-creating). Re-upload seed assets.
-11. Pause/delete the old (Frankfurt) project once the new one is verified.
-
-> If you'd rather keep the current project, Supabase Support can do a paid
-> in-place region migration on Pro+ — but the empty-DB re-provision above is
-> faster, free, and lower-risk right now.
+**Payment webhooks (checked this pass):** `paystack-webhook` Edge Function is
+**deployed + signature-gated** (`POST …/functions/v1/paystack-webhook` → 401). PayPal
+intentionally has **no webhook** for the booking path (return redirect +
+`booking-reconcile-worker`), so a missing `paypal-webhook` is expected, not a gap.
 
 ---
 
 ## Bottom line for beta
-- **CSP**: ✅ shipped (enforced-safe + report-only), validated.
-- **Secrets**: ✅ Vault verified; 👤 you confirm the Vercel/Edge payment + cipher keys.
-- **Workers**: ✅ email deployed + gated + draining; ⚠️ push needs one real device.
-- **Region**: 👤 run the empty-DB runbook now (cheap while the DB is empty).
+- **CSP**: ✅ shipped (enforced-safe + report-only), validated locally.
+- **Secrets**: ✅ Vault verified (15/15); 👤 you confirm the Vercel/Edge payment keys +
+  🔴 **set `BANKING_CIPHER_KEY` / `PAYMENT_CIPHER_KEY` before real hosts add banking.**
+- **Workers**: ✅ email deployed + gated + draining; paystack-webhook deployed + gated;
+  ⚠️ push needs one real device.
 - **Still the #1 gate** (unchanged): a live sandbox **card + PayPal round-trip** —
   you enter the card, I verify the confirm→ledger→email loop.
