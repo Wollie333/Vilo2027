@@ -1,7 +1,18 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `2980e39` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt11 — Marmalade Thank-you → MARMALADE COMPLETE; Sabela is next)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `99003e0` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt12 — MARMALADE COMPLETE + preview-theme carry fix; Sabela is next)
+
+> **FIX `99003e0` (preview-theme carry) — affects ALL themes' preview.** The nav href helpers
+> (`siteBookHref`/`siteRoomHref`/`siteSpecialHref`/`siteSearchHref` in `lib/site/loadSitePage.ts`) dropped the
+> `?theme=<slug>` gallery-preview param, so clicking Book/room/offer/search from a themed preview navigated to
+> the destination WITHOUT the theme → it rendered the SITE's stored theme (e.g. Marmalade preview → OceansView
+> checkout). Now they append `&theme=<previewThemeSlug>` when set. Checkout/search are token-themed BY DESIGN
+> (no bespoke per-theme layout) — they now inherit the previewed theme's colours/fonts/chrome. Verified: Book
+> from marmalade preview → `/book` renders `.mmchrome` + `--site-bg #F4ECDB` + `--site-accent #C8702E` + Gloock.
+> **Known minor gap:** the PREVIEW TOOLBAR chips (`.pb-link`, from `buildSitePreviewPages`) still drop the
+> theme — clicking a page via the top preview bar loses the previewed theme. Low priority; fix in
+> `buildSitePreviewPages` if it annoys.
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
