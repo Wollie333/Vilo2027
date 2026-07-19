@@ -325,11 +325,16 @@ export async function passOnPostAction(
   hostId: string,
   reason?: string,
 ) {
+  // Resolve the host from the session and never trust the client-passed hostId.
+  const hostResult = await requireHost();
+  if (!hostResult.ok || hostResult.hostId !== hostId) {
+    return { success: false, error: "Not authorized" };
+  }
   const supabase = createServerClient();
 
   await supabase.from("looking_for_passes").insert({
     post_id: postId,
-    host_id: hostId,
+    host_id: hostResult.hostId,
     reason: reason ?? null,
   });
 
@@ -358,16 +363,12 @@ type CreateAlertInput = {
  * Create a new saved search alert.
  */
 export async function createAlertAction(input: CreateAlertInput) {
-  const supabase = createServerClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
+  // Resolve the host from the session; never trust the client-passed hostId.
+  const hostResult = await requireHost();
+  if (!hostResult.ok || hostResult.hostId !== input.hostId) {
+    return { success: false, error: "Not authorized" };
   }
+  const supabase = createServerClient();
 
   // Generate a name if not provided
   const alertName =

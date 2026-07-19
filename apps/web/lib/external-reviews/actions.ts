@@ -299,6 +299,20 @@ export async function refreshExternalSourceAction(
     return { ok: false, error: hostResult.error };
   }
 
+  // Ownership: the sync runs via the service-role Edge Function (RLS bypassed),
+  // so verify this source belongs to the caller's host BEFORE triggering it —
+  // otherwise a host could sync another tenant's connected source by its id.
+  const ownershipClient = createServerClient();
+  const { data: ownedSource } = await ownershipClient
+    .from("external_review_sources")
+    .select("id")
+    .eq("id", sourceId)
+    .eq("host_id", hostResult.hostId)
+    .maybeSingle();
+  if (!ownedSource) {
+    return { ok: false, error: "Source not found" };
+  }
+
   // Call the external-reviews-sync Edge Function
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -493,6 +507,21 @@ export async function mapExternalReviewToPropertyAction(
   }
 
   const supabase = createServerClient();
+
+  // If mapping to a property, verify it belongs to this host — never map a
+  // review onto another tenant's property id.
+  if (propertyId !== null) {
+    const { data: ownProperty } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("id", propertyId)
+      .eq("host_id", hostResult.hostId)
+      .maybeSingle();
+    if (!ownProperty) {
+      return { ok: false, error: "Property not found" };
+    }
+  }
+
   const { error } = await supabase
     .from("external_reviews")
     .update({ property_id: propertyId })
