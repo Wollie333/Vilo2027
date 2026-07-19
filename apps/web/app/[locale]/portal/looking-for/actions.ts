@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { guestCan } from "@/lib/guests/permissions";
+import { MAX_ACTIVE_LOOKING_FOR_POSTS } from "@/lib/looking-for/limits";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { notifyMatchingAlerts } from "@/lib/looking-for/matchAlerts";
 import { replacePostRequirements } from "@/lib/looking-for/writeRequirements";
@@ -112,10 +113,21 @@ export async function createRequestAction(input: CreateRequestInput) {
     };
   }
 
-  // No post cap. `guestCan('looking_for_post')` above is the whole gate — see
-  // 20260716300000: the per-plan quota had no limits source left to read once
-  // credits replaced `looking_for_quotas`, and every guest is on the `free`
-  // baseline, which pre-MVP policy requires to be open anyway.
+  // Cap: at most 3 ACTIVE posts per guest at a time (posting stays free). The DB
+  // trigger trg_looking_for_post_cap is the authoritative guard; this mirrors it
+  // for a friendly message before we attempt the insert. A slot frees up as a
+  // post is fulfilled / cancelled / expires.
+  const { count: activeCount } = await supabase
+    .from("looking_for_posts")
+    .select("id", { count: "exact", head: true })
+    .eq("guest_id", input.guest_id)
+    .eq("status", "active");
+  if ((activeCount ?? 0) >= MAX_ACTIVE_LOOKING_FOR_POSTS) {
+    return {
+      success: false,
+      error: `You can have up to ${MAX_ACTIVE_LOOKING_FOR_POSTS} active requests at a time. Close or fulfil one to post another.`,
+    };
+  }
 
   // Set expiry (30 days by default)
   const expiresAt = new Date();
@@ -158,6 +170,13 @@ export async function createRequestAction(input: CreateRequestInput) {
     .single();
 
   if (error) {
+    // The DB cap trigger raises this on a race past the count check above.
+    if (error.message?.includes("looking_for_post_cap_reached")) {
+      return {
+        success: false,
+        error: `You can have up to ${MAX_ACTIVE_LOOKING_FOR_POSTS} active requests at a time. Close or fulfil one to post another.`,
+      };
+    }
     console.error("Failed to create request:", error);
     return { success: false, error: error.message };
   }

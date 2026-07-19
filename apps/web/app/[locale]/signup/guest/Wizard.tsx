@@ -148,7 +148,14 @@ function zodIssuesToFieldErrors(
   return out;
 }
 
-export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
+export function Wizard({
+  prefilledEmail,
+  next = null,
+}: {
+  prefilledEmail: string | null;
+  /** Internal path to land on after onboarding (else /portal?welcome=1). */
+  next?: string | null;
+}) {
   const brandName = useBrandName();
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -265,20 +272,23 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
   function handlePrefsNext() {
     advance();
     startFinalize(async () => {
-      const result = await finalizeGuestOnboardingAction({
-        full_name: data.fullName,
-        phone: composePhone(data.phoneCountry, data.phone),
-        country: data.country,
-        bio: data.bio,
-        languages: data.languages,
-        avatar_url: data.avatarUrl,
-        preferred_cities: data.preferredCities,
-        marketing_opt_in: data.marketingOptIn,
-      });
+      const result = await finalizeGuestOnboardingAction(
+        {
+          full_name: data.fullName,
+          phone: composePhone(data.phoneCountry, data.phone),
+          country: data.country,
+          bio: data.bio,
+          languages: data.languages,
+          avatar_url: data.avatarUrl,
+          preferred_cities: data.preferredCities,
+          marketing_opt_in: data.marketingOptIn,
+        },
+        next,
+      );
       if (!result.ok) {
         toast.error(result.error);
       }
-      // On success the action redirects to /portal?welcome=1.
+      // On success the action redirects to `next` (if safe) or /portal?welcome=1.
     });
   }
 

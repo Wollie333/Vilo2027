@@ -1,4 +1,4 @@
-import { ArrowRight, Sun, Users } from "lucide-react";
+import { ArrowRight, Sparkles, Sun } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 export async function DealsBanner() {
@@ -47,7 +47,7 @@ export async function DealsBanner() {
             />
             <div className="relative">
               <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/20 backdrop-blur">
-                <Users className="h-3 w-3" /> {t("groupBadge")}
+                <Sparkles className="h-3 w-3" /> {t("groupBadge")}
               </span>
               <h3 className="mt-4 font-display text-2xl font-bold leading-tight md:text-3xl">
                 {t("groupTitle")}
@@ -56,7 +56,7 @@ export async function DealsBanner() {
                 {t("groupBody")}
               </p>
               <a
-                href="/explore?guests=8"
+                href="/looking-for/start"
                 className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-secondary transition-colors hover:bg-brand-accent"
               >
                 {t("groupCta")} <ArrowRight className="h-4 w-4" />

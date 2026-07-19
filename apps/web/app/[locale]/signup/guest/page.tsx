@@ -13,7 +13,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function GuestSignupPage() {
+function safeNext(v: string | undefined): string | null {
+  return v && v.startsWith("/") && !v.startsWith("//") ? v : null;
+}
+
+export default async function GuestSignupPage({
+  searchParams,
+}: {
+  searchParams?: { next?: string };
+}) {
+  const next = safeNext(searchParams?.next);
   const supabase = createServerClient();
   const {
     data: { user },
@@ -47,8 +56,10 @@ export default async function GuestSignupPage() {
 
     if (host) redirect("/dashboard");
     if (staff?.is_active) redirect("/admin");
-    if (profile && (profile.country || profile.bio)) redirect("/portal");
+    // An already-onboarded guest with a post intent goes straight there.
+    if (profile && (profile.country || profile.bio))
+      redirect(next ?? "/portal");
   }
 
-  return <Wizard prefilledEmail={user?.email ?? null} />;
+  return <Wizard prefilledEmail={user?.email ?? null} next={next} />;
 }

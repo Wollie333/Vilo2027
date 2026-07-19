@@ -209,6 +209,7 @@ export async function uploadAvatarAction(
 
 export async function finalizeGuestOnboardingAction(
   input: FinalizeGuestOnboardingInput,
+  next?: string | null,
 ): Promise<ActionResult> {
   const parsed = finalizeGuestOnboardingSchema.safeParse(input);
   if (!parsed.success) {
@@ -249,5 +250,10 @@ export async function finalizeGuestOnboardingAction(
     return { ok: false, error: "Could not save your details. Try again." };
   }
 
-  redirect("/portal?welcome=1");
+  // Honour a safe internal ?next (e.g. the Looking For landing sends new posters
+  // straight to /portal/looking-for/new). Reject anything not a same-site path
+  // so this can never become an open redirect.
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+  redirect(safeNext ?? "/portal?welcome=1");
 }
