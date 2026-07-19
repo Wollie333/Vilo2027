@@ -39,7 +39,7 @@ export default async function PublicCreditNotePage({
   const { data: cn } = await admin
     .from("credit_notes")
     .select(
-      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number ), booking:bookings ( listing:properties ( business_id ) )",
+      "credit_note_number, status, issued_at, currency, subtotal, vat_amount, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number ), booking:bookings ( listing:properties ( business_id ) )",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -69,6 +69,27 @@ export default async function PublicCreditNotePage({
     title: l.label,
     amount: `− ${formatMoney(Number(l.amount), c)}`,
   }));
+
+  // Show the VAT split on the credit note when the host is VAT-registered — a
+  // tax credit note must document the VAT reversed. subtotal + vat = total, all
+  // credited (negative). Non-VAT credit notes render exactly as before.
+  const cnVat = Number(cn.vat_amount ?? 0);
+  const cnSubtotal = Number(cn.subtotal ?? 0);
+  const cnVatRate =
+    cnVat > 0 && cnSubtotal > 0 ? Math.round((cnVat / cnSubtotal) * 100) : 0;
+  const cnTotals =
+    cnVat > 0.005
+      ? [
+          {
+            label: "Subtotal (excl. VAT)",
+            value: `− ${formatMoney(cnSubtotal, c)}`,
+          },
+          {
+            label: cnVatRate > 0 ? `VAT (${cnVatRate}%)` : "VAT",
+            value: `− ${formatMoney(cnVat, c)}`,
+          },
+        ]
+      : [];
 
   const cancelled = status === "cancelled";
   const tone: DocTone = cancelled ? "grey" : "indigo";
@@ -103,7 +124,7 @@ export default async function PublicCreditNotePage({
       ]}
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
-      totals={[]}
+      totals={cnTotals}
       grandTotal={{
         label: "Total credited",
         value: `− ${formatMoney(Number(cn.total_amount), c)}`,

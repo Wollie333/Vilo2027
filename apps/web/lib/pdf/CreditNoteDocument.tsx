@@ -10,6 +10,7 @@ import {
   type PdfColumn,
   type PdfMark,
   type PdfNote,
+  type PdfTotal,
 } from "./PdfPaper";
 
 export type CreditNoteProps = {
@@ -39,6 +40,12 @@ export type CreditNoteProps = {
   guest: { name: string | null; email: string | null; phone: string | null };
   lines: { label: string; amount: number }[];
   total: number;
+  /** Ex-VAT portion of the credit (VAT-registered issuers only). */
+  subtotal?: number;
+  /** VAT portion reversed by this credit (0/undefined = no VAT breakdown). */
+  vatAmount?: number;
+  /** VAT rate for the label (e.g. 15). */
+  vatRate?: number;
   currency: string;
   /** Very-small-print legal line under the footer. */
   legalLine?: string | null;
@@ -77,6 +84,23 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
     { text: l.label, align: "left" },
     { text: formatMoney(l.amount, c), align: "right", bold: true },
   ]);
+
+  // VAT split for a VAT-registered issuer (a tax credit note documents the VAT
+  // reversed). subtotal + vat = total; all rows carry the credit sign.
+  const showVat = (note.vatAmount ?? 0) > 0.005;
+  const totals: PdfTotal[] = showVat
+    ? [
+        {
+          label: "Subtotal (excl. VAT)",
+          value: `${sign}${formatMoney(note.subtotal ?? 0, c)}`,
+        },
+        {
+          label:
+            note.vatRate && note.vatRate > 0 ? `VAT (${note.vatRate}%)` : "VAT",
+          value: `${sign}${formatMoney(note.vatAmount ?? 0, c)}`,
+        },
+      ]
+    : [];
 
   const notes: PdfNote[] = note.reason
     ? [
@@ -120,7 +144,7 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
       }}
       columns={columns}
       rows={rows}
-      totals={[]}
+      totals={totals}
       grand={{
         label: note.totalLabel ?? "Total credited",
         value: `${sign}${formatMoney(note.total, c)}`,

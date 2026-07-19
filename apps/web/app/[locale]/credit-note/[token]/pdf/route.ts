@@ -68,7 +68,7 @@ export async function GET(
   const { data: cn } = await db
     .from("credit_notes")
     .select(
-      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, host_snapshot, guest_snapshot, line_items, invoice:invoices!inner ( invoice_number )",
+      "credit_note_number, status, issued_at, currency, subtotal, vat_amount, total_amount, reason, host_id, host_snapshot, guest_snapshot, line_items, invoice:invoices!inner ( invoice_number )",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -105,6 +105,12 @@ export async function GET(
     },
     lines,
     total: Number(cn.total_amount),
+    subtotal: Number(cn.subtotal ?? 0),
+    vatAmount: Number(cn.vat_amount ?? 0),
+    vatRate:
+      Number(cn.vat_amount ?? 0) > 0 && Number(cn.subtotal ?? 0) > 0
+        ? Math.round((Number(cn.vat_amount) / Number(cn.subtotal)) * 100)
+        : 0,
     currency: cn.currency,
     logoUrl: await hostLogoDataUri(cn.host_id),
     brandName: await getBrandName(),

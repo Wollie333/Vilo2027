@@ -215,6 +215,7 @@ async function buildWieloHostStatement(
   let totalCharges = 0;
   let totalPayments = 0;
   let vatIncluded = 0;
+  let vatGross = 0;
   let sawVat = false;
 
   const push = (
@@ -246,6 +247,7 @@ async function buildWieloHostStatement(
       const paid = t.status === "completed";
       if (!before && t.vatAmount != null) {
         vatIncluded = r2(vatIncluded + t.vatAmount);
+        vatGross = r2(vatGross + amt);
         sawVat = true;
       }
       push(
@@ -326,7 +328,9 @@ async function buildWieloHostStatement(
     totalCharges,
     totalPayments,
     vatIncluded: sawVat ? vatIncluded : null,
-    vatRate: sawVat ? 15 : null,
+    // Derive the real rate from the accumulated stored VAT vs its gross base —
+    // never hard-code 15% (a non-SA or mixed-rate host reads their true rate).
+    vatRate: sawVat ? deriveVatRate(vatIncluded, vatGross) : null,
     balanceLabel:
       closing > 0.5 ? "Balance due to Wielo" : "Balance carried forward",
     outstanding: closing > 0.5,
