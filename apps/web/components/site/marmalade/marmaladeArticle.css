@@ -354,8 +354,8 @@
   gap: 10px;
 }
 .mmarticle .share a {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1.5px solid var(--site-line, #e4d6be);
   color: var(--site-mute, #6f6354);

@@ -378,8 +378,8 @@
   gap: 10px;
 }
 .sbarticle .share a {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1.5px solid var(--site-line, #2b2618);
   color: var(--site-mute, #a99b7f);

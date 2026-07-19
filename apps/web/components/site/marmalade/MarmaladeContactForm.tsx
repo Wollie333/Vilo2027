@@ -126,8 +126,9 @@ export function MarmaladeContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>First name</label>
+          <label htmlFor="mm-contact-first">First name</label>
           <input
+            id="mm-contact-first"
             type="text"
             required
             placeholder="Mia"
@@ -137,8 +138,9 @@ export function MarmaladeContactForm({
           />
         </div>
         <div className="field">
-          <label>Last name</label>
+          <label htmlFor="mm-contact-last">Last name</label>
           <input
+            id="mm-contact-last"
             type="text"
             placeholder="Daniels"
             value={last}
@@ -150,8 +152,9 @@ export function MarmaladeContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Email</label>
+          <label htmlFor="mm-contact-email">Email</label>
           <input
+            id="mm-contact-email"
             type="email"
             required
             placeholder="you@email.com"
@@ -161,8 +164,9 @@ export function MarmaladeContactForm({
           />
         </div>
         <div className="field">
-          <label>Phone</label>
+          <label htmlFor="mm-contact-phone">Phone</label>
           <input
+            id="mm-contact-phone"
             type="tel"
             placeholder="+27 ..."
             value={phone}
@@ -174,8 +178,12 @@ export function MarmaladeContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Room</label>
-          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+          <label htmlFor="mm-contact-room">Room</label>
+          <select
+            id="mm-contact-room"
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          >
             <option value="">No preference</option>
             {rooms.map((r) => (
               <option key={r} value={r}>
@@ -185,8 +193,12 @@ export function MarmaladeContactForm({
           </select>
         </div>
         <div className="field">
-          <label>Guests</label>
-          <select value={guests} onChange={(e) => setGuests(e.target.value)}>
+          <label htmlFor="mm-contact-guests">Guests</label>
+          <select
+            id="mm-contact-guests"
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          >
             <option>1 guest</option>
             <option>2 guests</option>
             <option>3 guests</option>
@@ -199,16 +211,18 @@ export function MarmaladeContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Approx. arrival</label>
+          <label htmlFor="mm-contact-arrival">Approx. arrival</label>
           <input
+            id="mm-contact-arrival"
             type="date"
             value={arrival}
             onChange={(e) => setArrival(e.target.value)}
           />
         </div>
         <div className="field">
-          <label>Nights</label>
+          <label htmlFor="mm-contact-nights">Nights</label>
           <input
+            id="mm-contact-nights"
             type="number"
             min={1}
             value={nights}
@@ -218,8 +232,9 @@ export function MarmaladeContactForm({
       </div>
 
       <div className="field">
-        <label>Anything else?</label>
+        <label htmlFor="mm-contact-note">Anything else?</label>
         <textarea
+          id="mm-contact-note"
           placeholder="Anniversary, an early check-in, dietary things, the dog..."
           value={note}
           onChange={(e) => setNote(e.target.value)}

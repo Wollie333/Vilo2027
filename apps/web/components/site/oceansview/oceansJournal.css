@@ -480,8 +480,8 @@
   gap: 10px;
 }
 .ovjournal .share a {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1.5px solid var(--site-line, #e9e1d1);
   color: var(--site-mute, #5e7884);

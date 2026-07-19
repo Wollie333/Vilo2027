@@ -126,8 +126,9 @@ export function SabelaContactForm({
 
       <div className="field-row">
         <div className="field">
-          <label>First name</label>
+          <label htmlFor="sb-contact-first">First name</label>
           <input
+            id="sb-contact-first"
             type="text"
             required
             placeholder="James"
@@ -137,8 +138,9 @@ export function SabelaContactForm({
           />
         </div>
         <div className="field">
-          <label>Last name</label>
+          <label htmlFor="sb-contact-last">Last name</label>
           <input
+            id="sb-contact-last"
             type="text"
             placeholder="Whitfield"
             value={last}
@@ -150,8 +152,9 @@ export function SabelaContactForm({
 
       <div className="field-row">
         <div className="field">
-          <label>Email</label>
+          <label htmlFor="sb-contact-email">Email</label>
           <input
+            id="sb-contact-email"
             type="email"
             required
             placeholder="james@email.com"
@@ -161,8 +164,9 @@ export function SabelaContactForm({
           />
         </div>
         <div className="field">
-          <label>Phone</label>
+          <label htmlFor="sb-contact-phone">Phone</label>
           <input
+            id="sb-contact-phone"
             type="tel"
             placeholder="+27 ..."
             value={phone}
@@ -174,8 +178,12 @@ export function SabelaContactForm({
 
       <div className="field-row">
         <div className="field">
-          <label>Room</label>
-          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+          <label htmlFor="sb-contact-room">Room</label>
+          <select
+            id="sb-contact-room"
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          >
             <option value="">No preference</option>
             {rooms.map((r) => (
               <option key={r} value={r}>
@@ -185,8 +193,12 @@ export function SabelaContactForm({
           </select>
         </div>
         <div className="field">
-          <label>Guests</label>
-          <select value={guests} onChange={(e) => setGuests(e.target.value)}>
+          <label htmlFor="sb-contact-guests">Guests</label>
+          <select
+            id="sb-contact-guests"
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          >
             <option>1 guest</option>
             <option>2 guests</option>
             <option>3 guests</option>
@@ -199,16 +211,18 @@ export function SabelaContactForm({
 
       <div className="field-row">
         <div className="field">
-          <label>Approx. arrival</label>
+          <label htmlFor="sb-contact-arrival">Approx. arrival</label>
           <input
+            id="sb-contact-arrival"
             type="date"
             value={arrival}
             onChange={(e) => setArrival(e.target.value)}
           />
         </div>
         <div className="field">
-          <label>Nights</label>
+          <label htmlFor="sb-contact-nights">Nights</label>
           <input
+            id="sb-contact-nights"
             type="number"
             min={1}
             value={nights}
@@ -218,8 +232,9 @@ export function SabelaContactForm({
       </div>
 
       <div className="field">
-        <label>Anything else?</label>
+        <label htmlFor="sb-contact-note">Anything else?</label>
         <textarea
+          id="sb-contact-note"
           rows={5}
           placeholder="Travel plans, a special occasion, dietary needs, the dog..."
           value={note}
@@ -231,7 +246,7 @@ export function SabelaContactForm({
       {status === "error" ? (
         <p
           style={{
-            color: "#dc2626",
+            color: "#f87171",
             fontSize: 14,
             fontWeight: 600,
             marginBottom: 14,

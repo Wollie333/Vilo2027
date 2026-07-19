@@ -126,8 +126,9 @@ export function OceansContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>First name</label>
+          <label htmlFor="ov-contact-first">First name</label>
           <input
+            id="ov-contact-first"
             type="text"
             required
             placeholder="Mia"
@@ -137,8 +138,9 @@ export function OceansContactForm({
           />
         </div>
         <div className="field">
-          <label>Last name</label>
+          <label htmlFor="ov-contact-last">Last name</label>
           <input
+            id="ov-contact-last"
             type="text"
             placeholder="Daniels"
             value={last}
@@ -150,8 +152,9 @@ export function OceansContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Email</label>
+          <label htmlFor="ov-contact-email">Email</label>
           <input
+            id="ov-contact-email"
             type="email"
             required
             placeholder="you@email.com"
@@ -161,8 +164,9 @@ export function OceansContactForm({
           />
         </div>
         <div className="field">
-          <label>Phone</label>
+          <label htmlFor="ov-contact-phone">Phone</label>
           <input
+            id="ov-contact-phone"
             type="tel"
             placeholder="+27 ..."
             value={phone}
@@ -174,8 +178,12 @@ export function OceansContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Room</label>
-          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+          <label htmlFor="ov-contact-room">Room</label>
+          <select
+            id="ov-contact-room"
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          >
             <option value="">No preference</option>
             {rooms.map((r) => (
               <option key={r} value={r}>
@@ -185,8 +193,12 @@ export function OceansContactForm({
           </select>
         </div>
         <div className="field">
-          <label>Guests</label>
-          <select value={guests} onChange={(e) => setGuests(e.target.value)}>
+          <label htmlFor="ov-contact-guests">Guests</label>
+          <select
+            id="ov-contact-guests"
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          >
             <option>1 guest</option>
             <option>2 guests</option>
             <option>3 guests</option>
@@ -199,16 +211,18 @@ export function OceansContactForm({
 
       <div className="frow">
         <div className="field">
-          <label>Approx. arrival</label>
+          <label htmlFor="ov-contact-arrival">Approx. arrival</label>
           <input
+            id="ov-contact-arrival"
             type="date"
             value={arrival}
             onChange={(e) => setArrival(e.target.value)}
           />
         </div>
         <div className="field">
-          <label>Nights</label>
+          <label htmlFor="ov-contact-nights">Nights</label>
           <input
+            id="ov-contact-nights"
             type="number"
             min={1}
             value={nights}
@@ -218,8 +232,9 @@ export function OceansContactForm({
       </div>
 
       <div className="field">
-        <label>Anything else?</label>
+        <label htmlFor="ov-contact-note">Anything else?</label>
         <textarea
+          id="ov-contact-note"
           placeholder="Anniversary, early check-in, dietary needs, airport transfer..."
           value={note}
           onChange={(e) => setNote(e.target.value)}

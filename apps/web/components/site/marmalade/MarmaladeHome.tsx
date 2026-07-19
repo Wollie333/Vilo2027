@@ -160,7 +160,6 @@ export function MarmaladeHome({
     "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1000&q=80";
 
   // Reviews.
-  const avg = reviews?.average ?? null;
   const items = reviews?.items ?? [];
 
   const galShots = shots.slice(0, 6);
@@ -403,7 +402,7 @@ export function MarmaladeHome({
       ) : null}
 
       {/* REVIEWS */}
-      {items.length > 0 || avg != null ? (
+      {items.length > 0 ? (
         <section className="section">
           <div className="wrap">
             <div className="sec-head center">
