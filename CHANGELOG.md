@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-07-20 — Theme differentiation Phase B: Safari fully forked (Home + Rooms + Room-detail), built from scratch — Phase B COMPLETE (`d651e36`).
+
+Safari (NenGama Lodge) no longer clones the OceansView `.ov*` components. It gets
+its own bespoke, editorial, photography-forward page set — a warm, airy,
+daylight-savanna identity deliberately unlike the OceansView resort grid, the
+Royal centred grand-hotel, and the Sabela dark filmic lodge.
+
+- **`SafariHome.tsx` + `safariHome.css` (`.sfhome`)** — left-aligned full-bleed
+  hero (with a `[data-parallax]` background drift), an asymmetric editorial
+  welcome (lead copy + framed photo), inline **oversized hairline-ruled stat
+  numerals**, **full-bleed alternating ROOM STORY BANDS** with two-digit index
+  numerals (the signature move), a ruled **field-notes** experiences list, a
+  direct-booking **promise** row, a daylight mosaic, and a warm-dark reviews band.
+- **`SafariRooms.tsx` + `safariRooms.css` (`.sfrooms`)** — an editorial
+  "collection" GRID (index numerals + floating rate badges), distinct from BOTH
+  the home story-bands and the OceansView alternating splits.
+- **`SafariRoomDetail.tsx` + `safariRoom.css` (`.sfroom`)** — editorial lodge
+  treatment (oversized serif title, hairline-ruled spec row, editorial section
+  heads); reuses the shared `OceansRoomGallery` + `OceansBookCard`.
+- **Routing:** `preset==='safari'` branches for home + rooms (SitePageView) +
+  room-detail (SiteRoomView), all ABOVE the shared `usesOceansViewLayout` branch.
+  Same content-persistence contract (content_profile + live rooms/reviews/gallery/
+  booking). All colour/type/shape via the existing `.wielo-safari` `--site-*`
+  tokens (no new skin); `[data-reveal]` inherits Safari's slow warm blur-in
+  signature. Honesty rule kept (always-true guarantees + host data only).
+  Safari's other shared pages (About/Experiences/Specials/Gallery/Contact/Blog)
+  still fall through to the OceansView layout — home/rooms/room-detail are the
+  highest-traffic forks, matching the Royal scope. tsc + eslint + prettier green.
+- **NEXT:** Phase C — push Safari vs Sabela further apart.
+
+---
+
 ## 2026-07-19 — Theme differentiation Phase B: Royal Rooms + Room-detail forked — Royal fully decoupled (`c24882d`).
 
 Completes Royal's structural fork. Royal no longer routes through ANY shared

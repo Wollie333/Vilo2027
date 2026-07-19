@@ -44,6 +44,16 @@ function initials(name: string): string {
 function pad2(n: number): string {
   return String(n + 1).padStart(2, "0");
 }
+/**
+ * Split off the first sentence (keeping its terminal punctuation) so the welcome
+ * heading reads as a clean statement and the rest flows into the lead paragraph.
+ * Falls back to the whole string as the head when there's no sentence break.
+ */
+function firstSentence(text: string): { head: string; rest: string } {
+  const m = text.match(/^(.+?[.!?])\s+(.*)$/s);
+  if (m) return { head: m[1].trim(), rest: m[2].trim() };
+  return { head: text.trim(), rest: "" };
+}
 
 const Arrow = (
   <svg
@@ -241,10 +251,8 @@ export function SafariHome({
           <div className="sf-intro">
             <div className="sf-intro-copy" data-reveal>
               <span className="sf-eyebrow">Welcome to {brandName}</span>
-              <h2 className="sf-h2">{lead.split(". ")[0]}.</h2>
-              <p className="sf-lead">
-                {lead.includes(". ") ? lead.slice(lead.indexOf(". ") + 2) : sub}
-              </p>
+              <h2 className="sf-h2">{firstSentence(lead).head}</h2>
+              <p className="sf-lead">{firstSentence(lead).rest || sub}</p>
               {leadRest ? (
                 <p className="sf-muted" style={{ whiteSpace: "pre-line" }}>
                   {leadRest}

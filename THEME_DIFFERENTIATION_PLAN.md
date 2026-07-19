@@ -197,6 +197,30 @@ they stop cloning OceansView.
 > branches above the shared branches (SitePageView rooms + SiteRoomView). Live-verified on mana
 > (`.rrooms`/`.rroom`, champagne rules, Archivo, gallery + lightbox CSS + book card, no overflow).
 > **REMAINING in Phase B: the whole Safari fork (from scratch).** Then Phase C.
+>
+> **PROGRESS (2026-07-20, commit `d651e36`) — Safari FULLY forked (Home + Rooms +
+> Room-detail), built from scratch → Phase B COMPLETE.** Safari no longer clones the
+> OceansView `.ov*` components. New `components/site/safari/`:
+> - `SafariHome.tsx` + `safariHome.css` (`.sfhome`) — an EDITORIAL, photography-forward,
+>   airy daylight-savanna composition: left-aligned full-bleed hero (with `[data-parallax]`
+>   drift), asymmetric editorial welcome (copy + framed photo), inline oversized
+>   hairline-ruled STAT numerals, **full-bleed alternating ROOM STORY BANDS** with two-digit
+>   index numerals (the signature move), a ruled FIELD-NOTES experiences list, a
+>   direct-booking PROMISE row, a daylight mosaic, and a warm-dark reviews band.
+> - `SafariRooms.tsx` + `safariRooms.css` (`.sfrooms`) — an editorial "collection" GRID
+>   (index numerals + floating rate badges), deliberately distinct from BOTH the home
+>   story-bands and the OceansView alternating splits.
+> - `SafariRoomDetail.tsx` + `safariRoom.css` (`.sfroom`) — editorial lodge treatment
+>   (oversized serif title, hairline-ruled spec row, editorial section heads); reuses the
+>   shared `OceansRoomGallery` + `OceansBookCard`.
+> Routed via `preset==='safari'` branches ABOVE the shared `usesOceansViewLayout` branches
+> (SitePageView home + rooms; SiteRoomView room-detail). All colour/type/shape via the
+> existing `.wielo-safari` `--site-*` tokens (no new skin needed); `[data-reveal]` inherits
+> Safari's slow warm blur-in signature. Honesty rule kept (always-true guarantees + host
+> data only). `tsc`+`eslint`+`prettier` green. **Safari's remaining shared pages (About,
+> Experiences, Specials, Gallery, Contact, Blog) still fall through to the OceansView layout
+> via `usesOceansViewLayout` — home/rooms/room-detail are the highest-traffic forks, matching
+> the Royal scope.** NEXT: Phase C (push Safari vs Sabela further apart).
 
 > **FINDING (2026-07-19) — Royal Rooms/Room-detail ≈ OceansView layout.**
 > `docs/themes/royalhotel/pages/{Rooms,Room}.html` are structurally the SAME as the
