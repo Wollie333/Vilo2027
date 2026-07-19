@@ -1,8 +1,28 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f2ff6b8` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt13 — SABELA COMPLETE + polish batch + floating social rail feature)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f7ebd86` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt14 — ALL 3 THEMES COMPLETE (Phase 1 done) + social rail + checkout polish)
 
+> ## 🧭 WHERE WE ARE (read this first)
+> **PHASE 1 is COMPLETE** — all THREE designed themes (OceansView, Marmalade, Sabela) have every page
+> bespoke + pixel-perfect + live-verified on mana. There is no 4th reference design. **Next = PHASE 2**
+> (wire AI-wizard content per page, incl. the Experiences auto-draft idea below) then PHASE 3 (builder
+> per-element customisation). Verify a theme on mana via `?site=mana&preview=1&theme=<oceansview|marmalade|hotel>`.
+>
+> **⏳ OUTSTANDING (pending, do first in a new session):**
+> - **Verify `f7ebd86` live** (checkout room/add-on cards lifted lighter + softened date-field text on dark
+>   themes). It was pushed + tsc/lint-green but the deploy verification didn't finish — check on the Sabela
+>   checkout (`/site/book?site=mana&preview=1&theme=hotel`) that the room/add-on rows now stand out (a lighter
+>   panel than the form card) and the "Add date" text reads calmer. DOM check: a room row's bg should be
+>   LIGHTER (higher RGB sum) than the form card `≈rgb(45,42,35)`.
+> - **Social rail never live-seen** — mana has no social links set + toggle off. To demo: add socials to mana's
+>   brand + flip Website→Settings "Social media rail" ON, then it renders on every page.
+>
+> **pt14 additions:**
+> - **Checkout refinement (`f7ebd86`)** — dark-theme room + add-on selectable rows lifted to a lighter panel
+>   (surface + 16% ink) with clearer border (line + 28% ink) so they stand out; date-range text softened
+>   (ink + 28% mute). Gated on `surfaceDark`; Marmalade light checkout unchanged. PENDING live-verify (above).
+>
 > **pt13 batch (all live-verified on mana `?theme=hotel` unless noted):**
 > - **SABELA fully built** — every page bespoke (Home/Suites/Suite-detail/Specials/Special-detail/Contact/
 >   About/Experiences/Gallery/Journal/Article/Thank-you), preset `hotel`, scope `.sb*`. 3 themes now complete
@@ -44,11 +64,11 @@
 
 ## 🎯 THE PLAN (founder's phasing — do them IN THIS ORDER)
 
-1. **PHASE 1 — Pixel-perfect design for EVERY theme × EVERY page (incl. header + footer).** ← **WE ARE HERE**
-   Each page must be a pixel-perfect mirror of that theme's reference design, with the host's details wired
-   in. OceansView is DONE (all pages + chrome, founder-confirmed pixel-perfect). Next: **Marmalade**, then
-   **Sabela**. (Founder said "4 themes" — only 3 have reference designs; confirm if a 4th exists.)
-2. **PHASE 2 — Wire in the AI-wizard TEXT + IMAGES** per page (each page pulls the content from its relevant
+1. **PHASE 1 — Pixel-perfect design for EVERY theme × EVERY page (incl. header + footer).** ✅ **DONE**
+   All three designed themes complete + live-verified: **OceansView, Marmalade, Sabela** — every page bespoke.
+   (Only 3 themes have reference designs; no 4th exists.) The checkout + search are token-themed BY DESIGN
+   (they inherit each theme's colours/fonts/chrome, no bespoke per-theme layout — founder accepted this).
+2. **PHASE 2 — Wire in the AI-wizard TEXT + IMAGES** per page ← **WE ARE HERE NEXT** (each page pulls the content from its relevant
    wizard step — `content_profile` + assembled live data). Some of this is already wired on OceansView
    (hero/story/experiences/faq from `content_profile`); Phase 2 makes it complete + correct on every theme.
    - **Phase-2 IDEA (founder, 2026-07-19) — auto-draft EXPERIENCES from the LISTING's address.** Use the
