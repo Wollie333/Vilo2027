@@ -406,6 +406,7 @@ export default async function SiteBookPage({
 
   const checkout = (
     <SiteCheckoutForm
+      surfaceDark={siteSurfaceIsDark(ctx.theme)}
       websiteId={ctx.websiteId}
       propertyId={property.id}
       propertyName={property.name}

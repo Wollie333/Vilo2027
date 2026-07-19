@@ -83,6 +83,16 @@ const fieldStyle: CSSProperties = {
 // styles can't express — modern, legible, attention-grabbing on every theme.
 const inputCls = "siteco-field w-full border px-3 py-2.5 text-sm outline-none";
 
+// On DARK themes (Sabela/Ebony) a card at bare --site-surface sits almost on top
+// of the page ground and disappears. Lift it a warm step toward the ink so the
+// form/summary cards read as a distinct, modern "lighter brown" panel — while the
+// inputs (kept at --site-bg) become clean inset wells. Light themes (Marmalade's
+// crisp white cards) are left exactly as they are.
+const ELEVATED_DARK_SURFACE =
+  "color-mix(in srgb, var(--site-surface), var(--site-ink) 8%)";
+const cardSurfaceFor = (surfaceDark: boolean) =>
+  surfaceDark ? ELEVATED_DARK_SURFACE : "var(--site-surface)";
+
 function money(total: number | null, currency: string) {
   if (total == null) return null;
   try {
@@ -157,6 +167,7 @@ export function SiteCheckoutForm({
   initial,
   special,
   preview = false,
+  surfaceDark = false,
 }: {
   websiteId: string;
   propertyId: string;
@@ -209,7 +220,11 @@ export function SiteCheckoutForm({
    *  system-page element renders this so the host styles the ACTUAL checkout;
    *  the live /book route omits it (default false → unchanged behaviour). */
   preview?: boolean;
+  /** True when the active theme's surface is dark → elevate the cards to a lighter
+   *  warm panel so they stand out (computed server-side via siteSurfaceIsDark). */
+  surfaceDark?: boolean;
 }) {
+  const cardSurface = cardSurfaceFor(surfaceDark);
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
   const canRooms = rooms.length > 0;
 
@@ -759,7 +774,7 @@ export function SiteCheckoutForm({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* ── Form ── */}
-        <Card className="p-6">
+        <Card className="p-6" style={{ background: cardSurface }}>
           <div className="space-y-6">
             {/* Dates — the same themed calendar as the booking form/dock. On a
                 fixed-date offer they're LOCKED to the offer's dates (read-only). */}
@@ -1185,7 +1200,7 @@ export function SiteCheckoutForm({
           <Card
             className="p-6"
             style={{
-              background: "var(--el-summary-bg, var(--site-surface))",
+              background: `var(--el-summary-bg, ${cardSurface})`,
               border: "var(--el-summary-bd, var(--site-card-border))",
               borderRadius: "var(--el-summary-radius, var(--site-card-radius))",
               color: "var(--el-summary-fg, var(--site-ink))",
