@@ -72,7 +72,8 @@ export default async function PublicWieloInvoicePage({
 
   const lineRows: DocLine[] = lines.map((l) => ({
     title: l.description,
-    mid: l.quantity > 1 ? `× ${l.quantity}` : null,
+    qty: String(l.quantity),
+    rate: formatMoney(l.unit_price, c),
     amount: formatMoney(l.subtotal, c),
   }));
 
@@ -87,6 +88,7 @@ export default async function PublicWieloInvoicePage({
       brandName={brandName}
       brandTagline="Direct booking platform"
       from={issuer}
+      fromMark={{ kind: "wielo" }}
       to={{
         label: "Billed to",
         party: {
@@ -94,13 +96,23 @@ export default async function PublicWieloInvoicePage({
           lines: [buyer.email].filter(Boolean) as string[],
         },
       }}
+      balance={{
+        label: isPaid ? "Amount Paid" : "Balance Due",
+        value: formatMoney(invoice.total_amount, c),
+        positive: isPaid,
+      }}
       metaRows={[
         { label: "Issue date", value: fmtDate(invoice.issued_at) },
         ...(invoice.paid_at
           ? [{ label: "Paid on", value: fmtDate(invoice.paid_at) }]
           : []),
       ]}
-      lineHeaders={{ desc: "Description", amount: "Amount" }}
+      lineHeaders={{
+        desc: "Item & Description",
+        qty: "Qty",
+        rate: "Rate",
+        amount: "Amount",
+      }}
       lines={lineRows}
       totals={[
         { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
@@ -114,10 +126,24 @@ export default async function PublicWieloInvoicePage({
       }}
       banking={banking}
       bankingLabel={isPaid ? "Banking details" : "Payment details"}
+      notes={[
+        {
+          title: "Notes",
+          body: isPaid
+            ? `This is your ${brandName} subscription invoice, settled in full. Your plan renews automatically and is charged to the payment method on file. Zero commission on every booking you take — always.`
+            : `This is your ${brandName} subscription invoice. Your plan renews automatically each cycle and is charged to the payment method on file. Zero commission on every booking you take — always.`,
+        },
+        {
+          title: "Terms & Conditions",
+          body: "Subscriptions are billed in advance each cycle. Cancel anytime before the renewal date. No per-booking fees, ever.",
+        },
+      ]}
       stamp={isPaid ? "Paid" : null}
       pdfHref={`/${params.locale}/wielo-invoice/${invoice.hosted_token}/pdf`}
-      footerTitle={`Thank you for choosing ${brandName}.`}
-      footerNote="Keep this invoice for your records."
+      thanks={{
+        title: `Thank you for choosing ${brandName}.`,
+        subtitle: "Keep this invoice for your records.",
+      }}
     />
   );
 }

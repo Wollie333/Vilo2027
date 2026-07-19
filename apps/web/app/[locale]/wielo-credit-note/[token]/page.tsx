@@ -90,12 +90,23 @@ export default async function PublicWieloCreditNotePage({
       brandName={brandName}
       brandTagline="Direct booking platform"
       from={issuer}
+      fromMark={{ kind: "wielo" }}
       to={{
         label: labels.toLabel,
         party: {
           name: buyer.name ?? "Customer",
           lines: [buyer.email].filter(Boolean) as string[],
         },
+      }}
+      balance={{
+        label:
+          kind === "refund"
+            ? "Amount Refunded"
+            : kind === "credit"
+              ? "Credit Amount"
+              : "Adjustment",
+        value: `${sign}${formatMoney(cn.total_amount, c)}`,
+        positive: labels.positive,
       }}
       metaRows={[{ label: "Issue date", value: fmtDate(cn.issued_at) }]}
       lineHeaders={{ desc: "Description", amount: "Amount" }}

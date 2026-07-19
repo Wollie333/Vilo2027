@@ -88,6 +88,10 @@ export default async function PublicCreditNotePage({
           lines: [guest.email, guest.phone].filter(Boolean) as string[],
         },
       }}
+      balance={{
+        label: "Credit Amount",
+        value: `− ${formatMoney(Number(cn.total_amount), c)}`,
+      }}
       metaRows={[
         { label: "Issue date", value: fmtDate(cn.issued_at) },
         ...(invoiceNumber

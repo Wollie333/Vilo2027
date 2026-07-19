@@ -180,6 +180,11 @@ export default async function PublicInvoicePage({
           lines: [guest.email, guest.phone].filter(Boolean) as string[],
         },
       }}
+      balance={{
+        label: isPaid ? "Amount Paid" : "Balance Due",
+        value: formatMoney(invoice.total_amount, c),
+        positive: isPaid,
+      }}
       metaRows={[
         { label: "Issue date", value: fmtDate(invoice.issued_at) },
         ...(invoice.paid_at

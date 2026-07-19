@@ -64,6 +64,11 @@ export default async function ReceiptRecordPage({
         label: "Received from",
         party: { name: receipt.guest.name ?? "Guest", lines: toLines },
       }}
+      balance={{
+        label: "Amount Received",
+        value: formatMoney(receipt.amount, c),
+        positive: true,
+      }}
       banking={receipt.party.banking}
       metaRows={[
         { label: "Paid on", value: fmtDate(receipt.paidAt) },

@@ -99,6 +99,33 @@ export default async function StatementPage({
       brandTagline="Direct booking platform"
       from={stmt.issuer}
       to={{ label: stmt.recipientLabel, party: stmt.recipient }}
+      balance={{
+        label: stmt.outstanding ? "Balance Due" : "Balance",
+        value: formatMoney(stmt.closingBalance, c),
+        positive: !stmt.outstanding,
+      }}
+      summary={[
+        {
+          label: "Opening Balance",
+          value: formatMoney(stmt.openingBalance, c),
+          mono: true,
+        },
+        {
+          label: "Total Charges",
+          value: formatMoney(stmt.totalCharges, c),
+          mono: true,
+        },
+        {
+          label: "Payments & Credits",
+          value: `−${formatMoney(stmt.totalPayments, c)}`,
+          mono: true,
+        },
+        {
+          label: "Closing Balance",
+          value: formatMoney(stmt.closingBalance, c),
+          mono: true,
+        },
+      ]}
       metaRows={[
         { label: "Statement date", value: fmtDate(stmt.issuedAt) },
         { label: "Period", value: periodLabel },
