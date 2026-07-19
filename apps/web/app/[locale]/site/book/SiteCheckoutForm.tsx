@@ -70,12 +70,18 @@ const isPerNight = (m: PricingModel) =>
 const fieldStyle: CSSProperties = {
   background: "var(--el-field-bg, var(--site-bg))",
   // Full border shorthand from --el-field-bd (elementVarsCss emits `Npx solid C`);
-  // falls back to the theme line. Inline wins over the `border` utility class below.
-  border: "var(--el-field-bd, 1px solid var(--site-line))",
+  // falls back to a theme-line border nudged toward the ink so fields stay clearly
+  // defined on BOTH light and dark themes (a bare --site-line is nearly invisible
+  // on the dark Ebony/Sabela surface). Inline wins over the `border` utility below.
+  border:
+    "var(--el-field-bd, 1px solid color-mix(in srgb, var(--site-line), var(--site-ink) 16%))",
   color: "var(--el-field-fg, var(--site-ink))",
   borderRadius: "var(--el-field-radius, var(--site-radius))",
 };
-const inputCls = "w-full border px-3 py-2.5 text-sm outline-none";
+// `siteco-field` lets the one <style> block below own placeholder + focus/hover
+// states (readable muted placeholder, a bold accent focus ring) that inline
+// styles can't express — modern, legible, attention-grabbing on every theme.
+const inputCls = "siteco-field w-full border px-3 py-2.5 text-sm outline-none";
 
 function money(total: number | null, currency: string) {
   if (total == null) return null;
@@ -595,6 +601,21 @@ export function SiteCheckoutForm({
 
   return (
     <SectionShell>
+      {/* Field polish (theme-safe, all themes): a readable MUTED placeholder that
+          reads distinctly from typed ink, a bold gold/accent focus ring so the
+          active field is obvious, and a hover lift on the border — so the form is
+          modern, legible and clearly interactive on dark themes (Sabela/Ebony)
+          where a bare field recedes into the surface. */}
+      <style>{`
+        .siteco-field::placeholder{color:var(--site-mute);opacity:1;}
+        .siteco-field:focus{
+          border-color:var(--site-accent) !important;
+          box-shadow:0 0 0 3px color-mix(in srgb, var(--site-accent) 22%, transparent);
+        }
+        .siteco-field:hover:not(:focus){
+          border-color:color-mix(in srgb, var(--site-line), var(--site-ink) 34%);
+        }
+      `}</style>
       <SiteLoadingOverlay
         show={submitting}
         message={

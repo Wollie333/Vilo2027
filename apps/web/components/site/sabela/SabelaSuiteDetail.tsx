@@ -79,14 +79,18 @@ const ArrowSm = (
 type GoodToKnow = { title: string; body: string };
 
 /**
- * Sabela Lodge SUITE-DETAIL page — the founder's bespoke dark-editorial "Lodge"
- * reference design (docs/themes/sabela/pages/Suite.html body), wired to the
- * host's real room: mosaic gallery + lightbox, title/specs, "fully inclusive"
- * amenities, seasonal rate cards, a "good to know" list, a sticky booking card,
- * dark review cards and an "other suites" cross-sell row. Renders INSIDE the
- * `.sbchrome` themed chrome (`hotel` preset). Scoped under `.sbsuite`. Reuses
- * the shared interactive gallery + booking card (re-skinned HERE, so neither
- * oceansRoom.css nor marmaladeRoom.css is imported).
+ * Sabela Lodge SUITE-DETAIL page — the founder's bespoke DARK-EDITORIAL "Lodge"
+ * skin over the OceansView room-detail INFORMATION ARCHITECTURE (its professional
+ * reference): breadcrumb → hero mosaic gallery → a two-column overview (eyebrow +
+ * rating, display title, lead, key-spec strip + fact chips, body, "in the suite"
+ * amenities, seasonal rate cards, "good to know") with a STICKY booking card, a
+ * review summary with a live star-distribution + review cards, and an "other
+ * suites" cross-sell strip. Every block is derived + omitted exactly as OceansView
+ * does, just re-skinned to Sabela's warm-bone ink (#F1EADB) on deep ebony
+ * (#14120D) with a gold (#C9A24A) accent. Renders INSIDE the `.sbchrome` themed
+ * chrome (`hotel` preset). Scoped under `.sbsuite`. Reuses the shared interactive
+ * gallery + booking card (re-skinned HERE, so neither oceansRoom.css nor
+ * marmaladeRoom.css is imported).
  */
 export function SabelaSuiteDetail({
   room,
@@ -106,28 +110,32 @@ export function SabelaSuiteDetail({
   const paras = desc
     ? desc
         .split(/\n{2,}/)
-        .map((p) => p.trim())
+        .map((para) => para.trim())
         .filter(Boolean)
     : [];
   const lead = paras[0] ?? "";
   const bodyParas = paras.slice(1);
 
-  // Specs — guests first (from maxGuests), then up to three more from the facts.
+  // Facts → a big-number spec strip (guests + numeric facts) and descriptive
+  // chips (non-numeric facts). Keeps the two rows from repeating each other.
   const specs: { value: string; label: string }[] = [];
   if (room.maxGuests)
     specs.push({ value: String(room.maxGuests), label: "Guests" });
-  for (const f of room.facts) {
-    if (specs.length >= 4) break;
+  const chips: string[] = [];
+  for (const f of room.facts ?? []) {
     const s = splitFact(f);
-    if (/guest/i.test(s.label) && s.value === String(room.maxGuests ?? ""))
-      continue;
-    specs.push(s);
+    const isNumeric = /^\d/.test(s.value.trim());
+    if (isNumeric) {
+      if (specs.length >= 4) continue;
+      if (/guest/i.test(s.label) && s.value === String(room.maxGuests ?? ""))
+        continue;
+      specs.push(s);
+    } else if (chips.length < 5) {
+      chips.push(f);
+    }
   }
 
-  // Chips row — the room's short facts (up to four).
-  const chips = (room.facts ?? []).filter(Boolean).slice(0, 4);
-
-  // Rating line for the booking card + review header.
+  // Rating line for the booking card + review header/summary.
   const avg = reviews?.average ?? null;
   const count = reviews?.count ?? reviews?.items?.length ?? 0;
   const ratingLabel =
@@ -170,15 +178,26 @@ export function SabelaSuiteDetail({
   }
   if (p?.pets != null) {
     gtk.push({
-      title: "Pets",
+      title: "Pets & smoking",
       body: `${p.pets ? "Pets welcome" : "Assistance animals only"} · non-smoking`,
     });
   }
 
-  // Review items (live) — shown as dark editorial cards.
+  // Reviews — live average + a star distribution (5→1) plus editorial cards.
   const items = reviews?.items ?? [];
+  const dist = [5, 4, 3, 2, 1].map((star) => {
+    const n = items.filter((r) => Math.round(r.rating) === star).length;
+    return {
+      star,
+      n,
+      pct: items.length ? Math.round((n / items.length) * 100) : 0,
+    };
+  });
+  const hasBars = items.length >= 3;
+  const hasReviews = avg != null || items.length > 0;
 
-  // Other suites — each unique room ONCE, dropping the current room and any dupes.
+  // Other suites — each unique room ONCE, dropping the current room and any dupes,
+  // capped at three refined dark cards (no marquee at this scale).
   const seenRoomIds = new Set<string>([room.id]);
   const others: RoomCard[] = [];
   for (const r of otherRooms ?? []) {
@@ -188,43 +207,46 @@ export function SabelaSuiteDetail({
   }
   const otherList = others.slice(0, 3);
 
-  const eyebrow =
-    (room.facts[0] && !/^sleeps/i.test(room.facts[0]) ? room.facts[0] : null) ??
-    (room.maxGuests ? `Sleeps ${room.maxGuests}` : "The suite");
+  const eyebrow = room.propertyName?.trim() || "The suite";
 
   return (
     <div className="sbsuite">
-      {/* gallery (crumb + title + mosaic + lightbox) */}
+      {/* breadcrumb + hero gallery */}
       <section className="gallery-sec" data-section="room_gallery">
         <div className="wrap">
-          <span className="crumb">
+          <nav className="crumb" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <span aria-hidden>/</span>
             {roomsHref ? <a href={roomsHref}>Suites</a> : <span>Suites</span>}
             <span aria-hidden>/</span>
             <span className="cur">{room.name}</span>
-          </span>
-          <div className="rd-title">
-            <h1>{room.name}</h1>
-            {ratingLabel ? (
-              <div className="rating-inline">
-                <span className="stars">★★★★★</span>
-                <span className="muted">{ratingLabel}</span>
-              </div>
-            ) : null}
-          </div>
+          </nav>
           <OceansRoomGallery images={room.images} roomName={room.name} />
         </div>
       </section>
 
-      {/* overview + booking */}
+      {/* overview + sticky booking */}
       <section
-        className="section"
-        style={{ paddingTop: "clamp(36px,4vw,56px)" }}
+        className="section overview"
+        style={{ paddingTop: "clamp(40px,5vw,64px)" }}
         data-section="room_overview"
       >
         <div className="wrap">
           <div className="rd-grid">
-            <div>
-              <span className="eyebrow">{eyebrow}</span>
+            <div className="rd-main">
+              <div className="rd-head">
+                <span className="eyebrow">{eyebrow}</span>
+                {ratingLabel ? (
+                  <span className="rating-inline">
+                    <span className="stars">★★★★★</span>
+                    <span className="muted">{ratingLabel}</span>
+                  </span>
+                ) : null}
+              </div>
+
+              <h1 className="suite-title">{room.name}</h1>
+
+              {lead ? <p className="lead">{lead}</p> : null}
 
               {chips.length ? (
                 <div className="chips-row">
@@ -232,18 +254,6 @@ export function SabelaSuiteDetail({
                     <span className="chip" key={i}>
                       {c}
                     </span>
-                  ))}
-                </div>
-              ) : null}
-
-              {lead ? (
-                <div className="rd-sec first">
-                  <h2>The suite</h2>
-                  <p>{lead}</p>
-                  {bodyParas.map((para, i) => (
-                    <p key={i} style={{ marginTop: 16 }}>
-                      {para}
-                    </p>
                   ))}
                 </div>
               ) : null}
@@ -259,9 +269,17 @@ export function SabelaSuiteDetail({
                 </div>
               ) : null}
 
+              {bodyParas.length > 0 ? (
+                <div className="rd-body">
+                  {bodyParas.map((para, i) => (
+                    <p key={i}>{para}</p>
+                  ))}
+                </div>
+              ) : null}
+
               {room.amenities.length > 0 ? (
                 <div className="rd-sec" data-section="room_amenities">
-                  <h2>Fully inclusive</h2>
+                  <h2>In the suite</h2>
                   <div className="amenities">
                     {room.amenities.map((a, i) => (
                       <div className="amenity" key={i}>
@@ -339,8 +357,8 @@ export function SabelaSuiteDetail({
         </div>
       </section>
 
-      {/* reviews */}
-      {items.length > 0 ? (
+      {/* reviews — summary + live distribution + cards */}
+      {hasReviews ? (
         <section className="section soft-bg" data-section="reviews">
           <div className="wrap">
             <div className="sec-head">
@@ -351,23 +369,57 @@ export function SabelaSuiteDetail({
                   : "What guests write home"}
               </h2>
             </div>
-            <div className="reviews-grid">
-              {items.slice(0, 3).map((r, i) => (
-                <div className="review" key={i}>
-                  <div className="stars">
-                    {"★".repeat(Math.max(1, Math.min(5, Math.round(r.rating))))}
-                  </div>
-                  <p>{r.body}</p>
-                  <div className="who">
-                    <span className="avatar">{initials(r.author)}</span>
-                    <div>
-                      <div className="nm">{r.author}</div>
-                      {r.date ? <div className="dt">{r.date}</div> : null}
+
+            <div className={hasBars ? "revsum" : "revsum solo"}>
+              <div className="score">
+                <b>{avg != null ? avg.toFixed(1) : "—"}</b>
+                <span className="stars">★★★★★</span>
+                <span>
+                  {count
+                    ? `${commas(count)} verified stay${count === 1 ? "" : "s"}`
+                    : "Verified stays"}
+                </span>
+              </div>
+              {hasBars ? (
+                <div className="revbars">
+                  {dist.map((d) => (
+                    <div className="revbar" key={d.star}>
+                      <span>
+                        {d.star} star{d.star === 1 ? "" : "s"}
+                      </span>
+                      <div className="track">
+                        <div className="fill" style={{ width: `${d.pct}%` }} />
+                      </div>
+                      <span className="pct">{d.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {items.length > 0 ? (
+              <div className="reviews-grid">
+                {items.slice(0, 3).map((r, i) => (
+                  <div className="review" key={i}>
+                    <div className="rvt">
+                      <span className="stars">
+                        {"★".repeat(
+                          Math.max(1, Math.min(5, Math.round(r.rating))),
+                        )}
+                      </span>
+                      {r.date ? <span className="dt">{r.date}</span> : null}
+                    </div>
+                    <p>“{r.body}”</p>
+                    <div className="who">
+                      <span className="avatar">{initials(r.author)}</span>
+                      <div>
+                        <div className="nm">{r.author}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -375,7 +427,7 @@ export function SabelaSuiteDetail({
       {/* other suites (cross-sell) */}
       {otherList.length > 0 ? (
         <section
-          className={items.length > 0 ? "section" : "section soft-bg"}
+          className={hasReviews ? "section" : "section soft-bg"}
           data-section="rooms_preview"
         >
           <div className="wrap">

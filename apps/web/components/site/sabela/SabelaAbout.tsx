@@ -51,10 +51,13 @@ const VALUES: { title: string; body: string }[] = [
  * Sabela Lodge ABOUT page — the founder's bespoke dark-editorial "Lodge"
  * reference design, wired to the host's content (story + host bio from
  * content_profile) with live stats and imagery, and the design's demo copy as a
- * fallback only. Sections that would need data we don't collect (a multi-year
- * timeline, a full team roster, conservation figures) are intentionally omitted
- * rather than fabricated; the host writes real content via the wizard. Renders
- * inside the `.sbchrome` themed chrome (`hotel` preset). Scoped under `.sbabout`.
+ * fallback only. The host_bio section ALWAYS renders: when the host has written a
+ * bio we use it verbatim; when they haven't we fall back to an honest, generic
+ * "you deal with us directly" block that fills the design's shape without
+ * fabricating a named person, dates, or credentials. Sections that would need
+ * data we don't collect (a multi-year timeline, conservation figures) are
+ * intentionally omitted rather than invented. Renders inside the `.sbchrome`
+ * themed chrome (`hotel` preset). Scoped under `.sbabout`.
  */
 export function SabelaAbout({
   brandName,
@@ -109,8 +112,24 @@ export function SabelaAbout({
   const lead = paras[0];
   const rest = paras.slice(1);
 
-  // Host bio — only rendered when the host has actually written one.
+  // Host bio — the section ALWAYS renders. When the host has written a bio we
+  // use it; otherwise an honest generic fallback about the direct-booking /
+  // personally-hosted model (true for any host, invents no names or numbers).
   const bio = (hostBioBody ?? "").trim();
+  const hasBio = bio.length > 0;
+  const hostEyebrow = hasBio ? "Your hosts" : "The people behind the stay";
+  const hostHeading = hasBio
+    ? "The people behind the stay"
+    : "You'll deal with us — directly";
+  const hostParas = hasBio
+    ? bio
+        .split(/\n{2,}/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : [
+        `When you book ${brandName} you book straight with the people who run it — no agency, no call-centre, no queue. A real person reads your message and answers you directly, so every detail of your stay is handled by someone who actually knows the place.`,
+        "We keep the team small on purpose. The same people who take your booking are the ones who greet you on arrival and look after you while you're here — which is exactly how a stay should feel.",
+      ];
 
   // Derived stats (live) for the intro row. Only real numbers — never fabricated.
   const avg = reviews?.average ?? null;
@@ -170,31 +189,29 @@ export function SabelaAbout({
         </div>
       </section>
 
-      {/* HOST BIO — real content only, never fabricated */}
-      {bio ? (
-        <section className="section soft-bg" data-section="host_bio">
-          <div className="wrap">
-            <div className="host">
-              <div className="host-img">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={hostImg} alt={`Your host at ${brandName}`} />
-              </div>
-              <div>
-                <span className="eyebrow">Your hosts</span>
-                <h2 className="host-h">The people behind the stay</h2>
-                {bio.split(/\n{2,}/).map((p, i) => (
-                  <p key={i} className="muted host-p">
-                    {p.trim()}
-                  </p>
-                ))}
-                <a href={contactHref} className="link-arrow host-link">
-                  Say hello {ArrowSm}
-                </a>
-              </div>
+      {/* HOST BIO — ALWAYS rendered (host's own bio, or an honest fallback) */}
+      <section className="section soft-bg" data-section="host_bio">
+        <div className="wrap">
+          <div className="host">
+            <div className="host-img">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={hostImg} alt={`Your host at ${brandName}`} />
+            </div>
+            <div>
+              <span className="eyebrow">{hostEyebrow}</span>
+              <h2 className="host-h">{hostHeading}</h2>
+              {hostParas.map((p, i) => (
+                <p key={i} className="muted host-p">
+                  {p}
+                </p>
+              ))}
+              <a href={contactHref} className="link-arrow host-link">
+                Say hello {ArrowSm}
+              </a>
             </div>
           </div>
-        </section>
-      ) : null}
+        </div>
+      </section>
 
       {/* VALUES (numbered direct-booking commitments) */}
       <section className="section" data-section="values">

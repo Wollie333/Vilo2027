@@ -1,12 +1,14 @@
 /*
- * Sabela Lodge — bespoke SUITE-DETAIL page, ported faithfully from the founder's
- * reference (docs/themes/sabela/pages/Suite.html body + theme.source.css). Every
- * selector is scoped to `.sbsuite` so the ported base classes never collide with
- * the app or the `.sbchrome` header/footer; all colour / type / shape comes from
- * the theme's `--site-*` tokens with the reference's own hard fallbacks. The
- * shared interactive gallery (`.rgal`/`.g`/`.gcount` + `.ovroom-lightbox`) and
- * booking card (`.bkcard`/`.field`/…) are reused from oceansview but RE-SKINNED
- * HERE, scoped under `.sbsuite`, so oceansRoom.css is never imported. Sabela is
+ * Sabela Lodge — bespoke SUITE-DETAIL skin over the OceansView room-detail
+ * INFORMATION ARCHITECTURE (breadcrumb, hero mosaic, a two-column overview with a
+ * sticky booking card, seasonal rate cards, good-to-know, a review summary with a
+ * live star-distribution, and an other-suites strip). Every selector is scoped to
+ * `.sbsuite` so the ported base classes never collide with the app or the
+ * `.sbchrome` header/footer; all colour / type / shape comes from the theme's
+ * `--site-*` tokens WITH the reference's own hard dark fallbacks. The shared
+ * interactive gallery (`.rgal` `.g` `.gcount` + `.ovroom-lightbox`) and booking
+ * card (`.bkcard` `.field` …) are reused from oceansview but RE-SKINNED HERE,
+ * scoped under `.sbsuite`, so oceansRoom.css is never imported. Sabela is
  * DARK-first: warm-bone ink (#F1EADB) on deep ebony (#14120D), gold (#C9A24A).
  */
 
@@ -52,7 +54,7 @@
   padding: 0 28px;
 }
 .sbsuite .section {
-  padding: clamp(72px, 9vw, 128px) 0;
+  padding: clamp(64px, 8vw, 120px) 0;
 }
 .sbsuite .soft-bg {
   background: var(--site-soft, #1a1710);
@@ -161,41 +163,31 @@
   transform: translateX(4px);
 }
 
-/* -- breadcrumb + title -------------------------------------------------- */
+/* -- breadcrumb ---------------------------------------------------------- */
 .sbsuite .gallery-sec {
-  padding-top: clamp(28px, 4vw, 40px);
+  padding-top: clamp(24px, 4vw, 40px);
 }
 .sbsuite .crumb {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--site-mute, #a99b7f);
   flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.sbsuite .crumb a {
+  transition: color 0.2s;
 }
 .sbsuite .crumb a:hover {
   color: var(--site-accent, #c9a24a);
 }
+.sbsuite .crumb > span[aria-hidden] {
+  opacity: 0.4;
+}
 .sbsuite .crumb .cur {
   color: var(--site-ink, #f1eadb);
-}
-.sbsuite .rd-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-.sbsuite .rd-title h1 {
-  font-size: clamp(2.2rem, 4vw, 3.6rem);
-}
-.sbsuite .rating-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 /* -- gallery mosaic (reused OceansRoomGallery markup) -------------------- */
@@ -204,8 +196,7 @@
   grid-template-columns: 2fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 10px;
-  height: clamp(340px, 46vw, 540px);
-  margin-top: 18px;
+  height: clamp(360px, 48vw, 560px);
 }
 .sbsuite .rgal .g {
   overflow: hidden;
@@ -217,13 +208,25 @@
   height: 100%;
   object-fit: cover;
   cursor: zoom-in;
-  transition: transform 0.6s;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .sbsuite .rgal .g:hover img {
   transform: scale(1.05);
 }
 .sbsuite .rgal .g.main {
   grid-row: span 2;
+}
+.sbsuite .rgal .g.main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 6, 4, 0) 60%, rgba(7, 6, 4, 0.4));
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.sbsuite .rgal .g.main:hover::after {
+  opacity: 1;
 }
 .sbsuite .gcount {
   position: absolute;
@@ -249,18 +252,60 @@
   transform: translateY(-2px);
 }
 
-/* -- overview grid ------------------------------------------------------- */
+/* -- overview grid (content left, sticky book card right) ---------------- */
+.sbsuite .overview {
+  padding-bottom: clamp(64px, 8vw, 120px);
+}
 .sbsuite .rd-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
-  gap: clamp(32px, 4vw, 64px);
+  gap: clamp(36px, 5vw, 72px);
   align-items: start;
 }
+.sbsuite .rd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sbsuite .rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.sbsuite .suite-title {
+  font-size: clamp(2.6rem, 5vw, 4.4rem);
+  margin-top: 16px;
+}
+.sbsuite .lead {
+  color: var(--site-mute, #a99b7f);
+  font-size: clamp(1.12rem, 1.5vw, 1.36rem);
+  line-height: 1.6;
+  max-width: 60ch;
+  margin-top: 20px;
+}
+.sbsuite .rd-body {
+  margin-top: 24px;
+}
+.sbsuite .rd-body p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.06rem;
+  line-height: 1.75;
+  max-width: 62ch;
+}
+.sbsuite .rd-body p + p {
+  margin-top: 16px;
+}
+
+/* -- fact chips ---------------------------------------------------------- */
 .sbsuite .chips-row {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 18px;
+  margin-top: 24px;
 }
 .sbsuite .chip {
   display: inline-flex;
@@ -274,37 +319,21 @@
   padding: 8px 14px;
   border-radius: 9999px;
 }
-.sbsuite .rd-sec {
-  padding: clamp(28px, 3vw, 40px) 0;
-  border-top: 1px solid var(--site-line, #2b2618);
-}
-.sbsuite .rd-sec.first {
-  border-top: 0;
-  padding-top: 24px;
-}
-.sbsuite .rd-sec h2 {
-  font-size: 1.7rem;
-  margin-bottom: 14px;
-}
-.sbsuite .rd-sec p {
-  color: var(--site-mute, #a99b7f);
-  font-size: 1.08rem;
-  line-height: 1.75;
-  max-width: 60ch;
-}
 
-/* -- specs --------------------------------------------------------------- */
+/* -- key-spec strip ------------------------------------------------------ */
 .sbsuite .specs {
   display: flex;
   gap: 34px;
   flex-wrap: wrap;
-  padding: 24px 0;
+  padding: 26px 0;
   border-top: 1px solid var(--site-line, #2b2618);
   border-bottom: 1px solid var(--site-line, #2b2618);
+  margin-top: 28px;
 }
 .sbsuite .specs b {
   font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
-  font-size: 1.6rem;
+  font-weight: 700;
+  font-size: 1.7rem;
   display: block;
   line-height: 1;
   color: var(--site-ink, #f1eadb);
@@ -319,12 +348,28 @@
   display: block;
 }
 
+/* -- stacked content sections (amenities / seasons / good-to-know) ------- */
+.sbsuite .rd-sec {
+  padding: clamp(30px, 3.4vw, 44px) 0;
+  border-top: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .rd-sec h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin-bottom: 16px;
+}
+.sbsuite .rd-sec > p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.06rem;
+  line-height: 1.75;
+  max-width: 58ch;
+}
+
 /* -- amenities ----------------------------------------------------------- */
 .sbsuite .amenities {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px 28px;
-  margin-top: 24px;
+  margin-top: 22px;
 }
 .sbsuite .amenity {
   display: flex;
@@ -343,7 +388,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  margin-top: 24px;
+  margin-top: 26px;
 }
 .sbsuite .scard {
   border: 1px solid var(--site-line, #2b2618);
@@ -421,7 +466,7 @@
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  padding: 15px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--site-line, #2b2618);
 }
 .sbsuite .gtk .row .k {
@@ -437,6 +482,9 @@
 }
 
 /* -- sticky booking card (reused OceansBookCard markup) ------------------ */
+/* The booking column is the sticky element (the grid item, not the card inside
+   it — a content-height aside gives the card no room to travel). Anchored below
+   the app's sticky header via --wielo-sticky-top (set by SiteChrome). */
 .sbsuite .rd-grid > aside {
   position: sticky;
   top: calc(var(--wielo-sticky-top, 104px) + 16px);
@@ -586,11 +634,89 @@
   margin-top: 16px;
 }
 
-/* -- reviews ------------------------------------------------------------- */
+/* -- reviews: summary (score + live star-distribution) ------------------- */
+.sbsuite .revsum {
+  display: grid;
+  grid-template-columns: minmax(210px, auto) 1fr;
+  gap: clamp(26px, 4vw, 54px);
+  align-items: center;
+  padding: clamp(26px, 3.2vw, 40px);
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+}
+.sbsuite .revsum.solo {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+.sbsuite .revsum .score {
+  text-align: center;
+  padding-right: clamp(26px, 4vw, 54px);
+  border-right: 1px solid var(--site-line, #2b2618);
+}
+.sbsuite .revsum.solo .score {
+  padding-right: 0;
+  border-right: none;
+}
+.sbsuite .revsum .score b {
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 3.8rem;
+  color: var(--site-ink, #f1eadb);
+  line-height: 1;
+  display: block;
+}
+.sbsuite .revsum .score .stars {
+  letter-spacing: 2px;
+  font-size: 16px;
+  display: block;
+  margin-top: 8px;
+}
+.sbsuite .revsum .score span {
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  font-weight: 600;
+  display: block;
+  margin-top: 8px;
+}
+.sbsuite .revbars {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: 100%;
+}
+.sbsuite .revbar {
+  display: grid;
+  grid-template-columns: 82px 1fr 34px;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--site-mute, #a99b7f);
+  font-weight: 600;
+}
+.sbsuite .revbar .track {
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--site-line, #2b2618);
+  overflow: hidden;
+}
+.sbsuite .revbar .fill {
+  height: 100%;
+  background: var(--site-accent, #c9a24a);
+  border-radius: 9999px;
+}
+.sbsuite .revbar .pct {
+  text-align: right;
+  color: var(--site-ink, #f1eadb);
+  font-weight: 700;
+}
+
+/* -- reviews: cards ------------------------------------------------------ */
 .sbsuite .reviews-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+  margin-top: 26px;
 }
 .sbsuite .review {
   background: var(--site-surface, #1c1913);
@@ -598,9 +724,20 @@
   border-radius: var(--site-radius-lg, 6px);
   padding: 30px;
 }
+.sbsuite .review .rvt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .sbsuite .review .stars {
   letter-spacing: 2px;
   font-size: 15px;
+}
+.sbsuite .review .dt {
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+  font-weight: 600;
 }
 .sbsuite .review p {
   font-size: 1.075rem;
@@ -631,10 +768,6 @@
   font-weight: 600;
   font-size: 14.5px;
 }
-.sbsuite .review .who .dt {
-  font-size: 12.5px;
-  color: var(--site-mute, #a99b7f);
-}
 
 /* -- other suites (cross-sell cards) ------------------------------------- */
 .sbsuite .rooms-grid {
@@ -647,6 +780,8 @@
   border: 1px solid var(--site-card-border, var(--site-line, #2b2618));
   border-radius: var(--site-card-radius, var(--site-radius-lg, 6px));
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition:
     transform 0.3s,
     box-shadow 0.3s;
@@ -683,6 +818,9 @@
 }
 .sbsuite .room-card .rc-body {
   padding: 24px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 .sbsuite .room-card .rc-body h3 {
   font-size: 1.4rem;
@@ -706,9 +844,11 @@
   font-size: 1rem;
   line-height: 1.6;
   margin-bottom: 20px;
+  flex: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 .sbsuite .rc-foot {
@@ -718,6 +858,7 @@
   gap: 12px;
   border-top: 1px solid var(--site-line, #2b2618);
   padding-top: 18px;
+  margin-top: auto;
 }
 .sbsuite .price {
   font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
@@ -820,7 +961,13 @@
 }
 
 /* -- RESPONSIVE ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .sbsuite .seas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 @media (max-width: 1000px) {
+  /* Sticky book card drops out of flow and stacks BELOW the content. */
   .sbsuite .rd-grid {
     grid-template-columns: 1fr;
   }
@@ -844,8 +991,17 @@
   .sbsuite .reviews-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .sbsuite .seas {
-    grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 720px) {
+  .sbsuite .revsum {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .sbsuite .revsum .score {
+    border-right: none;
+    border-bottom: 1px solid var(--site-line, #2b2618);
+    padding-right: 0;
+    padding-bottom: 24px;
   }
 }
 @media (max-width: 680px) {
