@@ -2138,10 +2138,34 @@ export async function assembleSiteDataByType(
       const mapEmbedUrl = address
         ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=12&output=embed`
         : null;
+      // Contact phone/email: the wizard's brand.contact is the SSOT, but many
+      // sites never fill it — so a guest lands on a contact page with only an
+      // address and no way to reach the host. Fall back to the owning host's
+      // account phone/email (their own site → their own contact details) so the
+      // contact section always offers a real way to get in touch.
+      let phone = ctx.brand?.contactPhone ?? null;
+      let email = ctx.brand?.contactEmail ?? null;
+      if (!phone || !email) {
+        const { data: biz } = await sb
+          .from("businesses")
+          .select("host:hosts!inner ( user_id )")
+          .eq("id", ctx.businessId)
+          .maybeSingle<{ host: { user_id: string } | null }>();
+        const ownerId = biz?.host?.user_id ?? null;
+        if (ownerId) {
+          const { data: profile } = await sb
+            .from("user_profiles")
+            .select("email, phone")
+            .eq("id", ownerId)
+            .maybeSingle<{ email: string | null; phone: string | null }>();
+          phone = phone || profile?.phone?.trim() || null;
+          email = email || profile?.email?.trim() || null;
+        }
+      }
       out.location = {
         name: ctx.brand?.name ?? null,
-        phone: ctx.brand?.contactPhone ?? null,
-        email: ctx.brand?.contactEmail ?? null,
+        phone,
+        email,
         address: address || null,
         fullAddress,
         mapEmbedUrl,

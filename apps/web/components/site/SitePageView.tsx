@@ -36,6 +36,9 @@ import { OceansViewExperiences } from "./oceansview/OceansViewExperiences";
 import { OceansViewGallery } from "./oceansview/OceansViewGallery";
 import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
+import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
+import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
+import { MarmaladeContact } from "./marmalade/MarmaladeContact";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
@@ -495,6 +498,67 @@ export async function SitePageView({
     );
   }
 
+  // Marmalade — bespoke ROOMS design (postcards). Same contract as the home:
+  // live rooms + gallery, demo copy fallback only, rendered in the Marmalade chrome.
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "rooms") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "gallery"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <MarmaladeRooms
+              brandName={ctx.brand.name}
+              bookHref={headerBookHref ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   // Oceans View — the founder's bespoke OFFERS design. The offer cards come LIVE
   // from the site's active specials (`specials_preview`) with the host's badge,
   // live now/was price + savings, and a real booking deep-link. Empty → the
@@ -543,6 +607,68 @@ export async function SitePageView({
             pageHasHero
           >
             <OceansViewSpecials
+              brandName={ctx.brand.name}
+              contactHref="/contact"
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              specials={extras.specials_preview?.specials}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Marmalade — bespoke OFFERS design (postcards). Live specials + gallery,
+  // demo fallback only, rendered in the Marmalade chrome.
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "specials") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["specials_preview", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <MarmaladeSpecials
               brandName={ctx.brand.name}
               contactHref="/contact"
               roomsHref={roomsHrefRaw ?? "/rooms"}
@@ -617,6 +743,89 @@ export async function SitePageView({
             pageHasHero
           >
             <OceansViewContact
+              brandName={ctx.brand.name}
+              websiteId={ctx.websiteId}
+              interactive={!ctx.preview}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              phone={loc?.phone ?? ctx.brand.contactPhone ?? null}
+              email={loc?.email ?? ctx.brand.contactEmail ?? null}
+              address={loc?.fullAddress ?? loc?.address ?? null}
+              mapEmbedUrl={
+                loc?.fullAddress
+                  ? `https://maps.google.com/maps?q=${encodeURIComponent(
+                      loc.fullAddress,
+                    )}&z=15&output=embed`
+                  : (loc?.mapEmbedUrl ?? null)
+              }
+              faq={cp.contact?.faq ?? null}
+              policies={extras.policies ?? null}
+              rooms={roomNames}
+              review={topReview}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Marmalade — bespoke CONTACT design. Real lead form (left) → host inbox; the
+  // details card (right) shows the establishment's address + phone + email (live)
+  // and a map; FAQ from content_profile. Same contract as the other pages.
+  if (ctx.theme.preset === "marmalade" && result.page.kind === "contact") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["location", "rooms_preview", "policies", "reviews"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const loc = extras.location;
+    const roomNames = (extras.rooms_preview?.rooms ?? [])
+      .map((r) => r.name)
+      .filter(Boolean);
+    const topReview =
+      (extras.reviews?.items ?? [])
+        .filter((r) => r.body?.trim())
+        .slice()
+        .sort((a, b) => b.rating - a.rating)[0] ?? null;
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <MarmaladeContact
               brandName={ctx.brand.name}
               websiteId={ctx.websiteId}
               interactive={!ctx.preview}

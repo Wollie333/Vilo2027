@@ -1,0 +1,367 @@
+import "./marmaladeContact.css";
+
+import type { ReactNode } from "react";
+
+import type { ReviewCard, RoomPolicies } from "@/lib/site/types";
+
+import { MarmaladeContactForm } from "./MarmaladeContactForm";
+
+type Faq = { q: string; a: string };
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return "★";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+// The standard fallback (mirrors OceansViewContact): when the host hasn't written
+// a wizard FAQ, pull the property's REAL "things to know" — check-in/out,
+// cancellation, house rules, child/pet policy — into Q&A. Never fabricates
+// generic prose; only renders the lines the property actually sets. Empty in →
+// empty out (the section then omits itself).
+function policiesToFaq(p?: RoomPolicies | null): Faq[] {
+  if (!p) return [];
+  const out: Faq[] = [];
+  if (p.checkIn || p.checkOut) {
+    const parts = [
+      p.checkIn ? `Check-in is from ${p.checkIn}` : "",
+      p.checkOut ? `check-out is by ${p.checkOut}` : "",
+    ].filter(Boolean);
+    out.push({
+      q: "What are the check-in and check-out times?",
+      a: `${parts.join(" and ")}.`,
+    });
+  }
+  if (p.cancellation)
+    out.push({ q: "What's your cancellation policy?", a: p.cancellation });
+  if (p.houseRules)
+    out.push({ q: "Are there any house rules?", a: p.houseRules });
+  if (p.children != null || p.pets != null) {
+    const bits = [
+      p.children != null
+        ? p.children
+          ? "Children are welcome."
+          : "This is an adults-only stay."
+        : "",
+      p.pets != null
+        ? p.pets
+          ? "Well-behaved pets are welcome."
+          : "Sorry, we can't accommodate pets."
+        : "",
+    ].filter(Boolean);
+    if (bits.length)
+      out.push({ q: "Are children and pets welcome?", a: bits.join(" ") });
+  }
+  return out;
+}
+
+// One contact-detail row. Rendered only when it has a value. When `href` is set
+// the value becomes a real link (tel: / mailto:) so guests can tap to call/email.
+function Row({
+  icon,
+  title,
+  href,
+  detail,
+}: {
+  icon: ReactNode;
+  title: string;
+  href?: string | null;
+  detail?: string | null;
+}) {
+  return (
+    <div className="drow">
+      <span className="ic">{icon}</span>
+      <div>
+        {href ? (
+          <a className="t" href={href}>
+            {title}
+          </a>
+        ) : (
+          <div className="t">{title}</div>
+        )}
+        {detail ? <div className="d">{detail}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Marmalade House CONTACT page — the founder's bespoke "Postcards" reference
+ * design. The message form (left) is a real lead-capture form posting to the host
+ * inbox; the details card (right) is wired to LIVE establishment data — the
+ * address renders as a map-pin line, the phone as a real `tel:` link and the
+ * email as a real `mailto:` link (each row conditional on its value), with the
+ * Google map embed when present. The FAQ follows the standard content flow: the
+ * host's wizard `content_profile.contact.faq`, falling back to the property's real
+ * policies (never fabricated prose); it omits entirely when there's nothing real
+ * to show. Renders inside the themed chrome. Scoped under `.mmcontact`.
+ */
+export function MarmaladeContact({
+  brandName,
+  websiteId,
+  interactive = true,
+  heroImageUrl,
+  phone,
+  email,
+  address,
+  mapEmbedUrl,
+  faq,
+  policies,
+  rooms,
+  review,
+}: {
+  brandName: string;
+  websiteId?: string;
+  interactive?: boolean;
+  heroImageUrl?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  mapEmbedUrl?: string | null;
+  faq?: Faq[] | null;
+  policies?: RoomPolicies | null;
+  rooms?: string[];
+  review?: ReviewCard | null;
+}) {
+  // heroImageUrl is part of the shared contact prop contract; the marmalade
+  // reference uses a plain (no-photo) page head, so it isn't surfaced here.
+  void heroImageUrl;
+
+  // Wizard FAQ first (host-authored), else the property's real policies. No
+  // hardcoded generic copy — an empty list omits the whole FAQ section below.
+  const authored = (faq ?? []).filter((f) => f.q && f.a);
+  const faqList = authored.length ? authored : policiesToFaq(policies);
+  const hasDetails = Boolean(phone || email || address);
+
+  return (
+    <div className="mmcontact">
+      {/* PAGE HEAD (plain, marmalade voice) */}
+      <section className="phead-plain">
+        <div className="wrap-tight">
+          <span className="hand">say hello</span>
+          <h1>Drop us a line</h1>
+          <p className="lead mx">
+            Booking, a special request, or just a question — a real person at{" "}
+            {brandName} replies within a day.
+          </p>
+        </div>
+      </section>
+
+      {/* FORM + DETAILS */}
+      <section
+        className="section"
+        style={{ paddingTop: "clamp(20px, 3vw, 40px)" }}
+      >
+        <div className="wrap">
+          <div className="cgrid">
+            {/* LEFT — the message form */}
+            <div>
+              <h2
+                className="lg"
+                style={{ fontSize: "clamp(1.7rem,3.4vw,2.4rem)" }}
+              >
+                Tell us about your stay
+              </h2>
+              <MarmaladeContactForm
+                websiteId={websiteId}
+                interactive={interactive}
+                rooms={rooms ?? []}
+              />
+            </div>
+
+            {/* RIGHT — details card (address / phone / email) + map + review */}
+            <div>
+              {hasDetails ? (
+                <div className="dcard">
+                  {phone ? (
+                    <Row
+                      icon={
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                        </svg>
+                      }
+                      title={phone}
+                      href={`tel:${phone.replace(/\s+/g, "")}`}
+                      detail="Call the house"
+                    />
+                  ) : null}
+                  {email ? (
+                    <Row
+                      icon={
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <rect x="2" y="4" width="20" height="16" rx="2" />
+                          <path d="m22 7-10 6L2 7" />
+                        </svg>
+                      }
+                      title={email}
+                      href={`mailto:${email}`}
+                      detail="We reply within a day"
+                    />
+                  ) : null}
+                  {address ? (
+                    <Row
+                      icon={
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                      }
+                      title={address}
+                      detail="Find us here"
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {/* Brand-agnostic direct-booking reassurance (from the reference). */}
+              <div className="postnote">
+                <span className="pn-ic">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    aria-hidden
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
+                <p>
+                  Book direct and you pay exactly what we quote — no agents, no
+                  booking fees, ever.
+                </p>
+              </div>
+
+              {/* A real guest review — adds social proof beside the form.
+                  Omitted when the site has no reviews. */}
+              {review?.body?.trim() ? (
+                <figure className="qcard">
+                  <div
+                    className="qstars"
+                    aria-label={`${review.rating} out of 5`}
+                  >
+                    {"★".repeat(
+                      Math.max(1, Math.min(5, Math.round(review.rating))),
+                    )}
+                  </div>
+                  <blockquote>&ldquo;{review.body}&rdquo;</blockquote>
+                  <figcaption>
+                    <span className="qav">{initials(review.author)}</span>
+                    <span>
+                      <span className="qnm">{review.author}</span>
+                      {review.date ? (
+                        <span className="qdt">{review.date}</span>
+                      ) : null}
+                    </span>
+                  </figcaption>
+                </figure>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MAP — the Google embed when present, else a pin placeholder w/ address */}
+      {mapEmbedUrl ? (
+        <section className="section-sm" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <div className="mapframe">
+              <iframe
+                src={mapEmbedUrl}
+                title={`Map to ${brandName}`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+              <span className="map-cap">find your way here</span>
+            </div>
+          </div>
+        </section>
+      ) : address ? (
+        <section className="section-sm" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <div className="mapph">
+              <span className="mappin" />
+              <div className="maptag">📍 {address}</div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* FAQ — only when the wizard or the property's policies provide real items */}
+      {faqList.length ? (
+        <section className="section soft">
+          <div className="wrap-read">
+            <div
+              className="sec-head center"
+              style={{ marginBottom: 30, marginInline: "auto" }}
+            >
+              <span className="hand">good to know</span>
+              <h2 style={{ fontSize: "clamp(1.9rem,4vw,2.8rem)" }}>
+                Frequently asked
+              </h2>
+            </div>
+            <div>
+              {faqList.map((f, i) => (
+                <details className="faq" key={i} open={i === 0}>
+                  <summary>
+                    {f.q}
+                    <span className="pm">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        aria-hidden
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </span>
+                  </summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
