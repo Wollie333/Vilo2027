@@ -1,12 +1,15 @@
 /*
- * Sabela Lodge — bespoke CONTACT page, ported faithfully from the founder's
- * reference (docs/themes/sabela/pages/Contact.html body + theme.source.css).
- * Every selector is scoped to `.sbcontact` so the ported base classes never
- * collide with the app, the `.sbchrome` header/footer, or the other Sabela
- * pages; all colour / type / shape comes from the theme's `--site-*` tokens with
- * the reference's own hard fallbacks — so it stays on-brand (Ebony dark + gold)
- * AND host-editable. Sabela is DARK-first: warm-bone ink (#F1EADB) on deep ebony
- * (#14120D), brand gold (#C9A24A) accent.
+ * Sabela Lodge — bespoke CONTACT page. Mirrors the information architecture and
+ * completeness of the founder's OceansView reference (page head, a two-column
+ * enquiry FORM + business-DETAILS card, a full-width MAP, then the FAQ) but
+ * re-skinned in Sabela's dark-editorial "Lodge" style. Every selector is scoped
+ * to `.sbcontact` so the ported base classes never collide with the app, the
+ * `.sbchrome` header/footer, or the other Sabela pages; all colour / type /
+ * shape comes from the theme's `--site-*` tokens with the reference's own hard
+ * fallbacks — so it stays on-brand AND host-editable. Sabela is DARK-first:
+ * warm-bone ink (#F1EADB) on deep ebony (#14120D), brand gold (#C9A24A) accent.
+ * Cards are lifted one step onto `--site-surface` with a hairline + soft shadow
+ * so they read as distinct panels, never muddy against the ebony page.
  */
 
 /* -- root ---------------------------------------------------------------- */
@@ -59,7 +62,7 @@
   padding: clamp(72px, 9vw, 128px) 0;
 }
 .sbcontact .section-tight {
-  padding: 0 0 clamp(72px, 9vw, 120px);
+  padding: 0 0 clamp(64px, 8vw, 110px);
 }
 .sbcontact .soft-bg {
   background: var(--site-soft, #1a1710);
@@ -152,6 +155,10 @@
   padding: 0 38px;
   font-size: 16px;
 }
+.sbcontact .btn-block {
+  display: flex;
+  width: 100%;
+}
 
 /* -- section headers ----------------------------------------------------- */
 .sbcontact .sec-head {
@@ -171,7 +178,7 @@
 
 /* -- PAGE HEAD (interior pages, clears the fixed nav) -------------------- */
 .sbcontact .page-head {
-  padding: calc(78px + clamp(48px, 7vw, 90px)) 0 clamp(28px, 3vw, 44px);
+  padding: calc(78px + clamp(48px, 7vw, 90px)) 0 clamp(36px, 5vw, 60px);
   text-align: center;
 }
 .sbcontact .page-head h1 {
@@ -183,12 +190,21 @@
   max-width: 54ch;
 }
 
-/* -- CONTACT GRID -------------------------------------------------------- */
+/* -- CONTACT GRID (form left, details right) ----------------------------- */
 .sbcontact .contact-grid {
   display: grid;
-  grid-template-columns: 1fr 0.85fr;
-  gap: clamp(32px, 4vw, 72px);
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(32px, 4vw, 64px);
   align-items: start;
+}
+
+/* column heading above the form */
+.sbcontact .col-head {
+  margin-bottom: 26px;
+}
+.sbcontact .col-head h2 {
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  margin-top: 14px;
 }
 
 /* -- FORM ---------------------------------------------------------------- */
@@ -197,9 +213,11 @@
 }
 .sbcontact .field label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--site-ink, #f1eadb);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
   margin-bottom: 8px;
 }
 .sbcontact .field input,
@@ -214,16 +232,42 @@
   font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
   font-size: 15px;
   color: var(--site-ink, #f1eadb);
+  /* dark-first skin: keep native date/number pickers legible on the ebony field */
+  color-scheme: dark;
   transition:
     border-color 0.15s,
+    background 0.15s,
     box-shadow 0.15s;
   outline: none;
 }
 .sbcontact .field textarea {
   height: auto;
+  min-height: 132px;
   padding: 14px 16px;
   line-height: 1.6;
   resize: vertical;
+}
+/* muted-but-visible placeholder — never invisible on the dark field */
+.sbcontact .field input::placeholder,
+.sbcontact .field textarea::placeholder {
+  color: var(--site-mute, #a99b7f);
+  opacity: 0.75;
+}
+.sbcontact .field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a99b7f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 42px;
+}
+.sbcontact .field input:hover,
+.sbcontact .field textarea:hover,
+.sbcontact .field select:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--site-accent, #c9a24a) 45%,
+    var(--site-line, #2b2618)
+  );
 }
 .sbcontact .field input:focus,
 .sbcontact .field textarea:focus,
@@ -236,22 +280,55 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+.sbcontact .form-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13.5px;
+  color: var(--site-mute, #a99b7f);
+}
+.sbcontact .form-note svg {
+  color: var(--site-accent, #c9a24a);
+  flex-shrink: 0;
+}
 
 /* -- SENT state ---------------------------------------------------------- */
 .sbcontact .sent {
   text-align: center;
   padding: clamp(36px, 5vw, 56px) clamp(24px, 4vw, 44px);
-  border: 1.5px solid var(--site-line, #2b2618);
-  border-radius: var(--site-radius-lg, 6px);
-  background: var(--site-surface, #1c1913);
-}
-
-/* -- DETAILS ASIDE ------------------------------------------------------- */
-.sbcontact .contact-aside {
-  background: var(--site-soft, #1a1710);
   border: 1px solid var(--site-line, #2b2618);
   border-radius: var(--site-radius-lg, 6px);
-  padding: clamp(28px, 3vw, 40px);
+  background: var(--site-surface, #1c1913);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.75);
+}
+
+/* -- DETAILS + REVIEW (right column) ------------------------------------- */
+.sbcontact .contact-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* elevated business-details card — one step above the ebony page */
+.sbcontact .ci-card {
+  background: var(--site-surface, #1c1913);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+  padding: clamp(26px, 3vw, 36px);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.75);
+}
+.sbcontact .card-title {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+}
+.sbcontact .card-sub {
+  font-size: 14px;
+  color: var(--site-mute, #a99b7f);
+  margin-bottom: 8px;
+}
+.sbcontact .ci-list {
+  margin-top: 10px;
 }
 .sbcontact .contact-item {
   display: flex;
@@ -260,10 +337,8 @@
   padding: 18px 0;
   border-bottom: 1px solid var(--site-line, #2b2618);
 }
-.sbcontact .ci-list .contact-item:first-child {
-  padding-top: 0;
-}
 .sbcontact .ci-list .contact-item:last-child {
+  padding-bottom: 0;
   border-bottom: 0;
 }
 .sbcontact .contact-item .ci-ic {
@@ -278,14 +353,17 @@
   flex-shrink: 0;
 }
 .sbcontact .contact-item .t {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--site-ink, #f1eadb);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--site-mute, #a99b7f);
+  margin-bottom: 3px;
 }
 .sbcontact .contact-item .d {
-  font-size: 14px;
-  color: var(--site-mute, #a99b7f);
-  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--site-ink, #f1eadb);
   word-break: break-word;
 }
 .sbcontact .contact-item a.d {
@@ -295,39 +373,92 @@
   color: var(--site-accent, #c9a24a);
 }
 
-/* -- MAP (real embed + themed placeholder) ------------------------------- */
-.sbcontact .map-frame {
+/* -- REVIEW card (social proof beside the form) -------------------------- */
+.sbcontact .qcard {
+  margin: 0;
+  padding: clamp(24px, 3vw, 32px);
+  border: 1px solid var(--site-line, #2b2618);
+  border-radius: var(--site-radius-lg, 6px);
+  background: var(--site-surface, #1c1913);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.75);
+}
+.sbcontact .qstars {
+  color: #f5a623;
+  letter-spacing: 2px;
+  font-size: 15px;
+}
+.sbcontact .qcard blockquote {
+  margin: 14px 0 20px;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.3rem;
+  line-height: 1.45;
+  color: var(--site-ink, #f1eadb);
+  font-weight: var(--site-weight-heading, 700);
+  text-wrap: pretty;
+}
+.sbcontact .qcard figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sbcontact .qav {
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  background: var(--site-tint, rgba(201, 162, 74, 0.15));
+  color: var(--site-accent, #c9a24a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.sbcontact .qnm {
+  display: block;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--site-ink, #f1eadb);
+}
+.sbcontact .qdt {
+  display: block;
+  font-size: 12.5px;
+  color: var(--site-mute, #a99b7f);
+}
+
+/* -- MAP (full-width band: real embed, else themed placeholder) ---------- */
+.sbcontact .map-frame,
+.sbcontact .map-ph {
   position: relative;
-  margin-top: 22px;
-  aspect-ratio: 5/3;
+  height: clamp(300px, 40vw, 440px);
   border-radius: var(--site-radius-lg, 6px);
   overflow: hidden;
-  background: var(--site-soft-2, #221e15);
   border: 1px solid var(--site-line, #2b2618);
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.75);
 }
 .sbcontact .map-frame iframe {
   width: 100%;
   height: 100%;
   border: 0;
+  display: block;
 }
 .sbcontact .map-ph {
-  position: relative;
-  margin-top: 22px;
-  aspect-ratio: 5/3;
-  border-radius: var(--site-radius-lg, 6px);
-  overflow: hidden;
   background:
     radial-gradient(
       circle at 32% 38%,
-      color-mix(in srgb, var(--site-accent, #c9a24a) 28%, transparent) 0,
-      transparent 36%
+      color-mix(in srgb, var(--site-accent, #c9a24a) 26%, transparent) 0,
+      transparent 34%
     ),
     radial-gradient(
       circle at 70% 66%,
-      color-mix(in srgb, var(--site-secondary, #e7dcc4) 22%, transparent) 0,
-      transparent 42%
+      color-mix(in srgb, var(--site-secondary, #e7dcc4) 20%, transparent) 0,
+      transparent 40%
     ),
     var(--site-soft-2, #221e15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .sbcontact .map-ph::before {
   content: "";
@@ -335,20 +466,18 @@
   inset: 0;
   background-image:
     linear-gradient(
-      color-mix(in srgb, var(--site-ink, #f1eadb) 8%, transparent) 1px,
+      color-mix(in srgb, var(--site-ink, #f1eadb) 7%, transparent) 1px,
       transparent 1px
     ),
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--site-ink, #f1eadb) 8%, transparent) 1px,
+      color-mix(in srgb, var(--site-ink, #f1eadb) 7%, transparent) 1px,
       transparent 1px
     );
-  background-size: 32px 32px;
+  background-size: 34px 34px;
 }
 .sbcontact .map-pin {
-  position: absolute;
-  left: 46%;
-  top: 46%;
+  position: relative;
   width: 18px;
   height: 18px;
   border-radius: 9999px;
@@ -382,64 +511,14 @@
   bottom: 16px;
   right: 16px;
   z-index: 3;
-  padding: 10px 14px;
+  padding: 11px 15px;
   border-radius: var(--site-radius-sm, 3px);
   background: color-mix(in srgb, var(--site-bg, #14120d) 82%, transparent);
   backdrop-filter: blur(6px);
+  border: 1px solid var(--site-line, #2b2618);
   color: var(--site-ink, #f1eadb);
   font-size: 13px;
   font-weight: 500;
-}
-
-/* -- REVIEW card (carries the aside column) ------------------------------ */
-.sbcontact .qcard {
-  margin: 24px 0 0;
-  padding: clamp(24px, 3vw, 32px);
-  border: 1px solid var(--site-line, #2b2618);
-  border-radius: var(--site-radius-lg, 6px);
-  background: var(--site-surface, #1c1913);
-}
-.sbcontact .qstars {
-  color: #f5a623;
-  letter-spacing: 2px;
-  font-size: 15px;
-}
-.sbcontact .qcard blockquote {
-  margin: 14px 0 20px;
-  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
-  font-size: 1.3rem;
-  line-height: 1.45;
-  color: var(--site-ink, #f1eadb);
-  font-weight: var(--site-weight-heading, 700);
-}
-.sbcontact .qcard figcaption {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.sbcontact .qav {
-  width: 42px;
-  height: 42px;
-  border-radius: 9999px;
-  background: var(--site-tint, rgba(201, 162, 74, 0.15));
-  color: var(--site-secondary, #e7dcc4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--site-font-heading, "Cormorant Garamond", Georgia, serif);
-  font-weight: 700;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.sbcontact .qnm {
-  display: block;
-  font-weight: 600;
-  font-size: 14.5px;
-}
-.sbcontact .qdt {
-  display: block;
-  font-size: 12.5px;
-  color: var(--site-mute, #a99b7f);
 }
 
 /* -- FAQ ----------------------------------------------------------------- */
@@ -507,6 +586,10 @@
 @media (max-width: 1000px) {
   .sbcontact .contact-grid {
     grid-template-columns: 1fr;
+  }
+  /* form first, then details — single column on tablet/mobile */
+  .sbcontact .contact-aside {
+    margin-top: 4px;
   }
 }
 @media (max-width: 680px) {

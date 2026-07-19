@@ -248,9 +248,39 @@ export function SabelaContactForm({
         style={!live ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
       >
         {status === "sending" ? "Sending…" : "Send enquiry"}
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="m22 2-7 20-4-9-9-4z" />
+          <path d="M22 2 11 13" />
+        </svg>
       </button>
+      <p className="form-note">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden
+        >
+          <path d="M12 8v4l3 2" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+        Replies within a day · booked direct, no fees.
+      </p>
       {!live ? (
-        <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
+        <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>
           This form is interactive on your published site.
         </p>
       ) : null}

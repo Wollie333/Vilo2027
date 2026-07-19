@@ -74,30 +74,30 @@ const DIRECT_BOOKING_FAQ: Faq[] = [
   },
 ];
 
-// One contact-detail row. Rendered only when it has a value. When `href` is set
+// One business-detail row. Rendered only when it has a value. When `href` is set
 // the value becomes a real link (tel: / mailto:) so guests can tap to call/email.
 function Row({
   icon,
-  title,
+  label,
+  value,
   href,
-  detail,
 }: {
   icon: ReactNode;
-  title: string;
+  label: string;
+  value: string;
   href?: string | null;
-  detail?: string | null;
 }) {
   return (
     <div className="contact-item">
       <span className="ci-ic">{icon}</span>
       <div>
-        {detail ? <div className="t">{detail}</div> : null}
+        <div className="t">{label}</div>
         {href ? (
           <a className="d" href={href}>
-            {title}
+            {value}
           </a>
         ) : (
-          <div className="d">{title}</div>
+          <div className="d">{value}</div>
         )}
       </div>
     </div>
@@ -106,15 +106,19 @@ function Row({
 
 /**
  * Sabela Lodge CONTACT page — the founder's bespoke dark-editorial "Lodge"
- * reference design. The message form (left) is a real lead-capture form posting
- * to the host inbox; the details card (right) is wired to LIVE establishment
- * data — the address renders as a map-pin line, the phone as a real `tel:` link
- * and the email as a real `mailto:` link (each row conditional on its value),
- * with the Google map embed when present (else a themed map placeholder). A real
- * guest review carries the aside column beneath the details. The FAQ follows the
- * standard content flow: the host's wizard FAQ, falling back to the property's
- * real policies, then to always-true direct-booking answers. Renders inside the
- * `.sbchrome` themed chrome (`hotel` preset). Scoped under `.sbcontact`.
+ * reference, built to the same completeness bar as the OceansView reference:
+ * a page head, then a two-column body with the real enquiry / request-a-quote
+ * FORM on the left (posting to the host inbox) and a business-DETAILS card on
+ * the right — the address renders as a map-pin line, the phone as a real `tel:`
+ * link and the email as a real `mailto:` link (each row conditional on its
+ * value) — followed by a full-width MAP (the Google embed when present, else a
+ * themed placeholder that still shows the address), and the FAQ. A real guest
+ * review carries social proof beneath the details when the site has one. The FAQ
+ * follows the standard content flow: the host's wizard FAQ, falling back to the
+ * property's real policies, then to always-true direct-booking answers. Renders
+ * inside the `.sbchrome` themed chrome (`hotel` preset). Scoped under
+ * `.sbcontact`; all colour / type / shape from `--site-*` tokens (dark
+ * fallbacks) so it stays on-brand and host-editable.
  */
 export function SabelaContact({
   brandName,
@@ -157,6 +161,7 @@ export function SabelaContact({
       ? policyFaq
       : DIRECT_BOOKING_FAQ;
   const hasDetails = Boolean(phone || email || address);
+  const showReview = Boolean(review?.body?.trim());
 
   return (
     <div className="sbcontact">
@@ -176,108 +181,102 @@ export function SabelaContact({
       <section className="section-tight" data-section="form">
         <div className="wrap">
           <div className="contact-grid">
-            {/* LEFT — the message form */}
-            <SabelaContactForm
-              websiteId={websiteId}
-              interactive={interactive}
-              rooms={rooms ?? []}
-            />
+            {/* LEFT — the enquiry / request-a-quote form */}
+            <div className="form-col">
+              <div className="col-head">
+                <span className="eyebrow">Request a quote</span>
+                <h2>Tell us about your stay</h2>
+              </div>
+              <SabelaContactForm
+                websiteId={websiteId}
+                interactive={interactive}
+                rooms={rooms ?? []}
+              />
+            </div>
 
-            {/* RIGHT — details card (address / phone / email) + map + review */}
+            {/* RIGHT — business details (+ guest review) */}
             <aside className="contact-aside" data-section="location">
               {hasDetails ? (
-                <div className="ci-list">
-                  {email ? (
-                    <Row
-                      icon={
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
-                        >
-                          <rect x="2" y="4" width="20" height="16" rx="2" />
-                          <path d="m22 7-10 6L2 7" />
-                        </svg>
-                      }
-                      title={email}
-                      href={`mailto:${email}`}
-                      detail="Reservations"
-                    />
-                  ) : null}
-                  {phone ? (
-                    <Row
-                      icon={
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
-                        >
-                          <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9z" />
-                        </svg>
-                      }
-                      title={phone}
-                      href={`tel:${phone.replace(/\s+/g, "")}`}
-                      detail="Phone & WhatsApp"
-                    />
-                  ) : null}
-                  {address ? (
-                    <Row
-                      icon={
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
-                        >
-                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                      }
-                      title={address}
-                      detail="Find us"
-                    />
-                  ) : null}
+                <div className="ci-card">
+                  <h3 className="card-title">How to reach us</h3>
+                  <p className="card-sub">
+                    A real person replies within a day.
+                  </p>
+                  <div className="ci-list">
+                    {email ? (
+                      <Row
+                        icon={
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-10 6L2 7" />
+                          </svg>
+                        }
+                        label="Reservations"
+                        value={email}
+                        href={`mailto:${email}`}
+                      />
+                    ) : null}
+                    {phone ? (
+                      <Row
+                        icon={
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9z" />
+                          </svg>
+                        }
+                        label="Phone & WhatsApp"
+                        value={phone}
+                        href={`tel:${phone.replace(/\s+/g, "")}`}
+                      />
+                    ) : null}
+                    {address ? (
+                      <Row
+                        icon={
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        }
+                        label="Find us"
+                        value={address}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
 
-              {/* Map — the Google embed when present, else a themed placeholder. */}
-              {mapEmbedUrl ? (
-                <div className="map-frame">
-                  <iframe
-                    src={mapEmbedUrl}
-                    title={`Map of ${brandName}`}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    allowFullScreen
-                  />
-                </div>
-              ) : (
-                <div className="map-ph">
-                  <span className="map-pin" />
-                  {address ? <div className="map-tag">{address}</div> : null}
-                </div>
-              )}
-
               {/* A real guest review carries the column (in place of a
                   reassurance note). Omitted when the site has no reviews. */}
-              {review?.body?.trim() ? (
+              {showReview && review ? (
                 <figure className="qcard">
                   <div
                     className="qstars"
@@ -303,6 +302,33 @@ export function SabelaContact({
           </div>
         </div>
       </section>
+
+      {/* MAP — full-width band: the Google embed when present, else a themed
+          placeholder that still names the address. Omitted with neither. */}
+      {mapEmbedUrl ? (
+        <section className="section-tight" data-section="map">
+          <div className="wrap">
+            <div className="map-frame">
+              <iframe
+                src={mapEmbedUrl}
+                title={`Map of ${brandName}`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </section>
+      ) : address ? (
+        <section className="section-tight" data-section="map">
+          <div className="wrap">
+            <div className="map-ph">
+              <span className="map-pin" />
+              <div className="map-tag">{address}</div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* FAQ */}
       {faqList.length ? (
