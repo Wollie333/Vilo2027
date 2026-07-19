@@ -33,7 +33,18 @@ type PaystackEvent = {
     currency: string;
     status: "success" | "failed" | "abandoned" | string;
     paid_at?: string;
-    customer?: { email?: string };
+    customer?: { email?: string; customer_code?: string };
+    // Present on charge.success. When `reusable`, we capture authorization_code
+    // (encrypted) so the renewal worker can re-charge the card each cycle.
+    authorization?: {
+      authorization_code?: string;
+      last4?: string;
+      exp_month?: string;
+      exp_year?: string;
+      card_type?: string;
+      brand?: string;
+      reusable?: boolean;
+    };
     metadata?: Record<string, unknown> | null;
   };
 };
@@ -84,6 +95,46 @@ async function decryptSecret(
       combined,
     );
     return new TextDecoder().decode(pt);
+  } catch {
+    return null;
+  }
+}
+
+// Encrypt a value with the SAME AES-256-GCM scheme the app uses
+// (lib/crypto/payments.ts): output `v1.<nonce_b64>.<ct_b64>.<tag_b64>`, key =
+// PAYMENT_CIPHER_KEY (base64 → 32 bytes). When the key is unset we passthrough
+// plaintext (matches the app's optional-encryption contract; decryptSecret reads
+// both). Used to store the reusable Paystack authorization_code at rest. Returns
+// null only on a real crypto error (bad key length) so the caller can skip the
+// write rather than store a broken token.
+async function encryptSecret(plain: string): Promise<string | null> {
+  const rawKey = env.get("PAYMENT_CIPHER_KEY");
+  if (!rawKey) return plain; // passthrough when encryption is off
+  try {
+    const b64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    const keyBytes = b64(rawKey);
+    if (keyBytes.length !== 32) return null;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "AES-GCM" },
+      false,
+      ["encrypt"],
+    );
+    const nonce = crypto.getRandomValues(new Uint8Array(12));
+    const combined = new Uint8Array(
+      await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: nonce, tagLength: 128 },
+        key,
+        new TextEncoder().encode(plain),
+      ),
+    );
+    // WebCrypto appends the 16-byte tag to the ciphertext; the app stores them
+    // separately, so split before base64-encoding.
+    const ct = combined.slice(0, combined.length - 16);
+    const tag = combined.slice(combined.length - 16);
+    const toB64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
+    return `v1.${toB64(nonce)}.${toB64(ct)}.${toB64(tag)}`;
   } catch {
     return null;
   }
@@ -771,7 +822,11 @@ async function processSubscriptionEvent(
     if (row && row.status === "completed") return;
 
     if (row) {
-      await supabase
+      // Compare-and-set (R3): only the writer that flips pending→completed goes on
+      // to extend the subscription. The hybrid renewal worker pre-creates + settles
+      // this exact reference synchronously; this webhook is the backstop. Without
+      // the guarded flip both could extend the period + double the history/credits.
+      const { data: flipped } = await supabase
         .from("platform_ledger")
         .update({
           status: "completed",
@@ -779,7 +834,10 @@ async function processSubscriptionEvent(
           period_start: now.toISOString(),
           period_end: addMonths(now, cycle === "annual" ? 12 : 1),
         })
-        .eq("id", row.id);
+        .eq("id", row.id)
+        .eq("status", "pending")
+        .select("id");
+      if (!flipped || flipped.length === 0) return; // another path settled it
     } else {
       // Auto-renewal (no pre-created row) — record it.
       await supabase.from("platform_ledger").insert({
@@ -803,6 +861,29 @@ async function processSubscriptionEvent(
     }
 
     if (sub) {
+      // Capture the reusable card authorization so the renewal worker can
+      // re-charge it each cycle (hybrid Paystack rail). Only when Paystack marks
+      // it `reusable`; the code is encrypted, last4/brand/exp are display-only.
+      // Refreshed on every charge.success so a card update stays current.
+      const auth = event.data.authorization;
+      const savedAuth: Record<string, unknown> = {};
+      if (auth?.reusable && auth.authorization_code) {
+        const cipher = await encryptSecret(auth.authorization_code);
+        if (cipher) {
+          savedAuth.paystack_authorization_code_cipher = cipher;
+          savedAuth.paystack_card_last4 = auth.last4 ?? null;
+          savedAuth.paystack_card_brand = auth.card_type ?? auth.brand ?? null;
+          savedAuth.paystack_card_exp =
+            auth.exp_month && auth.exp_year
+              ? `${String(auth.exp_month).padStart(2, "0")}/${String(
+                  auth.exp_year,
+                ).slice(-2)}`
+              : null;
+        }
+      }
+      const custCode = event.data.customer?.customer_code;
+      if (custCode) savedAuth.paystack_customer_code = custCode;
+
       // `productId` (resolved above) is the product behind this plan, so gating
       // resolves from product_features and the admin sees the active product.
       await supabase
@@ -819,6 +900,7 @@ async function processSubscriptionEvent(
           cancel_at_period_end: false,
           cancelled_at: null,
           cancellation_reason: null,
+          ...savedAuth,
         })
         .eq("id", sub.id);
 

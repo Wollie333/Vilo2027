@@ -125,6 +125,63 @@ export async function verifyTransaction(
   return json.data;
 }
 
+export type ChargeAuthorizationResponse = {
+  status: "success" | "failed" | "abandoned" | string;
+  reference: string;
+  amount: number; // lowest unit (ZAR cents)
+  currency: string;
+  paid_at: string | null;
+  gateway_response?: string;
+};
+
+/**
+ * Re-charge a previously saved card authorization — the recurring-renewal engine
+ * for the Paystack rail (hybrid model). The `authorization_code` is captured from
+ * the first subscription `charge.success` and stored encrypted on the
+ * subscription; the renewal worker decrypts it and calls this each cycle with a
+ * per-(sub, period) idempotent `reference`.
+ *
+ * Returns the settled transaction, or **null** on an HTTP/parse failure. Null
+ * means "unknown — leave it for the next tick"; a returned `status: "failed"` is
+ * a real decline (route into dunning). Never treat null as a decline: a network
+ * blip must not flip a paying host to past_due.
+ */
+export async function chargeAuthorization(input: {
+  authorizationCode: string;
+  email: string;
+  amount: number; // full Rands
+  currency: string; // "ZAR"
+  reference: string;
+  metadata?: Record<string, unknown>;
+  /** Platform key for the active mode; omit to use the env key. */
+  secretKey?: string;
+}): Promise<ChargeAuthorizationResponse | null> {
+  const res = await fetch(`${PAYSTACK_BASE}/transaction/charge_authorization`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resolveSecretKey(input.secretKey)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      authorization_code: input.authorizationCode,
+      email: input.email,
+      amount: Math.round(input.amount * 100),
+      currency: input.currency,
+      reference: input.reference,
+      metadata: input.metadata,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    status: boolean;
+    message: string;
+    data?: ChargeAuthorizationResponse;
+  };
+  if (!json.status || !json.data) return null;
+  return json.data;
+}
+
 /**
  * Validate a host-supplied Paystack secret key by calling /balance. A 200 with
  * `status: true` means the key is live and usable. Returns the detected

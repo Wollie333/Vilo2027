@@ -9970,6 +9970,10 @@ export type Database = {
           id: string
           paypal_plan_id: string | null
           paypal_subscription_id: string | null
+          paystack_authorization_code_cipher: string | null
+          paystack_card_brand: string | null
+          paystack_card_exp: string | null
+          paystack_card_last4: string | null
           paystack_customer_code: string | null
           paystack_subscription_code: string | null
           plan: string
@@ -9992,6 +9996,10 @@ export type Database = {
           id?: string
           paypal_plan_id?: string | null
           paypal_subscription_id?: string | null
+          paystack_authorization_code_cipher?: string | null
+          paystack_card_brand?: string | null
+          paystack_card_exp?: string | null
+          paystack_card_last4?: string | null
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
@@ -10014,6 +10022,10 @@ export type Database = {
           id?: string
           paypal_plan_id?: string | null
           paypal_subscription_id?: string | null
+          paystack_authorization_code_cipher?: string | null
+          paystack_card_brand?: string | null
+          paystack_card_exp?: string | null
+          paystack_card_last4?: string | null
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
