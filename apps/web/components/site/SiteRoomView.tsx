@@ -17,6 +17,7 @@ import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { OceansViewRoomDetail } from "./oceansview/OceansViewRoomDetail";
 import { RoyalRoomDetail } from "./royal/RoyalRoomDetail";
+import { SafariRoomDetail } from "./safari/SafariRoomDetail";
 import { MarmaladeRoomDetail } from "./marmalade/MarmaladeRoomDetail";
 import { SabelaSuiteDetail } from "./sabela/SabelaSuiteDetail";
 import { RoomBookingDock } from "./RoomBookingDock";
@@ -131,6 +132,58 @@ export async function SiteRoomView({
         })}
       />
     ) : null;
+
+  // Safari (NenGama Lodge) — bespoke room detail (preset `safari`). Own component
+  // (`.sfroom`), an editorial lodge treatment (oversized serif title, ruled spec
+  // row, editorial section heads); reuses the shared gallery + book card. Above
+  // the shared branch so only Safari forks here. Phase B.
+  if (ctx.theme.preset === "safari") {
+    const sbx = createAdminClient();
+    const extras = await assembleSiteDataByType(
+      sbx,
+      ctx,
+      new Set(["reviews", "seasonal_pricing", "rooms_preview"] as const),
+    );
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {viewContent}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={
+              ctx.preview
+                ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+                : undefined
+            }
+            previewPages={previewPages}
+            pageHasHero={false}
+          >
+            <SafariRoomDetail
+              room={room}
+              reviews={extras.reviews}
+              seasonal={extras.seasonal_pricing}
+              otherRooms={extras.rooms_preview?.rooms}
+              roomsHref={roomsHref}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
 
   // Royal Hotel — bespoke room detail (preset `royal`). Own component (`.rroom`),
   // a grand-hotel treatment over the shared room-detail layout (champagne rules

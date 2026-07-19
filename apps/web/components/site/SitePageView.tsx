@@ -38,6 +38,8 @@ import { OceansViewGallery } from "./oceansview/OceansViewGallery";
 import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
 import { RoyalHome } from "./royal/RoyalHome";
 import { RoyalRooms } from "./royal/RoyalRooms";
+import { SafariHome } from "./safari/SafariHome";
+import { SafariRooms } from "./safari/SafariRooms";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -257,6 +259,96 @@ export async function SitePageView({
             pageHasHero
           >
             <RoyalHome
+              brandName={ctx.brand.name}
+              roomsHref={roomsHref}
+              bookHref={headerBookHref ?? roomsHref}
+              interactive={!ctx.preview}
+              heroHeadline={cp.home?.hero?.headline ?? null}
+              heroSubheadline={
+                cp.home?.hero?.subheadline ?? cp.brand?.tagline ?? null
+              }
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              tagline={cp.brand?.tagline ?? null}
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              experiences={experiences}
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+              bookingData={extras.booking_search}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Safari (NenGama Lodge) — the founder's bespoke EDITORIAL home (preset
+  // `safari`). Its OWN component + stylesheet (`.sfhome`) — a warm, airy,
+  // daylight-savanna composition distinct from the OceansView resort grid: a
+  // left-aligned full-bleed hero, an asymmetric editorial welcome, inline
+  // oversized stat numerals, full-bleed alternating ROOM STORY BANDS, a ruled
+  // field-notes list + direct-booking promise. Same content-persistence contract
+  // (content_profile + live listing data). Sits above the shared OceansView
+  // branch, so only Safari forks here; OceansView falls through. Phase B
+  // (THEME_DIFFERENTIATION_PLAN.md).
+  if (ctx.theme.preset === "safari" && result.page.kind === "home") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set([
+          "rooms_preview",
+          "reviews",
+          "gallery",
+          "booking_search",
+        ] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const roomsHref = roomsHrefRaw ?? "/rooms";
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariHome
               brandName={ctx.brand.name}
               roomsHref={roomsHref}
               bookHref={headerBookHref ?? roomsHref}
@@ -745,6 +837,69 @@ export async function SitePageView({
               }
               rooms={extras.rooms_preview?.rooms}
               reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  // Safari (NenGama Lodge) — bespoke ROOMS (preset `safari`). Own component
+  // (`.sfrooms`), an editorial "collection" grid (index numerals + floating rate
+  // badges) distinct from both the home story-bands and the OceansView splits.
+  // Above the shared branch so only Safari forks here. Phase B.
+  if (ctx.theme.preset === "safari" && result.page.kind === "rooms") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "gallery"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariRooms
+              brandName={ctx.brand.name}
+              bookHref={headerBookHref ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
               gallery={extras.gallery?.images}
             />
           </SiteChrome>
