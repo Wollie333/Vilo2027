@@ -1,5 +1,6 @@
 import "./oceansRoom.css";
 
+import { siteImageUrl } from "@/lib/site/image";
 import type {
   ReviewsData,
   RoomCard,
@@ -250,7 +251,12 @@ export function OceansViewRoomDetail({
         ) : null}
         {r.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={r.imageUrl} alt={r.name} loading="lazy" decoding="async" />
+          <img
+            src={siteImageUrl(r.imageUrl, { width: 800 })}
+            alt={r.name}
+            loading="lazy"
+            decoding="async"
+          />
         ) : null}
       </div>
       <div className="room-body">

@@ -1,5 +1,7 @@
 import "./marmaladeThankYou.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { ConfirmationRow } from "../BookingConfirmationCard";
 
 const CheckIcon = (
@@ -93,7 +95,7 @@ export function MarmaladeThankYou({
       <section className="tyhero">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImg} alt={brandName} />
+          <img src={siteImageUrl(heroImg, { width: 2000 })} alt={brandName} />
         </div>
 
         <div className="tycard">
@@ -120,7 +122,7 @@ export function MarmaladeThankYou({
                   {roomImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={roomImageUrl}
+                      src={siteImageUrl(roomImageUrl, { width: 800 })}
                       alt={roomName}
                       loading="lazy"
                       decoding="async"

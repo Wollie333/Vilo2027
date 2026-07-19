@@ -1,5 +1,7 @@
 import "./sabelaExperiences.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 /**
  * Sabela Lodge EXPERIENCES page — the founder's bespoke dark-editorial "Lodge"
  * reference design (docs/themes/sabela/pages/Experiences.html), wired to the
@@ -113,7 +115,7 @@ export function SabelaExperiences({
                         <div className="ec-img">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={img}
+                            src={siteImageUrl(img, { width: 800 })}
                             alt={e.title}
                             loading="lazy"
                             decoding="async"

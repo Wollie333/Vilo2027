@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 export type OceansMosaicImage = { url: string; caption?: string | null };
 
 /**
@@ -66,7 +68,7 @@ export function OceansMosaicGallery({
           <div className={spanClass(i)} key={i}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={img.url}
+              src={siteImageUrl(img.url, { width: 1200 })}
               alt={img.caption ?? `${brandName} — photo ${i + 1}`}
               onClick={() => setIdx(i)}
               style={{ cursor: "zoom-in" }}
@@ -127,7 +129,7 @@ export function OceansMosaicGallery({
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={shots[idx].url}
+            src={siteImageUrl(shots[idx].url, { width: 2000 })}
             alt={shots[idx].caption ?? `${brandName} — photo ${idx + 1}`}
             onClick={(e) => e.stopPropagation()}
             loading="lazy"

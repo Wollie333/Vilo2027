@@ -1,6 +1,7 @@
 import "./sabelaThankYou.css";
 
 import type { ConfirmationRow } from "../BookingConfirmationCard";
+import { siteImageUrl } from "@/lib/site/image";
 
 const CheckIcon = (
   <svg
@@ -121,7 +122,7 @@ export function SabelaThankYou({
                   {roomImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={roomImageUrl}
+                      src={siteImageUrl(roomImageUrl, { width: 800 })}
                       alt={roomName}
                       loading="lazy"
                       decoding="async"

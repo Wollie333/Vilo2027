@@ -1,5 +1,7 @@
 import "./marmaladeRoom.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type {
   ReviewsData,
   RoomCard,
@@ -410,7 +412,7 @@ export function MarmaladeRoomDetail({
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={r.imageUrl}
+                        src={siteImageUrl(r.imageUrl, { width: 800 })}
                         alt={r.name}
                         loading="lazy"
                         decoding="async"

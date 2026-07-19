@@ -1,5 +1,7 @@
 import "./marmaladeSpecials.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { GalleryImage, SpecialCard } from "@/lib/site/types";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
@@ -61,7 +63,10 @@ export function MarmaladeSpecials({
       <section className="phead">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={headImg} alt={`Offers at ${brandName}`} />
+          <img
+            src={siteImageUrl(headImg, { width: 2000 })}
+            alt={`Offers at ${brandName}`}
+          />
         </div>
         <div className="postcard">
           <span className="stamp">{brandInitial}</span>
@@ -136,7 +141,7 @@ export function MarmaladeSpecials({
                       ) : null}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={img}
+                        src={siteImageUrl(img, { width: 800 })}
                         alt={s.title}
                         loading="lazy"
                         decoding="async"
@@ -179,7 +184,12 @@ export function MarmaladeSpecials({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 first dibs

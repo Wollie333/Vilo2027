@@ -1,5 +1,6 @@
 import "./oceansJournal.css";
 
+import { siteImageUrl } from "@/lib/site/image";
 import type { BlogIndexPost } from "@/lib/site/loadSitePage";
 
 const Arrow = (
@@ -31,7 +32,12 @@ function Cover({
     return (
       <div className={className}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={title} loading="lazy" decoding="async" />
+        <img
+          src={siteImageUrl(url, { width: 800 })}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+        />
       </div>
     );
   }
@@ -192,7 +198,10 @@ export function OceansViewJournal({
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=2000&q=80"
+              src={siteImageUrl(
+                "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=2000&q=80",
+                { width: 1600 },
+              )}
               alt={brandName}
               loading="lazy"
               decoding="async"

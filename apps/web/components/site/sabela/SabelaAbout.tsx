@@ -1,6 +1,7 @@
 import "./sabelaAbout.css";
 
 import type { GalleryImage, ReviewsData, RoomCard } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
 function commas(n: number): string {
@@ -166,7 +167,7 @@ export function SabelaAbout({
             <div className="split-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={introImg}
+                src={siteImageUrl(introImg, { width: 1100 })}
                 alt={brandName}
                 loading="lazy"
                 decoding="async"
@@ -201,7 +202,7 @@ export function SabelaAbout({
             <div className="host-img">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={hostImg}
+                src={siteImageUrl(hostImg, { width: 1100 })}
                 alt={`Your host at ${brandName}`}
                 loading="lazy"
                 decoding="async"
@@ -257,7 +258,7 @@ export function SabelaAbout({
                 <div className={galSpan(i)} key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={g.url}
+                    src={siteImageUrl(g.url, { width: 1200 })}
                     alt={g.caption || brandName}
                     loading="lazy"
                     decoding="async"

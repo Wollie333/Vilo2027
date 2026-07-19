@@ -1,5 +1,7 @@
 import "./sabelaArticle.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 type RelatedPost = { title: string; slug: string; coverUrl: string | null };
 
 type ArticlePost = {
@@ -97,7 +99,7 @@ export function SabelaArticle({
                     {post.authorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={post.authorAvatarUrl}
+                        src={siteImageUrl(post.authorAvatarUrl, { width: 200 })}
                         alt={post.authorName}
                         loading="lazy"
                         decoding="async"
@@ -120,7 +122,10 @@ export function SabelaArticle({
           <figure className="art-cover">
             <div className="wrap">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cover} alt={post.title} />
+              <img
+                src={siteImageUrl(cover, { width: 2000 })}
+                alt={post.title}
+              />
             </div>
           </figure>
         ) : null}
@@ -155,7 +160,7 @@ export function SabelaArticle({
                     {post.authorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={post.authorAvatarUrl}
+                        src={siteImageUrl(post.authorAvatarUrl, { width: 200 })}
                         alt={post.authorName}
                         loading="lazy"
                         decoding="async"
@@ -226,7 +231,7 @@ export function SabelaArticle({
                       {rc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={rc}
+                          src={siteImageUrl(rc, { width: 800 })}
                           alt={r.title}
                           loading="lazy"
                           decoding="async"

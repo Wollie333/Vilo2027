@@ -8,6 +8,7 @@ import type {
   BookingFunnelData,
   LocationData,
 } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
 function commas(n: number): string {
@@ -301,7 +302,7 @@ export function SabelaHome({
                 <div className={galSpan(i)} key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={g.url}
+                    src={siteImageUrl(g.url, { width: 1200 })}
                     alt={g.caption || brandName}
                     loading="lazy"
                     decoding="async"
@@ -351,7 +352,7 @@ export function SabelaHome({
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={r.imageUrl}
+                        src={siteImageUrl(r.imageUrl, { width: 800 })}
                         alt={r.name}
                         loading="lazy"
                         decoding="async"
@@ -516,7 +517,7 @@ export function SabelaHome({
                 <div className="loc-frame">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={locPhoto}
+                    src={siteImageUrl(locPhoto, { width: 1100 })}
                     alt={brandName}
                     loading="lazy"
                     decoding="async"

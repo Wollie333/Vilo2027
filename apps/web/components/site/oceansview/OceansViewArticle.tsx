@@ -1,5 +1,7 @@
 import "./oceansJournal.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 type RelatedPost = { title: string; slug: string; coverUrl: string | null };
 
 type ArticlePost = {
@@ -99,7 +101,7 @@ export function OceansViewArticle({
       <section className="phead tall">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover} alt={post.title} />
+          <img src={siteImageUrl(cover, { width: 2000 })} alt={post.title} />
         ) : (
           <div className="phead-bg" aria-hidden />
         )}
@@ -152,7 +154,7 @@ export function OceansViewArticle({
                     {post.authorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={post.authorAvatarUrl}
+                        src={siteImageUrl(post.authorAvatarUrl, { width: 200 })}
                         alt={post.authorName}
                         loading="lazy"
                         decoding="async"
@@ -240,7 +242,7 @@ export function OceansViewArticle({
                       {rc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={rc}
+                          src={siteImageUrl(rc, { width: 800 })}
                           alt={r.title}
                           loading="lazy"
                           decoding="async"
@@ -266,7 +268,10 @@ export function OceansViewArticle({
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=2000&q=80"
+              src={siteImageUrl(
+                "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=2000&q=80",
+                { width: 1600 },
+              )}
               alt={brandName}
               loading="lazy"
               decoding="async"

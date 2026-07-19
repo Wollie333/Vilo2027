@@ -1,5 +1,6 @@
 import "./oceansRooms.css";
 
+import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
@@ -89,7 +90,10 @@ export function OceansViewRooms({
       {/* PAGE HEAD */}
       <section className="phead">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={headImg} alt={`Rooms at ${brandName}`} />
+        <img
+          src={siteImageUrl(headImg, { width: 2000 })}
+          alt={`Rooms at ${brandName}`}
+        />
         <div className="wrap">
           <div className="crumbs">
             <a href="/">Home</a>
@@ -149,7 +153,12 @@ export function OceansViewRooms({
             <div className="frame-wrap">
               <div className="frame ar-43">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img} alt={r.name} loading="lazy" decoding="async" />
+                <img
+                  src={siteImageUrl(img, { width: 800 })}
+                  alt={r.name}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               {price ? (
                 <div
@@ -239,7 +248,12 @@ export function OceansViewRooms({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <h2>Not sure which room?</h2>
               <p>

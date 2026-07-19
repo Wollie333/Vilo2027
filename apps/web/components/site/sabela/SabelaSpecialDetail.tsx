@@ -2,6 +2,7 @@ import "./sabelaSpecialDetail.css";
 
 import type { SiteSpecialDetail } from "@/lib/site/loadSitePage";
 import type { SpecialCard } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 // ── formatting helpers (server-rendered — Intl-free, deterministic) ──────────
 function commas(n: number): string {
@@ -270,7 +271,10 @@ export function SabelaSpecialDetail({
         <section className="hero" data-section="intro">
           <div className="bg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={hero} alt={special.title} />
+            <img
+              src={siteImageUrl(hero, { width: 2000 })}
+              alt={special.title}
+            />
           </div>
           <div className="wrap hero-in">
             <nav className="crumbs on-photo" aria-label="Breadcrumb">
@@ -432,7 +436,7 @@ export function SabelaSpecialDetail({
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={img}
+                          src={siteImageUrl(img, { width: 800 })}
                           alt={s.title}
                           loading="lazy"
                           decoding="async"

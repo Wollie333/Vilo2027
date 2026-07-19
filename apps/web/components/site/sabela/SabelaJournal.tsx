@@ -1,6 +1,7 @@
 import "./sabelaJournal.css";
 
 import type { BlogIndexPost } from "@/lib/site/loadSitePage";
+import { siteImageUrl } from "@/lib/site/image";
 
 const Arrow = (
   <svg
@@ -31,7 +32,7 @@ function Cover({
     return (
       <div className={className}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={title} />
+        <img src={siteImageUrl(url, { width: 1200 })} alt={title} />
       </div>
     );
   }
@@ -156,7 +157,9 @@ export function SabelaJournal({
                         {cover(p) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={cover(p) as string}
+                            src={siteImageUrl(cover(p) as string, {
+                              width: 800,
+                            })}
                             alt={p.title}
                             loading="lazy"
                             decoding="async"

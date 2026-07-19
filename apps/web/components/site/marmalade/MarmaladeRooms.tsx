@@ -1,5 +1,7 @@
 import "./marmaladeRooms.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
@@ -66,7 +68,10 @@ export function MarmaladeRooms({
       <section className="phero compact">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={headImg} alt={`Rooms at ${brandName}`} />
+          <img
+            src={siteImageUrl(headImg, { width: 2000 })}
+            alt={`Rooms at ${brandName}`}
+          />
         </div>
         <div className="postcard sm">
           <span className="stamp">✦</span>
@@ -139,7 +144,7 @@ export function MarmaladeRooms({
                       {r.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={r.imageUrl}
+                          src={siteImageUrl(r.imageUrl, { width: 800 })}
                           alt={r.name}
                           loading="lazy"
                           decoding="async"
@@ -185,7 +190,12 @@ export function MarmaladeRooms({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 the kettle&apos;s on

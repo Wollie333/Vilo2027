@@ -1,5 +1,7 @@
 import "./marmaladeExperiences.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 /**
  * Marmalade House THINGS-TO-DO page — the founder's bespoke "Postcards" reference
  * design (docs/themes/marmalade/pages/Experiences.html), wired to the host's LIVE
@@ -55,7 +57,10 @@ export function MarmaladeExperiences({
       <section className="phero compact">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={headImg} alt={`Things to do at ${brandName}`} />
+          <img
+            src={siteImageUrl(headImg, { width: 2000 })}
+            alt={`Things to do at ${brandName}`}
+          />
         </div>
         <div className="postcard sm">
           <span className="stamp">{brandInitial}</span>
@@ -121,7 +126,7 @@ export function MarmaladeExperiences({
                       <div className="pi">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={img}
+                          src={siteImageUrl(img, { width: 800 })}
                           alt={e.title}
                           loading="lazy"
                           decoding="async"
@@ -147,7 +152,12 @@ export function MarmaladeExperiences({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 make a weekend of it

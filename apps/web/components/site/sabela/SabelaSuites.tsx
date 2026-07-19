@@ -1,6 +1,7 @@
 import "./sabelaSuites.css";
 
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
 function commas(n: number): string {
@@ -128,7 +129,7 @@ export function SabelaSuites({
                         {r.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={r.imageUrl}
+                            src={siteImageUrl(r.imageUrl, { width: 800 })}
                             alt={r.name}
                             loading="lazy"
                             decoding="async"

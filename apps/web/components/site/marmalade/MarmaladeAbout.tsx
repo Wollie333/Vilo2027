@@ -1,5 +1,7 @@
 import "./marmaladeAbout.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { GalleryImage, ReviewsData, RoomCard } from "@/lib/site/types";
 
 // ── helpers (server-rendered) ────────────────────────────────────────────────
@@ -129,7 +131,7 @@ export function MarmaladeAbout({
       <section className="phero compact">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={headImg} alt={brandName} />
+          <img src={siteImageUrl(headImg, { width: 2000 })} alt={brandName} />
         </div>
         <div className="postcard sm">
           <span className="stamp">{brandInitial}</span>
@@ -172,7 +174,7 @@ export function MarmaladeAbout({
               <div className="frame photo ar-45">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={storyImg}
+                  src={siteImageUrl(storyImg, { width: 1100 })}
                   alt={brandName}
                   loading="lazy"
                   decoding="async"
@@ -232,7 +234,7 @@ export function MarmaladeAbout({
                   {hostPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={hostPhotoUrl}
+                      src={siteImageUrl(hostPhotoUrl, { width: 1100 })}
                       alt={`Your host at ${brandName}`}
                       loading="lazy"
                       decoding="async"
@@ -240,7 +242,7 @@ export function MarmaladeAbout({
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={storyImg}
+                      src={siteImageUrl(storyImg, { width: 1100 })}
                       alt={brandName}
                       loading="lazy"
                       decoding="async"
@@ -287,7 +289,7 @@ export function MarmaladeAbout({
                   <div className="im">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={g.url}
+                      src={siteImageUrl(g.url, { width: 800 })}
                       alt={g.caption || brandName}
                       loading="lazy"
                       decoding="async"
@@ -306,7 +308,12 @@ export function MarmaladeAbout({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 come for breakfast

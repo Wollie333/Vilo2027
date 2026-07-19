@@ -1,5 +1,7 @@
 import "./oceansExperiences.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 /**
  * Oceans View EXPERIENCES page — the founder's bespoke reference design, wired
  * to the host's LIVE experiences. Each renders as a tall image-background tile
@@ -90,7 +92,7 @@ export function OceansViewExperiences({
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={img}
+                            src={siteImageUrl(img, { width: 800 })}
                             alt={e.title}
                             loading="lazy"
                             decoding="async"
@@ -120,7 +122,10 @@ export function OceansViewExperiences({
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=2000&q=80"
+              src={siteImageUrl(
+                "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=2000&q=80",
+                { width: 1600 },
+              )}
               alt={brandName}
               loading="lazy"
               decoding="async"

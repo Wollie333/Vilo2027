@@ -1,5 +1,7 @@
 import "./marmaladeHome.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type {
   GalleryImage,
   ReviewsData,
@@ -182,7 +184,7 @@ export function MarmaladeHome({
       <section className="phero">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImg} alt={brandName} />
+          <img src={siteImageUrl(heroImg, { width: 2000 })} alt={brandName} />
         </div>
         <div className="postcard">
           <span className="stamp">{brandInitial}</span>
@@ -265,7 +267,7 @@ export function MarmaladeHome({
               <div className="frame photo ar-45 tilt">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={introImg}
+                  src={siteImageUrl(introImg, { width: 1100 })}
                   alt={brandName}
                   loading="lazy"
                   decoding="async"
@@ -320,7 +322,7 @@ export function MarmaladeHome({
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={r.imageUrl}
+                        src={siteImageUrl(r.imageUrl, { width: 800 })}
                         alt={r.name}
                         loading="lazy"
                         decoding="async"
@@ -388,7 +390,7 @@ export function MarmaladeHome({
                   <div className="im">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={g.url}
+                      src={siteImageUrl(g.url, { width: 800 })}
                       alt={g.caption || brandName}
                       loading="lazy"
                       decoding="async"
@@ -496,7 +498,9 @@ export function MarmaladeHome({
                   <div className="frame photo ar-43">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={shots[2]?.url || shots[0]?.url}
+                      src={siteImageUrl(shots[2]?.url || shots[0]?.url, {
+                        width: 1100,
+                      })}
                       alt={brandName}
                       loading="lazy"
                       decoding="async"
@@ -514,7 +518,12 @@ export function MarmaladeHome({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 the kettle&apos;s on

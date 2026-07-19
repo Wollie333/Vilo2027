@@ -1,6 +1,7 @@
 import "./sabelaGallery.css";
 
 import type { GalleryImage } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 /**
  * Sabela Lodge GALLERY page — the founder's bespoke dark-editorial "Lodge"
@@ -86,7 +87,7 @@ export function SabelaGallery({
                 <figure className="m" key={i}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={g.url}
+                    src={siteImageUrl(g.url, { width: 1200 })}
                     alt={g.caption || brandName}
                     loading="lazy"
                     decoding="async"

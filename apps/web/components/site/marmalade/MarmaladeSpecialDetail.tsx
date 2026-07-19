@@ -1,5 +1,7 @@
 import "./marmaladeSpecialDetail.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { SiteSpecialDetail } from "@/lib/site/loadSitePage";
 import type { SpecialCard } from "@/lib/site/types";
 
@@ -257,7 +259,10 @@ export function MarmaladeSpecialDetail({
                 <span className="hero-badge">{special.badge}</span>
               ) : null}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={hero} alt={special.title} />
+              <img
+                src={siteImageUrl(hero, { width: 2000 })}
+                alt={special.title}
+              />
             </div>
           </div>
         </section>
@@ -393,7 +398,7 @@ export function MarmaladeSpecialDetail({
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={img}
+                          src={siteImageUrl(img, { width: 800 })}
                           alt={s.title}
                           loading="lazy"
                           decoding="async"

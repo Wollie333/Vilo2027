@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 export type OceansGalleryImage = { url: string; alt?: string | null };
 
 /**
@@ -58,7 +60,7 @@ export function OceansRoomGallery({
         <div className="g main">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={main.url}
+            src={siteImageUrl(main.url, { width: 1600 })}
             alt={main.alt ?? roomName}
             onClick={() => setIdx(0)}
           />
@@ -89,7 +91,7 @@ export function OceansRoomGallery({
           <div className="g" key={i}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={img.url}
+              src={siteImageUrl(img.url, { width: 900 })}
               alt={img.alt ?? roomName}
               onClick={() => setIdx(1 + i)}
             />
@@ -155,7 +157,7 @@ export function OceansRoomGallery({
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={shots[idx].url}
+            src={siteImageUrl(shots[idx].url, { width: 2000 })}
             alt={shots[idx].alt ?? `${roomName} — photo ${idx + 1}`}
             onClick={(e) => e.stopPropagation()}
             loading="lazy"

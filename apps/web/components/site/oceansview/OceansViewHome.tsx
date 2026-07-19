@@ -2,6 +2,7 @@ import "./oceansHome.css";
 // Lightbox slider styles (.ovroom-lightbox / .ovlb-*) live in oceansRoom.css.
 import "./oceansRoom.css";
 
+import { siteImageUrl } from "@/lib/site/image";
 import type {
   GalleryImage,
   ReviewsData,
@@ -259,7 +260,10 @@ export function OceansViewHome({
       <section className="hero">
         <div className="hero-bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImg} alt={`${brandName}`} />
+          <img
+            src={siteImageUrl(heroImg, { width: 2000 })}
+            alt={`${brandName}`}
+          />
         </div>
         <div className="hero-in">
           <div className="wrap">
@@ -336,7 +340,7 @@ export function OceansViewHome({
               <div className="frame ar-45">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={introImg}
+                  src={siteImageUrl(introImg, { width: 1600 })}
                   alt={`${brandName}`}
                   loading="lazy"
                   decoding="async"
@@ -405,7 +409,7 @@ export function OceansViewHome({
                     {r.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={r.imageUrl}
+                        src={siteImageUrl(r.imageUrl, { width: 800 })}
                         alt={r.name}
                         loading="lazy"
                         decoding="async"
@@ -451,7 +455,7 @@ export function OceansViewHome({
                   {e.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={e.imageUrl}
+                      src={siteImageUrl(e.imageUrl, { width: 800 })}
                       alt={e.title}
                       loading="lazy"
                       decoding="async"
@@ -596,7 +600,7 @@ export function OceansViewHome({
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={ctaImg}
+              src={siteImageUrl(ctaImg, { width: 1600 })}
               alt={`${brandName}`}
               loading="lazy"
               decoding="async"

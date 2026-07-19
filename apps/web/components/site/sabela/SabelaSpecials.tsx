@@ -1,6 +1,7 @@
 import "./sabelaSpecials.css";
 
 import type { GalleryImage, SpecialCard } from "@/lib/site/types";
+import { siteImageUrl } from "@/lib/site/image";
 
 // ── helpers (server-rendered — Intl-free, deterministic) ─────────────────────
 function commas(n: number): string {
@@ -73,7 +74,10 @@ export function SabelaSpecials({
       <section className="phead" data-section="intro">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={headImg} alt={`Offers at ${brandName}`} />
+          <img
+            src={siteImageUrl(headImg, { width: 2000 })}
+            alt={`Offers at ${brandName}`}
+          />
         </div>
         <div className="wrap phead-in">
           <nav className="crumbs" aria-label="Breadcrumb">
@@ -147,7 +151,7 @@ export function SabelaSpecials({
                       ) : null}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={img}
+                        src={siteImageUrl(img, { width: 800 })}
                         alt={s.title}
                         loading="lazy"
                         decoding="async"

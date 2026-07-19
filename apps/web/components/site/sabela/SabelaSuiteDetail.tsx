@@ -7,6 +7,8 @@ import type {
   SeasonalPricingData,
 } from "@/lib/site/types";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import { OceansBookCard } from "../oceansview/OceansBookCard";
 import { OceansRoomGallery } from "../oceansview/OceansRoomGallery";
 
@@ -459,7 +461,7 @@ export function SabelaSuiteDetail({
                       {r.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={r.imageUrl}
+                          src={siteImageUrl(r.imageUrl, { width: 800 })}
                           alt={r.name}
                           loading="lazy"
                           decoding="async"

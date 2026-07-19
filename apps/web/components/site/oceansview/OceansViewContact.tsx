@@ -2,6 +2,7 @@ import "./oceansContact.css";
 
 import type { ReactNode } from "react";
 
+import { siteImageUrl } from "@/lib/site/image";
 import type { ReviewCard, RoomPolicies } from "@/lib/site/types";
 
 import { OceansContactForm } from "./OceansContactForm";
@@ -135,7 +136,7 @@ export function OceansViewContact({
       {/* PAGE HEAD */}
       <section className="phead">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={headImg} alt={brandName} />
+        <img src={siteImageUrl(headImg, { width: 2000 })} alt={brandName} />
         <div className="wrap">
           <div className="crumbs">
             <a href="/">Home</a>

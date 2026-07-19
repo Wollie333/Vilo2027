@@ -1,5 +1,7 @@
 import "./marmaladeGallery.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import type { GalleryImage } from "@/lib/site/types";
 
 /**
@@ -87,7 +89,7 @@ export function MarmaladeGallery({
                     <div className="im">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={g.url}
+                        src={siteImageUrl(g.url, { width: 800 })}
                         alt={g.caption || brandName}
                         loading="lazy"
                         decoding="async"
@@ -107,7 +109,12 @@ export function MarmaladeGallery({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <span className="hand lg" style={{ color: "var(--site-note)" }}>
                 better in person

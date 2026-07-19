@@ -1,5 +1,7 @@
 import "./oceansGallery.css";
 
+import { siteImageUrl } from "@/lib/site/image";
+
 import { OceansMosaicGallery } from "./OceansMosaicGallery";
 
 /**
@@ -48,7 +50,10 @@ export function OceansViewGallery({
       {/* PAGE HEAD */}
       <section className="phead">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={headImg} alt={`${brandName} in pictures`} />
+        <img
+          src={siteImageUrl(headImg, { width: 2000 })}
+          alt={`${brandName} in pictures`}
+        />
         <div className="wrap">
           <div className="crumbs">
             <a href="/">Home</a>
@@ -94,7 +99,12 @@ export function OceansViewGallery({
         <div className="wrap">
           <div className="banner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={ctaImg} alt={brandName} loading="lazy" decoding="async" />
+            <img
+              src={siteImageUrl(ctaImg, { width: 1600 })}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
             <div className="banner-in">
               <h2>It&apos;s better in person</h2>
               <p>
