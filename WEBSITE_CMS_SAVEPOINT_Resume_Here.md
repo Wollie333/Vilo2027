@@ -9,12 +9,11 @@
 > (wire AI-wizard content per page, incl. the Experiences auto-draft idea below) then PHASE 3 (builder
 > per-element customisation). Verify a theme on mana via `?site=mana&preview=1&theme=<oceansview|marmalade|hotel>`.
 >
+> **✅ `f7ebd86` VERIFIED live** — Sabela checkout now has three clear elevation levels: page `≈rgb(20,18,13)`
+>   < form card `≈rgb(45,42,35)` < room/add-on rows `≈rgb(62,58,51)` (lighter, visible border `≈rgb(98,93,79)`).
+>   The `dateInk` change softens the SELECTED date value; the "Add date" placeholder stays the standard mute
+>   `#A99B7F` (if the founder wanted the placeholder itself darker, tweak the `mute` prop on ThemedDateRange).
 > **⏳ OUTSTANDING (pending, do first in a new session):**
-> - **Verify `f7ebd86` live** (checkout room/add-on cards lifted lighter + softened date-field text on dark
->   themes). It was pushed + tsc/lint-green but the deploy verification didn't finish — check on the Sabela
->   checkout (`/site/book?site=mana&preview=1&theme=hotel`) that the room/add-on rows now stand out (a lighter
->   panel than the form card) and the "Add date" text reads calmer. DOM check: a room row's bg should be
->   LIGHTER (higher RGB sum) than the form card `≈rgb(45,42,35)`.
 > - **Social rail never live-seen** — mana has no social links set + toggle off. To demo: add socials to mana's
 >   brand + flip Website→Settings "Social media rail" ON, then it renders on every page.
 >
