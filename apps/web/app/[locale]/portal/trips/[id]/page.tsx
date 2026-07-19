@@ -1610,7 +1610,7 @@ export default async function PortalTripDetailPage({
                   </li>
                 ) : null}
               </ul>
-              {booking.payment_method ? (
+              {booking.payment_method && amountPaid > 0 ? (
                 <div className="mt-4 rounded-[12px] bg-brand-light px-4 py-3 text-[12.5px] text-brand-mute">
                   Paid via{" "}
                   <span className="font-mono uppercase text-brand-ink">

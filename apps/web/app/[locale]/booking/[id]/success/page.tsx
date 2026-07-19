@@ -115,6 +115,8 @@ export default async function BookingSuccessPage({
 
   if (!booking) notFound();
 
+  const admin = createAdminClient();
+
   // Confirm the payment via the one canonical helper (verifies with the HOST's
   // key, flips the pending row, recomputes the ledger, confirms the booking).
   // For direct-host card payments this — not a platform webhook — is the
@@ -177,16 +179,59 @@ export default async function BookingSuccessPage({
       booking.status = refreshed.status;
       booking.payment_status = refreshed.payment_status;
     }
+  } else if (
+    // Explicit PayPal cancellation — the payer tapped "Cancel and return" on
+    // PayPal, which sends `paypal=cancel` (with the order token, no PayerID). We
+    // never captured, so the booking is an unpaid hold. Release it immediately
+    // so a cancelled payment never leaves a lingering "booking" (founder call —
+    // otherwise it sits pending until the 30-min expire cron). Guarded hard: the
+    // UPDATE can only ever touch a still-pending, not-completed row, so a paid or
+    // already-confirmed booking is untouchable here.
+    booking.status === "pending" &&
+    booking.payment_method === "paypal" &&
+    searchParams?.paypal === "cancel"
+  ) {
+    const { data: released } = await admin
+      .from("bookings")
+      .update({
+        status: "expired",
+        cancelled_by: "guest",
+        cancellation_reason: "payment_cancelled",
+      })
+      .eq("id", booking.id)
+      .eq("status", "pending")
+      .neq("payment_status", "completed")
+      .select("status");
+    if (released && released.length > 0) {
+      booking.status = released[0].status;
+    }
   }
 
   const isConfirmed =
     booking.status === "confirmed" && booking.payment_status === "completed";
+  // A released hold — an explicitly cancelled PayPal payment (above) or any
+  // booking the expire cron / a cancellation swept away. The confirmation page
+  // must own up to this: no itinerary, no "paid", just "not placed — book again".
+  const isReleased =
+    booking.status === "expired" ||
+    booking.status === "declined" ||
+    booking.status.startsWith("cancelled");
   // Manual-EFT bookings land here straight after reserving (no Paystack hop) —
   // they sit pending until the guest transfers + the host verifies.
   const isEftPending =
     !isConfirmed &&
+    !isReleased &&
     (booking.payment_method === "eft" ||
       booking.payment_method === "manual_eft");
+  // A card/PayPal attempt that did NOT complete (cancelled, failed, or the payer
+  // bailed and refreshed). The booking is still a pending hold they can retry —
+  // but it is emphatically NOT paid, so the page must not imply it went through.
+  const isPaymentIncomplete =
+    !isConfirmed &&
+    !isReleased &&
+    !isEftPending &&
+    (booking.payment_method === "paystack" ||
+      booking.payment_method === "paypal");
 
   const listing = booking.listing as unknown as {
     id: string;
@@ -207,7 +252,6 @@ export default async function BookingSuccessPage({
   };
 
   // ── Parallel fetch: host, guest profile, room lines, add-on lines, cover ──
-  const admin = createAdminClient();
   const [
     { data: hostRow },
     { data: profile },
@@ -397,7 +441,9 @@ export default async function BookingSuccessPage({
   }
 
   const payment: ConfirmationData["payment"] = {
-    due: !isConfirmed,
+    // A released hold can't be paid — offering rails on an expired booking would
+    // re-open a settled-cancelled flow. Only a live, unpaid booking is "due".
+    due: !isConfirmed && !isReleased,
     payUrl: `/booking/${booking.id}/pay`,
     cardAvailable: !!hostPaystack,
     eft: bankRow
@@ -546,6 +592,9 @@ export default async function BookingSuccessPage({
     bookingId: booking.id,
     isConfirmed,
     isEftPending,
+    isPaymentIncomplete,
+    isReleased,
+    rebookUrl: listing.slug ? `/property/${listing.slug}/book` : null,
     proofUploaded: !!booking.eft_proof_url,
     reference: booking.reference,
     guestFirstName,

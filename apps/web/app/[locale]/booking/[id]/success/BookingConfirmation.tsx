@@ -24,6 +24,7 @@ import {
   Star,
   Sun,
   Users,
+  XCircle,
   Zap,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -46,6 +47,14 @@ export type ConfirmationData = {
   isConfirmed: boolean;
   /** Booking placed via manual EFT and still awaiting the guest's transfer. */
   isEftPending: boolean;
+  /** Card/PayPal attempt that never completed — booking is an unpaid hold the
+   * guest can still retry. NOT paid; the page must not imply it went through. */
+  isPaymentIncomplete: boolean;
+  /** The hold was released (explicit PayPal cancel, or swept by the expire cron
+   * / a cancellation). No itinerary, no "paid" — just "not placed, book again". */
+  isReleased: boolean;
+  /** Where "Book again" sends a guest whose hold was released. */
+  rebookUrl: string | null;
   /** Guest has already attached proof of their transfer. */
   proofUploaded: boolean;
   reference: string;
@@ -323,7 +332,7 @@ function Hero({ data }: { data: ConfirmationData }) {
               </>
             ) : (
               <>
-                <Clock className="h-3 w-3" /> Confirming payment
+                <Clock className="h-3 w-3" /> Payment not completed
               </>
             )}
           </div>
@@ -339,7 +348,7 @@ function Hero({ data }: { data: ConfirmationData }) {
             ) : data.isEftPending ? (
               <>You&rsquo;re nearly there, {data.guestFirstName}</>
             ) : (
-              <>Hang tight, {data.guestFirstName}…</>
+              <>Almost there, {data.guestFirstName}</>
             )}
           </h1>
 
@@ -374,8 +383,10 @@ function Hero({ data }: { data: ConfirmationData }) {
               </>
             ) : (
               <>
-                Your payment just went through — we&rsquo;re waiting on the
-                final confirmation. Refresh in a few seconds if this hangs.
+                We didn&rsquo;t receive a completed payment, so your booking
+                isn&rsquo;t confirmed yet. Nothing was charged &mdash; finish
+                paying below to lock it in, or it&rsquo;ll be released
+                automatically.
               </>
             )}
           </p>
@@ -575,7 +586,9 @@ function StayCard({ data }: { data: ConfirmationData }) {
         {data.paymentMethodLabel ? (
           <div className="inline-flex items-center gap-2 text-sm text-brand-mute">
             <CreditCard className="h-4 w-4" />
-            Paid with{" "}
+            {/* Only claim "Paid with" once the booking is genuinely paid — an
+                unpaid card/PayPal/EFT hold shows the selected method instead. */}
+            {data.isConfirmed ? "Paid with" : "Pay with"}{" "}
             <span className="font-medium text-brand-ink">
               {data.paymentMethodLabel}
             </span>
@@ -1221,10 +1234,61 @@ function EssentialsCard({ data }: { data: ConfirmationData }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Released hold — cancelled/expired payment, no booking was placed           */
+/* -------------------------------------------------------------------------- */
+function ReleasedScreen({ data }: { data: ConfirmationData }) {
+  return (
+    <div className="relative border-b border-brand-line">
+      <div className="relative mx-auto max-w-[560px] px-4 py-16 text-center lg:py-20">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-pill bg-brand-mute text-white">
+          <XCircle className="h-10 w-10" />
+        </div>
+        <div className="mt-5 inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-mute backdrop-blur">
+          Payment cancelled
+        </div>
+        <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-brand-ink md:text-[36px]">
+          Your booking wasn&rsquo;t placed
+          {data.guestFirstName ? `, ${data.guestFirstName}` : ""}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-brand-mute md:text-base">
+          You cancelled the payment, so{" "}
+          <span className="font-medium text-brand-ink">
+            {data.listing.name}
+          </span>{" "}
+          wasn&rsquo;t booked and nothing was charged. Your dates are still open
+          &mdash; start again whenever you&rsquo;re ready.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          {data.rebookUrl ? (
+            <Link
+              href={data.rebookUrl}
+              className="inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+            >
+              Book again <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+          <Link
+            href={data.listing.slug ? `/property/${data.listing.slug}` : "/"}
+            className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to listing
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Root                                                                       */
 /* -------------------------------------------------------------------------- */
 export function BookingConfirmation({ data }: { data: ConfirmationData }) {
   usePurchaseDataLayer(data.purchase);
+
+  // A released hold never became a booking — show a clean "not placed" screen,
+  // not a full (and misleading) itinerary. Honours the founder call that a
+  // cancelled payment leaves no booking behind.
+  if (data.isReleased) return <ReleasedScreen data={data} />;
 
   return (
     <>

@@ -1243,7 +1243,12 @@ export function BookingForm({
       ? "Creating account…"
       : method === "eft"
         ? "Reserving…"
-        : "Redirecting to Paystack…"
+        : // Name the rail the payer actually picked — this label shows on both
+          // the button AND the legal disclaimer ("By tapping …"), so a hardcoded
+          // "Paystack" was wrong (and confusing) whenever PayPal was selected.
+          method === "paypal"
+          ? "Redirecting to PayPal…"
+          : "Redirecting to Paystack…"
     : method === "eft"
       ? "Reserve & get bank details"
       : `Pay ${formatMoney(gv(total), currency)}`;
