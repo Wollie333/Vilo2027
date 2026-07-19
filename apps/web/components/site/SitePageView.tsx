@@ -36,6 +36,7 @@ import { OceansViewContact } from "./oceansview/OceansViewContact";
 import { OceansViewExperiences } from "./oceansview/OceansViewExperiences";
 import { OceansViewGallery } from "./oceansview/OceansViewGallery";
 import { OceansViewSpecials } from "./oceansview/OceansViewSpecials";
+import { RoyalHome } from "./royal/RoyalHome";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -193,6 +194,94 @@ export async function SitePageView({
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)
     : undefined;
+
+  // Royal Hotel — the founder's bespoke GRAND-HOTEL home (preset `royal`). Its
+  // OWN component + stylesheet (`.rhome`) — a formal, centred composition distinct
+  // from the OceansView resort layout: a "promise" trust strip, a centred
+  // editorial welcome, a monogram heritage band, champagne-ruled heads. Same
+  // content-persistence contract (content_profile + live listing data). Sits above
+  // the shared OceansView branch, so only Royal forks here; Safari/OceansView fall
+  // through. Phase B (THEME_DIFFERENTIATION_PLAN.md).
+  if (ctx.theme.preset === "royal" && result.page.kind === "home") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set([
+          "rooms_preview",
+          "reviews",
+          "gallery",
+          "booking_search",
+        ] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const roomsHref = roomsHrefRaw ?? "/rooms";
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <RoyalHome
+              brandName={ctx.brand.name}
+              roomsHref={roomsHref}
+              bookHref={headerBookHref ?? roomsHref}
+              interactive={!ctx.preview}
+              heroHeadline={cp.home?.hero?.headline ?? null}
+              heroSubheadline={
+                cp.home?.hero?.subheadline ?? cp.brand?.tagline ?? null
+              }
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              tagline={cp.brand?.tagline ?? null}
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              experiences={experiences}
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+              bookingData={extras.booking_search}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
 
   // Oceans View — the founder's bespoke HOME design. Rendered by a dedicated
   // component wired to the host's content_profile (hero copy, story, experiences)

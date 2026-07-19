@@ -200,6 +200,7 @@ const FONTS: SiteFont[] = [
   "grotesk",
   "editorial",
   "homely",
+  "archivo",
 ];
 const RADII: SiteRadius[] = ["none", "sm", "md", "lg", "xl"];
 

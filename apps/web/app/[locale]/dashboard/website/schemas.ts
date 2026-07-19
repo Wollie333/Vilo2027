@@ -163,6 +163,7 @@ export const SITE_FONTS = [
   "grotesk",
   "editorial",
   "homely",
+  "archivo",
 ] as const;
 export const SITE_RADII = ["none", "sm", "md", "lg", "xl"] as const;
 export const SITE_PRESET_NAMES = ["warm", "coastal"] as const;

@@ -78,6 +78,7 @@ const FONTS: SiteFont[] = [
   "grotesk",
   "editorial",
   "homely",
+  "archivo",
 ];
 
 const FONT_SAMPLE: Record<SiteFont, string> = {
@@ -87,6 +88,8 @@ const FONT_SAMPLE: Record<SiteFont, string> = {
   grotesk: '"Trebuchet MS", "Avenir Next", "Segoe UI", Verdana, sans-serif',
   editorial: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif',
   homely: '"Gloock", "Playfair Display", Georgia, ui-serif, serif',
+  archivo:
+    '"Archivo", "Arial Narrow", "Helvetica Neue", "Segoe UI", sans-serif',
 };
 
 // ── Identity ──────────────────────────────────────────────

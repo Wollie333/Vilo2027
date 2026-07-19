@@ -26,6 +26,8 @@ const WEBFONT_HREFS: Partial<Record<SiteFont, string>> = {
     "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&display=swap",
   homely:
     "https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@600;700&family=Karla:wght@400;500;600;700&display=swap",
+  archivo:
+    "https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap",
 };
 
 export function SiteFontLinks({

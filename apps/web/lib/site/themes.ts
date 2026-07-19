@@ -15,7 +15,8 @@ export type SiteFont =
   | "elegant"
   | "grotesk"
   | "editorial"
-  | "homely";
+  | "homely"
+  | "archivo";
 export type SiteRadius = "none" | "sm" | "md" | "lg" | "xl";
 
 export type SitePalette = {
@@ -162,9 +163,10 @@ export const SITE_PRESETS = {
       accentInk: "#FFFFFF",
       secondary: "#23201B", // espresso — tags, "Book" CTA, quote marks
     },
-    // Tight modern grotesk (Bricolage now; Archivo is the reference's face — a
-    // distinct-later font wiring). Body geometric sans (Manrope) via the stack.
-    font: "grotesk",
+    // Archivo — the reference's own grand-hotel face (geometric, authoritative),
+    // over a Manrope body. Its bespoke `.rhome` layout (Phase B) reads as a grand
+    // hotel, not the OceansView resort.
+    font: "archivo",
     // Refined small corners (~8px) vs Oceans View's chunky "lg"; the .wielo-royal
     // skin sets the exact per-element radii (12px cards, 6px buttons, 10px img).
     radius: "md",
@@ -213,6 +215,14 @@ const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
     heading:
       '"Gloock", "Playfair Display", Georgia, Cambria, "Times New Roman", ui-serif, serif',
     body: '"Karla", "Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
+  },
+  archivo: {
+    // The grand-hotel face — Archivo (geometric, authoritative display) over a
+    // Manrope body. The web fonts are loaded by SiteFontLinks for the `royal`
+    // theme; falls back to a clean grotesque system stack otherwise.
+    heading:
+      '"Archivo", "Arial Narrow", "Helvetica Neue", "Segoe UI", system-ui, sans-serif',
+    body: '"Manrope", "Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
   },
 };
 
