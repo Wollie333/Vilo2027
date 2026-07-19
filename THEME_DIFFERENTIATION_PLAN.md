@@ -37,21 +37,29 @@ Five themes exist. **Two are already bespoke + distinct; three share ONE layout.
 | **OceansView** | `oceansview` | bespoke `.ov*` (`components/site/oceansview/`) | the reference layout |
 | **Marmalade** | `marmalade` | bespoke `.mm*` (`components/site/marmalade/`) | ✅ already distinct (postcards, tilts/tape, serif) |
 | **Sabela** | `hotel` | bespoke `.sb*` (`components/site/sabela/`) | ✅ already distinct (dark editorial lodge) |
-| **Safari** | `safari` | **REUSES OceansView** `.ov*` | ⚠️ SAME layout as OceansView (savanna skin only) |
-| **Royal Hotel** | `royal` | **REUSES OceansView** `.ov*` | ⚠️ SAME layout as OceansView (champagne skin only) |
+| **Safari** | `safari` | ✅ bespoke `.sf*` (`components/site/safari/`) for **Home/Rooms/Room-detail** (pt22); other pages still reuse `.ov*` | ✅ layout forked (editorial daylight savanna) — was a savanna re-skin of OceansView |
+| **Royal Hotel** | `royal` | ✅ bespoke `.r*` (`components/site/royal/`) for **Home/Rooms/Room-detail** (pt21); other pages still reuse `.ov*` | ✅ layout forked (grand hotel) — was a champagne re-skin of OceansView |
 
-The reuse wiring lives in **`apps/web/lib/site/themeFamily.ts`** →
-`usesOceansViewLayout(preset)` = `oceansview | safari | royal`. All route guards
-(SitePageView ×7, SiteRoomView, SiteSpecialView, blog index + article) call it, and
-`SiteChrome.THEME_CHROME` maps all three to the OceansView Header/Footer. Each gets its
-palette/font/radius from its preset (`lib/site/themes.ts`) + derived colour tokens from
-its `.wielo-<slug>` block (`components/site/themes/theme-skins.css`).
+> **UPDATE (pt21 Royal, pt22 Safari):** Safari + Royal now have their OWN bespoke
+> components for the three highest-traffic pages (Home / Rooms / Room-detail), routed via
+> `preset===` branches ABOVE the shared branches. They still fall through to the shared
+> OceansView layout for the LOWER-traffic pages (About/Experiences/Specials/Gallery/
+> Contact/Blog) via `usesOceansViewLayout`. So the "three re-skins of one layout" problem
+> below is SOLVED for the pages that matter; the paragraph is kept for history.
 
-**So: OceansView, Safari and Royal are visually three re-skins of one layout.** That is
-exactly what the founder does NOT want. Marmalade + Sabela are fine.
+The (still-used, for the unforked pages) reuse wiring lives in
+**`apps/web/lib/site/themeFamily.ts`** → `usesOceansViewLayout(preset)` =
+`oceansview | safari | royal`. Route guards call it, and `SiteChrome.THEME_CHROME` maps
+all three to the OceansView Header/Footer. Each gets its palette/font/radius from its
+preset (`lib/site/themes.ts`) + derived colour tokens from its `.wielo-<slug>` block
+(`components/site/themes/theme-skins.css`).
+
+~~**So: OceansView, Safari and Royal are visually three re-skins of one layout.**~~
+_(SOLVED for Home/Rooms/Room-detail — see the pt21/pt22 update above.)_
 
 Founder also said: **Safari + Sabela/hotel "feel like the same theme"** (both warm-earth
-lodge + serif) — differentiate those too even though their LAYOUTS already differ.
+lodge + serif) — **Phase C** addresses this (now much easier — Safari has its own light
+editorial layout while Sabela stays dark filmic).
 
 ---
 
@@ -256,10 +264,44 @@ Then update `usesOceansViewLayout()` / the route guards so each forked page rout
 own component while unforked pages still fall back to the shared OceansView set.
 
 ### PHASE C — separate Safari from Sabela (founder-flagged "feel the same")
+
+> **▶▶ RESUME HERE (next session), 2026-07-20.** Phase A (motion) + Phase B (Safari
+> AND Royal fully forked) are DONE + live-verified. The ONLY remaining differentiation
+> work is Phase C below. Read this whole plan top-to-bottom first, then this section.
+
 Both are warm-earth lodges with serif display. Push them apart: Safari → lighter, sun /
 bush / daylight, airier; Sabela → keep the dark filmic editorial. Different motion
 signatures (Phase A) already helps; reinforce with type scale + section rhythm + imagery
 treatment so they don't read as one theme in two palettes.
+
+**GOOD NEWS — the gap is already much wider than when the founder flagged it.** As of pt22
+Safari now has its OWN bespoke `.sf*` components (light daylight editorial: full-bleed
+alternating story bands, oversized ruled numerals, airy whitespace) while Sabela keeps its
+dark filmic `.sb*` layout. They no longer share a layout at all. So Phase C is now a
+REFINEMENT pass, not a rebuild. Concretely, do a **side-by-side live audit first**
+(`?theme=safari` vs `?theme=hotel` on mana, same pages) and only then adjust:
+
+1. **Palette contrast check** — Safari surface is warm bone `#FBF6EC` on `#F4EDE0`; Sabela
+   is dark ebony. Already very different. Confirm nothing on Safari reads as dark/filmic.
+2. **Type scale + rhythm** — Safari uses Cormorant Garamond at an airy editorial scale;
+   check Sabela's serif (Fraunces?) + tighter dark rhythm still feels distinct at a glance.
+3. **Imagery treatment** — consider a subtle daylight/warmth lift on Safari imagery vs
+   Sabela's moodier grade (CSS filter only; don't touch host photos). Optional / low-priority.
+4. **Motion** — signatures already differ (Safari 34px/blur(9px)/1000ms warm blur-in;
+   Sabela blur(5px)/1050ms). Leave unless the audit shows they read the same.
+
+If the side-by-side already reads as two clearly different hotels (likely), Phase C may be
+a quick confirm + a couple of small nudges rather than real work — **verify live before
+assuming there's a problem.** Sabela components live in `components/site/sabela/` (`.sb*`).
+
+**KEY FILES for the Safari fork (pt22, for reference / future edits):**
+`components/site/safari/{SafariHome,SafariRooms,SafariRoomDetail}.tsx` +
+`{safariHome,safariRooms,safariRoom}.css` (scoped `.sfhome`/`.sfrooms`/`.sfroom`). Routing:
+`preset==='safari'` branches ABOVE the shared `usesOceansViewLayout` branches in
+`SitePageView.tsx` (home + rooms) and `SiteRoomView.tsx` (room-detail). Tokens come from the
+existing `.wielo-safari` block in `theme-skins.css` (no new skin was needed). Safari's
+About/Experiences/Specials/Gallery/Contact/Blog still route through the shared OceansView
+layout — fork those too ONLY if the founder wants full-site divergence (not required for C).
 
 ---
 
