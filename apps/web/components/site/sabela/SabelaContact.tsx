@@ -1,6 +1,6 @@
 import "./sabelaContact.css";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { ReviewCard, RoomPolicies } from "@/lib/site/types";
 
@@ -334,13 +334,19 @@ export function SabelaContact({
       {faqList.length ? (
         <section className="section soft-bg" data-section="faq">
           <div className="wrap-narrow">
-            <div className="sec-head center faq-head">
+            <div className="sec-head center faq-head" data-reveal>
               <span className="eyebrow center no-rule">Good to know</span>
               <h2>Frequently asked</h2>
             </div>
             <div className="faq">
               {faqList.map((f, i) => (
-                <details className="faq-item" key={i} open={i === 0}>
+                <details
+                  className="faq-item"
+                  key={i}
+                  open={i === 0}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+                >
                   <summary>
                     {f.q}
                     <span className="faq-ic" />

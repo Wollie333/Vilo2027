@@ -1,5 +1,7 @@
 import "./sabelaSpecials.css";
 
+import type { CSSProperties } from "react";
+
 import type { GalleryImage, SpecialCard } from "@/lib/site/types";
 import { siteImageUrl } from "@/lib/site/image";
 
@@ -125,7 +127,7 @@ export function SabelaSpecials({
             </div>
           ) : (
             <div className="specials-grid">
-              {list.map((s) => {
+              {list.map((s, i) => {
                 const now = money(s.price, s.currency);
                 const was = money(s.wasPrice, s.currency);
                 const per = s.priceMode === "flat" ? "package" : "/ night";
@@ -141,7 +143,14 @@ export function SabelaSpecials({
                   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&q=80";
                 const scarce = s.remaining != null && s.remaining <= 5;
                 return (
-                  <article className="special-card" key={s.id}>
+                  <article
+                    className="special-card"
+                    key={s.id}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
+                  >
                     <div className="sp-img">
                       {s.badge ? (
                         <span className="sp-badge">{s.badge}</span>
@@ -196,7 +205,7 @@ export function SabelaSpecials({
         data-section="cta"
       >
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <span className="zero-badge">
               <svg

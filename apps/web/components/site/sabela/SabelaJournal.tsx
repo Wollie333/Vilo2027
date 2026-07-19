@@ -1,5 +1,7 @@
 import "./sabelaJournal.css";
 
+import type { CSSProperties } from "react";
+
 import type { BlogIndexPost } from "@/lib/site/loadSitePage";
 import { siteImageUrl } from "@/lib/site/image";
 
@@ -107,7 +109,11 @@ export function SabelaJournal({
               style={{ paddingTop: 0, paddingBottom: "clamp(20px,3vw,44px)" }}
             >
               <div className="wrap">
-                <a href={`/blog/${featured.slug}`} className="post-feature">
+                <a
+                  href={`/blog/${featured.slug}`}
+                  className="post-feature"
+                  data-reveal
+                >
                   <Cover
                     url={cover(featured)}
                     title={featured.title}
@@ -147,11 +153,17 @@ export function SabelaJournal({
             >
               <div className="wrap">
                 <div className="blog-grid">
-                  {rest.map((p) => (
+                  {rest.map((p, i) => (
                     <a
                       key={p.slug}
                       href={`/blog/${p.slug}`}
                       className="post-card"
+                      data-reveal
+                      style={
+                        {
+                          "--reveal-delay": `${(i % 3) * 90}ms`,
+                        } as CSSProperties
+                      }
                     >
                       <div className="pc-img">
                         {cover(p) ? (
@@ -198,7 +210,7 @@ export function SabelaJournal({
       {/* CTA BAND */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <h2>See it with your own eyes</h2>
             <p>

@@ -1,5 +1,7 @@
 import "./oceansSpecialDetail.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type { SiteSpecialDetail } from "@/lib/site/loadSitePage";
 import type { SpecialCard } from "@/lib/site/types";
@@ -283,7 +285,7 @@ export function OceansViewSpecialDetail({
               ) : null}
 
               {facts.length > 0 ? (
-                <div style={{ marginTop: 40 }}>
+                <div style={{ marginTop: 40 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.6rem,3vw,2.3rem)" }}
@@ -350,14 +352,14 @@ export function OceansViewSpecialDetail({
           style={{ paddingTop: "clamp(56px,7vw,96px)" }}
         >
           <div className="wrap">
-            <div className="sec-head">
+            <div className="sec-head" data-reveal>
               <span className="tag">Keep exploring</span>
               <h2 className="lg" style={{ marginTop: 16 }}>
                 More offers
               </h2>
             </div>
             <div className="spx">
-              {others.map((s) => {
+              {others.map((s, i) => {
                 const cNow = money(s.price, s.currency);
                 const cWas = money(s.wasPrice, s.currency);
                 const cPer = s.priceMode === "flat" ? "package" : "/ night";
@@ -375,6 +377,10 @@ export function OceansViewSpecialDetail({
                     href={s.detailHref ?? `/specials/${s.slug ?? ""}`}
                     className="spcard"
                     key={s.id}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
                   >
                     <div className="spi">
                       {s.badge ? (

@@ -97,7 +97,7 @@ export function OceansViewGallery({
       {/* CTA */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

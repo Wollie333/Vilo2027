@@ -302,7 +302,7 @@ export function MarmaladeSpecialDetail({
               ) : null}
 
               {facts.length > 0 ? (
-                <div style={{ marginTop: 40 }}>
+                <div style={{ marginTop: 40 }} data-reveal>
                   <h2>The details</h2>
                   <div className="ofacts">
                     {facts.map((f, i) => (
@@ -364,11 +364,11 @@ export function MarmaladeSpecialDetail({
           style={{ paddingTop: "clamp(56px,7vw,96px)" }}
         >
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">while you&apos;re here</span>
               <h2>More offers</h2>
             </div>
-            <div className="spx">
+            <div className="spx" data-reveal>
               {others.map((s) => {
                 const cNow = money(s.price, s.currency);
                 const cWas = money(s.wasPrice, s.currency);

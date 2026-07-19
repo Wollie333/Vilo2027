@@ -1,6 +1,6 @@
 import "./oceansContact.css";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 import type { ReviewCard, RoomPolicies } from "@/lib/site/types";
@@ -310,7 +310,11 @@ export function OceansViewContact({
       {faqList.length ? (
         <section className="section sand">
           <div className="wrap-read">
-            <div className="sec-head center" style={{ marginBottom: 36 }}>
+            <div
+              className="sec-head center"
+              style={{ marginBottom: 36 }}
+              data-reveal
+            >
               <span className="tag" style={{ justifyContent: "center" }}>
                 Good to know
               </span>
@@ -326,7 +330,13 @@ export function OceansViewContact({
             </div>
             <div>
               {faqList.map((f, i) => (
-                <details className="faq" key={i} open={i === 0}>
+                <details
+                  className="faq"
+                  key={i}
+                  open={i === 0}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 60}ms` } as CSSProperties}
+                >
                   <summary>
                     {f.q}
                     <span className="pm">

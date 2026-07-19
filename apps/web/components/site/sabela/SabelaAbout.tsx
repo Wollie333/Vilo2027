@@ -1,5 +1,7 @@
 import "./sabelaAbout.css";
 
+import type { CSSProperties } from "react";
+
 import type { GalleryImage, ReviewsData, RoomCard } from "@/lib/site/types";
 import { siteImageUrl } from "@/lib/site/image";
 
@@ -227,13 +229,20 @@ export function SabelaAbout({
       {/* VALUES (numbered direct-booking commitments) */}
       <section className="section" data-section="values">
         <div className="wrap">
-          <div className="sec-head">
+          <div className="sec-head" data-reveal>
             <span className="eyebrow">What we stand for</span>
             <h2>Three commitments behind every stay</h2>
           </div>
           <div className="values">
             {VALUES.map((v, i) => (
-              <div className="value" key={i}>
+              <div
+                className="value"
+                key={i}
+                data-reveal
+                style={
+                  { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                }
+              >
                 <div className="vn">{`0${i + 1}`}</div>
                 <h3>{v.title}</h3>
                 <p>{v.body}</p>
@@ -247,7 +256,7 @@ export function SabelaAbout({
       {galShots.length > 0 ? (
         <section className="section-sm soft-bg" data-section="gallery">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="eyebrow center no-rule">
                 Moments at {brandName}
               </span>
@@ -255,7 +264,12 @@ export function SabelaAbout({
             </div>
             <div className="gallery">
               {galShots.map((g, i) => (
-                <div className={galSpan(i)} key={i}>
+                <div
+                  className={galSpan(i)}
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 70}ms` } as CSSProperties}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={siteImageUrl(g.url, { width: 1200 })}
@@ -276,7 +290,7 @@ export function SabelaAbout({
       {/* CTA band */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <h2>Come see it for yourself</h2>
             <p>

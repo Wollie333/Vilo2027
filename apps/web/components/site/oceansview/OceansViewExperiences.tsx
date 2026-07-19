@@ -1,5 +1,7 @@
 import "./oceansExperiences.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 
 /**
@@ -75,7 +77,7 @@ export function OceansViewExperiences({
             </div>
           ) : (
             <>
-              <div className="sec-head">
+              <div className="sec-head" data-reveal>
                 <span className="tag">The resort</span>
                 <h2 className="lg" style={{ marginTop: 18 }}>
                   On the property
@@ -87,7 +89,16 @@ export function OceansViewExperiences({
                     ? (asset(e.imageUrl) ?? e.imageUrl)
                     : null;
                   return (
-                    <article className="exp" key={`${e.title}-${i}`}>
+                    <article
+                      className="exp"
+                      key={`${e.title}-${i}`}
+                      data-reveal
+                      style={
+                        {
+                          "--reveal-delay": `${(i % 3) * 90}ms`,
+                        } as CSSProperties
+                      }
+                    >
                       {img ? (
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -119,7 +130,7 @@ export function OceansViewExperiences({
       {/* CTA */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(

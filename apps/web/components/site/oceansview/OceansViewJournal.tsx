@@ -1,5 +1,7 @@
 import "./oceansJournal.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type { BlogIndexPost } from "@/lib/site/loadSitePage";
 
@@ -118,7 +120,11 @@ export function OceansViewJournal({
               style={{ paddingBottom: "clamp(36px,5vw,56px)" }}
             >
               <div className="wrap">
-                <a href={`/blog/${featured.slug}`} className="feat-post">
+                <a
+                  href={`/blog/${featured.slug}`}
+                  className="feat-post"
+                  data-reveal
+                >
                   <Cover
                     url={cover(featured)}
                     title={featured.title}
@@ -168,8 +174,18 @@ export function OceansViewJournal({
             >
               <div className="wrap">
                 <div className="posts">
-                  {rest.map((p) => (
-                    <a key={p.slug} href={`/blog/${p.slug}`} className="post">
+                  {rest.map((p, i) => (
+                    <a
+                      key={p.slug}
+                      href={`/blog/${p.slug}`}
+                      className="post"
+                      data-reveal
+                      style={
+                        {
+                          "--reveal-delay": `${(i % 3) * 90}ms`,
+                        } as CSSProperties
+                      }
+                    >
                       <Cover url={cover(p)} title={p.title} className="p-img" />
                       <h3>{p.title}</h3>
                       {p.excerpt ? <p>{p.excerpt}</p> : null}
@@ -195,7 +211,7 @@ export function OceansViewJournal({
         style={{ paddingTop: 0, paddingBottom: "clamp(70px,9vw,130px)" }}
       >
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(

@@ -114,7 +114,7 @@ export function MarmaladeSpecials({
               </div>
             </div>
           ) : (
-            <div className="spx">
+            <div className="spx" data-reveal>
               {list.map((s) => {
                 const now = money(s.price, s.currency);
                 const was = money(s.wasPrice, s.currency);
@@ -182,7 +182,7 @@ export function MarmaladeSpecials({
       {/* CTA (banner) */}
       <section className="section soft" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

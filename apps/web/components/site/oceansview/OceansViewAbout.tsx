@@ -1,5 +1,7 @@
 import "./oceansAbout.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, ReviewsData, RoomCard } from "@/lib/site/types";
 
@@ -197,7 +199,7 @@ export function OceansViewAbout({
       {/* STORY */}
       <section className="section">
         <div className="wrap">
-          <div className="split w-left">
+          <div className="split w-left" data-reveal>
             <div>
               <span className="tag">Our story</span>
               <h2 className="lg" style={{ marginTop: 18 }}>
@@ -237,7 +239,12 @@ export function OceansViewAbout({
           <div className="wrap">
             <div className="stats">
               {stats.slice(0, 4).map((st, i) => (
-                <div className="stat" key={i}>
+                <div
+                  className="stat"
+                  key={i}
+                  data-reveal
+                  style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+                >
                   <b style={{ color: "var(--site-secondary, #ff6b57)" }}>
                     {st.b}
                   </b>
@@ -254,7 +261,7 @@ export function OceansViewAbout({
       {/* VALUES */}
       <section className="section">
         <div className="wrap">
-          <div className="sec-head center">
+          <div className="sec-head center" data-reveal>
             <span className="tag" style={{ justifyContent: "center" }}>
               How we run it
             </span>
@@ -264,7 +271,12 @@ export function OceansViewAbout({
           </div>
           <div className="tiles">
             {VALUES.map((v, i) => (
-              <div className="tile" key={i}>
+              <div
+                className="tile"
+                key={i}
+                data-reveal
+                style={{ "--reveal-delay": `${i * 80}ms` } as CSSProperties}
+              >
                 <div className="ic">{v.icon}</div>
                 <h3>{v.title}</h3>
                 <p>{v.body}</p>
@@ -278,7 +290,7 @@ export function OceansViewAbout({
       {bio ? (
         <section className="section sand">
           <div className="wrap">
-            <div className="split">
+            <div className="split" data-reveal>
               <div className="frame-wrap">
                 <div className="frame ar-45">
                   {hostPhotoUrl ? (
@@ -323,7 +335,7 @@ export function OceansViewAbout({
       {/* CTA */}
       <section className="section">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

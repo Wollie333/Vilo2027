@@ -1,5 +1,7 @@
 import "./sabelaSuites.css";
 
+import type { CSSProperties } from "react";
+
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
 import { siteImageUrl } from "@/lib/site/image";
 
@@ -115,7 +117,7 @@ export function SabelaSuites({
           ) : (
             <>
               <div className="room-rows">
-                {list.map((r) => {
+                {list.map((r, i) => {
                   const price = money(r.price, r.currency);
                   const facts = (r.facts ?? []).filter(Boolean);
                   const tag =
@@ -123,7 +125,14 @@ export function SabelaSuites({
                   const chips = facts.filter((f) => f !== tag).slice(0, 4);
                   const href = r.detailHref || r.bookHref || bookHref;
                   return (
-                    <article className="room-row" key={r.id}>
+                    <article
+                      className="room-row"
+                      key={r.id}
+                      data-reveal
+                      style={
+                        { "--reveal-delay": `${i * 80}ms` } as CSSProperties
+                      }
+                    >
                       <div className="rr-media">
                         {tag ? <span className="rc-tag">{tag}</span> : null}
                         {r.imageUrl ? (
@@ -173,7 +182,7 @@ export function SabelaSuites({
               </div>
 
               {/* by-request enquiry strip (generic, contact-driven) */}
-              <a href={contactHref} className="by-request">
+              <a href={contactHref} className="by-request" data-reveal>
                 <span className="zero-badge">
                   <svg
                     width="14"
@@ -208,7 +217,7 @@ export function SabelaSuites({
       {/* CTA band */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <span className="zero-badge on-dark">
               <svg

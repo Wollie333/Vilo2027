@@ -307,13 +307,14 @@ export function MarmaladeContact({
             <div
               className="sec-head center"
               style={{ marginBottom: 30, marginInline: "auto" }}
+              data-reveal
             >
               <span className="hand">good to know</span>
               <h2 style={{ fontSize: "clamp(1.9rem,4vw,2.8rem)" }}>
                 Frequently asked
               </h2>
             </div>
-            <div>
+            <div data-reveal>
               {faqList.map((f, i) => (
                 <details className="faq" key={i} open={i === 0}>
                   <summary>

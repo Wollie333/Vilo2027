@@ -1,5 +1,7 @@
 import "./sabelaExperiences.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 
 /**
@@ -98,7 +100,7 @@ export function SabelaExperiences({
             </div>
           ) : (
             <>
-              <div className="sec-head center">
+              <div className="sec-head center" data-reveal>
                 <span className="eyebrow center no-rule">
                   What there is to do
                 </span>
@@ -110,7 +112,16 @@ export function SabelaExperiences({
                     ? (asset(e.imageUrl) ?? e.imageUrl)
                     : null;
                   return (
-                    <article className="ec" key={`${e.title}-${i}`}>
+                    <article
+                      className="ec"
+                      key={`${e.title}-${i}`}
+                      data-reveal
+                      style={
+                        {
+                          "--reveal-delay": `${(i % 3) * 90}ms`,
+                        } as CSSProperties
+                      }
+                    >
                       {img ? (
                         <div className="ec-img">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -144,7 +155,7 @@ export function SabelaExperiences({
       {/* CTA band */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <h2>Build your perfect day</h2>
             <p>

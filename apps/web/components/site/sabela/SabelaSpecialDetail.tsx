@@ -1,5 +1,7 @@
 import "./sabelaSpecialDetail.css";
 
+import type { CSSProperties } from "react";
+
 import type { SiteSpecialDetail } from "@/lib/site/loadSitePage";
 import type { SpecialCard } from "@/lib/site/types";
 import { siteImageUrl } from "@/lib/site/image";
@@ -400,14 +402,14 @@ export function SabelaSpecialDetail({
       {others.length > 0 ? (
         <section className="section soft-bg" style={{ paddingTop: 0 }}>
           <div className="wrap" style={{ paddingTop: "clamp(56px,7vw,96px)" }}>
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="eyebrow center no-rule">
                 While you&apos;re here
               </span>
               <h2>More offers</h2>
             </div>
             <div className="specials-grid">
-              {others.map((s) => {
+              {others.map((s, i) => {
                 const cNow = money(s.price, s.currency);
                 const cWas = money(s.wasPrice, s.currency);
                 const cPer = s.priceMode === "flat" ? "package" : "/ night";
@@ -425,6 +427,10 @@ export function SabelaSpecialDetail({
                     href={s.detailHref ?? `/specials/${s.slug ?? ""}`}
                     className="special-card"
                     key={s.id}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
                   >
                     <div className="sp-img">
                       {s.badge ? (

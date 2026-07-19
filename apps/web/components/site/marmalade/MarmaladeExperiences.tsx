@@ -101,11 +101,11 @@ export function MarmaladeExperiences({
             </div>
           ) : (
             <>
-              <div className="sec-head center">
+              <div className="sec-head center" data-reveal>
                 <span className="hand">close to home</span>
                 <h2>What there is to do</h2>
               </div>
-              <div className="pcgrid">
+              <div className="pcgrid" data-reveal>
                 {list.map((e, i) => {
                   const img = e.imageUrl
                     ? (asset(e.imageUrl) ?? e.imageUrl)
@@ -150,7 +150,7 @@ export function MarmaladeExperiences({
       {/* CTA (banner) */}
       <section className="section soft" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

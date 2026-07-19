@@ -247,7 +247,7 @@ export function MarmaladeRoomDetail({
               ) : null}
 
               {room.amenities.length > 0 ? (
-                <div style={{ marginTop: 40 }}>
+                <div style={{ marginTop: 40 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.5rem,3vw,2.1rem)" }}
@@ -266,7 +266,7 @@ export function MarmaladeRoomDetail({
               ) : null}
 
               {seasons.length > 0 ? (
-                <div style={{ marginTop: 40 }}>
+                <div style={{ marginTop: 40 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.5rem,3vw,2.1rem)" }}
@@ -314,7 +314,7 @@ export function MarmaladeRoomDetail({
               ) : null}
 
               {gtk.length > 0 ? (
-                <div style={{ marginTop: 40 }}>
+                <div style={{ marginTop: 40 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.5rem,3vw,2.1rem)" }}
@@ -351,7 +351,7 @@ export function MarmaladeRoomDetail({
       {items.length > 0 ? (
         <section className="section soft">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">the guest book</span>
               <h2>
                 {count
@@ -359,7 +359,7 @@ export function MarmaladeRoomDetail({
                   : "What guests write home"}
               </h2>
             </div>
-            <div className="reviews">
+            <div className="reviews" data-reveal>
               {items.slice(0, 3).map((r, i) => (
                 <div className="review" key={i}>
                   <span
@@ -392,11 +392,11 @@ export function MarmaladeRoomDetail({
       {otherList.length > 0 ? (
         <section className="section">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">also free those nights</span>
               <h2>The other rooms</h2>
             </div>
-            <div className="pcgrid">
+            <div className="pcgrid" data-reveal>
               {otherList.map((r) => (
                 <a
                   href={r.detailHref || r.bookHref || roomsHref || "#"}

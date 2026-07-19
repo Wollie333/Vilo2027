@@ -109,7 +109,11 @@ export function MarmaladeJournal({
               style={{ paddingTop: "clamp(20px,3vw,40px)" }}
             >
               <div className="wrap">
-                <a href={`/blog/${featured.slug}`} className="feat-post">
+                <a
+                  href={`/blog/${featured.slug}`}
+                  className="feat-post"
+                  data-reveal
+                >
                   <Cover
                     url={cover(featured)}
                     title={featured.title}
@@ -158,7 +162,7 @@ export function MarmaladeJournal({
               style={{ paddingTop: "clamp(16px,2vw,32px)" }}
             >
               <div className="wrap">
-                <div className="pcgrid">
+                <div className="pcgrid" data-reveal>
                   {rest.map((p) => (
                     <a key={p.slug} href={`/blog/${p.slug}`} className="pc">
                       <div className="pi">
@@ -204,7 +208,7 @@ export function MarmaladeJournal({
       {/* CTA (banner) */}
       <section className="section soft">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

@@ -188,11 +188,11 @@ export function MarmaladeArticle({
       {rel.length ? (
         <section className="section soft">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">keep reading</span>
               <h2>More from the journal</h2>
             </div>
-            <div className="pcgrid">
+            <div className="pcgrid" data-reveal>
               {rel.map((r) => {
                 const rc = r.coverUrl
                   ? (asset(r.coverUrl) ?? r.coverUrl)

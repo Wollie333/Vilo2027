@@ -1,5 +1,7 @@
 import "./sabelaArticle.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 
 type RelatedPost = { title: string; slug: string; coverUrl: string | null };
@@ -212,12 +214,12 @@ export function SabelaArticle({
       {rel.length ? (
         <section className="section-sm keep-reading" data-section="related">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="eyebrow center">Keep reading</span>
               <h2>More from the journal</h2>
             </div>
             <div className="blog-grid">
-              {rel.map((r) => {
+              {rel.map((r, i) => {
                 const rc = r.coverUrl
                   ? (asset(r.coverUrl) ?? r.coverUrl)
                   : null;
@@ -226,6 +228,10 @@ export function SabelaArticle({
                     key={r.slug}
                     href={`/blog/${r.slug}`}
                     className="post-card"
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
                   >
                     <div className="pc-img">
                       {rc ? (
@@ -256,7 +262,7 @@ export function SabelaArticle({
       {/* CTA BAND */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <h2>See it with your own eyes</h2>
             <p>

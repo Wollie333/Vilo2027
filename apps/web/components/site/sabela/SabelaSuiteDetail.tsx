@@ -1,5 +1,7 @@
 import "./sabelaSuite.css";
 
+import type { CSSProperties } from "react";
+
 import type {
   ReviewsData,
   RoomCard,
@@ -280,7 +282,11 @@ export function SabelaSuiteDetail({
               ) : null}
 
               {room.amenities.length > 0 ? (
-                <div className="rd-sec" data-section="room_amenities">
+                <div
+                  className="rd-sec"
+                  data-section="room_amenities"
+                  data-reveal
+                >
                   <h2>In the suite</h2>
                   <div className="amenities">
                     {room.amenities.map((a, i) => (
@@ -296,7 +302,7 @@ export function SabelaSuiteDetail({
               ) : null}
 
               {seasons.length > 0 ? (
-                <div className="rd-sec">
+                <div className="rd-sec" data-reveal>
                   <h2>Rates &amp; seasons</h2>
                   <p>
                     Our nightly rate shifts with the seasons — the price you see
@@ -331,7 +337,11 @@ export function SabelaSuiteDetail({
               ) : null}
 
               {gtk.length > 0 ? (
-                <div className="rd-sec" data-section="room_policies">
+                <div
+                  className="rd-sec"
+                  data-section="room_policies"
+                  data-reveal
+                >
                   <h2>Good to know</h2>
                   <div className="gtk">
                     {gtk.map((k, i) => (
@@ -363,7 +373,7 @@ export function SabelaSuiteDetail({
       {hasReviews ? (
         <section className="section soft-bg" data-section="reviews">
           <div className="wrap">
-            <div className="sec-head">
+            <div className="sec-head" data-reveal>
               <span className="eyebrow">The guest book</span>
               <h2>
                 {count
@@ -372,7 +382,7 @@ export function SabelaSuiteDetail({
               </h2>
             </div>
 
-            <div className={hasBars ? "revsum" : "revsum solo"}>
+            <div className={hasBars ? "revsum" : "revsum solo"} data-reveal>
               <div className="score">
                 <b>{avg != null ? avg.toFixed(1) : "—"}</b>
                 <span className="stars">★★★★★</span>
@@ -402,7 +412,14 @@ export function SabelaSuiteDetail({
             {items.length > 0 ? (
               <div className="reviews-grid">
                 {items.slice(0, 3).map((r, i) => (
-                  <div className="review" key={i}>
+                  <div
+                    className="review"
+                    key={i}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
+                  >
                     <div className="rvt">
                       <span className="stars">
                         {"★".repeat(
@@ -433,7 +450,7 @@ export function SabelaSuiteDetail({
           data-section="rooms_preview"
         >
           <div className="wrap">
-            <div className="sec-head between">
+            <div className="sec-head between" data-reveal>
               <div>
                 <span className="eyebrow">You might also like</span>
                 <h2>Other suites along the riverbed</h2>
@@ -445,7 +462,7 @@ export function SabelaSuiteDetail({
               ) : null}
             </div>
             <div className="rooms-grid">
-              {otherList.map((r) => {
+              {otherList.map((r, i) => {
                 const price = money(r.price, r.currency);
                 const facts = (r.facts ?? []).filter(Boolean);
                 const tag =
@@ -455,6 +472,10 @@ export function SabelaSuiteDetail({
                     href={r.detailHref || r.bookHref || roomsHref || "#"}
                     className="room-card"
                     key={r.id}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
                   >
                     <div className="rc-img">
                       {tag ? <span className="rc-tag">{tag}</span> : null}

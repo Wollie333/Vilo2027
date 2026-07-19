@@ -127,7 +127,7 @@ export function MarmaladeRooms({
               </div>
             </div>
           ) : (
-            <div className="pcgrid">
+            <div className="pcgrid" data-reveal>
               {list.map((r) => {
                 const price = money(r.price, r.currency);
                 const facts = (r.facts ?? []).filter(Boolean);
@@ -188,7 +188,7 @@ export function MarmaladeRooms({
       {/* CTA */}
       <section className="section soft">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

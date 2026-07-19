@@ -148,7 +148,7 @@ export function MarmaladeAbout({
       {/* STORY (split) */}
       <section className="section">
         <div className="wrap">
-          <div className="split w-left">
+          <div className="split w-left" data-reveal>
             <div>
               <span className="eyebrow">Our story</span>
               <h2 className="lg" style={{ marginTop: 16 }}>
@@ -194,7 +194,7 @@ export function MarmaladeAbout({
       {stats.length >= 3 ? (
         <section className="section-sm">
           <div className="wrap">
-            <div className="statrow">
+            <div className="statrow" data-reveal>
               {stats.slice(0, 4).map((st, i) => (
                 <div className="stat" key={i}>
                   <b>{st.b}</b>
@@ -209,11 +209,11 @@ export function MarmaladeAbout({
       {/* VALUES (postcards) */}
       <section className="section soft">
         <div className="wrap">
-          <div className="sec-head center">
+          <div className="sec-head center" data-reveal>
             <span className="hand">how we do things</span>
             <h2>A few house rules we keep</h2>
           </div>
-          <div className="pcgrid two">
+          <div className="pcgrid two" data-reveal>
             {VALUES.map((v, i) => (
               <div className="pc pc-note" key={i}>
                 <h3>{v.title}</h3>
@@ -228,7 +228,7 @@ export function MarmaladeAbout({
       {bio ? (
         <section className="section">
           <div className="wrap">
-            <div className="split">
+            <div className="split" data-reveal>
               <div className="frame-wrap">
                 <div className="frame photo ar-45">
                   {hostPhotoUrl ? (
@@ -279,11 +279,11 @@ export function MarmaladeAbout({
       {galShots.length > 0 ? (
         <section className="section soft">
           <div className="wrap">
-            <div className="sec-head center">
+            <div className="sec-head center" data-reveal>
               <span className="hand">around the house</span>
               <h2>Bits and pieces of home</h2>
             </div>
-            <div className="gal">
+            <div className="gal" data-reveal>
               {galShots.map((g, i) => (
                 <div className="g" key={i}>
                   <div className="im">
@@ -306,7 +306,7 @@ export function MarmaladeAbout({
       {/* CTA (banner) */}
       <section className="section">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}

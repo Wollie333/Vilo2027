@@ -105,7 +105,7 @@ export function SabelaGallery({
       {/* CTA band */}
       <section className="section-sm" data-section="cta">
         <div className="wrap">
-          <div className="cta-band">
+          <div className="cta-band" data-reveal>
             <span className="glow" />
             <h2>The photos don&apos;t do it justice</h2>
             <p>

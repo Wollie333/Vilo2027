@@ -1,5 +1,7 @@
 import "./oceansJournal.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 
 type RelatedPost = { title: string; slug: string; coverUrl: string | null };
@@ -214,7 +216,7 @@ export function OceansViewArticle({
       {rel.length ? (
         <section className="section sand">
           <div className="wrap">
-            <div className="sec-head">
+            <div className="sec-head" data-reveal>
               <div>
                 <span className="tag">Keep reading</span>
                 <h2
@@ -232,12 +234,20 @@ export function OceansViewArticle({
               </a>
             </div>
             <div className="posts">
-              {rel.map((r) => {
+              {rel.map((r, i) => {
                 const rc = r.coverUrl
                   ? (asset(r.coverUrl) ?? r.coverUrl)
                   : null;
                 return (
-                  <a key={r.slug} href={`/blog/${r.slug}`} className="post">
+                  <a
+                    key={r.slug}
+                    href={`/blog/${r.slug}`}
+                    className="post"
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
+                  >
                     <div className="p-img">
                       {rc ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -265,7 +275,7 @@ export function OceansViewArticle({
       {/* CTA */}
       <section className="section">
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(

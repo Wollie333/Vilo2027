@@ -1,5 +1,7 @@
 import "./oceansRoom.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type {
   ReviewsData,
@@ -388,7 +390,7 @@ export function OceansViewRoomDetail({
               ) : null}
 
               {room.amenities.length > 0 ? (
-                <div style={{ marginTop: 44 }}>
+                <div style={{ marginTop: 44 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.6rem,3vw,2.3rem)" }}
@@ -407,7 +409,7 @@ export function OceansViewRoomDetail({
               ) : null}
 
               {seasons.length > 0 ? (
-                <div style={{ marginTop: 44 }}>
+                <div style={{ marginTop: 44 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.6rem,3vw,2.3rem)" }}
@@ -455,7 +457,7 @@ export function OceansViewRoomDetail({
               ) : null}
 
               {gtk.length > 0 ? (
-                <div style={{ marginTop: 44 }}>
+                <div style={{ marginTop: 44 }} data-reveal>
                   <h2
                     className="lg"
                     style={{ fontSize: "clamp(1.6rem,3vw,2.3rem)" }}
@@ -501,6 +503,7 @@ export function OceansViewRoomDetail({
             <div
               className="sec-head"
               style={{ maxWidth: "none", marginBottom: "clamp(28px,4vw,44px)" }}
+              data-reveal
             >
               <span className="tag">Guest reviews</span>
               <h2 className="lg" style={{ marginTop: 16 }}>
@@ -510,7 +513,7 @@ export function OceansViewRoomDetail({
               </h2>
             </div>
 
-            <div className={hasBars ? "revsum" : "revsum solo"}>
+            <div className={hasBars ? "revsum" : "revsum solo"} data-reveal>
               <div className="score">
                 <b>{avg != null ? avg.toFixed(1) : "—"}</b>
                 <span className="stars">★★★★★</span>
@@ -540,7 +543,14 @@ export function OceansViewRoomDetail({
             {items.length > 0 ? (
               <div className="revgrid">
                 {items.slice(0, 4).map((r, i) => (
-                  <div className="rvc" key={i}>
+                  <div
+                    className="rvc"
+                    key={i}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 2) * 90}ms` } as CSSProperties
+                    }
+                  >
                     <div className="rvt">
                       <span className="stars">
                         {"★★★★★".slice(0, Math.max(1, Math.round(r.rating)))}
@@ -576,6 +586,7 @@ export function OceansViewRoomDetail({
                 gap: 24,
                 flexWrap: "wrap",
               }}
+              data-reveal
             >
               <div>
                 <span className="tag">Also available</span>
@@ -611,7 +622,7 @@ export function OceansViewRoomDetail({
             </div>
           ) : (
             <div className="wrap">
-              <div className="rooms-row">
+              <div className="rooms-row" data-reveal>
                 {others.map((r, i) => renderRoomCard(r, i, false))}
               </div>
             </div>

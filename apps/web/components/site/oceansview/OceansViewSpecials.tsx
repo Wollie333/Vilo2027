@@ -1,5 +1,7 @@
 import "./oceansSpecials.css";
 
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, SpecialCard } from "@/lib/site/types";
 
@@ -100,7 +102,7 @@ export function OceansViewSpecials({
             </div>
           ) : (
             <div className="spx">
-              {list.map((s) => {
+              {list.map((s, i) => {
                 const now = money(s.price, s.currency);
                 const was = money(s.wasPrice, s.currency);
                 const per = s.priceMode === "flat" ? "package" : "/ night";
@@ -115,7 +117,14 @@ export function OceansViewSpecials({
                   shots[0]?.url ||
                   "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=900&q=80";
                 return (
-                  <article className="spcard" key={s.id}>
+                  <article
+                    className="spcard"
+                    key={s.id}
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
+                  >
                     <div className="spi">
                       {s.badge ? (
                         <span className="sp-badge">{s.badge}</span>
@@ -166,7 +175,7 @@ export function OceansViewSpecials({
       {/* CTA */}
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <div className="banner">
+          <div className="banner" data-reveal>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={siteImageUrl(ctaImg, { width: 1600 })}
