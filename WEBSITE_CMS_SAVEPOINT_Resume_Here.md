@@ -1,13 +1,40 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `f7ebd86` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt14 — ALL 3 THEMES COMPLETE (Phase 1 done) + social rail + checkout polish)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `7933e68` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt15 — SAFARI is now a 4th full theme + cross-theme refinement pass)
 
 > ## 🧭 WHERE WE ARE (read this first)
-> **PHASE 1 is COMPLETE** — all THREE designed themes (OceansView, Marmalade, Sabela) have every page
-> bespoke + pixel-perfect + live-verified on mana. There is no 4th reference design. **Next = PHASE 2**
-> (wire AI-wizard content per page, incl. the Experiences auto-draft idea below) then PHASE 3 (builder
-> per-element customisation). Verify a theme on mana via `?site=mana&preview=1&theme=<oceansview|marmalade|hotel>`.
+> **PHASE 1 COMPLETE + FOUR full themes.** OceansView, Marmalade, Sabela (=`hotel`), and now **SAFARI**
+> (=`safari`, "NenGama Lodge") all render bespoke pages. Verify on mana via
+> `?site=mana&preview=1&theme=<oceansview|marmalade|hotel|safari>`.
+>
+> **SAFARI (pt15, `b51192c`+`6035f08`, VERIFIED live):** Safari was palette-only. It now REUSES the
+> OceansView bespoke page components (same layout convention per page) re-skinned to the savanna palette,
+> so every page is bespoke with NO new component files. How: extend each `preset === "oceansview"` guard to
+> also match `"safari"` (SitePageView ×7, SiteRoomView, SiteSpecialView, blog index+article) + register
+> `safari` in `THEME_CHROME` → OceansView Header/Footer. The savanna derived tokens come from the
+> pre-existing **NenGama Lodge** `.wielo-safari` block in theme-skins.css (search `.wielo-safari`); Safari's
+> elegant serif + sharp `sm` radius come from the `safari` preset so it reads distinctly on the shared layout.
+> Live-verified: sand bg `rgb(244,237,224)`, warm-bark dark bands, ochre, Cormorant Garamond serif, no
+> coral/navy leak, zero overflow. (Any REAL empty Safari site would show OceansView's ocean-ish DEMO
+> fallbacks e.g. "Wake up to the whole ocean" — a Phase-2 AI-content follow-up, not a layout issue.)
+>
+> **CROSS-THEME REFINEMENT PASS (pt15) — errors + premium/modern + fast, all pushed + tsc/lint green:**
+> - `185eeb4` **ERROR fixed:** OceansView/Safari mobile nav drawer never opened (`mnavopen` → `mnav open`,
+>   the prettier space-strip gotcha). + site-wide `:focus-visible` rings (globals.css, per-theme accent) +
+>   44px burger tap targets + footer socials 42px + 9px→11px header subtitles. Nav fix VERIFIED live.
+> - `08e1a1f` **lazy-load** 70 below-fold images (heroes kept eager) across all 3 component sets.
+> - `995bfe3` contact-form label a11y (htmlFor/id ×3 forms) + Sabela error `#dc2626`→`#f87171` (ebony
+>   contrast) + Marmalade empty-reviews guard + 44px article share icons.
+> - `7933e68` **serve resized images** — 90 `<img src>` wrapped in `siteImageUrl(url,{width})` (Supabase
+>   `/render/image` transform; safe no-op for external/SVG/null). Transform endpoint verified live (mana
+>   listing photo @width=800 → 200, webp, ~27KB). Generous 2× widths so retina stays sharp.
+> - **False positives** (audits only read theme files, missed shared infra): reduced-motion is ALREADY
+>   global in globals.css; Sabela "hardcoded links" are fine (SitePreviewLinks intercepts every internal
+>   click in preview; tenant-relative works live).
+> **⏳ pt15 outstanding:** live-verify the resized-image deploy `7933e68` (endpoint proven; confirm a page
+> img `src` is a `/render/image` URL + sharp). Then **Next = PHASE 2** (wire AI-wizard content per page,
+> incl. the Experiences auto-draft idea below) then PHASE 3 (builder per-element customisation).
 >
 > **✅ `f7ebd86` VERIFIED live** — Sabela checkout now has three clear elevation levels: page `≈rgb(20,18,13)`
 >   < form card `≈rgb(45,42,35)` < room/add-on rows `≈rgb(62,58,51)` (lighter, visible border `≈rgb(98,93,79)`).

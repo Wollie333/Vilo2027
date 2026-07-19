@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-19 — Safari becomes a 4th full theme + cross-theme refinement pass (errors · premium · fast).
+
+- **SAFARI is now a full designed theme** (`b51192c`, de-dup `6035f08`). It was palette-only; it now REUSES
+  the OceansView bespoke, mobile-first page components (same layout convention per page) re-skinned to the
+  savanna "NenGama Lodge" palette — every page bespoke with NO new component files. Each
+  `preset === "oceansview"` guard now also matches `"safari"` (`SitePageView` ×7 kinds, `SiteRoomView`,
+  `SiteSpecialView`, blog index + article); `THEME_CHROME.safari` → OceansView Header/Footer. Savanna derived
+  tokens come from the pre-existing `.wielo-safari` block; elegant serif + sharp radius from the `safari`
+  preset. Live-verified on mana (`?theme=safari`): sand bg, warm-bark dark bands, ochre, Cormorant Garamond
+  serif, no coral/navy leak, zero overflow.
+- **Refinement pass across all 3 component sets** (OceansView[=Safari], Marmalade, Sabela), from a parallel
+  audit:
+  - `185eeb4` **Fixed a real bug** — the OceansView/Safari mobile nav drawer never opened (`mnavopen`, the
+    prettier-tailwind space-strip gotcha → plain-string ternary). Plus site-wide `:focus-visible` rings
+    (per-theme accent, `globals.css`), 44px burger tap targets, 42px footer socials, 9px→11px header
+    subtitles. Nav fix verified live.
+  - `08e1a1f` **Lazy-loaded 70** below-the-fold images (heroes kept eager).
+  - `995bfe3` Contact-form label associations (`htmlFor`/`id`, all 3 forms); Sabela error text
+    `#dc2626`→`#f87171` for ebony contrast; Marmalade empty-reviews guard; 44px article share icons.
+  - `7933e68` **Serve resized images** — 90 `<img src>` routed through `siteImageUrl(url,{width})`
+    (Supabase `/render/image` transform; safe no-op for external/SVG/null). Endpoint verified live (mana
+    listing photo @width=800 → 200/webp/~27KB). Generous 2× widths so retina stays sharp.
+  - Two audit findings were false positives (audits read only the theme files): `prefers-reduced-motion` is
+    already global in `globals.css`; Sabela "hardcoded links" are fine (`SitePreviewLinks` intercepts every
+    internal click in preview; tenant-relative paths resolve on live sites).
+
 ## 2026-07-18 — OceansView bespoke Rooms · Offers · Contact pages (wired to live data).
 
 - **Three more bespoke OceansView public pages**, completing the reference theme alongside home + about. Each is a
