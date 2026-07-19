@@ -36,6 +36,11 @@ import { firePurchase } from "@/lib/analytics/purchase";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { Money } from "@/components/currency/Money";
 
+import {
+  HostContactLinks,
+  type HostContact,
+} from "@/components/booking/HostContactLinks";
+
 import { AddTripGuestModal } from "./AddTripGuestModal";
 import { EftProofUploader } from "./EftProofUploader";
 import { FirstBookingCelebration } from "./FirstBookingCelebration";
@@ -91,6 +96,7 @@ export type ConfirmationData = {
     avatarUrl: string | null;
     verified: boolean;
     since: string | null;
+    contact: HostContact;
   } | null;
   stay: {
     checkInLabel: string | null;
@@ -1211,6 +1217,7 @@ function HostCard({ data }: { data: ConfirmationData }) {
             ) : null}
           </div>
         </div>
+        <HostContactLinks contact={host.contact} />
         <Link
           href={`/portal/trips/${data.bookingId}`}
           className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded border border-brand-primary bg-brand-primary px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"

@@ -43,6 +43,10 @@ import {
   EventTimeline,
   type TimelineEvent,
 } from "@/components/timeline/EventTimeline";
+import {
+  HostContactLinks,
+  type HostContact,
+} from "@/components/booking/HostContactLinks";
 import { formatMoney } from "@/lib/format";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -230,6 +234,8 @@ type HostEmbed = {
   response_rate: number | null;
   languages_spoken: string[] | null;
   created_at: string;
+  website_url: string | null;
+  user_id: string;
 };
 
 export default async function PortalTripDetailPage({
@@ -266,7 +272,7 @@ export default async function PortalTripDetailPage({
         amenities:property_amenities ( amenity_key, amenity_label ),
         local_picks:property_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
       ),
-      host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at ),
+      host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at, website_url, user_id ),
       booking_rooms ( room:property_rooms ( id, name ) )
     `,
     )
@@ -331,6 +337,24 @@ export default async function PortalTripDetailPage({
   const listing = one(booking.listing);
   const host = one(booking.host);
   const currency = booking.currency;
+
+  // Host contact for the "Your host" card. email + phone live on the host's
+  // user_profiles row (RLS-guarded to self) so read them with the service role —
+  // the same host contact already printed on this guest's invoice. website_url
+  // is a public hosts column.
+  let hostContact: HostContact = { website: null, phone: null, email: null };
+  if (host?.user_id) {
+    const { data: hostProfile } = await createAdminClient()
+      .from("user_profiles")
+      .select("email, phone")
+      .eq("id", host.user_id)
+      .maybeSingle();
+    hostContact = {
+      website: host.website_url ?? null,
+      phone: hostProfile?.phone ?? null,
+      email: hostProfile?.email ?? null,
+    };
+  }
 
   // Sensitive access details: fetched with the service role (the booking is
   // verified as this guest's above) so secrets never depend on public RLS.
@@ -1912,6 +1936,7 @@ export default async function PortalTripDetailPage({
                       {host.languages_spoken.join(" & ")}
                     </div>
                   ) : null}
+                  <HostContactLinks contact={hostContact} />
                   <Link
                     href="/portal/inbox"
                     className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-2.5 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary"

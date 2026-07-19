@@ -262,7 +262,9 @@ export default async function BookingSuccessPage({
   ] = await Promise.all([
     supabase
       .from("hosts")
-      .select("display_name, avatar_url, is_verified, created_at")
+      .select(
+        "display_name, avatar_url, is_verified, created_at, website_url, user_id",
+      )
       .eq("id", listing.host_id)
       .maybeSingle(),
     supabase
@@ -472,6 +474,28 @@ export default async function BookingSuccessPage({
       })
     : null;
 
+  // Host contact for the "Your host" card. email + phone live on the host's
+  // user_profiles row (RLS-guarded to self), so read them with the admin client
+  // — the same contact already printed on the guest's invoice. website_url is a
+  // public hosts column.
+  let hostContact = {
+    website: null as string | null,
+    phone: null as string | null,
+    email: null as string | null,
+  };
+  if (hostRow?.user_id) {
+    const { data: hostProfile } = await admin
+      .from("user_profiles")
+      .select("email, phone")
+      .eq("id", hostRow.user_id)
+      .maybeSingle();
+    hostContact = {
+      website: hostRow.website_url ?? null,
+      phone: hostProfile?.phone ?? null,
+      email: hostProfile?.email ?? null,
+    };
+  }
+
   // The analytics purchase event is staged ONLY when the booking is paid.
   // No pixel is loaded yet — this just pushes dynamic values onto dataLayer so
   // a future GTM / Meta Pixel maps it to a Purchase. (See BookingConfirmation.)
@@ -629,6 +653,7 @@ export default async function BookingSuccessPage({
           avatarUrl: hostRow.avatar_url,
           verified: !!hostRow.is_verified,
           since: hostSince,
+          contact: hostContact,
         }
       : null,
     stay: {
