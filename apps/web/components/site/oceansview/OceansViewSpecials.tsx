@@ -64,7 +64,7 @@ export function OceansViewSpecials({
       <section className="phead">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={siteImageUrl(headImg, { width: 2000 })}
+          src={siteImageUrl(headImg, { width: 2560 })}
           alt={`Offers at ${brandName}`}
         />
         <div className="wrap">

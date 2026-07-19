@@ -182,7 +182,7 @@ export function OceansViewAbout({
       {/* PAGE HEAD */}
       <section className="phead">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={siteImageUrl(headImg, { width: 2000 })} alt={brandName} />
+        <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
         <div className="wrap">
           <div className="crumbs">
             <a href="/">Home</a>

@@ -32,7 +32,10 @@ export type SiteImageOpts = {
   height?: number;
   /** Crop behaviour when both width + height are set. */
   resize?: "cover" | "contain" | "fill";
-  /** 20–100; lower = smaller file. Default 72 (a good photo sweet-spot). */
+  /** 20–100; lower = smaller file. Default 82 — a premium-photo sweet-spot
+   *  (WebP 82 is visually indistinguishable from the original for accommodation
+   *  imagery while still a fraction of the raw file). Hospitality hosts want
+   *  their photos to look great for guests; only drop it for tiny thumbnails. */
   quality?: number;
 };
 
@@ -51,7 +54,7 @@ export function siteImageUrl(
   if (opts.width) q.set("width", String(Math.round(opts.width)));
   if (opts.height) q.set("height", String(Math.round(opts.height)));
   if (opts.resize) q.set("resize", opts.resize);
-  q.set("quality", String(opts.quality ?? 72));
+  q.set("quality", String(opts.quality ?? 82));
   return `${SUPA}${RENDER_MARK}${tail}?${q.toString()}`;
 }
 

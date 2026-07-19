@@ -101,7 +101,7 @@ export function OceansViewArticle({
       <section className="phead tall">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={siteImageUrl(cover, { width: 2000 })} alt={post.title} />
+          <img src={siteImageUrl(cover, { width: 2560 })} alt={post.title} />
         ) : (
           <div className="phead-bg" aria-hidden />
         )}

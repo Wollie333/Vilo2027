@@ -261,7 +261,7 @@ export function OceansViewHome({
         <div className="hero-bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={siteImageUrl(heroImg, { width: 2000 })}
+            src={siteImageUrl(heroImg, { width: 2560 })}
             alt={`${brandName}`}
           />
         </div>

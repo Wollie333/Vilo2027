@@ -86,7 +86,7 @@ export function MarmaladeArticle({
         <div className="bg">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={siteImageUrl(cover, { width: 2000 })} alt={post.title} />
+            <img src={siteImageUrl(cover, { width: 2560 })} alt={post.title} />
           ) : null}
         </div>
         <div className="postcard sm">

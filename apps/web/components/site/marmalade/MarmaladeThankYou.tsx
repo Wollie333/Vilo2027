@@ -95,7 +95,7 @@ export function MarmaladeThankYou({
       <section className="tyhero">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={siteImageUrl(heroImg, { width: 2000 })} alt={brandName} />
+          <img src={siteImageUrl(heroImg, { width: 2560 })} alt={brandName} />
         </div>
 
         <div className="tycard">

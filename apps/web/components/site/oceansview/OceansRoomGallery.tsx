@@ -157,7 +157,7 @@ export function OceansRoomGallery({
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={siteImageUrl(shots[idx].url, { width: 2000 })}
+            src={siteImageUrl(shots[idx].url, { width: 2560 })}
             alt={shots[idx].alt ?? `${roomName} — photo ${idx + 1}`}
             onClick={(e) => e.stopPropagation()}
             loading="lazy"

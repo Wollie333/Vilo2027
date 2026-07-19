@@ -260,7 +260,7 @@ export function MarmaladeSpecialDetail({
               ) : null}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={siteImageUrl(hero, { width: 2000 })}
+                src={siteImageUrl(hero, { width: 2560 })}
                 alt={special.title}
               />
             </div>

@@ -131,7 +131,7 @@ export function MarmaladeAbout({
       <section className="phero compact">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={siteImageUrl(headImg, { width: 2000 })} alt={brandName} />
+          <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
         </div>
         <div className="postcard sm">
           <span className="stamp">{brandInitial}</span>

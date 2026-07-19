@@ -184,7 +184,7 @@ export function MarmaladeHome({
       <section className="phero">
         <div className="bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={siteImageUrl(heroImg, { width: 2000 })} alt={brandName} />
+          <img src={siteImageUrl(heroImg, { width: 2560 })} alt={brandName} />
         </div>
         <div className="postcard">
           <span className="stamp">{brandInitial}</span>

@@ -123,7 +123,7 @@ export function SabelaArticle({
             <div className="wrap">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={siteImageUrl(cover, { width: 2000 })}
+                src={siteImageUrl(cover, { width: 2560 })}
                 alt={post.title}
               />
             </div>
