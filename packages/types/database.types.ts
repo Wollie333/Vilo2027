@@ -11997,6 +11997,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: undefined
       }
+      release_coupon: {
+        Args: { p_booking_id: string; p_coupon_id: string }
+        Returns: undefined
+      }
       release_special: { Args: { p_special_id: string }; Returns: undefined }
       release_special_dates: {
         Args: { p_special_id: string }

@@ -120,11 +120,26 @@ byte-identical): show Subtotal **pre-discount** (`subtotal + discount`) and trus
 `invoice/[token]/pdf/route.ts`. Verified live (hosted HTML + rastered PDF) for both VAT and
 non-VAT: Subtotal → Discount (CODE) → [VAT (15%) if registered] → Total, all footing.
 
-### Known behaviour (not changed) — redemption not released on cancel
-`on_booking_cancelled` releases blocked_dates + **special** redemptions, but NOT coupon
-redemptions — a cancelled/declined coupon booking keeps consuming `redeemed_count` +
-`per_guest_limit`. Defensible (anti cancel-rebook farming) but inconsistent with specials;
-founder to decide if cancel should return a coupon slot.
+### 🔧 FIXED — coupon redemption now released on unwind (was leaking the cap)
+`redeem_coupon()` claims at booking creation (before payment), inserting a
+`coupon_redemptions` row + bumping `redeemed_count`. Two leaks meant a coupon that
+never resulted in a completed stay still burned its caps:
+- **Rollback leak:** if a later persist step failed, the booking row was deleted →
+  the ledger row cascaded away (FK) but `redeemed_count` (a separate counter) did
+  NOT, drifting up. `persist.ts` had omitted a coupon rollback on the false premise
+  that "the ledger cascades" — it does, the counter doesn't.
+- **Cancel leak:** `on_booking_cancelled` released blocked_dates + a special's
+  redemption but left the coupon consumed — burning `redeemed_count` AND
+  `per_guest_limit` (counted from ledger rows), locking the guest out forever.
+
+Fix (migration `20260719210000`): `release_coupon(coupon_id, booking_id)` — the atomic
+inverse of the ledger side (delete the row, decrement `redeemed_count` by rows removed;
+idempotent; also frees the per-guest cap). Called from `on_booking_cancelled` (terminal
+transitions) and from the coupon `RedeemStep.rollback` in `createBooking.ts` (failed
+checkout). Service-role only (mirrors `redeem_coupon`). **Proven live** (rollback txns):
+release math + idempotency, the cancel trigger releasing count 1→0 + ledger 1→0, and the
+deny path (authenticated + anon → 42501). Now consistent with specials'
+`release_special` — a cancelled/failed coupon booking returns the slot.
 
 ## Follow-ups / ideas
 - Preview could note "won't apply below R{min_spend}" when a minimum is set.

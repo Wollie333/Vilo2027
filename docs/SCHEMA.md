@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **181** (181 with RLS) |
-| Functions | **166** (133 SECURITY DEFINER, 61 trigger fns) |
+| Functions | **167** (134 SECURITY DEFINER, 61 trigger fns) |
 | Cron jobs | **37** (12 Vault-gated, 0 inactive) |
 | Vault secrets set | **15** |
 
@@ -212,6 +212,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `refund_lf_quote_credit_on_expire` | **yes** | yes | trigger |
 | `release_addon_stock` | **yes** | yes | callable |
 | `release_booking_addon_stock` | **yes** | yes | callable |
+| `release_coupon` | **yes** | yes | callable |
 | `release_special` | **yes** | yes | callable |
 | `release_special_dates` | — | — | callable |
 | `reserve_addon_stock` | **yes** | yes | callable |

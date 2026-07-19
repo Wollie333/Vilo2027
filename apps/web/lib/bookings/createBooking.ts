@@ -727,6 +727,17 @@ export async function createBookingCore(
           }
           return { ok: true };
         },
+        // A LATER persist step failing deletes the booking, which cascades the
+        // coupon_redemptions row — but NOT the coupons.redeemed_count counter
+        // redeem_coupon() bumped, so the cap would drift up. release_coupon()
+        // removes the ledger row + decrements the counter (idempotent; runs
+        // before the booking delete). Cancels are handled by on_booking_cancelled.
+        rollback: async (bookingId) => {
+          await admin.rpc("release_coupon", {
+            p_coupon_id: p.couponId,
+            p_booking_id: bookingId,
+          });
+        },
       }
     : undefined;
 
