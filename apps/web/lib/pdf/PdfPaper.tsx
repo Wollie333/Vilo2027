@@ -83,7 +83,7 @@ export function PdfPaper(p: PdfPaperProps) {
           <View style={s.pageFooterRow}>
             <Text style={s.pfLeft}>{p.runningFooter.left}</Text>
             <View style={s.pfRight}>
-              <View style={s.pwmark} />
+              <WieloRoundel size={11} idPrefix="wf" />
               <Text style={s.pfRightText}>{p.runningFooter.right}</Text>
             </View>
           </View>
@@ -97,7 +97,7 @@ export function PdfPaper(p: PdfPaperProps) {
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={p.issuer.mark.url} style={s.logo} />
             ) : p.issuer.mark.kind === "wielo" ? (
-              <WieloRoundel />
+              <WieloRoundel idPrefix="wh" marginRight={12} />
             ) : (
               <Text style={s.markSquare}>{p.issuer.mark.text}</Text>
             )}
@@ -288,20 +288,35 @@ export function PdfPaper(p: PdfPaperProps) {
 // (gradient teal disc with a white "W"). Shown as the header mark on Wielo's own
 // platform documents when no custom Wielo logo has been uploaded.
 const WMARK = "M52 62 L79 138 L100 92 L121 138 L148 62";
-function WieloRoundel() {
+// `idPrefix` keeps gradient ids unique per instance — a Wielo doc renders the
+// roundel twice (header mark + footer attribution) on the same page.
+function WieloRoundel({
+  size = 44,
+  idPrefix = "wh",
+  marginRight = 0,
+}: {
+  size?: number;
+  idPrefix?: string;
+  marginRight?: number;
+}) {
+  const bg = `${idPrefix}bg`;
+  const fg = `${idPrefix}fg`;
   return (
-    <Svg viewBox="0 0 200 200" style={s.roundel}>
+    <Svg
+      viewBox="0 0 200 200"
+      style={{ width: size, height: size, marginRight }}
+    >
       <Defs>
-        <LinearGradient id="wbg" x1="0" y1="0" x2="200" y2="200">
+        <LinearGradient id={bg} x1="0" y1="0" x2="200" y2="200">
           <Stop offset="0" stopColor="#12B886" />
           <Stop offset="1" stopColor="#0B7A5A" />
         </LinearGradient>
-        <LinearGradient id="wf" x1="0" y1="0" x2="0" y2="200">
+        <LinearGradient id={fg} x1="0" y1="0" x2="0" y2="200">
           <Stop offset="0" stopColor="#FFFFFF" />
           <Stop offset="1" stopColor="#C8EBDC" />
         </LinearGradient>
       </Defs>
-      <Circle cx="100" cy="100" r="100" fill="url(#wbg)" />
+      <Circle cx="100" cy="100" r="100" fill={`url(#${bg})`} />
       <Path
         d={WMARK}
         fill="none"
@@ -314,7 +329,7 @@ function WieloRoundel() {
       <Path
         d={WMARK}
         fill="none"
-        stroke="url(#wf)"
+        stroke={`url(#${fg})`}
         strokeWidth="26"
         strokeLinejoin="round"
       />
@@ -373,7 +388,6 @@ const s = StyleSheet.create({
     borderRadius: 8,
     marginRight: 12,
   },
-  roundel: { width: 44, height: 44, marginRight: 12 },
   issuerText: { flex: 1 },
   bizName: {
     fontSize: 15,
@@ -627,11 +641,5 @@ const s = StyleSheet.create({
   },
   pfLeft: { fontSize: 8, color: BRAND.mute },
   pfRight: { flexDirection: "row", alignItems: "center", gap: 5 },
-  pwmark: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-    backgroundColor: BRAND.deep,
-  },
   pfRightText: { fontSize: 8, color: BRAND.mute },
 });

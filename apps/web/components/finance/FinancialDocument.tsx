@@ -557,7 +557,7 @@ export function FinancialDocument(p: FinancialDocumentProps) {
               <div className="flex items-center justify-between gap-3 text-[10.5px] text-brand-mute">
                 <span className="truncate">{runningFooter.left}</span>
                 <span className="flex shrink-0 items-center gap-1.5">
-                  <span className="brand-gradient h-[15px] w-[15px] rounded-[4px]" />
+                  <WieloFooterMark />
                   {runningFooter.right}
                 </span>
               </div>
@@ -720,6 +720,36 @@ function Mark({ mark }: { mark: DocMark }) {
     <div className="brand-gradient flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[13px] font-display text-[21px] font-extrabold tracking-[0.02em] text-white">
       {mark.text}
     </div>
+  );
+}
+
+// Tiny Wielo roundel shown in the "Issued via Wielo" running footer of every
+// financial document (both families). A miniature of the header mark; its own
+// gradient ids so it never collides with the header roundel on Wielo docs.
+function WieloFooterMark() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 200 200"
+      className="block shrink-0"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="wfoot-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#12B886" />
+          <stop offset="1" stopColor="#0B7A5A" />
+        </linearGradient>
+      </defs>
+      <circle cx="100" cy="100" r="100" fill="url(#wfoot-bg)" />
+      <path
+        d="M52 62 L79 138 L100 92 L121 138 L148 62"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="26"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
