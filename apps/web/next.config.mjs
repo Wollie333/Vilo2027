@@ -17,9 +17,51 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 //     purpose: a connected custom domain must not have HTTPS forced onto the
 //     host's unrelated subdomains (mail., etc.). Browsers ignore HSTS over plain
 //     HTTP, so local dev is unaffected.
-// DEFERRED: Content-Security-Policy — it must allow Paystack/PayPal/Supabase/
-// OpenStreetMap/YouTube/Turnstile/GA4/Meta and be validated in a real browser,
-// so it lands with the Step-1 live-QA pass, not blind.
+const IS_PROD = process.env.NODE_ENV === "production";
+
+// ── Content-Security-Policy ──────────────────────────────────────────────────
+// Wielo is MULTI-TENANT: a host's website (served by this same app) can carry
+// custom head code, custom CSS and external images. A blind global *enforcing*
+// script/style policy would break those sites and the third-party checkout
+// widgets. So CSP ships in two parts (the industry-standard safe rollout):
+//
+//   1. ENFORCED — only the directives that add real protection with ZERO
+//      breakage risk for a multi-tenant app: block <base> hijacking, plugins,
+//      and cross-origin framing (refines X-Frame-Options), and force https for
+//      subresources in prod. None of these touch host custom code.
+//   2. REPORT-ONLY — the full allowlist (Paystack/PayPal/Supabase/GA4/Meta/
+//      Turnstile/YouTube/Vimeo/Google-Maps/Google-Fonts/OSM). It NEVER blocks;
+//      it surfaces violations so the allowlist can be tuned against real traffic
+//      (host custom code + live payment flows) before flipping script/style/
+//      connect to enforced. Allowlist derived from a full source scan
+//      (components/analytics, TurnstileWidget, pay PayButton/PayNowPanel,
+//      MapSection, SiteFontLinks, LocationPicker/LocationMap, video embeds).
+const CSP_ENFORCE = [
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  ...(IS_PROD ? ["upgrade-insecure-requests"] : []),
+].join("; ");
+
+const CSP_REPORT_ONLY = [
+  "default-src 'self'",
+  // 'unsafe-inline'/'unsafe-eval' reflect today's reality (Next inline bootstrap,
+  // pixel snippets, host custom scripts). Tighten to nonces/hashes when host
+  // custom-code is sandboxed.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://checkout.paystack.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://www.paypal.com https://www.paypalobjects.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "media-src 'self' blob: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://*.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://challenges.cloudflare.com https://api-m.paypal.com https://api-m.sandbox.paypal.com",
+  "frame-src 'self' https://js.paystack.co https://checkout.paystack.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://maps.google.com https://www.google.com https://www.paypal.com",
+  "worker-src 'self' blob:",
+  "form-action 'self' https://checkout.paystack.com https://www.paypal.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+].join("; ");
+
 const SECURITY_HEADERS = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -29,6 +71,8 @@ const SECURITY_HEADERS = [
     value: "camera=(), microphone=(), geolocation=(self)",
   },
   { key: "Strict-Transport-Security", value: "max-age=31536000" },
+  { key: "Content-Security-Policy", value: CSP_ENFORCE },
+  { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
 ];
 
 // Supabase Storage host (host's uploaded photos/logos) so next/image can
