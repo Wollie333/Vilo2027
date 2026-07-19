@@ -127,6 +127,18 @@ const EXAMPLE_POSTS: ShowcasePost[] = [
   },
 ];
 
+// stripHtml removes tags but leaves entities encoded; decode the common ones so
+// a real quote reads "B&B", not "B&amp;B".
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&#x27;/gi, "'");
+}
+
 function budgetLabel(
   min: number | null | undefined,
   max: number | null | undefined,
@@ -220,9 +232,10 @@ export default async function LookingForStartPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Real, live requests to showcase — fall back to curated examples when the
-  // directory is still thin, so this section is always full and credible.
-  const { data: liveRows } = await supabase
+  // Real, live requests from OTHER travellers to showcase — social proof beats a
+  // fabricated example. We lead with as many real posts as we can and top up
+  // with curated examples so the row is always full and credible.
+  let liveQuery = supabase
     .from("looking_for_posts")
     .select(
       "id, title, category, location_text, location_region, check_in_date, check_out_date, adults, children, infants, budget_min, budget_max, budget_per, description, is_urgent",
@@ -230,11 +243,15 @@ export default async function LookingForStartPage() {
     .eq("status", "active")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
-    .limit(3);
+    .limit(6);
+  // Show OTHER people's requests, not the viewer's own.
+  if (user?.id) liveQuery = liveQuery.neq("guest_id", user.id);
+  const { data: liveRows } = await liveQuery;
   const livePosts: ShowcasePost[] = (liveRows ?? [])
     // Only surface presentable posts on the marketing page — a real but junky
-    // title ("asdf") would undercut the pitch. Below the bar → curated examples.
+    // title ("asdf") would undercut the pitch.
     .filter((r) => (r.title?.trim().length ?? 0) >= 10)
+    .slice(0, 3)
     .map((r) => ({
       key: r.id,
       href: `/looking-for/${r.id}`,
@@ -249,11 +266,12 @@ export default async function LookingForStartPage() {
             : "Flexible dates",
       guests: (r.adults ?? 0) + (r.children ?? 0) + (r.infants ?? 0),
       budget: budgetLabel(r.budget_min, r.budget_max, r.budget_per),
-      quote: r.description ? stripHtml(r.description) : null,
+      quote: r.description ? decodeEntities(stripHtml(r.description)) : null,
       urgent: r.is_urgent ?? false,
     }));
-  const showcaseIsLive = livePosts.length >= 3;
-  const showcasePosts = showcaseIsLive ? livePosts : EXAMPLE_POSTS;
+  const showcaseIsLive = livePosts.length > 0;
+  // Real posts first, examples fill the remaining slots (up to 3 total).
+  const showcasePosts = [...livePosts, ...EXAMPLE_POSTS].slice(0, 3);
 
   // Signed-in guests go straight to the form; everyone else signs up first and
   // lands right back on it (?next survives the guest signup).
