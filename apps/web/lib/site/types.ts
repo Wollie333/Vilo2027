@@ -44,6 +44,9 @@ export type SiteBrand = {
   contactEmail?: string | null;
   contactPhone?: string | null;
   socials?: SiteSocials;
+  /** Host opt-in (Website → Settings): show the floating social rail on every page
+   *  when true AND at least one social link is set. Off by default. */
+  showSocialRail?: boolean;
 };
 
 export type SiteNavItem = {

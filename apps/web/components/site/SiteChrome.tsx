@@ -53,6 +53,7 @@ import { SiteMobileMenu } from "./SiteMobileMenu";
 import { SitePopup } from "./SitePopup";
 import { StickyHeader } from "./StickyHeader";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { SiteSocialRail } from "./SiteSocialRail";
 
 type MenuCollapse = "mobile" | "tablet" | "never";
 
@@ -1515,6 +1516,10 @@ export function SiteChrome({
       </ChromeEditWrap>
 
       <WhatsAppButton whatsapp={conversion.whatsapp} />
+
+      {/* Floating social rail — host opt-in (Website → Settings); renders only when
+          enabled AND at least one social link is set. Theme-token driven. */}
+      {brand.showSocialRail ? <SiteSocialRail socials={brand.socials} /> : null}
 
       <SitePopup
         popup={conversion.popup}

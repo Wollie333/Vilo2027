@@ -203,6 +203,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
         analytics?: SiteAnalyticsSettings;
         layout?: "full" | "boxed";
         blog?: { heading?: string; intro?: string };
+        socialRail?: { enabled?: boolean };
       } | null;
       published_snapshot: PublishSnapshot | null;
       business: {
@@ -254,6 +255,10 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     contactEmail: contact.email?.trim() || null,
     contactPhone: contact.phone?.trim() || null,
     socials: (brandJson.socials ?? undefined) as SiteBrand["socials"],
+    // Host opt-in for the floating social rail (Website → Settings). Read from
+    // live settings (a small display toggle, not snapshotted content) so it takes
+    // effect immediately on both the preview and the published site.
+    showSocialRail: site.settings?.socialRail?.enabled === true,
   };
   // Theme preview: when a themeSlug is provided, load that theme's base instead
   // of using the site's stored theme. This enables the gallery's full-site preview.
