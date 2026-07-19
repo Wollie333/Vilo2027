@@ -395,7 +395,7 @@ export default async function BookingSuccessPage({
   // has a connected Paystack account. Re-payment (incl. PayPal) happens on the
   // /booking/[id]/pay surface, which surfaces every rail the host offers.
   const BANK_COLS =
-    "bank_name, account_holder, account_number, account_type, branch_code";
+    "bank_name, account_holder, account_number, account_type, branch_code, swift_code";
   const [bankBiz, bankHost, hostPaystack] = await Promise.all([
     listing.business_id
       ? admin
@@ -424,6 +424,7 @@ export default async function BookingSuccessPage({
     account_number: string | null;
     account_type: string | null;
     branch_code: string | null;
+    swift_code: string | null;
   } | null;
 
   // account_number is encrypted at rest (v1.<nonce>.<ct>.<tag>) — decrypt it
@@ -453,6 +454,7 @@ export default async function BookingSuccessPage({
           accountNumber: eftAccountNumber,
           accountType: bankRow.account_type,
           branchCode: bankRow.branch_code,
+          swiftCode: bankRow.swift_code,
         }
       : null,
   };
@@ -644,6 +646,7 @@ export default async function BookingSuccessPage({
       ? (PAYMENT_METHOD_LABEL[booking.payment_method] ??
         booking.payment_method.toUpperCase())
       : null,
+    paymentMethod: booking.payment_method,
     specialRequests: booking.special_requests,
     payment,
     daysToGo: daysFromToday(booking.check_in),

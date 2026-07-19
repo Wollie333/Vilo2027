@@ -122,6 +122,9 @@ export type ConfirmationData = {
   totalAmount: number;
   currency: string;
   paymentMethodLabel: string | null;
+  /** Raw rail the guest chose (paystack | paypal | eft | manual_eft) — drives
+   * the method-named "Pay with …" CTA on the unpaid states. */
+  paymentMethod: string | null;
   /** How the guest can still pay (only acted on while `due`). */
   payment: {
     due: boolean;
@@ -133,6 +136,7 @@ export type ConfirmationData = {
       accountNumber: string | null;
       accountType: string | null;
       branchCode: string | null;
+      swiftCode: string | null;
     } | null;
   };
   specialRequests: string | null;
@@ -162,6 +166,19 @@ export type ConfirmationData = {
    */
   celebrateFirstBooking?: boolean;
 };
+
+// The pay CTA names the rail the guest chose, so "Pay with PayPal" / "Pay with
+// Paystack" / "Pay with EFT" — not a generic "Pay now". Falls back to "Pay now"
+// for an unknown/absent method.
+const PAY_WITH_LABEL: Record<string, string> = {
+  paystack: "Pay with Paystack",
+  paypal: "Pay with PayPal",
+  eft: "Pay with EFT",
+  manual_eft: "Pay with EFT",
+};
+function payWithLabel(method: string | null): string {
+  return (method && PAY_WITH_LABEL[method]) || "Pay now";
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Money                                                                      */
@@ -411,6 +428,20 @@ function Hero({ data }: { data: ConfirmationData }) {
               </div>
             ) : null}
           </div>
+
+          {/* Header "Pay now" — a second, prominent CTA right under the ref, so
+              a guest whose card/PayPal attempt didn't complete (cancelled OR
+              failed, either rail) can retry without scrolling to the payment
+              card below. Mirrors that card's action; both go to the pay page. */}
+          {data.isPaymentIncomplete ? (
+            <Link
+              href={data.payment.payUrl}
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+            >
+              <CreditCard className="h-4 w-4" />{" "}
+              {payWithLabel(data.paymentMethod)}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1030,12 +1061,18 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
           </span>
         </div>
 
-        {payment.cardAvailable ? (
+        {payment.cardAvailable || data.isPaymentIncomplete ? (
           <Link
             href={payment.payUrl}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
           >
-            <CreditCard className="h-4 w-4" /> Pay by card now
+            {/* On an unfinished card/PayPal attempt this mirrors the header CTA
+                and names the guest's rail; on an EFT-pending booking it stays the
+                "pay by card instead" alternative beside the bank details. */}
+            <CreditCard className="h-4 w-4" />{" "}
+            {data.isPaymentIncomplete
+              ? payWithLabel(data.paymentMethod)
+              : "Pay by card now"}
           </Link>
         ) : null}
 
@@ -1067,6 +1104,7 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
                 value={payment.eft.branchCode}
                 copy
               />
+              <BankRow label="SWIFT / BIC" value={payment.eft.swiftCode} copy />
               <BankRow label="Reference" value={data.reference} copy strong />
             </dl>
             <div className="mt-3 flex items-start gap-2 rounded-[8px] bg-white/70 p-2.5 text-[11.5px] leading-relaxed text-brand-mute">

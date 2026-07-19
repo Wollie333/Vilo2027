@@ -220,12 +220,15 @@ const eftInstructionsResolver: EmailResolver = async (refs, ctx) => {
     accountHolder: string;
     accountNumberMasked: string;
     branchCode: string;
+    swiftCode: string;
   } | null = null;
 
   if (bundle.host) {
     const { data: detail } = await ctx.supabase
       .from("eft_banking_details")
-      .select("bank_name, account_holder, account_number, branch_code")
+      .select(
+        "bank_name, account_holder, account_number, branch_code, swift_code",
+      )
       .eq("host_id", bundle.host.id)
       .eq("is_default", true)
       .eq("is_archived", false)
@@ -236,6 +239,10 @@ const eftInstructionsResolver: EmailResolver = async (refs, ctx) => {
         accountHolder: detail.account_holder,
         accountNumberMasked: maskAccountNumber(detail.account_number),
         branchCode: detail.branch_code,
+        // The email template renders a SWIFT / BIC row (international transfers);
+        // without this it always fell back to "—". "—" stays for a domestic-only
+        // host that never set one.
+        swiftCode: detail.swift_code ?? "—",
       };
     }
   }
