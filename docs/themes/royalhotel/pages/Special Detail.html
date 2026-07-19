@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="lagoon" data-font="grotesk" data-shape="rounded">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Long Weekend — Offers — Royal Hotel, Cape Town</title>
+<meta name="description" content="Stay four nights or more at Royal Hotel and the fourth is on the house — any room, any season. Book direct; the price you see is the price you pay." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .olayout{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(36px,5vw,68px);align-items:start}
+  .ohead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .osteps{display:grid;gap:2px;border-radius:var(--site-radius);overflow:hidden;border:1px solid var(--site-line);margin-top:22px;background:var(--site-line)}
+  .ostep{background:var(--site-surface);padding:22px 24px;display:flex;gap:16px;align-items:flex-start}
+  .ostep .sn{width:32px;height:32px;border-radius:50%;background:var(--site-tint);color:var(--site-accent-deep);display:flex;align-items:center;justify-content:center;font-family:var(--site-font-heading);font-weight:800;font-size:14px;flex-shrink:0}
+  .ostep b{display:block;font-size:15.5px;font-weight:700;color:var(--site-ink)}
+  .ostep span{display:block;font-size:14px;color:var(--site-mute);margin-top:4px;line-height:1.55}
+  .fine{margin-top:22px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  .fine li{position:relative;padding-left:26px;font-size:14.5px;color:var(--site-mute);line-height:1.55}
+  .fine li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;background:var(--site-accent)}
+  /* offer booking card */
+  .obk{background:var(--site-surface);border:1px solid var(--site-line);border-radius:var(--site-radius-lg);padding:26px;position:sticky;top:100px;box-shadow:0 30px 60px -32px rgba(22,19,14,.36)}
+  .obk .amt{font-family:var(--site-font-heading);font-weight:800;font-size:2.4rem;line-height:1}
+  .obk .was{font-size:14px;color:var(--site-mute);text-decoration:line-through;font-weight:600}
+  .obk-badge{display:inline-flex;align-items:center;gap:7px;background:var(--site-secondary);color:#fff;font-family:var(--site-font-body);font-weight:700;font-size:12px;padding:7px 13px;border-radius:999px;margin-bottom:16px}
+  .obk-eyebrow{display:flex;align-items:baseline;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--site-line);margin-bottom:16px}
+  .obkperk{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;font-weight:600;color:var(--site-mute);margin-top:12px}
+  .obkperk svg{color:var(--site-accent);flex-shrink:0;margin-top:1px}
+  .elig{display:flex;flex-direction:column;gap:12px;margin-top:22px}
+  .elig .er{display:flex;gap:14px;align-items:center;border:1px solid var(--site-line);border-radius:var(--site-radius-sm);padding:12px;transition:border-color .2s,transform .3s}
+  .elig .er:hover{border-color:var(--site-accent);transform:translateY(-2px)}
+  .elig .er img{width:80px;height:64px;border-radius:var(--site-radius-sm);object-fit:cover;flex-shrink:0}
+  .elig .er .en{flex:1;min-width:0}
+  .elig .er .en b{font-weight:700;font-size:15px;display:block}
+  .elig .er .en span{font-size:13px;color:var(--site-mute)}
+  .elig .er .ep{font-family:var(--site-font-heading);font-weight:800;font-size:15px;white-space:nowrap}
+  @media(max-width:860px){.olayout{grid-template-columns:1fr}.obk{position:static}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.OV_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"lagoon","font":"grotesk","shape":"rounded"}/*EDITMODE-END*/;
+try{var d=window.OV_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('ovTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav over float" data-screen-label="Offer detail">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel<small>Cape Town</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link">Rooms</a>
+      <div class="nav-has-sub">
+        <a href="Experiences.html" class="nav-link">Explore ▾</a>
+        <div class="nav-sub"><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a></div>
+      </div>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right"><a href="Booking.html?room=Ocean&rate=3900" class="btn btn-coral btn-sm">Book a stay</a><button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+  </div>
+</header>
+
+<!-- PAGE HEAD -->
+<section class="phead" data-section="intro">
+  <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=2200&q=80" alt="A Deluxe King room at Royal Hotel" data-parallax="0.16" />
+  <div class="wrap">
+    <div class="crumbs reveal"><a href="Home.html">Home</a><span>·</span><a href="Specials.html">Offers</a><span>·</span><span>The Long Weekend</span></div>
+    <span class="hero-chip reveal" data-d="1" style="margin-top:16px">Stay 4, pay 3 · direct only</span>
+    <h1 class="reveal" data-d="2" style="margin-top:16px">The Long Weekend</h1>
+    <p class="reveal" data-d="3">Book four nights or more on a single stay and the fourth is on the house — any room, any season. One fewer night to pay for, one more to linger.</p>
+  </div>
+</section>
+
+<!-- OFFER BODY -->
+<section class="section" data-section="offer_overview">
+  <div class="wrap">
+    <div class="olayout">
+      <div>
+        <div class="reveal">
+          <div class="ohead"><span class="tag">The offer</span><span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--site-mute)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Ends 30 Sep 2026</span></div>
+          <h2 class="lg" style="margin-top:16px;font-size:clamp(1.8rem,3.4vw,2.6rem)">Give yourself the extra day</h2>
+          <p class="lead" style="margin-top:16px">The best stays never feel long enough. Book four nights or more with us directly and we take the fourth off the bill — so you can slow down, sleep in, and see the city at its own pace. It works on every room and suite, and every season of the year.</p>
+          <p class="muted" style="margin-top:16px;max-width:60ch">Because you're booking straight with us, there are no agents in the middle and no booking fees — the discounted total below is exactly what you pay.</p>
+        </div>
+
+        <div class="reveal" style="margin-top:40px">
+          <h3 style="font-size:1.4rem">How it works</h3>
+          <div class="osteps">
+            <div class="ostep"><span class="sn">1</span><div><b>Pick four nights or more</b><span>Choose any arrival date and stay at least four consecutive nights in a single booking.</span></div></div>
+            <div class="ostep"><span class="sn">2</span><div><b>Choose any room</b><span>From the Deluxe King to The Penthouse — the offer applies to every room type, in every season.</span></div></div>
+            <div class="ostep"><span class="sn">3</span><div><b>The fourth night is free</b><span>We deduct one night automatically at checkout. Stay eight nights and two come off.</span></div></div>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:40px;padding:28px;background:var(--site-soft);border-radius:var(--site-radius-lg)" data-section="offer_includes">
+          <h3 style="font-size:1.4rem">Every Long Weekend includes</h3>
+          <div class="amen" style="margin-top:18px">
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>The fourth night, free</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Breakfast for two, daily</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Rooftop pool, gym &amp; spa access</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Late checkout until 1pm on departure</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Wi-Fi &amp; secure parking</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>No booking fees, ever</div>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:40px" data-section="offer_rooms">
+          <h3 style="font-size:1.4rem">Works on every room</h3>
+          <p class="muted" style="margin-top:12px;max-width:56ch">Prices below are the nightly rate — the fourth night comes off automatically at checkout.</p>
+          <div class="elig">
+            <a href="Booking.html?room=Ocean&rate=3900&offer=long-weekend" class="er"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=200&q=80" alt="Deluxe King" /><div class="en"><b>Deluxe King</b><span>Sleeps 2 · city view</span></div><div class="ep">R3,900<span class="muted" style="font-weight:500;font-size:12px"> /night</span></div></a>
+            <a href="Booking.html?room=Lagoon&rate=6800&offer=long-weekend" class="er"><img src="https://images.unsplash.com/photo-1582610116397-edb318620f90?w=200&q=80" alt="Executive Suite" /><div class="en"><b>Executive Suite</b><span>Sleeps 3 · private terrace</span></div><div class="ep">R6,800<span class="muted" style="font-weight:500;font-size:12px"> /night</span></div></a>
+            <a href="Booking.html?room=Penthouse&rate=13500&offer=long-weekend" class="er"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&q=80" alt="The Penthouse" /><div class="en"><b>The Penthouse</b><span>Sleeps 4 · rooftop pool</span></div><div class="ep">R13,500<span class="muted" style="font-weight:500;font-size:12px" > /night</span></div></a>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:40px" data-section="offer_terms">
+          <h3 style="font-size:1.4rem">The fine print</h3>
+          <ul class="fine">
+            <li>Valid on new direct bookings for stays of four or more consecutive nights, for arrivals up to 30 September 2026.</li>
+            <li>The lowest-priced night of the stay is the one deducted. Stays of eight-plus nights receive two free nights.</li>
+            <li>Subject to availability and cannot be combined with other offers or corporate rates.</li>
+            <li>Free cancellation up to 48 hours before arrival; the full stay is charged on the day of arrival.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- BOOKING CARD -->
+      <aside>
+        <div class="obk" data-section="offer_rate">
+          <span class="obk-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg> Stay 4, pay 3</span>
+          <div class="obk-eyebrow"><span class="amt">R11,700</span><span class="muted">total</span><span class="was">R15,600</span></div>
+          <p class="muted" style="font-size:13.5px;margin-top:-8px;margin-bottom:16px">For 4 nights in a Deluxe King — one night free, taxes included.</p>
+          <div class="bkgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="field" style="margin-bottom:12px"><label>Check in</label><input type="date" name="checkin" value="2026-07-10" /></div>
+            <div class="field" style="margin-bottom:12px"><label>Check out</label><input type="date" name="checkout" value="2026-07-14" /></div>
+          </div>
+          <div class="field" style="margin-bottom:16px"><label>Guests</label><select name="guests"><option value="1">1 guest</option><option value="2" selected>2 guests</option><option value="3">3 guests</option><option value="4">4 guests</option></select></div>
+          <div class="sline" style="border-top:1px solid var(--site-line);padding-top:14px"><span>R3,900 × 4 nights</span><b>R15,600</b></div>
+          <div class="sline"><span>Fourth night free</span><b style="color:var(--site-accent-deep)">−R3,900</b></div>
+          <div class="sline"><span>Taxes &amp; service</span><b>Included</b></div>
+          <div class="stotal" style="margin-top:2px"><span class="l">Total</span><span class="amt">R11,700</span></div>
+          <div class="nofee"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>4 nights · no booking fees, ever</span></div>
+          <a href="Booking.html?room=Ocean&rate=3900&offer=long-weekend" class="btn btn-coral btn-lg btn-block" style="margin-top:20px">Reserve this offer</a>
+          <p class="muted center" style="font-size:12.5px;margin-top:12px">Free cancellation up to 48 hours before arrival</p>
+          <div style="border-top:1px solid var(--site-line);margin-top:18px;padding-top:16px">
+            <div class="obkperk"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Breakfast for two included daily</div>
+            <div class="obkperk"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z"/></svg>Best-rate guarantee when you book direct</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- OTHER OFFERS -->
+<section class="section sand" data-section="specials_preview">
+  <div class="wrap">
+    <div class="sec-head reveal" style="display:flex;justify-content:space-between;align-items:flex-end;max-width:none;gap:24px;flex-wrap:wrap"><div><span class="tag">More offers</span><h2 class="lg" style="margin-top:16px">Other ways to save</h2></div><a href="Specials.html" class="alink">All offers <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    <div class="spx">
+      <article class="spcard reveal">
+        <div class="spi"><span class="sp-badge">Sun–Thu</span><span class="sp-left">Any room</span><img src="https://images.unsplash.com/photo-1582610116397-edb318620f90?w=900&q=80" alt="Executive Suite" /></div>
+        <div class="spb"><h3>Midweek in the city</h3><p class="spd">Arrive Sunday to Thursday and take 15% off the nightly rate, with a slow checkout until 2pm.</p>
+          <div class="sp-px"><span class="sp-now">R5,780</span><span class="sp-was">R6,800</span><span class="sp-save">Save 15%</span></div>
+          <a href="Specials.html" class="btn btn-primary btn-block">View offer</a></div>
+      </article>
+      <article class="spcard reveal" data-d="1">
+        <div class="spi"><span class="sp-badge">Last minute</span><span class="sp-left">2 dates left</span><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80" alt="The Penthouse" /></div>
+        <div class="spb"><h3>Within-7-days rate</h3><p class="spd">Plans came together late? Take 20% off any available room for arrivals inside the next week.</p>
+          <div class="sp-px"><span class="sp-now">R10,800</span><span class="sp-was">R13,500</span><span class="sp-save">Save 20%</span></div>
+          <a href="Specials.html" class="btn btn-primary btn-block">View offer</a></div>
+      </article>
+      <article class="spcard reveal" data-d="2">
+        <div class="spi"><span class="sp-badge">Just married</span><span class="sp-left">Executive Suite</span><img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=900&q=80" alt="The rooftop pool" /></div>
+        <div class="spb"><h3>Honeymoon nights</h3><p class="spd">A bottle of MCC on arrival, a couple's spa ritual and breakfast in bed on three-night stays.</p>
+          <div class="sp-px"><span class="sp-now">R6,800</span><span class="sp-save">+ extras on us</span></div>
+          <a href="Specials.html" class="btn btn-primary btn-block">View offer</a></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div><a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel</span></a><p class="foot-blurb">A contemporary grand hotel in the heart of Cape Town. City-view rooms and suites, a rooftop pool and spa, and a calmer way to stay in the city.</p></div>
+      <div><div class="foot-h">Explore</div><div class="foot-col"><a href="Rooms.html">Rooms &amp; rates</a><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a><a href="Journal.html">Journal</a><a href="About.html">About us</a></div></div>
+      <div><div class="foot-h">Stay</div><div class="foot-col"><a href="Booking.html">Book a stay</a><a href="Contact.html">Getting here</a><a href="Contact.html">Transfers</a><a href="Contact.html">FAQ</a></div></div>
+      <div><div class="foot-h">The good stuff, by email</div><p class="foot-blurb" style="margin-top:0">Open dates, seasonal offers and the occasional note from the kitchen. No spam.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-coral btn-sm" type="submit">Join</button></form></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Royal Hotel · Cape Town</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name" style="color:var(--site-navy-ink)">Royal Hotel</span></a><button class="nav-burger" data-mclose aria-label="Close menu" style="display:block;color:var(--site-navy-ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Rooms</a><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Booking.html?room=Ocean&rate=3900&offer=long-weekend" class="btn btn-coral btn-lg btn-block">Reserve this offer</a>
+</div>
+
+<script src="royal.js"></script>
+<script src="royal-tweaks.js"></script>
+</body>
+</html>

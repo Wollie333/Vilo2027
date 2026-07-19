@@ -144,6 +144,31 @@ export const SITE_PRESETS = {
     font: "homely",
     radius: "lg",
   },
+  // Royal Hotel — clean contemporary GRAND HOTEL. White ground, warm-charcoal
+  // ink, a single champagne-gold accent + espresso secondary; tight modern
+  // grotesk display, refined small corners + generous whitespace. Reuses the
+  // OceansView page layout re-skinned via `.wielo-royal` (its own palette makes
+  // it read as urban luxury, not a beach resort). Fallback when the DB base is
+  // unavailable (else it collapses to "warm", the wrong palette).
+  royal: {
+    label: "Royal Hotel",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#FFFFFF",
+      ink: "#1B1915",
+      mute: "#6B655B",
+      line: "#E7E1D6",
+      accent: "#B08948", // champagne gold
+      accentInk: "#FFFFFF",
+      secondary: "#23201B", // espresso — tags, "Book" CTA, quote marks
+    },
+    // Tight modern grotesk (Bricolage now; Archivo is the reference's face — a
+    // distinct-later font wiring). Body geometric sans (Manrope) via the stack.
+    font: "grotesk",
+    // Refined small corners (~8px) vs Oceans View's chunky "lg"; the .wielo-royal
+    // skin sets the exact per-element radii (12px cards, 6px buttons, 10px img).
+    radius: "md",
+  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;

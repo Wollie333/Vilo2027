@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="lagoon" data-font="grotesk" data-shape="rounded">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Header / nav states — Royal Hotel / Wielo theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  /* STATIC reference of the header in each state. Live, the nav is fixed, sits
+     transparent over the hero and turns solid on scroll, the dropdown opens on
+     hover/focus and the burger opens the drawer — all host-wired. Each state is
+     frozen here with small inline overrides so they show together. */
+  body{padding:clamp(20px,4vw,48px);background:var(--site-soft)}
+  .demo{max-width:1140px;margin:0 auto}
+  .demo h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+  .cap{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute);margin:36px 0 12px}
+  .frame{border:1px solid var(--site-line);border-radius:var(--site-radius-lg);overflow:hidden;background:var(--site-bg)}
+  .hero-demo{position:relative}
+  .hero-demo .bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=80') center/cover}
+  .hero-demo .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,28,40,.34),rgba(8,28,40,.55))}
+  .hero-demo .copy{position:relative;padding:64px 30px 76px;color:#fff}
+  .hero-demo .copy h2{color:#fff;font-size:2rem}
+  .demo .nav{position:relative}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>Header &amp; navigation</h1>
+  <p class="muted">Wave mark + wordmark, primary menu with a dropdown, a Book-a-stay CTA. Optional announcement bar above; transparent-over-hero and solid states below; mobile collapses to a full-screen drawer.</p>
+
+  <div class="cap">Announcement bar (optional)</div>
+  <div class="frame"><div class="topbar-announce">Summer dates are open · stay 4, pay 3 — <a href="Specials.html">see offers</a></div></div>
+
+  <div class="cap">State A · transparent over a hero (light text)</div>
+  <div class="frame hero-demo">
+    <div class="bg"></div><div class="ov"></div>
+    <header class="nav over">
+      <div class="wrap nav-in">
+        <a href="#" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel<small>Cape Town</small></span></a>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">Home</a><a href="#" class="nav-link">Rooms</a><a href="#" class="nav-link">Explore ▾</a><a href="#" class="nav-link">Journal</a><a href="#" class="nav-link">Contact</a>
+        </nav>
+        <div class="nav-right"><a href="#" class="btn btn-coral btn-sm">Book a stay</a></div>
+      </div>
+    </header>
+    <div class="copy"><h2>Light text, no background</h2></div>
+  </div>
+
+  <div class="cap">State B · solid / scrolled (dark text on surface) + dropdown open</div>
+  <div class="frame">
+    <header class="nav solid">
+      <div class="wrap nav-in">
+        <a href="#" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel<small>Cape Town</small></span></a>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">Home</a><a href="#" class="nav-link">Rooms</a>
+          <!-- dropdown forced open to show the sub-menu; live it opens on hover/focus -->
+          <div class="nav-has-sub"><a href="#" class="nav-link">Explore ▾</a><div class="nav-sub" style="opacity:1;visibility:visible;transform:translateX(-50%)"><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Offers</a></div></div>
+          <a href="#" class="nav-link">Journal</a><a href="#" class="nav-link">Contact</a>
+        </nav>
+        <div class="nav-right"><a href="#" class="btn btn-coral btn-sm">Book a stay</a></div>
+      </div>
+    </header>
+    <div style="padding:100px 30px 40px;color:var(--site-mute)">Page content scrolls beneath the solid header.</div>
+  </div>
+
+  <div class="cap">Mobile drawer (burger → full-screen menu)</div>
+  <div class="frame" style="max-width:380px;position:relative;min-height:520px;overflow:hidden">
+    <div class="mnav open" style="position:absolute">
+      <div class="mnav-top"><a href="#" class="brand"><span class="brand-mark">R</span><span class="brand-name" style="color:var(--site-navy-ink)">Royal Hotel</span></a><button class="nav-burger" style="display:block;color:var(--site-navy-ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <nav class="mnav-links"><a href="#">Home</a><a href="#">Rooms</a><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Offers</a><a href="#">Journal</a><a href="#">About</a><a href="#">Contact</a></nav>
+      <a href="#" class="btn btn-coral btn-lg btn-block">Book a stay</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

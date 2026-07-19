@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="lagoon" data-font="grotesk" data-shape="rounded">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>You're booked — Royal Hotel</title>
+<meta name="description" content="Your Royal Hotel booking is confirmed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .tyhero{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:110px 0 70px}
+  .tyhero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .tyhero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,28,40,.5),rgba(8,28,40,.7))}
+  .tycard{position:relative;z-index:2;width:min(640px,92vw);background:var(--site-surface);border-radius:var(--site-radius-xl);padding:clamp(32px,5vw,52px);text-align:center;box-shadow:0 50px 100px -40px rgba(0,0,0,.6)}
+  .tycheck{width:70px;height:70px;border-radius:50%;background:var(--site-tint);color:var(--site-accent-deep);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  .tyref{display:inline-flex;align-items:center;gap:10px;margin-top:20px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);background:var(--site-soft);padding:9px 16px;border-radius:999px}
+  .tyref b{font-weight:800;color:var(--site-ink);letter-spacing:.04em}
+  .tysum{margin-top:28px;border:1px solid var(--site-line);border-radius:var(--site-radius-lg);overflow:hidden;text-align:left}
+  .tysum-top{display:flex;gap:14px;padding:18px;background:var(--site-soft)}
+  .tysum-top img{width:80px;height:80px;border-radius:var(--site-radius-sm);object-fit:cover;flex-shrink:0}
+  .tyrow{display:flex;justify-content:space-between;padding:13px 18px;border-top:1px solid var(--site-line);font-size:14.5px;color:var(--site-mute)}
+  .tyrow b{font-weight:700;color:var(--site-ink)}
+  .tytot{display:flex;justify-content:space-between;align-items:baseline;padding:16px 18px;border-top:1px solid var(--site-line)}
+  .tytot .amt{font-family:var(--site-font-heading);font-weight:800;font-size:1.9rem;color:var(--site-ink)}
+  .tynext{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px;text-align:left}
+  .tynext .n{padding:16px;background:var(--site-soft);border-radius:var(--site-radius)}
+  .tynext .ic{color:var(--site-accent);margin-bottom:8px}
+  .tynext h4{font-size:1.05rem}.tynext p{font-size:12.5px;color:var(--site-mute);margin-top:4px;line-height:1.45}
+  @media(max-width:560px){.tynext{grid-template-columns:1fr}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.OV_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"lagoon","font":"grotesk","shape":"rounded"}/*EDITMODE-END*/;
+try{var d=window.OV_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('ovTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav over float" data-screen-label="Thank You">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel<small>Cape Town</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link">Rooms</a>
+      <a href="Home.html#experiences" class="nav-link">Experiences</a>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right"><a href="Home.html" class="btn btn-on-img btn-sm">Back home</a><button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+  </div>
+</header>
+
+<section class="tyhero" data-section="hero">
+  <img class="bg" src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=2200&q=80" alt="The sea at Royal Hotel" />
+  <div class="tycard">
+    <div class="tycheck"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <span class="tag" style="justify-content:center;margin-top:18px">Booking confirmed</span>
+    <h1 class="xl" style="font-size:clamp(2.1rem,5vw,3.2rem);margin-top:12px">See you soon, <span id="tyName">traveller</span></h1>
+    <p class="muted" style="margin-top:12px;max-width:46ch;margin-inline:auto">A confirmation is on its way to <b id="tyEmail" style="color:var(--site-ink);font-weight:700">your inbox</b>. We can't wait to welcome you to the bay.</p>
+    <div class="tyref">Booking reference <b id="tyRef">OV-204815</b></div>
+
+    <div class="tysum">
+      <div class="tysum-top">
+        <img id="tyImg" src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=300&q=80" alt="Your room" />
+        <div><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute)">Royal Hotel · Cape Town</span><h3 id="tyRoom" style="font-size:1.4rem;margin-top:4px">Deluxe King</h3><div style="display:flex;align-items:center;gap:7px;margin-top:6px"><span class="stars" style="font-size:12px">★★★★★</span><span class="muted" style="font-size:12.5px">Breakfast included</span></div></div>
+      </div>
+      <div class="tyrow"><span>Check in</span><b id="tyIn">10 Jul 2026</b></div>
+      <div class="tyrow"><span>Check out</span><b id="tyOut">13 Jul 2026</b></div>
+      <div class="tyrow"><span>Guests · nights</span><b><span id="tyGuests">2</span> guests · <span id="tyNights">3</span> nights</b></div>
+      <div class="tytot"><span style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute)">Total paid</span><span class="amt" id="tyTotal">R11,700</span></div>
+    </div>
+
+    <div class="tynext">
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div><h4>Check your email</h4><p>Your confirmation and check-in details are on the way.</p></div>
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div><h4>Arrange a transfer</h4><p>Send your flight and we'll meet you at arrivals.</p></div>
+      <div class="n"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0"/></svg></div><h4>Then, just arrive</h4><p>Your room, the pool and a cold drink will be ready.</p></div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+      <a href="Home.html" class="btn btn-coral btn-lg">Back to home</a>
+      <a href="Contact.html" class="btn btn-ghost btn-lg">Send us your flight</a>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:20px">Free cancellation up to 48 hours before arrival · no booking fees were charged.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer" style="padding:46px 0 38px">
+  <div class="wrap">
+    <div class="foot-bottom" style="margin-top:0;border-top:none;padding-top:0">
+      <span>© 2026 Royal Hotel · Cape Town</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name" style="color:var(--site-navy-ink)">Royal Hotel</span></a><button class="nav-burger" data-mclose aria-label="Close menu" style="display:block;color:var(--site-navy-ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Rooms</a><a href="Home.html#experiences">Experiences</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Rooms.html" class="btn btn-coral btn-lg btn-block">Browse rooms</a>
+</div>
+
+<script>
+(function(){
+  var b={};try{b=JSON.parse(localStorage.getItem('ovBooking')||'{}');}catch(e){}
+  var money=function(n){return 'R'+Number(n).toLocaleString('en-ZA');};
+  var fdate=function(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return null;return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
+  var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!=='')el.textContent=v;};
+  set('tyRoom',b.room);set('tyName',b.firstName);set('tyEmail',b.email);set('tyRef',b.ref);
+  set('tyIn',fdate(b.checkin));set('tyOut',fdate(b.checkout));set('tyGuests',b.guests);set('tyNights',b.nights);
+  if(b.total!=null)set('tyTotal',money(b.total));
+  var imgs={'Deluxe King':'photo-1578683010236-d716f9a3f461','Executive Suite':'photo-1582610116397-edb318620f90','The Penthouse':'photo-1566073771259-6a8506099945'};
+  if(b.room&&imgs[b.room])document.getElementById('tyImg').src='https://images.unsplash.com/'+imgs[b.room]+'?w=300&q=80';
+})();
+</script>
+<script src="royal.js"></script>
+<script src="royal-tweaks.js"></script>
+</body>
+</html>

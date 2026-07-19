@@ -18,6 +18,7 @@ import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
 import { SiteImg } from "./SiteImg";
 import { SiteThemeRoot } from "./SiteThemeRoot";
+import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 
 function fmtMoney(amount: number | null, currency: string): string | null {
   if (amount == null) return null;
@@ -275,8 +276,7 @@ export async function SiteSpecialView({
           // the header solid so links stay legible (matches room detail).
           pageHasHero={false}
         >
-          {ctx.theme.preset === "oceansview" ||
-          ctx.theme.preset === "safari" ? (
+          {usesOceansViewLayout(ctx.theme.preset) ? (
             <OceansViewSpecialDetail
               special={special}
               otherSpecials={otherSpecials}

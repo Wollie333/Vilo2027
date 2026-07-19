@@ -17,6 +17,7 @@ import {
 } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
+import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 
 export const dynamic = "force-dynamic";
 
@@ -85,11 +86,9 @@ export default async function SiteBlogIndexPage({
             : undefined
         }
         previewPages={previewPages}
-        pageHasHero={
-          ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari"
-        }
+        pageHasHero={usesOceansViewLayout(ctx.theme.preset)}
       >
-        {ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari" ? (
+        {usesOceansViewLayout(ctx.theme.preset) ? (
           <OceansViewJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}

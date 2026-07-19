@@ -82,6 +82,9 @@ const THEME_CHROME: Record<
   // Safari reuses the OceansView chrome (token-driven) — under `.wielo-safari`
   // it renders in the savanna palette, matching Safari's reused OceansView pages.
   safari: { Header: OceansViewHeader, Footer: OceansViewFooter },
+  // Royal Hotel likewise reuses the OceansView chrome — under `.wielo-royal` it
+  // renders champagne-gold/charcoal grand-hotel, matching its reused pages.
+  royal: { Header: OceansViewHeader, Footer: OceansViewFooter },
   marmalade: { Header: MarmaladeHeader, Footer: MarmaladeFooter },
   hotel: { Header: SabelaHeader, Footer: SabelaFooter },
 };

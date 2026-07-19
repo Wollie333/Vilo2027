@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="lagoon" data-font="grotesk" data-shape="rounded">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Availability — Royal Hotel, Cape Town</title>
+<meta name="description" content="Search room availability at Royal Hotel for your dates. Book direct — the price you see is the price you pay." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<script>
+document.documentElement.classList.add('js');
+window.OV_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"lagoon","font":"grotesk","shape":"rounded"}/*EDITMODE-END*/;
+try{var d=window.OV_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('ovTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav solid" data-screen-label="Search results">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel<small>Cape Town</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link active">Rooms</a>
+      <div class="nav-has-sub">
+        <a href="Experiences.html" class="nav-link">Explore ▾</a>
+        <div class="nav-sub"><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a></div>
+      </div>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right"><a href="Booking.html" class="btn btn-coral btn-sm">Book a stay</a><button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+  </div>
+</header>
+
+<section class="section" style="padding-top:130px;padding-bottom:clamp(40px,5vw,64px)" data-section="intro">
+  <div class="wrap">
+    <div class="crumbs reveal" style="display:flex;gap:9px;font-size:13px;font-weight:600;color:var(--site-mute)"><a href="Rooms.html" style="color:var(--site-accent)">Rooms</a><span>·</span><span>Availability</span></div>
+    <h1 class="xl reveal" data-d="1" style="margin-top:12px;font-size:clamp(2.2rem,4.6vw,3.4rem)">Available for your dates</h1>
+
+    <!-- the search widget binds to live availability + pricing -->
+    <form class="availbar-in reveal" data-d="2" data-avail="Search Results.html" data-section="booking_search" data-live="true" style="margin-top:26px;display:grid">
+      <div class="ab-field"><label>Check in</label><input type="date" name="checkin" value="2026-07-10" /></div>
+      <div class="ab-field"><label>Check out</label><input type="date" name="checkout" value="2026-07-13" /></div>
+      <div class="ab-field"><label>Guests</label><select name="guests"><option value="2">2 guests</option><option value="1">1 guest</option><option value="3">3 guests</option><option value="4">4 guests</option></select></div>
+      <div class="ab-go"><button type="submit" class="btn btn-primary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</button></div>
+    </form>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="section" style="padding-top:0" data-section="rooms_preview" data-live="true">
+  <div class="wrap">
+    <p class="muted reveal" style="font-size:15px;margin-bottom:18px"><b style="color:var(--site-ink)">3 rooms available</b> · 10–13 Jul 2026 · 3 nights · 2 guests</p>
+    <div class="sr-list">
+
+      <article class="sr-card reveal">
+        <div class="sr-i"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80" alt="Deluxe King" /></div>
+        <div class="sr-b"><h3>Deluxe King</h3><div class="room-feat" style="margin-top:12px"><span class="chip">Sleeps 2</span><span class="chip">City view</span><span class="chip">Balcony</span></div><p class="muted" style="font-size:14.5px;line-height:1.55;margin-top:14px;max-width:46ch">A light, breezy room with a private balcony over the city and the Atlantic filling every window.</p></div>
+        <div class="sr-p"><div><div class="muted" style="font-size:12px">from</div><div style="font-family:var(--site-font-heading);font-weight:800;font-size:1.8rem;color:var(--site-ink)">R3,900 <span class="muted" style="font-size:13px;font-weight:500">/ night</span></div><div class="muted" style="font-size:12.5px;margin-top:3px">R11,700 · 3 nights</div></div><a href="Booking.html?room=Ocean&rate=3900" class="btn btn-coral">Book</a></div>
+      </article>
+
+      <article class="sr-card reveal" data-d="1">
+        <div class="sr-i"><img src="https://images.unsplash.com/photo-1582610116397-edb318620f90?w=800&q=80" alt="Executive Suite" /></div>
+        <div class="sr-b"><h3>Executive Suite</h3><div class="room-feat" style="margin-top:12px"><span class="chip">Sleeps 3</span><span class="chip">Plunge pool</span><span class="chip">Lounge</span></div><p class="muted" style="font-size:14.5px;line-height:1.55;margin-top:14px;max-width:46ch">A spacious suite with a private terrace plunge pool, a separate living room and views down the bay.</p></div>
+        <div class="sr-p"><div><div class="muted" style="font-size:12px">from</div><div style="font-family:var(--site-font-heading);font-weight:800;font-size:1.8rem;color:var(--site-ink)">R6,800 <span class="muted" style="font-size:13px;font-weight:500">/ night</span></div><div class="muted" style="font-size:12.5px;margin-top:3px">R20,400 · 3 nights</div></div><a href="Booking.html?room=Lagoon&rate=6800" class="btn btn-coral">Book</a></div>
+      </article>
+
+      <article class="sr-card reveal" data-d="2">
+        <div class="sr-i"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80" alt="The Penthouse" /></div>
+        <div class="sr-b"><h3>The Penthouse</h3><div class="room-feat" style="margin-top:12px"><span class="chip">Sleeps 4</span><span class="chip">Rooftop pool</span><span class="chip">Panoramic</span></div><p class="muted" style="font-size:14.5px;line-height:1.55;margin-top:14px;max-width:46ch">The whole top floor — two bedrooms, a wraparound rooftop terrace with a pool and a 180° sweep of the sea.</p></div>
+        <div class="sr-p"><div><div class="muted" style="font-size:12px">from</div><div style="font-family:var(--site-font-heading);font-weight:800;font-size:1.8rem;color:var(--site-ink)">R13,500 <span class="muted" style="font-size:13px;font-weight:500">/ night</span></div><div class="muted" style="font-size:12.5px;margin-top:3px">R40,500 · 3 nights</div></div><a href="Booking.html?room=Penthouse&rate=13500" class="btn btn-coral">Book</a></div>
+      </article>
+
+    </div>
+
+    <!-- ALTERNATE STATE — shown instead of the list when nothing is free for the chosen dates -->
+    <p class="tag reveal" style="margin:clamp(40px,5vw,60px) 0 0">Empty state · no availability</p>
+    <div class="sr-empty reveal">
+      <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 15h.01M12 15h.01M16 15h.01"/></svg></div>
+      <h2 class="lg" style="font-size:clamp(1.7rem,3.4vw,2.4rem)">No rooms free for those dates</h2>
+      <p class="muted" style="max-width:44ch;margin:14px auto 0">The bay books up fast in summer. Try a different window, or leave your dates and we'll message you the moment a room opens.</p>
+      <div class="hero-cta" style="justify-content:center;margin-top:26px"><a href="Rooms.html" class="btn btn-coral btn-lg">Change dates</a><a href="Contact.html" class="btn btn-ghost btn-lg">Join the waitlist</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div><a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name">Royal Hotel</span></a><p class="foot-blurb">A contemporary grand hotel in the heart of Cape Town. City-view rooms and suites, a rooftop pool and spa, and a calmer way to stay in the city.</p></div>
+      <div><div class="foot-h">Explore</div><div class="foot-col"><a href="Rooms.html">Rooms &amp; rates</a><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a><a href="Journal.html">Journal</a><a href="About.html">About us</a></div></div>
+      <div><div class="foot-h">Stay</div><div class="foot-col"><a href="Booking.html">Book a stay</a><a href="Contact.html">Getting here</a><a href="Contact.html">Transfers</a><a href="Contact.html">FAQ</a></div></div>
+      <div><div class="foot-h">The good stuff, by email</div><p class="foot-blurb" style="margin-top:0">Open dates, seasonal offers and the occasional recipe from the kitchen. No spam.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-coral btn-sm" type="submit">Join</button></form></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Royal Hotel · Cape Town</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="brand-mark">R</span><span class="brand-name" style="color:var(--site-navy-ink)">Royal Hotel</span></a><button class="nav-burger" data-mclose aria-label="Close menu" style="display:block;color:var(--site-navy-ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Rooms</a><a href="Experiences.html">Experiences</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Booking.html" class="btn btn-coral btn-lg btn-block">Book a stay</a>
+</div>
+
+<script src="royal.js"></script>
+<script src="royal-tweaks.js"></script>
+</body>
+</html>

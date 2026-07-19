@@ -22,6 +22,7 @@ import {
 import { siteMetadata } from "@/lib/site/metadata";
 import { buildBlogPostJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
+import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 
 export const dynamic = "force-dynamic";
 
@@ -148,13 +149,11 @@ export default async function SiteBlogPostPage({
           }
           previewPages={previewPages}
           pageHasHero={
-            ctx.theme.preset === "oceansview" ||
-            ctx.theme.preset === "safari" ||
+            usesOceansViewLayout(ctx.theme.preset) ||
             ctx.theme.preset === "marmalade"
           }
         >
-          {ctx.theme.preset === "oceansview" ||
-          ctx.theme.preset === "safari" ? (
+          {usesOceansViewLayout(ctx.theme.preset) ? (
             <OceansViewArticle
               brandName={ctx.brand.name}
               post={post}

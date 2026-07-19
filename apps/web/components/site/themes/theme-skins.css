@@ -884,6 +884,31 @@
   --site-h3: 1.5rem;
 }
 
+/* ======================================================================
+ * ROYAL HOTEL — clean contemporary grand hotel (white · charcoal · champagne)
+ * Reuses the OceansView bespoke page components (.ov*) + chrome, re-skinned to
+ * the grand-hotel palette. The core --site-* (white bg, charcoal ink, champagne
+ * accent #B08948, espresso secondary) + refined `md` radius + grotesk font come
+ * from the `royal` preset via buildSiteVars; these are the derived COLOR tokens
+ * the .ov* CSS reads (buildSiteVars does NOT emit them), given royal values so
+ * nothing falls back to OceansView's navy/aqua. Champagne-on-white reads as
+ * urban luxury — distinct in feel from the beach-resort OceansView on the same
+ * bones. Ref: docs/themes/royalhotel/{theme.css,base.md}.
+ * ==================================================================== */
+.wielo-royal {
+  --site-soft: #f6f3ed; /* warm stone fill for alternating bands */
+  --site-soft-2: #ece6da;
+  --site-sand: #f6f3ed;
+  --site-navy: #16130e; /* near-black charcoal anchor: footer + dark bands */
+  --site-navy-2: #211d16;
+  --site-navy-ink: #f3eee4; /* warm bone text on the charcoal bands */
+  --site-navy-mute: #aba090;
+  --site-accent-deep: #8c6b34; /* deeper champagne (hover / text on light) */
+  --site-secondary-deep: #100e0b; /* near-black espresso */
+  --site-tint: #f1e8d6; /* pale champagne chip fill */
+  --site-intro-eyebrow-fg: var(--site-secondary);
+}
+
 /* --- Section eyebrow "tag" (ochre uppercase + dot) ----------------------- */
 .wielo-safari .site-eyebrow {
   display: inline-flex;

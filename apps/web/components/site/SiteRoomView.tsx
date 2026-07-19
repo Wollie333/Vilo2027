@@ -25,6 +25,7 @@ import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
 import { SiteThemeRoot } from "./SiteThemeRoot";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
+import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 
 /**
  * Renders one ROOM as a full page: the themed frame + the host's room-detail
@@ -134,7 +135,7 @@ export async function SiteRoomView({
   // dedicated component wired to the room's real data (reviews, seasonal rates,
   // other rooms), inside the themed chrome. Bypasses the generic dock/PageDoc
   // paths for this theme only.
-  if (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") {
+  if (usesOceansViewLayout(ctx.theme.preset)) {
     const sbx = createAdminClient();
     const extras = await assembleSiteDataByType(
       sbx,

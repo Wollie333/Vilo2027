@@ -21,6 +21,7 @@ import type { SiteAssetResolver } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { parseContentProfileLoose } from "@/lib/website/contentProfile.schema";
+import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 import {
   pageStartsWithHero,
   sectionsStartWithHero,
@@ -198,10 +199,7 @@ export async function SitePageView({
   // + live listing data (rooms, reviews, gallery, booking funnel), inside the
   // themed chrome. Content stays put on theme change: the profile is the SSOT, so
   // switching to/from Oceans View re-skins without touching the host's copy.
-  if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
-    result.page.kind === "home"
-  ) {
+  if (usesOceansViewLayout(ctx.theme.preset) && result.page.kind === "home") {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
       sbx
@@ -453,10 +451,7 @@ export async function SitePageView({
   // content_profile; stats/imagery from live listing data; demo copy is fallback
   // only. Sections needing data we don't collect (multi-year timeline, full team)
   // are omitted, not fabricated. Same content-persistence contract as home.
-  if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
-    result.page.kind === "about"
-  ) {
+  if (usesOceansViewLayout(ctx.theme.preset) && result.page.kind === "about") {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
       sbx
@@ -673,10 +668,7 @@ export async function SitePageView({
   // alternating split with a floating price badge, live facts and real book/view
   // links. Empty → the design's placeholder (never demo rooms). Gallery images
   // feed the page-head + CTA imagery. Same content-persistence contract as home.
-  if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
-    result.page.kind === "rooms"
-  ) {
+  if (usesOceansViewLayout(ctx.theme.preset) && result.page.kind === "rooms") {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras] = await Promise.all([
       sbx
@@ -804,7 +796,7 @@ export async function SitePageView({
   // design's "no offers yet" placeholder (never demo cards). Gallery feeds the
   // page-head + CTA imagery. Same content-persistence contract as home.
   if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
+    usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "specials"
   ) {
     const sbx = createAdminClient();
@@ -995,7 +987,7 @@ export async function SitePageView({
   // content_profile (brand-agnostic direct-booking answers as fallback). Rooms
   // feed the form's room selector. Same content-persistence contract as home.
   if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
+    usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "contact"
   ) {
     const sbx = createAdminClient();
@@ -1309,7 +1301,7 @@ export async function SitePageView({
   // tasteful "on the way" state (never fabricated). Same chrome + CTA as the
   // other bespoke pages.
   if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
+    usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "experiences"
   ) {
     const sbx = createAdminClient();
@@ -1490,7 +1482,7 @@ export async function SitePageView({
   // (assembleSiteDataByType "gallery") with a lightbox; empty → "photos coming
   // soon" (never fabricated). Same chrome + CTA as the other bespoke pages.
   if (
-    (ctx.theme.preset === "oceansview" || ctx.theme.preset === "safari") &&
+    usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "gallery"
   ) {
     const sbx = createAdminClient();
