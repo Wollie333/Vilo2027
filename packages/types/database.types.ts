@@ -6795,6 +6795,62 @@ export type Database = {
           },
         ]
       }
+      product_billing_plans: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          cycle: string
+          environment: string
+          id: string
+          product_id: string
+          provider: string
+          provider_amount: number | null
+          provider_currency: string | null
+          provider_plan_id: string
+          provider_product_id: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          cycle: string
+          environment: string
+          id?: string
+          product_id: string
+          provider: string
+          provider_amount?: number | null
+          provider_currency?: string | null
+          provider_plan_id: string
+          provider_product_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          cycle?: string
+          environment?: string
+          id?: string
+          product_id?: string
+          provider?: string
+          provider_amount?: number | null
+          provider_currency?: string | null
+          provider_plan_id?: string
+          provider_product_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_billing_plans_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_features: {
         Row: {
           feature_key: string

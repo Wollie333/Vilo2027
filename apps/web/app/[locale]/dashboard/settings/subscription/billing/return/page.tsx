@@ -2,30 +2,52 @@ import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
+import { activatePayPalSubscription } from "@/lib/billing/paypal-subscription";
 import { verifyTransaction } from "@/lib/paystack";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-// Paystack redirects here after the host pays for a plan. We verify the
-// transaction (platform key) as defence-in-depth and show the outcome — the
-// webhook is the source of truth that activates the subscription + completes the
-// ledger row.
+// Both rails redirect here after the host pays for a plan:
+//  - Paystack (?reference) — verify the transaction (defence-in-depth); the
+//    webhook is the source of truth that activates + completes the ledger.
+//  - PayPal (?subscription_id) — the payer approved a native subscription; we
+//    activate the row on return (idempotent; the ACTIVATED webhook is the
+//    backstop) and money lands via PAYMENT.SALE.COMPLETED.
 export default async function BillingReturnPage({
   searchParams,
 }: {
-  searchParams?: { reference?: string; trxref?: string };
+  searchParams?: {
+    reference?: string;
+    trxref?: string;
+    subscription_id?: string;
+  };
 }) {
-  const reference = searchParams?.reference ?? searchParams?.trxref ?? null;
+  const paypalSubId = searchParams?.subscription_id ?? null;
+  const reference =
+    searchParams?.reference ?? searchParams?.trxref ?? paypalSubId ?? null;
 
   let state: "success" | "pending" | "failed" = "pending";
-  const secret = await getPlatformPaystackSecret();
-  if (reference && secret) {
+  if (paypalSubId) {
     try {
-      const tx = await verifyTransaction(reference, secret);
-      if (tx?.status === "success") state = "success";
-      else if (tx && tx.status !== "success") state = "failed";
+      const ok = await activatePayPalSubscription(
+        createAdminClient(),
+        paypalSubId,
+      );
+      state = ok ? "success" : "pending";
     } catch {
       state = "pending";
+    }
+  } else {
+    const secret = await getPlatformPaystackSecret();
+    if (reference && secret) {
+      try {
+        const tx = await verifyTransaction(reference, secret);
+        if (tx?.status === "success") state = "success";
+        else if (tx && tx.status !== "success") state = "failed";
+      } catch {
+        state = "pending";
+      }
     }
   }
 

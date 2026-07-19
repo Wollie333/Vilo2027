@@ -139,6 +139,289 @@ export async function getPayPalOrder(
   return { status: json.status };
 }
 
+// ─── Native subscriptions (Wielo platform rail) ──────────────────────────────
+// PayPal recurring uses the Subscriptions API: a Catalog Product → a Billing Plan
+// (fixed price, monthly/annual) → a Subscription the payer approves. PayPal then
+// auto-charges each cycle and fires webhooks (PAYMENT.SALE.COMPLETED etc.). Only
+// the PLATFORM PayPal app runs these (Wielo's own subscription revenue) — never a
+// host key. Amounts are USD (PayPal can't hold ZAR); the ledger stays ZAR.
+
+/**
+ * Create (or reuse) a PayPal Catalog Product — the umbrella a Billing Plan hangs
+ * off. One per Wielo product is enough; we create lazily and cache the id in
+ * product_billing_plans. Returns the product id or null on failure.
+ */
+export async function createPayPalCatalogProduct(input: {
+  name: string;
+  description?: string;
+  creds: PayPalCreds;
+  requestId?: string;
+}): Promise<string | null> {
+  const token = await getPayPalAccessToken(input.creds);
+  if (!token) return null;
+  const res = await fetch(`${BASE_URL[input.creds.env]}/v1/catalogs/products`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(input.requestId ? { "PayPal-Request-Id": input.requestId } : {}),
+    },
+    body: JSON.stringify({
+      name: input.name.slice(0, 127),
+      description: input.description?.slice(0, 256),
+      type: "SERVICE",
+      category: "SOFTWARE",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { id?: string };
+  return json.id ?? null;
+}
+
+/**
+ * Create a fixed-price Billing Plan on a Catalog Product. `amount` is USD (the
+ * plan price is frozen at this value; ZAR drift is handled by re-versioning the
+ * plan, not editing it). Returns the plan id or null on failure.
+ */
+export async function createPayPalBillingPlan(input: {
+  productId: string;
+  name: string;
+  cycle: "monthly" | "annual";
+  amount: number; // USD
+  currency?: string; // "USD"
+  creds: PayPalCreds;
+  requestId?: string;
+}): Promise<string | null> {
+  const token = await getPayPalAccessToken(input.creds);
+  if (!token) return null;
+  const currency = input.currency ?? "USD";
+  const res = await fetch(`${BASE_URL[input.creds.env]}/v1/billing/plans`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(input.requestId ? { "PayPal-Request-Id": input.requestId } : {}),
+    },
+    body: JSON.stringify({
+      product_id: input.productId,
+      name: input.name.slice(0, 127),
+      status: "ACTIVE",
+      billing_cycles: [
+        {
+          frequency: {
+            interval_unit: input.cycle === "annual" ? "YEAR" : "MONTH",
+            interval_count: 1,
+          },
+          tenure_type: "REGULAR",
+          sequence: 1,
+          total_cycles: 0, // infinite until cancelled
+          pricing_scheme: {
+            fixed_price: {
+              value: input.amount.toFixed(2),
+              currency_code: currency,
+            },
+          },
+        },
+      ],
+      payment_preferences: {
+        auto_bill_outstanding: true,
+        setup_fee_failure_action: "CANCEL",
+        payment_failure_threshold: 1,
+      },
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { id?: string };
+  return json.id ?? null;
+}
+
+/**
+ * Create a Subscription on a Billing Plan → returns the subscription id + the
+ * payer approval URL. `customId` correlates the PayPal subscription back to our
+ * row (we pass the Wielo subscription id) and rides on every webhook. Capture the
+ * subscription id + confirm ACTIVE when the payer returns. Null on failure.
+ */
+export async function createPayPalSubscription(input: {
+  planId: string;
+  returnUrl: string;
+  cancelUrl: string;
+  customId?: string;
+  subscriberEmail?: string;
+  brandName?: string;
+  creds: PayPalCreds;
+  requestId?: string;
+}): Promise<{ subscriptionId: string; approveUrl: string } | null> {
+  const token = await getPayPalAccessToken(input.creds);
+  if (!token) return null;
+  const res = await fetch(
+    `${BASE_URL[input.creds.env]}/v1/billing/subscriptions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(input.requestId ? { "PayPal-Request-Id": input.requestId } : {}),
+      },
+      body: JSON.stringify({
+        plan_id: input.planId,
+        custom_id: input.customId,
+        subscriber: input.subscriberEmail
+          ? { email_address: input.subscriberEmail }
+          : undefined,
+        application_context: {
+          brand_name: input.brandName?.slice(0, 127) ?? "Wielo",
+          user_action: "SUBSCRIBE_NOW",
+          return_url: input.returnUrl,
+          cancel_url: input.cancelUrl,
+          shipping_preference: "NO_SHIPPING",
+        },
+      }),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    id?: string;
+    links?: Array<{ rel: string; href: string }>;
+  };
+  const approve = json.links?.find((l) => l.rel === "approve")?.href;
+  if (!json.id || !approve) return null;
+  return { subscriptionId: json.id, approveUrl: approve };
+}
+
+/**
+ * Read a subscription's current state (status, custom_id, billing_info) without
+ * mutating it — used by the return page (confirm ACTIVE) and the reconcile cron
+ * (drift). Returns null on failure.
+ */
+export async function getPayPalSubscription(
+  subscriptionId: string,
+  creds: PayPalCreds,
+): Promise<{
+  status: string;
+  customId: string | null;
+  planId: string | null;
+  nextBillingTime: string | null;
+} | null> {
+  const token = await getPayPalAccessToken(creds);
+  if (!token) return null;
+  const res = await fetch(
+    `${BASE_URL[creds.env]}/v1/billing/subscriptions/${encodeURIComponent(
+      subscriptionId,
+    )}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    status?: string;
+    custom_id?: string;
+    plan_id?: string;
+    billing_info?: { next_billing_time?: string };
+  };
+  if (!json.status) return null;
+  return {
+    status: json.status,
+    customId: json.custom_id ?? null,
+    planId: json.plan_id ?? null,
+    nextBillingTime: json.billing_info?.next_billing_time ?? null,
+  };
+}
+
+/**
+ * Cancel a PayPal subscription (used on downgrade/rebuild + host cancellation).
+ * Returns true on success (204) or when the subscription is already inactive.
+ */
+export async function cancelPayPalSubscription(
+  subscriptionId: string,
+  reason: string,
+  creds: PayPalCreds,
+): Promise<boolean> {
+  const token = await getPayPalAccessToken(creds);
+  if (!token) return false;
+  const res = await fetch(
+    `${BASE_URL[creds.env]}/v1/billing/subscriptions/${encodeURIComponent(
+      subscriptionId,
+    )}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ reason: reason.slice(0, 127) }),
+      cache: "no-store",
+    },
+  );
+  // 204 = cancelled; 422 = already cancelled/expired (treat as done).
+  return res.status === 204 || res.status === 422;
+}
+
+/**
+ * Verify a PayPal webhook signature via PayPal's verification API — the ONLY
+ * trustworthy way (headers alone are forgeable). Passes the transmission headers
+ * + the RAW event body + our PAYPAL_WEBHOOK_ID; PayPal returns SUCCESS/FAILURE.
+ * Returns false on any error (fail closed). `rawBody` MUST be the exact bytes
+ * received (parse a fresh copy for the event; don't re-stringify).
+ */
+export async function verifyPayPalWebhookSignature(input: {
+  headers: {
+    transmissionId: string | null;
+    transmissionTime: string | null;
+    certUrl: string | null;
+    authAlgo: string | null;
+    transmissionSig: string | null;
+  };
+  rawBody: string;
+  webhookId: string;
+  creds: PayPalCreds;
+}): Promise<boolean> {
+  const h = input.headers;
+  if (
+    !h.transmissionId ||
+    !h.transmissionTime ||
+    !h.certUrl ||
+    !h.authAlgo ||
+    !h.transmissionSig ||
+    !input.webhookId
+  ) {
+    return false;
+  }
+  const token = await getPayPalAccessToken(input.creds);
+  if (!token) return false;
+  try {
+    const res = await fetch(
+      `${BASE_URL[input.creds.env]}/v1/notifications/verify-webhook-signature`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        // webhook_event must be the parsed JSON of the exact raw body.
+        body: `{"transmission_id":${JSON.stringify(
+          h.transmissionId,
+        )},"transmission_time":${JSON.stringify(
+          h.transmissionTime,
+        )},"cert_url":${JSON.stringify(h.certUrl)},"auth_algo":${JSON.stringify(
+          h.authAlgo,
+        )},"transmission_sig":${JSON.stringify(
+          h.transmissionSig,
+        )},"webhook_id":${JSON.stringify(
+          input.webhookId,
+        )},"webhook_event":${input.rawBody}}`,
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return false;
+    const json = (await res.json()) as { verification_status?: string };
+    return json.verification_status === "SUCCESS";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Capture an approved PayPal order on the host's account. Returns the capture
  * status (e.g. "COMPLETED") or null on failure.
