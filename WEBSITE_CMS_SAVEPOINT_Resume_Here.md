@@ -36,6 +36,17 @@
 > img `src` is a `/render/image` URL + sharp). Then **Next = PHASE 2** (wire AI-wizard content per page,
 > incl. the Experiences auto-draft idea below) then PHASE 3 (builder per-element customisation).
 >
+> **🚀 LAUNCH OPS-TODO (founder, Cloudflare dashboard) — Turnstile allowed hostnames.** The checkout +
+> website-enquiry forms use Cloudflare Turnstile (`components/site/TurnstileWidget.tsx`, gated by
+> `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; server verify `lib/security/turnstile.ts`, fail-closed once
+> `TURNSTILE_SECRET_KEY` is set). The site key is **domain-locked**: on any hostname NOT in the key's
+> *Allowed Hostnames* it renders RED with **error 110200** and, because the checkout submit gates on
+> `turnstileEnabled() && !tsToken`, the pay button stays disabled. This is why checkout Turnstile fails on
+> the `*.vercel.app` PREVIEW domain (diagnosed pt15 — NOT a code bug). **Before a real tenant site goes
+> live, add that tenant's actual domain/subdomain to the Turnstile widget's Allowed Hostnames** (and the
+> production apex/`www`), or the live checkout will 110200 there too. (Optional preview convenience: add the
+> branch alias / `*.vercel.app`, or use a Cloudflare *testing* site key on preview deploys.)
+>
 > **✅ `f7ebd86` VERIFIED live** — Sabela checkout now has three clear elevation levels: page `≈rgb(20,18,13)`
 >   < form card `≈rgb(45,42,35)` < room/add-on rows `≈rgb(62,58,51)` (lighter, visible border `≈rgb(98,93,79)`).
 >   The `dateInk` change softens the SELECTED date value; the "Add date" placeholder stays the standard mute
