@@ -225,7 +225,11 @@ were audited (invoice/quote/receipt/credit-note/statement/forfeit/Wielo-*); the 
 - **Audited CLEAN (no change):** receipt (single-line proof-of-payment), booking
   credit-note (single figure = total), statement (stored `vat_amount`, post-discount
   charge lines), forfeit statement, Wielo credit-note, commission statement.
-- **⏳ Follow-up (spawned):** the **Wielo platform invoice** bakes a platform-coupon
-  discount into the net price and never itemises it (foots, but hides the discount) —
-  mint `mint_wielo_invoice_on_ledger_complete` + its renderers. Minor: booking credit-note
-  shows no VAT breakdown line for VAT hosts; Wielo statement hard-codes a 15% rate label.
+- **✅ FIXED — Wielo platform invoice discount** (migration `20260719230000`): the mint
+  `mint_wielo_invoice_on_ledger_complete` baked the platform-coupon discount into the net
+  line price, hiding it. Now emits the product line at GROSS + a negative `Discount (CODE)`
+  line (from `product_orders.discount_amount` + `platform_coupons.code`); subtotal/vat/total
+  stay the net charged values, renderers unchanged. **Verified live** (HTML + rastered PDF):
+  Starter Membership R599 − Discount (WTESTCODE) R180 → Subtotal R364 + VAT R55 = R419, footing.
+- **✅ FIXED — credit-note VAT breakdown** for VAT hosts + **statement derives its VAT rate**
+  (was hard-coded 15% on the Wielo path) — commit `9f388a5d`.
