@@ -1,7 +1,7 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `96c5144` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt10 — Marmalade About/Experiences/Gallery/Journal/Article; only Thank-you left)
+**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `2980e39` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-19 (pt11 — Marmalade Thank-you → MARMALADE COMPLETE; Sabela is next)
 **This file is COMMITTED. Commit + push it before ending any session.**
 
 ---
@@ -15,6 +15,13 @@
 2. **PHASE 2 — Wire in the AI-wizard TEXT + IMAGES** per page (each page pulls the content from its relevant
    wizard step — `content_profile` + assembled live data). Some of this is already wired on OceansView
    (hero/story/experiences/faq from `content_profile`); Phase 2 makes it complete + correct on every theme.
+   - **Phase-2 IDEA (founder, 2026-07-19) — auto-draft EXPERIENCES from the address.** Use the stored
+     `businesses.latitude/longitude` → fetch REAL nearby POIs from free geodata (Overpass/OpenStreetMap;
+     Wikivoyage for regional colour; Google Places later as a paid upgrade) → ground Claude on that verified
+     list to write 4-6 on-brand experiences ("use ONLY these places, omit if unsure") → present as **drafts
+     the host approves** (never silent auto-publish), cache into `content_profile.experiences`. Do NOT scrape
+     Google's SERP; AI alone isn't "latest" (needs a live source). Displays through the already-built bespoke
+     Experiences pages. Full write-up in memory `[[experiences-ai-autopopulate-idea]]`.
 3. **PHASE 3 — Builder CUSTOMISATION options** (host can restyle/edit per element in the builder).
 
 **End state:** wizard → host picks a theme → a professional site with every page designed + AI-populated + editable.
@@ -87,10 +94,27 @@
   posts), Article (17-para body + related). Zero horizontal overflow on every page; responsive `@media`
   collapse rules present (grids …@1040 →1@560, splits →1@860, tilts reset on phones).
 
-  **➡ MARMALADE IS NOW COMPLETE except THANK-YOU.** Every content/detail page is bespoke. The only Marmalade
-  page left is the **Thank-you** design — and NO theme has a bespoke thank-you yet (the booking/contact/quote/
-  custom goal LOGIC + tracking events already exist; only the pixel design is missing). See the THANK-YOU
-  section below — that's the next Phase-1 item, then start **Sabela**.
+- **Marmalade — THANK-YOU** bespoke + live-verified (`2980e39`). `MarmaladeThankYou` (`.mmty`) — the FIRST
+  bespoke thank-you on any theme. Full-bleed hero + tilted postcard card, animated check (green confirmed /
+  amber pending clock), reference chip, dashed booking summary, CTAs. ONE component serves BOTH routes:
+  - `app/[locale]/site/book/thank-you/page.tsx` (booking): dispatches `MarmaladeThankYou` (OUTSIDE the host
+    `BookingStyleOverlay`, like the other bespoke pages) vs the generic `BookingConfirmationCard`. Confirmed →
+    Total paid row; EFT-pending → amount folded into a row + banking-details block. **All FirePurchase / Meta
+    CAPI / payment-settle logic left untouched.**
+  - `app/[locale]/site/thank-you/[[...goal]]/page.tsx` (form/goal): summary-less variant; the goal pixel
+    (Lead/Subscribe via FirePixelEvent) still fires; generic themes keep the simple card.
+  - `pageHasHero=true` for marmalade so the full-bleed hero rides under the pill.
+  - **Verified live** (goal variant): `…/site/thank-you/quote?site=mana&preview=1&theme=marmalade&name=Jane`
+    → `.mmty` in mmchrome, "Thanks, Jane", green `--site-seal` check, CTAs, tilted card, `@560` un-tilt +
+    full-width CTAs, zero overflow. **BOOKING variant is code-complete + tsc/lint green but NOT live-seen** —
+    that route has no `?theme=` preview and needs a real Marmalade site + paid booking (doesn't exist
+    pre-launch); it reuses the SAME verified component with extra summary props.
+
+  **➡ MARMALADE IS 100% COMPLETE** — every page bespoke: Home, Rooms, Room detail, Specials, Special detail,
+  Contact, About, Experiences, Gallery, Journal (index + article), Thank-you. **NEXT: start SABELA**
+  (preset `hotel`, scope `.sb*`; chrome already done). Same build pattern — port each page from
+  `docs/themes/sabela/pages/*.html` (note: Sabela's stylesheet is `theme.source.css`; rooms are labelled
+  "Suites"), template off the matching OceansView/Marmalade component, wire behind `preset === "hotel"`.
 
 ---
 
