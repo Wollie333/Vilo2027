@@ -3,19 +3,24 @@ import {
   ArrowRight,
   BadgeCheck,
   CalendarClock,
+  MapPin,
   MessageSquare,
   PencilLine,
   Search,
   ShieldCheck,
   Sparkles,
+  Users,
   Wallet,
+  Zap,
 } from "lucide-react";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { MAX_ACTIVE_LOOKING_FOR_POSTS } from "@/lib/looking-for/limits";
+import { stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -69,12 +74,186 @@ const BENEFITS = [
   },
 ];
 
+// A guest-facing showcase of what a posted request looks like. Populated from
+// real active posts when there are enough; otherwise the curated examples below
+// so the section always reads full and credible. `href` is set only for real
+// posts (links to the live request).
+type ShowcasePost = {
+  key: string;
+  href?: string;
+  category: string;
+  title: string;
+  location: string | null;
+  dateLabel: string | null;
+  guests: number;
+  budget: string | null;
+  quote: string | null;
+  urgent?: boolean;
+};
+
+const EXAMPLE_POSTS: ShowcasePost[] = [
+  {
+    key: "ex-beach",
+    category: "accommodation",
+    title: "Beachfront house for a family reunion",
+    location: "Umhlanga, KwaZulu-Natal",
+    dateLabel: "20 – 27 Dec",
+    guests: 8,
+    budget: "R2 000 – R3 500 / night",
+    quote:
+      "A 4-bed place walking distance to the beach, pet-friendly if possible.",
+  },
+  {
+    key: "ex-safari",
+    category: "experience",
+    title: "Private safari for our anniversary",
+    location: "Kruger area, Mpumalanga",
+    dateLabel: "14 – 16 Mar",
+    guests: 2,
+    budget: "Up to R12 000 total",
+    quote:
+      "A romantic bush getaway with guided game drives and dinner outdoors.",
+  },
+  {
+    key: "ex-cottage",
+    category: "accommodation",
+    title: "Quiet self-catering cottage to write",
+    location: "The Karoo",
+    dateLabel: "Flexible · 5 nights",
+    guests: 1,
+    budget: "From R700 / night",
+    quote: "Somewhere peaceful with good wifi and big skies for a deadline.",
+    urgent: true,
+  },
+];
+
+function budgetLabel(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  per: string | null | undefined,
+): string | null {
+  if (!min && !max) return null;
+  const base =
+    min && max
+      ? `R${min.toLocaleString()} – R${max.toLocaleString()}`
+      : max
+        ? `Up to R${max.toLocaleString()}`
+        : `From R${min?.toLocaleString()}`;
+  return per ? `${base} / ${per}` : base;
+}
+
+function ShowcaseCard({ post }: { post: ShowcasePost }) {
+  const inner = (
+    <>
+      <div className="flex items-start justify-between gap-2 border-b border-brand-line p-4 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="capitalize">
+            {post.category}
+          </Badge>
+          {post.urgent ? (
+            <Badge variant="destructive" className="gap-1">
+              <Zap className="h-3 w-3" /> Urgent
+            </Badge>
+          ) : null}
+        </div>
+        {post.location ? (
+          <span className="flex shrink-0 items-center gap-1 text-xs text-brand-mute">
+            <MapPin className="h-3 w-3" />{" "}
+            {post.location.split(",").pop()?.trim()}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex-1 p-4">
+        <h3 className="line-clamp-2 font-display text-base font-semibold text-brand-ink">
+          {post.title}
+        </h3>
+        {post.location ? (
+          <p className="mt-1 flex items-center gap-1 text-sm text-brand-mute">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{post.location}</span>
+          </p>
+        ) : null}
+        <div className="mt-3 space-y-1.5 text-sm text-brand-ink">
+          {post.dateLabel ? (
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-3.5 w-3.5 text-brand-mute" />
+              <span>{post.dateLabel}</span>
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <Users className="h-3.5 w-3.5 text-brand-mute" />
+            <span>
+              {post.guests} guest{post.guests !== 1 ? "s" : ""}
+            </span>
+          </div>
+          {post.budget ? (
+            <div className="flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5 text-brand-mute" />
+              <span>{post.budget}</span>
+            </div>
+          ) : null}
+        </div>
+        {post.quote ? (
+          <p className="mt-3 line-clamp-2 text-sm text-brand-mute">
+            &ldquo;{post.quote}&rdquo;
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+
+  const className =
+    "flex flex-col rounded-card border border-brand-line bg-white text-left shadow-card transition-shadow hover:shadow-md";
+  return post.href ? (
+    <Link href={post.href} className={className}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={className}>{inner}</div>
+  );
+}
+
 export default async function LookingForStartPage() {
   const brand = await getBrandName();
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Real, live requests to showcase — fall back to curated examples when the
+  // directory is still thin, so this section is always full and credible.
+  const { data: liveRows } = await supabase
+    .from("looking_for_posts")
+    .select(
+      "id, title, category, location_text, location_region, check_in_date, check_out_date, adults, children, infants, budget_min, budget_max, budget_per, description, is_urgent",
+    )
+    .eq("status", "active")
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(3);
+  const livePosts: ShowcasePost[] = (liveRows ?? [])
+    // Only surface presentable posts on the marketing page — a real but junky
+    // title ("asdf") would undercut the pitch. Below the bar → curated examples.
+    .filter((r) => (r.title?.trim().length ?? 0) >= 10)
+    .map((r) => ({
+      key: r.id,
+      href: `/looking-for/${r.id}`,
+      category: r.category,
+      title: r.title,
+      location: r.location_text || r.location_region || null,
+      dateLabel:
+        r.check_in_date && r.check_out_date
+          ? `${new Date(r.check_in_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })} – ${new Date(r.check_out_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}`
+          : r.check_in_date
+            ? `From ${new Date(r.check_in_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}`
+            : "Flexible dates",
+      guests: (r.adults ?? 0) + (r.children ?? 0) + (r.infants ?? 0),
+      budget: budgetLabel(r.budget_min, r.budget_max, r.budget_per),
+      quote: r.description ? stripHtml(r.description) : null,
+      urgent: r.is_urgent ?? false,
+    }));
+  const showcaseIsLive = livePosts.length >= 3;
+  const showcasePosts = showcaseIsLive ? livePosts : EXAMPLE_POSTS;
 
   // Signed-in guests go straight to the form; everyone else signs up first and
   // lands right back on it (?next survives the guest signup).
@@ -125,6 +304,47 @@ export default async function LookingForStartPage() {
           <p className="mt-4 text-[12.5px] text-brand-mute">
             No credit card. Post in about two minutes.
           </p>
+        </div>
+      </section>
+
+      {/* Real requests / examples — show how easy it is */}
+      <section className="border-b border-brand-line bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-20">
+          <div className="flex flex-wrap items-end justify-between gap-3 text-center sm:text-left">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-brand-primary">
+                {showcaseIsLive ? "Live right now" : "See how it works"}
+              </div>
+              <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-brand-ink md:text-4xl">
+                {showcaseIsLive
+                  ? "What travellers are posting"
+                  : "This is all it takes"}
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-brand-mute">
+                A few lines about your trip is enough for hosts to make you an
+                offer.
+              </p>
+            </div>
+            <Link
+              href="/looking-for"
+              className="hidden items-center gap-1.5 text-sm font-semibold text-brand-primary hover:underline sm:inline-flex"
+            >
+              Browse all requests <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {showcasePosts.map((post) => (
+              <ShowcaseCard key={post.key} post={post} />
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              href={postHref}
+              className="inline-flex items-center gap-2 rounded-[12px] bg-brand-primary px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+            >
+              {ctaLabel} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
