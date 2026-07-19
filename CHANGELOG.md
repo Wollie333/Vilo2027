@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-19 — Theme differentiation Phase B: bespoke grand-hotel Royal home + Archivo font (`6e6cdef`).
+
+First structural fork of **Phase B** (`THEME_DIFFERENTIATION_PLAN.md`). Royal
+stops reusing the OceansView home — it gets its **own component + stylesheet**
+(`components/site/royal/RoyalHome.tsx` + `royalHome.css`, scoped `.rhome`), so
+its **layout** diverges, not just its palette.
+
+- **Grand-hotel composition** (vs the OceansView resort layout): a centred formal
+  hero; a "{brand} promise" **trust strip** (honest always-true guarantees, in the
+  reference's featured/accolades style); a **centred editorial welcome** with a
+  champagne rule under the heading; a **monogram heritage band** ("A considered
+  address"); centred champagne-ruled section heads; a static grand-hotel gallery
+  mosaic (no lightbox dependency); a centred reviews block with **champagne
+  category bars** on the charcoal band.
+- **Same content contract** as every theme (content_profile + live rooms/reviews/
+  gallery/booking; reuses the live `BookingSearchSection` availability bar), so a
+  theme switch never touches host copy. Honest by construction — **no fabricated
+  press / awards / amenities**, only always-true direct-booking claims.
+- **Archivo wired as a real font role** (the reference's grand-hotel face): added
+  `archivo` to `SiteFont`/`FONT_STACKS`/`SITE_FONTS` + the brand-studio picker
+  (`font_archivo` label); `SiteFontLinks` loads Archivo + Manrope; the `royal`
+  preset font is now `archivo` (was `grotesk`).
+- **Routing:** a `preset==='royal'` home branch in `SitePageView` sits ABOVE the
+  shared `usesOceansViewLayout` branch, so only Royal forks — Safari + OceansView
+  still fall through to the shared home. Unforked Royal pages (About/Rooms/…) keep
+  rendering the shared OceansView components for now.
+- Gate: `tsc` + `eslint` + `prettier` green. **Next:** Royal Rooms + Room-detail
+  fork, then the Safari fork (design-from-scratch) + Phase C.
+
 ## 2026-07-19 — Theme differentiation Phase A cont.: `data-reveal` across every subpage (`7492d25`).
 
 Completes the Phase A motion coverage — the per-theme scroll-reveal signatures

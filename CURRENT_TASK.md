@@ -2,7 +2,35 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢 SAVE POINT (2026-07-19 pt19) — PHASE A COMPLETE + live-verified (all 5 themes, all subpages). NEXT: Phase B.
+## 🟢🟢🟢 SAVE POINT (2026-07-19 pt20) — PHASE B STARTED: Royal home forked (bespoke grand-hotel) + live-verified. NEXT: Royal Rooms/RoomDetail → Safari fork → Phase C.
+
+**Branch `feature/website-cms-10min-wizard`, pushed `6e6cdef`, deploy READY.**
+
+- **Phase B first fork DONE + live-verified — Royal home is now bespoke.** New `components/site/royal/RoyalHome.tsx`
+  + `royalHome.css` (scoped `.rhome`, forked from oceansHome.css then re-composed). Royal home no longer reuses
+  OceansView — a grand-hotel composition: centred formal hero, a "{brand} promise" trust strip, a centred editorial
+  welcome with a champagne rule, a monogram HERITAGE band, centred champagne-ruled heads, a static mosaic, a centred
+  reviews block with champagne category bars on the charcoal band. Same live-data contract (content_profile + rooms/
+  reviews/gallery/booking; reuses the live BookingSearchSection). Honest — no fabricated press/awards/amenities.
+- **Archivo wired as a real font role** (`archivo` in SiteFont/FONT_STACKS/SITE_FONTS + brand-studio picker +
+  `font_archivo` label; SiteFontLinks loads Archivo+Manrope; royal preset font grotesk→archivo).
+- **Routing:** a `preset==='royal'` home branch in `SitePageView` sits ABOVE the shared `usesOceansViewLayout` branch —
+  only Royal forks; Safari + OceansView still fall through to the shared home. **Live-verified on mana:** Royal home =
+  `.rhome` (trust strip + `.rintro` + `.heritage` "M" + champagne rule #B08948 + charcoal band #16130e), Archivo loaded
+  (h1 font-family Archivo), 25 reveals settle to opacity 1, no overflow; Safari/OceansView home still = `.ovhome`
+  (regression clean).
+- **NEXT (continue Phase B):** fork **Royal Rooms + Room-detail** into `components/site/royal/` (RoyalRooms.tsx +
+  RoyalRoomDetail.tsx + CSS from `docs/themes/royalhotel/pages/{Rooms,Room}.html`), route `preset==='royal'` rooms branch
+  in SitePageView + room-detail branch in `SiteRoomView.tsx` above the shared OV branch. THEN the **Safari fork**
+  (design-from-scratch editorial savanna — no reference dir; Home/Rooms/RoomDetail into `components/site/safari/`), then
+  **Phase C** (push Safari further from Sabela). Full plan in `THEME_DIFFERENTIATION_PLAN.md` §Phase B/C.
+- **GOTCHA (verification):** measure reveal opacity a few seconds after load — the 2.3s safety timer adds `.in`, then a
+  900ms opacity transition runs, so an immediate measurement shows `.in` elements still at opacity 0 (settles to 1).
+  mana preview auto-drifts routes on async/scroll JS — use single SYNC `javascript_tool` queries after `navigate`.
+
+---
+
+## 🟢🟢 SAVE POINT (2026-07-19 pt19) — PHASE A COMPLETE + live-verified (all 5 themes, all subpages).
 
 **Branch `feature/website-cms-10min-wizard`, pushed `7492d25`, deploy READY. Resume context: read
 `THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST, then `WEBSITE_CMS_SAVEPOINT_Resume_Here.md`.**

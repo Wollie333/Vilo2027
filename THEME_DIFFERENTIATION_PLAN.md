@@ -176,15 +176,33 @@ alone makes the five themes feel like five different products.
 
 ### PHASE B — structural LAYOUT divergence for Safari + Royal
 The real fix for "same layout." Give Safari and Royal their OWN component variants so
-they stop cloning OceansView. Pragmatic route: fork the specific pages where the design
+they stop cloning OceansView.
+
+> **PROGRESS (2026-07-19, commit `6e6cdef`) — Royal HOME forked + live-verified.**
+> `components/site/royal/RoyalHome.tsx` + `royalHome.css` (scoped `.rhome`, forked from
+> oceansHome.css then re-composed into a grand-hotel layout: centred hero, "promise"
+> trust strip, centred editorial welcome + champagne rule, monogram HERITAGE band,
+> centred champagne-ruled heads, static mosaic, centred reviews with champagne bars).
+> Archivo wired as a real font role (`archivo`); routing = a `preset==='royal'` home
+> branch ABOVE the shared `usesOceansViewLayout` branch in SitePageView. Live-verified
+> on mana: Royal home = `.rhome` w/ new sections + Archivo, reveals settle, no overflow;
+> Safari/OceansView home still `.ovhome`. **REMAINING:** Royal Rooms + Room-detail
+> (SiteRoomView), then the whole Safari fork, then Phase C.
+
+Pragmatic route: fork the specific pages where the design
 differs most (start with **Home** + **Rooms** + **Room detail**, the highest-traffic),
 into `components/site/safari/*` and `components/site/royal/*`, re-composed to each
 theme's identity:
 - **Royal** — the reference (`docs/themes/royalhotel/pages/*.html`) already has the
-  grand-hotel treatment + its unique sections (accreditation **logos** strip, **amenities**
-  section, R-monogram brand tile). Port those bespoke; wire Archivo as its real font
-  (add an `archivo` role to `FONT_STACKS` in `themes.ts` + load it in the site font links
-  — `SiteFontLinks`; currently Royal borrows the `grotesk`/Bricolage stack).
+  grand-hotel treatment + its unique sections. ✅ **Home done** (`6e6cdef`): the honest
+  analogues of the reference's unique sections shipped — a "promise" trust strip (in the
+  reference's accolades/featured style, but honest guarantees not fake press), a monogram
+  heritage band, centred champagne-ruled heads. ✅ **Archivo wired** as a real `archivo`
+  font role (themes.ts + SITE_FONTS + SiteFontLinks). REMAINING: **Rooms + Room-detail** —
+  port `docs/themes/royalhotel/pages/{Rooms,Room}.html` into `components/site/royal/`
+  (route the `royal` rooms branch in SitePageView + the room-detail branch in SiteRoomView,
+  each above the shared OV branch). NOTE the honesty rule: the reference fabricates press/
+  awards/amenities/"Est. 1888" — the in-app fork must NOT (host data or always-true only).
 - **Safari** — NenGama Lodge is a warm savanna lodge: lean into an editorial,
   photography-forward composition distinct from OceansView's resort grid (e.g. full-bleed
   alternating story bands, a different rooms presentation). Its reference is only the
