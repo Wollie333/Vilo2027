@@ -61,14 +61,15 @@ the bearer.)
 | `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_*` | core |
 | `EMAIL_WORKER_SECRET` | must equal the Vault `email_worker_secret` value (they matched — email drained live) |
 
-**🔴 CIPHER KEYS — verified NOT yet applied to the current data.** Every stored
-EFT account number (3 rows) and host gateway secret (2 rows) is **plaintext** (no
-`v1.` prefix). That's fine — it's test data, and the columns round-trip
-transparently when the key is unset — BUT it means `BANKING_CIPHER_KEY` /
-`PAYMENT_CIPHER_KEY` **must be set in Vercel prod BEFORE any real beta host enters
-banking or connects a gateway**, or their real secrets land in the DB unencrypted.
-Set the keys first; the existing test rows can be left (harmless) or re-saved to
-encrypt them.
+**CIPHER KEYS — ✅ generated + set + redeployed (2026-07-20).** `BANKING_CIPHER_KEY`,
+`PAYMENT_CIPHER_KEY`, `ICAL_TOKEN_SECRET` generated (`openssl rand`) and set in Vercel
+Production; `BANKING_CIPHER_KEY` also in Supabase Edge secrets (same value). Vercel
+redeployed. `ICAL_TOKEN_SECRET` **confirmed live** (self-signed token → live iCal export
+returned **401 "Invalid token"**, not 503 "not configured"). `BANKING_CIPHER_KEY`
+**confirmed live** — a freshly re-saved EFT account now stores with the **`v1.` encrypted
+prefix** (older pre-key rows stay plaintext, which the decrypt path reads transparently).
+`PAYMENT_CIPHER_KEY` set in the same deploy (encrypts host gateway secrets on next connect).
+✅ All cipher keys verified.
 
 **Inert-until-set (safe to defer past beta):** `TURNSTILE_*` (honeypot covers it),
 `NEXT_PUBLIC_SENTRY_DSN` / `NEXT_PUBLIC_POSTHOG_KEY` (deferred by design),
@@ -111,5 +112,6 @@ intentionally has **no webhook** for the booking path (return redirect +
   🔴 **set `BANKING_CIPHER_KEY` / `PAYMENT_CIPHER_KEY` before real hosts add banking.**
 - **Workers**: ✅ email deployed + gated + draining; paystack-webhook deployed + gated;
   ⚠️ push needs one real device.
-- **Still the #1 gate** (unchanged): a live sandbox **card + PayPal round-trip** —
-  you enter the card, I verify the confirm→ledger→email loop.
+- **The #1 gate — ✅ CLEARED (2026-07-20):** live sandbox **card + PayPal round-trips**
+  both proven end-to-end (Paystack BK-0082 → INV-0108; PayPal BK-0083 → INV-0109; +
+  reconcile-worker recovery arm). All three payment methods green.

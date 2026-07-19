@@ -5,6 +5,62 @@
 
 ---
 
+## 2026-07-19/20 (pt29–pt30) — Coupons + Quotes live-green, financial-document money sweep, CSP + beta-infra, LIVE payment round-trips.
+
+Live-green treatment of the remaining money features, a full audit + fix of every
+financial document, security/infra hardening, and — the headline — **both card
+payment rails proven end-to-end live** (the #1 beta gate).
+
+### Coupons + Quotes — live-tested green
+- **Coupons** exercised e2e (real bookings): guest applies code → server re-prices →
+  `redeem_coupon` ledger + count → coupon line item shows for guest + host + on the
+  invoice; non-VAT + VAT-registered both proven. Fixed a **phantom-VAT** bug
+  (`27c2d4b5`) — a non-VAT host's coupon invoice fabricated VAT = the discount and
+  mislabelled itself "Tax Invoice"; renderers now trust the stored `vat_amount`.
+- **Coupon redemption cap-leak fixed** (`a4d40a83`, migration `20260719210000`):
+  `redeem_coupon` bumps a counter AND writes a ledger row, but unwind (cancel/failed
+  payment) only removed the row → `redeemed_count` drifted / per-guest lockout. Added
+  `release_coupon()` wired into `on_booking_cancelled` + the createBooking rollback ladder
+  (proven: math, idempotency, cancel-trigger release, deny-path 42501).
+- **Quotes** full path proven: send→holds, accept→booking (deposit/balance split correct),
+  pay→convert+invoice, decline→holds cleared, expire→holds cleared.
+
+### Financial-document money sweep — ALL docs itemize discounts + foot
+Audited every document. Fixed the **discount that was invisible / didn't foot**:
+- **Booking invoice** (`df4011fb`, migration `20260719220000`): now itemizes
+  `booking.discount_amount` (stay/LOS + manual-quote) via `line_items.stay_discount`,
+  alongside the coupon discount.
+- **Quote** (page + guest PDF + host PDF): discount + reason in totals + a **Payment
+  terms** note (deposit + balance).
+- **Credit note** (`9f388a5d`): VAT breakdown for VAT hosts. **Statement**: derives its
+  VAT rate (was hard-coded 15%).
+- **Wielo platform invoice** (`6d152a43`, migration `20260719230000`): mint now emits the
+  product line at GROSS + a negative `Discount (CODE)` line (platform-coupon discount was
+  hidden). Verified live (HTML + rastered PDF) on every surface.
+- Audited clean (no change): receipt, forfeit statement, Wielo credit-note, commission.
+
+### Security + beta infra (`d680436d`, `6982d094`)
+- **CSP shipped**: enforced safe-subset (`base-uri`/`object-src`/`frame-ancestors`,
+  `+upgrade-insecure-requests` prod) + full **Report-Only** allowlist (Paystack/PayPal/
+  Supabase/GA4/Meta/Turnstile/YouTube/Vimeo/Maps/Fonts/OSM). Multi-tenant custom code
+  means script/style stay report-only until tuned. Validated locally (no violations).
+- **Secrets**: Vault 15/15 verified; `BANKING_/PAYMENT_CIPHER_KEY` + `ICAL_TOKEN_SECRET`
+  generated + set (Vercel + Supabase-Edge for banking) + redeployed. iCal confirmed live.
+- **Workers**: all 13 routes deployed + 401-gated at wielo.co.za, crons active, queues
+  empty. Push = N/A for web beta (Expo app unbuilt). `docs/BETA_INFRA.md` written.
+
+### 🟢 THE #1 GATE CLEARED — live payment round-trips (2026-07-20)
+Both rails driven guest→pay→confirm→capture→invoice→email on the LIVE deploy:
+- **Paystack** — BK-0082 R16 900: webhook → confirmed ~28s → INV-0108 `paid` → emails sent.
+- **PayPal** — BK-0083 R18 000: captured → confirmed → INV-0109 `paid` → emails sent; the
+  ~4.5-min create→capture gap confirms the `booking-reconcile-worker` recovery arm.
+- EFT already proven → **all three payment methods green.**
+
+Banking `v1.` encryption confirmed live (re-saved EFT row). build/tsc/lint green,
+0 procs. Next (all safe to do during beta): PayPal recurring-sub webhook + upgrade
+proration before *paid* billing (fine for the comped-Beta plan); flip CSP
+report-only→enforce after tuning; push + Sentry/PostHog with the mobile app.
+
 ## 2026-07-18 (pt21) — Subscription failure = disable, never delete + lifecycle notifications.
 
 Founder directive: a subscription failure must **disable** a host (block new bookings,

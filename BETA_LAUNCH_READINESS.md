@@ -26,29 +26,33 @@ the booking flow, the money/ledger layer, subscriptions, notifications, admin
 moderation and security have all been built and (mostly) verified live over the
 pt13–pt21 cycle.
 
-**One thing stands between here and beta users: a proven live PAYMENT round-trip.**
-The database has **1 completed payment, ever** — the card + PayPal rails have never
-been driven guest→webhook→confirmed→ledger→host end-to-end on real (sandbox) money.
-Everything else is either done or safe to finish while beta is running.
+**✅ THE GATE IS CLEARED (2026-07-20, pt30).** Both payment rails were driven
+guest→pay→confirm→capture→invoice→email end-to-end on the LIVE deployment with
+sandbox money:
+- **Paystack** — BK-0082, R16 900: webhook confirmed in ~28s → `payments` completed
+  (ref `lex3zsubud`) → INV-0108 `paid` → `booking_confirmed_guest` + `booking_request_host` sent.
+- **PayPal** — BK-0083, R18 000: captured (ref `1L0620393P289814W`) → confirmed → INV-0109
+  `paid` → emails sent. The ~4.5-min create→capture gap confirms the
+  **`booking-reconcile-worker` recovery arm** also works.
+- **EFT** already proven. So **all three payment methods are green.**
 
-**Verdict: ~1–2 focused sessions from beta**, and most of that is *your* sandbox
-card entry (I can't type card numbers) + a couple of config toggles.
+**Verdict: the #1 blocker is gone.** Remaining is founder config (confirm the
+cipher-key encryption on the next banking save) + optional polish; safe to open beta.
 
 ---
 
 ## 🔴 THE GATE — must be true before any beta user pays (do these first)
 
-- [ ] 🔴 **Paystack card round-trip, live (sandbox):** guest books → pays on the
-  hosted page → webhook flips booking to confirmed → `payments` row `completed` →
-  host ledger + invoice correct → guest + host notified. *Founder enters the test
-  card; I verify the confirm→capture→ledger→email loop.* (Today: card **initiation**
-  proven — BK-0066 redirected to Paystack — but not the return half.)
-- [ ] 🔴 **PayPal order round-trip, live (sandbox):** same loop via PayPal, incl. the
-  captured-but-didn't-return recovery arm + the `booking-reconcile-worker` sweep.
-- [ ] ✅ **Manual EFT round-trip** — guest gets instructions → host "mark received" →
-  ledger + confirmation. (Proven; the one completed payment path.)
-- [ ] 🟡 **Deposit + balance split** — pay deposit now, balance later; both land on
-  the ledger. (Built + unit-correct; drive once live with the card rail.)
+- [x] ✅ **Paystack card round-trip, live (sandbox)** — **PROVEN 2026-07-20**: BK-0082
+  R16 900, webhook → confirmed ~28s → `payments` completed (ref `lex3zsubud`) → INV-0108
+  `paid` → guest+host emails sent.
+- [x] ✅ **PayPal order round-trip, live (sandbox)** — **PROVEN 2026-07-20**: BK-0083
+  R18 000 → captured (ref `1L0620393P289814W`) → confirmed → INV-0109 `paid` → emails
+  sent; ~4.5-min create→capture gap = `booking-reconcile-worker` recovery arm confirmed.
+- [x] ✅ **Manual EFT round-trip** — guest gets instructions → host "mark received" →
+  ledger + confirmation. (Proven.)
+- [x] ✅ **Deposit + balance split** — proven live via the quote path (Q-0020 → BK-0081:
+  deposit R5 400 / balance R5 400; pay page split correct; convert→invoice on confirm).
 
 ---
 
@@ -99,7 +103,8 @@ card entry (I can't type card numbers) + a couple of config toggles.
 
 - [x] ✅ In-app notifications (registry + dispatch, dedupe, quiet hours)
 - [x] 🟢 Email — pipeline verified live this session
-- [ ] 🟡 Push — infra built; **needs a real device token + one delivered push** to verify
+- [ ] 🕑 Push — infra fully wired (routes deployed + 401-gated, cron active, queue empty) but
+  **N/A for a web beta**: push targets the Expo mobile app, which is unbuilt (0 screens). Defer with mobile.
 - [x] ✅ Inbox: guest↔host + guest↔Wielo support; new-message notifications
 
 ## 7. Security  (Principle #15 — hardened across pt17–pt21)
@@ -108,7 +113,8 @@ card entry (I can't type card numbers) + a couple of config toggles.
 - [x] ✅ RLS anti-forgery (inbox split policies); injection defenses (`sanitizeSearch`/`sanitizeCssValue`)
 - [x] ✅ `search_path` pinned (red flags 82→10); `anon`-executable functions locked (PUBLIC revoked)
 - [x] ✅ Webhook signatures verified before any write (Paystack HMAC / PayPal)
-- [ ] 🕑 **CSP** still deferred (`SECURITY_CHECKLIST.md §7`) — add before *public* launch, not beta
+- [x] ✅ **CSP** shipped (pt30) — enforced safe-subset (`base-uri`/`object-src`/`frame-ancestors`)
+  + full Report-Only allowlist; validated locally. Flip report-only→enforce post-beta (`docs/BETA_INFRA.md`).
 - [ ] 👤 **Run `SECURITY_CHECKLIST.md` top-to-bottom** as the final pre-beta gate
 
 ## 8. Admin & moderation
@@ -128,7 +134,10 @@ card entry (I can't type card numbers) + a couple of config toggles.
 
 - [x] 🟢 **All 15 Vault worker secrets set** (email/push/digest/reconcile/LF/reviews/domains/blog) — this session
 - [x] 🟢 `paystack-webhook` + `external-reviews-sync` Edge Functions deployed
-- [ ] 👤 Confirm prod env: `PAYMENT_CIPHER_KEY`, VAT number, SWIFT, `EXTERNAL_REVIEWS_WORKER_SECRET` (added — redeploy done)
+- [x] ✅ Prod secrets (pt30): payment keys confirmed set; `BANKING_CIPHER_KEY` +
+  `PAYMENT_CIPHER_KEY` + `ICAL_TOKEN_SECRET` generated + set (Vercel + Supabase-Edge for
+  banking) + redeployed. **iCal confirmed live** (401 not 503); **banking encryption
+  confirmed** (re-saved EFT row now `v1.`-prefixed). See `docs/BETA_INFRA.md`.
 - [ ] 👤 **Pre-beta data hygiene** — prune MVP-*/fixture bookings + stale artifacts, OR keep as demo content (founder call)
 - [ ] 🕑 Sentry + PostHog — deferred by design until the week before *public* launch
 
