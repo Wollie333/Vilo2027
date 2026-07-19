@@ -198,6 +198,7 @@ type ListingEmbed = {
   slug: string | null;
   city: string | null;
   province: string | null;
+  business_id: string | null;
   address_line1: string | null;
   address_line2: string | null;
   postal_code: string | null;
@@ -234,7 +235,6 @@ type HostEmbed = {
   response_rate: number | null;
   languages_spoken: string[] | null;
   created_at: string;
-  website_url: string | null;
   user_id: string;
 };
 
@@ -264,7 +264,7 @@ export default async function PortalTripDetailPage({
       accepted_terms_version, accepted_privacy_version, policy_acknowledged_at,
       has_open_refund,
       listing:properties (
-        id, name, slug, city, province, address_line1, address_line2,
+        id, name, slug, city, province, business_id, address_line1, address_line2,
         postal_code, latitude, longitude, check_in_time, check_out_time,
         house_rules, max_guests, accommodation_type, property_type,
         avg_rating, total_reviews,
@@ -272,7 +272,7 @@ export default async function PortalTripDetailPage({
         amenities:property_amenities ( amenity_key, amenity_label ),
         local_picks:property_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
       ),
-      host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at, website_url, user_id ),
+      host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at, user_id ),
       booking_rooms ( room:property_rooms ( id, name ) )
     `,
     )
@@ -338,21 +338,37 @@ export default async function PortalTripDetailPage({
   const host = one(booking.host);
   const currency = booking.currency;
 
-  // Host contact for the "Your host" card. email + phone live on the host's
-  // user_profiles row (RLS-guarded to self) so read them with the service role —
-  // the same host contact already printed on this guest's invoice. website_url
-  // is a public hosts column.
-  let hostContact: HostContact = { website: null, phone: null, email: null };
+  // Host contact for the "Your host" card. Website + socials belong to the
+  // BUSINESS (via the listing's business_id); phone + email are the host's
+  // user_profiles contact — RLS-guarded to self, read with the service role —
+  // the same host contact already printed on this guest's invoice.
+  let hostContact: HostContact = {
+    website: null,
+    phone: null,
+    email: null,
+    socials: null,
+  };
   if (host?.user_id) {
-    const { data: hostProfile } = await createAdminClient()
-      .from("user_profiles")
-      .select("email, phone")
-      .eq("id", host.user_id)
-      .maybeSingle();
+    const admin = createAdminClient();
+    const [{ data: hostProfile }, { data: biz }] = await Promise.all([
+      admin
+        .from("user_profiles")
+        .select("email, phone")
+        .eq("id", host.user_id)
+        .maybeSingle(),
+      listing?.business_id
+        ? admin
+            .from("businesses")
+            .select("website_url, social_links")
+            .eq("id", listing.business_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     hostContact = {
-      website: host.website_url ?? null,
+      website: biz?.website_url ?? null,
       phone: hostProfile?.phone ?? null,
       email: hostProfile?.email ?? null,
+      socials: (biz?.social_links as Record<string, string> | null) ?? null,
     };
   }
 

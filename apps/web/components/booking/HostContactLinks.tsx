@@ -1,20 +1,42 @@
-import { ExternalLink, Globe, Mail, Phone } from "lucide-react";
+import {
+  ExternalLink,
+  Facebook,
+  Globe,
+  Instagram,
+  Linkedin,
+  Mail,
+  Music2,
+  Phone,
+  Twitter,
+  Youtube,
+} from "lucide-react";
 
-// Guest-facing host contact details, shown on every booking surface's "Your
-// host" card (success page + trip page). Wielo is a DIRECT-booking platform, so
-// once a guest has booked they should be able to reach the host any way the host
-// offers — website, phone, email. Each field renders only when set, and the
-// whole block collapses to nothing when the host has shared no contact details
-// (the card then just shows its "Message host" button as before).
-//
-// The email + phone are the same host contact already printed on the guest's
-// invoice, so this surfaces nothing new — it just makes it reachable/tappable.
+// Guest-facing host/business contact details, shown on every booking surface's
+// "Your host" card (success page + trip page). Wielo is a DIRECT-booking
+// platform, so once a guest has booked they should be able to reach the host any
+// way they offer — website, phone, email, socials. Website + socials belong to
+// the BUSINESS entity (like its banking); phone + email are the host's contact
+// already printed on the guest's invoice. Each field renders only when set, and
+// the whole block collapses when nothing real is shared.
 
 export type HostContact = {
   website: string | null;
   phone: string | null;
   email: string | null;
+  /** Business social accounts, {platform: url_or_handle}. */
+  socials?: Record<string, string> | null;
 };
+
+// Icon + display order for known social platforms. Unknown keys are ignored.
+const SOCIAL_META: Record<string, { label: string; Icon: typeof Instagram }> = {
+  instagram: { label: "Instagram", Icon: Instagram },
+  facebook: { label: "Facebook", Icon: Facebook },
+  x: { label: "X", Icon: Twitter },
+  tiktok: { label: "TikTok", Icon: Music2 },
+  youtube: { label: "YouTube", Icon: Youtube },
+  linkedin: { label: "LinkedIn", Icon: Linkedin },
+};
+const SOCIAL_ORDER = Object.keys(SOCIAL_META);
 
 function trimmed(v: string | null): string | null {
   const t = (v ?? "").trim();
@@ -53,8 +75,12 @@ export function HostContactLinks({ contact }: { contact: HostContact }) {
   const website = cleanWebsite(contact.website);
   const phone = trimmed(contact.phone);
   const email = cleanEmail(contact.email);
+  const socials = SOCIAL_ORDER.map((key) => {
+    const raw = trimmed((contact.socials ?? {})[key] ?? null);
+    return raw ? { key, url: normalizeUrl(raw), ...SOCIAL_META[key] } : null;
+  }).filter((s): s is NonNullable<typeof s> => s !== null);
 
-  if (!website && !phone && !email) return null;
+  if (!website && !phone && !email && socials.length === 0) return null;
 
   return (
     <div className="mt-4 space-y-0.5 border-t border-brand-line pt-3">
@@ -86,6 +112,23 @@ export function HostContactLinks({ contact }: { contact: HostContact }) {
           <Mail className="h-4 w-4 shrink-0 text-brand-primary" />
           <span className="min-w-0 flex-1 truncate font-medium">{email}</span>
         </a>
+      ) : null}
+      {socials.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5 px-2.5 pt-1.5">
+          {socials.map(({ key, url, label, Icon }) => (
+            <a
+              key={key}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+              title={label}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand-line text-brand-secondary transition hover:border-brand-primary/50 hover:bg-brand-light hover:text-brand-primary"
+            >
+              <Icon className="h-4 w-4" />
+            </a>
+          ))}
+        </div>
       ) : null}
     </div>
   );

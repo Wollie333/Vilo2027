@@ -18,6 +18,8 @@ import {
   BUSINESS_LOCALE_LABELS,
   BUSINESS_LOCALES,
   businessProfileSchema,
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
 } from "../schemas";
 import {
   AddressFields,
@@ -33,7 +35,18 @@ export type BusinessFormValues = {
   company_registration_number: string;
   default_currency: string;
   default_language: string;
+  website_url: string;
+  social_links: Record<SocialPlatform, string>;
 } & AddressValue;
+
+export const EMPTY_SOCIALS: Record<SocialPlatform, string> = {
+  instagram: "",
+  facebook: "",
+  x: "",
+  tiktok: "",
+  youtube: "",
+  linkedin: "",
+};
 
 export const EMPTY_BUSINESS: BusinessFormValues = {
   trading_name: "",
@@ -42,6 +55,8 @@ export const EMPTY_BUSINESS: BusinessFormValues = {
   company_registration_number: "",
   default_currency: "ZAR",
   default_language: "en",
+  website_url: "",
+  social_links: { ...EMPTY_SOCIALS },
   ...EMPTY_ADDRESS,
 };
 
@@ -70,6 +85,12 @@ export function BusinessForm({
   }
   function patchAddress(patch: Partial<AddressValue>) {
     setV((prev) => ({ ...prev, ...patch }));
+  }
+  function setSocial(key: SocialPlatform, value: string) {
+    setV((prev) => ({
+      ...prev,
+      social_links: { ...prev.social_links, [key]: value },
+    }));
   }
 
   function submit() {
@@ -206,6 +227,40 @@ export function BusinessForm({
           }}
           onChange={patchAddress}
         />
+      </section>
+
+      {/* Web & social — the business's guest-facing web presence. Shown to
+          guests on their booking's host card. */}
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <h3 className="mb-1 font-display text-base font-semibold text-brand-ink">
+          Website &amp; social
+        </h3>
+        <p className="mb-4 text-sm text-brand-mute">
+          Optional. Shown to guests on their booking so they can find you
+          online.
+        </p>
+        <div className="space-y-4">
+          <Field label="Website" optional>
+            <TextInput
+              type="url"
+              inputMode="url"
+              value={v.website_url}
+              onChange={(e) => set("website_url", e.target.value)}
+              placeholder="https://your-business.com"
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {SOCIAL_PLATFORMS.map((p) => (
+              <Field key={p.key} label={p.label} optional>
+                <TextInput
+                  value={v.social_links[p.key] ?? ""}
+                  onChange={(e) => setSocial(p.key, e.target.value)}
+                  placeholder={p.placeholder}
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Logo (edit only — needs a saved business to attach to) */}

@@ -262,9 +262,7 @@ export default async function BookingSuccessPage({
   ] = await Promise.all([
     supabase
       .from("hosts")
-      .select(
-        "display_name, avatar_url, is_verified, created_at, website_url, user_id",
-      )
+      .select("display_name, avatar_url, is_verified, created_at, user_id")
       .eq("id", listing.host_id)
       .maybeSingle(),
     supabase
@@ -474,25 +472,36 @@ export default async function BookingSuccessPage({
       })
     : null;
 
-  // Host contact for the "Your host" card. email + phone live on the host's
-  // user_profiles row (RLS-guarded to self), so read them with the admin client
-  // — the same contact already printed on the guest's invoice. website_url is a
-  // public hosts column.
+  // Host contact for the "Your host" card. Website + socials belong to the
+  // BUSINESS (resolved via the booking's listing.business_id); phone + email are
+  // the host's user_profiles contact — RLS-guarded to self, read with the admin
+  // client — the same contact already printed on the guest's invoice.
   let hostContact = {
     website: null as string | null,
     phone: null as string | null,
     email: null as string | null,
+    socials: null as Record<string, string> | null,
   };
   if (hostRow?.user_id) {
-    const { data: hostProfile } = await admin
-      .from("user_profiles")
-      .select("email, phone")
-      .eq("id", hostRow.user_id)
-      .maybeSingle();
+    const [{ data: hostProfile }, { data: biz }] = await Promise.all([
+      admin
+        .from("user_profiles")
+        .select("email, phone")
+        .eq("id", hostRow.user_id)
+        .maybeSingle(),
+      listing.business_id
+        ? admin
+            .from("businesses")
+            .select("website_url, social_links")
+            .eq("id", listing.business_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     hostContact = {
-      website: hostRow.website_url ?? null,
+      website: biz?.website_url ?? null,
       phone: hostProfile?.phone ?? null,
       email: hostProfile?.email ?? null,
+      socials: (biz?.social_links as Record<string, string> | null) ?? null,
     };
   }
 

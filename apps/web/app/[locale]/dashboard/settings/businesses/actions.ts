@@ -22,6 +22,18 @@ export type CreateResult =
 const toNullable = (v: string | null | undefined) =>
   v && v.length > 0 ? v : null;
 
+// Keep only the non-empty social entries — an empty map when the host set none.
+function cleanSocials(
+  social: BusinessProfileInput["social_links"],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(social ?? {})) {
+    const t = (v ?? "").trim();
+    if (t) out[k] = t;
+  }
+  return out;
+}
+
 function profileRow(input: BusinessProfileInput) {
   return {
     trading_name: input.trading_name.trim(),
@@ -39,6 +51,8 @@ function profileRow(input: BusinessProfileInput) {
     longitude: input.longitude ?? null,
     default_currency: input.default_currency,
     default_language: input.default_language,
+    website_url: toNullable(input.website_url),
+    social_links: cleanSocials(input.social_links),
   };
 }
 

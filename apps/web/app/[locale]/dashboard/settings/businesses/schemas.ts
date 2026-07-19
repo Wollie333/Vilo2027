@@ -15,6 +15,33 @@ export const BUSINESS_LOCALE_LABELS: Record<BusinessLocale, string> = {
   pt: "Português",
 };
 
+// The social accounts a business can list. Single source of truth for the
+// settings form, the persisted `social_links` keys, and the guest-facing card.
+export const SOCIAL_PLATFORMS = [
+  { key: "instagram", label: "Instagram", placeholder: "instagram.com/you" },
+  { key: "facebook", label: "Facebook", placeholder: "facebook.com/you" },
+  { key: "x", label: "X (Twitter)", placeholder: "x.com/you" },
+  { key: "tiktok", label: "TikTok", placeholder: "tiktok.com/@you" },
+  { key: "youtube", label: "YouTube", placeholder: "youtube.com/@you" },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    placeholder: "linkedin.com/company/you",
+  },
+] as const;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]["key"];
+
+const socialValue = z.string().trim().max(200).optional().or(z.literal(""));
+export const socialLinksSchema = z.object({
+  instagram: socialValue,
+  facebook: socialValue,
+  x: socialValue,
+  tiktok: socialValue,
+  youtube: socialValue,
+  linkedin: socialValue,
+});
+export type SocialLinksInput = z.infer<typeof socialLinksSchema>;
+
 // Each business is a legal entity. Its details print on every quote/invoice/
 // credit note for the listings assigned to it. Address is named the listing
 // way so the LocationPicker output maps 1:1; lat/lng come straight from the
@@ -44,6 +71,14 @@ export const businessProfileSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   default_currency: z.enum(DISPLAY_CURRENCIES),
   default_language: z.enum(BUSINESS_LOCALES),
+  // Guest-facing web presence — belongs to the business, like its banking.
+  website_url: z
+    .string()
+    .trim()
+    .max(300, "URL is too long.")
+    .optional()
+    .or(z.literal("")),
+  social_links: socialLinksSchema.optional(),
 });
 export type BusinessProfileInput = z.infer<typeof businessProfileSchema>;
 

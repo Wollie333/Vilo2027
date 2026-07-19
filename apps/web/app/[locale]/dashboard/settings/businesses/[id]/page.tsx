@@ -10,6 +10,7 @@ import { BankAccountList } from "../../banking/_components/BankAccountList";
 import type { BankAccountInput } from "../../banking/schemas";
 import {
   BusinessForm,
+  EMPTY_SOCIALS,
   type BusinessFormValues,
 } from "../_components/BusinessForm";
 
@@ -53,7 +54,7 @@ export default async function BusinessDetailPage({
   const { data: biz } = await supabase
     .from("businesses")
     .select(
-      "id, trading_name, legal_name, vat_number, company_registration_number, address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude, logo_path, default_currency, default_language",
+      "id, trading_name, legal_name, vat_number, company_registration_number, address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude, logo_path, default_currency, default_language, website_url, social_links",
     )
     .eq("id", params.id)
     .eq("host_id", host.id)
@@ -106,6 +107,11 @@ export default async function BusinessDetailPage({
     country: biz.country ?? "ZA",
     latitude: biz.latitude,
     longitude: biz.longitude,
+    website_url: biz.website_url ?? "",
+    social_links: {
+      ...EMPTY_SOCIALS,
+      ...((biz.social_links as Record<string, string> | null) ?? {}),
+    },
   };
 
   return (

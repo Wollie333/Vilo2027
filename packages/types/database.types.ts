@@ -1780,9 +1780,11 @@ export type Database = {
           municipality: string | null
           postal_code: string | null
           province: string | null
+          social_links: Json
           trading_name: string | null
           updated_at: string
           vat_number: string | null
+          website_url: string | null
         }
         Insert: {
           address_line1?: string | null
@@ -1804,9 +1806,11 @@ export type Database = {
           municipality?: string | null
           postal_code?: string | null
           province?: string | null
+          social_links?: Json
           trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
+          website_url?: string | null
         }
         Update: {
           address_line1?: string | null
@@ -1828,9 +1832,11 @@ export type Database = {
           municipality?: string | null
           postal_code?: string | null
           province?: string | null
+          social_links?: Json
           trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {
