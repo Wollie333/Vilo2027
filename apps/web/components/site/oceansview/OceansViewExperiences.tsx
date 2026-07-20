@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 
+import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
+
 /**
  * Oceans View EXPERIENCES page — the founder's bespoke reference design, wired
  * to the host's LIVE experiences. Each renders as a tall image-background tile
@@ -126,6 +128,12 @@ export function OceansViewExperiences({
           )}
         </div>
       </section>
+
+      {/* NEARBY — "around the bay" cards (placeholder → Google Places) */}
+      <SiteNearbyExperiences
+        eyebrow="Around the bay"
+        title="Worth leaving the pool for"
+      />
 
       {/* CTA */}
       <section className="section" style={{ paddingTop: 0 }}>

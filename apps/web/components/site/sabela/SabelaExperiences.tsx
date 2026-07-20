@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 
+import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
+
 /**
  * Sabela Lodge EXPERIENCES page — the founder's bespoke dark-editorial "Lodge"
  * reference design (docs/themes/sabela/pages/Experiences.html), wired to the
@@ -151,6 +153,12 @@ export function SabelaExperiences({
           )}
         </div>
       </section>
+
+      {/* NEARBY — "beyond the lodge" cards (placeholder → Google Places) */}
+      <SiteNearbyExperiences
+        eyebrow="Beyond the lodge"
+        title="Worth the short drive"
+      />
 
       {/* CTA band */}
       <section className="section-sm" data-section="cta">

@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 
+import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
+
 const Arrow = (
   <svg
     width="16"
@@ -171,6 +173,12 @@ export function SafariExperiences({
           )}
         </div>
       </section>
+
+      {/* NEARBY — "around the lodge" cards (placeholder → Google Places) */}
+      <SiteNearbyExperiences
+        eyebrow="Around the lodge"
+        title="Worth the short drive"
+      />
 
       {/* CTA — full-bleed closing banner */}
       <section className="sf-cta">

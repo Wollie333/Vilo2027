@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 
+import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
+
 /**
  * Royal Hotel EXPERIENCES page (preset `royal`) — its own component + stylesheet
  * (`.rexp` / royalExperiences.css): the formal, CENTRED grand-hotel treatment
@@ -136,6 +138,12 @@ export function RoyalExperiences({
           )}
         </div>
       </section>
+
+      {/* NEARBY — "around the hotel" cards (placeholder → Google Places) */}
+      <SiteNearbyExperiences
+        eyebrow="Around the hotel"
+        title="In the neighbourhood"
+      />
 
       {/* CTA */}
       <section className="section" style={{ paddingTop: 0 }}>

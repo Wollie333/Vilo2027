@@ -2,6 +2,8 @@ import "./marmaladeExperiences.css";
 
 import { siteImageUrl } from "@/lib/site/image";
 
+import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
+
 /**
  * Marmalade House THINGS-TO-DO page — the founder's bespoke "Postcards" reference
  * design (docs/themes/marmalade/pages/Experiences.html), wired to the host's LIVE
@@ -146,6 +148,12 @@ export function MarmaladeExperiences({
           )}
         </div>
       </section>
+
+      {/* NEARBY — "around the house" cards (placeholder → Google Places) */}
+      <SiteNearbyExperiences
+        eyebrow="Around the house"
+        title="Just down the road"
+      />
 
       {/* CTA (banner) */}
       <section className="section soft" style={{ paddingTop: 0 }}>

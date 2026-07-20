@@ -1,0 +1,332 @@
+/*
+ * Nearby experiences — shared, token-driven card grid (scoped `.site-nearby`).
+ * Every colour/font/shape comes from the active theme's `--site-*` tokens, so it
+ * reads on-brand on each theme (Safari sharp + terracotta, Sabela dark + gold,
+ * Marmalade rounded + cream, …) from ONE component. Mobile-first: 3 → 2 → 1
+ * columns; the filter row scrolls horizontally on phones.
+ */
+.site-nearby {
+  padding: clamp(56px, 8vw, 120px) 0;
+  color: var(--site-ink, #222);
+  font-family: var(--site-font-body, system-ui, sans-serif);
+}
+.site-nearby *,
+.site-nearby *::before,
+.site-nearby *::after {
+  box-sizing: border-box;
+}
+.site-nearby-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+
+/* -- head ---------------------------------------------------------------- */
+.site-nearby-head {
+  max-width: 62ch;
+}
+.site-nearby-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, var(--site-accent, #a05a2c));
+}
+.site-nearby-eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.site-nearby-title {
+  margin: 16px 0 0;
+  font-family: var(--site-font-heading, Georgia, serif);
+  font-weight: var(--site-weight-heading, 600);
+  font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #222);
+  text-wrap: balance;
+}
+.site-nearby-intro {
+  margin: 16px 0 0;
+  color: var(--site-mute, #666);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+  line-height: 1.6;
+}
+
+/* -- filter chips -------------------------------------------------------- */
+.site-nearby-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: clamp(26px, 3vw, 40px) 0 0;
+}
+.site-nearby-chip {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 10px 17px;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--site-line, #ddd);
+  background: transparent;
+  color: var(--site-mute, #666);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.site-nearby-chip:hover {
+  border-color: var(--site-ink, #222);
+  color: var(--site-ink, #222);
+}
+.site-nearby-chip.is-active {
+  background: var(--site-ink, #222);
+  border-color: var(--site-ink, #222);
+  color: var(--site-bg, #fff);
+}
+
+/* -- grid ---------------------------------------------------------------- */
+.site-nearby-grid {
+  list-style: none;
+  margin: clamp(26px, 3vw, 40px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+}
+
+/* -- card ---------------------------------------------------------------- */
+.site-nearby-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e6e6e6);
+  border-radius: var(--site-radius, 10px);
+  overflow: hidden;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+@media (hover: hover) {
+  .site-nearby-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 26px 46px -30px rgba(0, 0, 0, 0.45);
+  }
+}
+.site-nearby-fig {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--site-soft-2, var(--site-soft, #eee));
+}
+.site-nearby-fig img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@media (hover: hover) {
+  .site-nearby-card:hover .site-nearby-fig img {
+    transform: scale(1.05);
+  }
+}
+.site-nearby-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--site-font-heading, Georgia, serif);
+  font-size: 2.6rem;
+  color: var(--site-accent, #a05a2c);
+  opacity: 0.5;
+}
+/* category chip (over photo) + distance badge */
+.site-nearby-cat {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(20, 16, 12, 0.62);
+  backdrop-filter: blur(6px);
+  padding: 6px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.site-nearby-dist {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--site-ink, #222);
+  background: var(--site-surface, #fff);
+  border: 1px solid var(--site-line, #e6e6e6);
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.site-nearby-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: clamp(16px, 1.6vw, 22px);
+}
+.site-nearby-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.site-nearby-name {
+  margin: 0;
+  font-family: var(--site-font-heading, Georgia, serif);
+  font-weight: var(--site-weight-heading, 600);
+  font-size: clamp(1.15rem, 1.6vw, 1.4rem);
+  line-height: 1.15;
+  color: var(--site-ink, #222);
+}
+.site-nearby-price {
+  flex-shrink: 0;
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-mute, #666);
+  white-space: nowrap;
+}
+.site-nearby-rating {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--site-mute, #666);
+}
+.site-nearby-stars {
+  color: var(--site-accent, #a05a2c);
+  letter-spacing: 1px;
+  font-size: 13px;
+}
+.site-nearby-rating b {
+  font-family: var(--site-font-heading, Georgia, serif);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--site-ink, #222);
+}
+.site-nearby-blurb {
+  margin: 12px 0 0;
+  color: var(--site-mute, #666);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.site-nearby-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--site-line, #e6e6e6);
+}
+.site-nearby-foot:only-child {
+  border-top: 0;
+}
+.site-nearby-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-success, #3f8f57);
+}
+.site-nearby-open::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.site-nearby-open.is-closed {
+  color: var(--site-mute, #888);
+}
+.site-nearby-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-accent-deep, var(--site-accent, #a05a2c));
+  text-decoration: none;
+  min-height: 40px;
+  transition: gap 0.2s ease;
+}
+.site-nearby-link:hover {
+  gap: 9px;
+}
+
+/* -- sample note --------------------------------------------------------- */
+.site-nearby-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: clamp(24px, 3vw, 34px) 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--site-mute, #777);
+}
+.site-nearby-note svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 900px) {
+  .site-nearby-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .site-nearby-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  /* Filters scroll sideways instead of wrapping into a tall stack on phones. */
+  .site-nearby-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-right: calc(clamp(20px, 4vw, 46px) * -1);
+    padding-right: clamp(20px, 4vw, 46px);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .site-nearby-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .site-nearby-chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
