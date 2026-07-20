@@ -1,0 +1,585 @@
+/*
+ * Royal Hotel — bespoke JOURNAL article (preset `royal`).
+ * The formal GRAND-HOTEL treatment: Archivo display, a CENTRED title header with
+ * a champagne rule, an optional wide hero, a centred reading column ~68ch with
+ * generous line-height, a hairline author/share footer and a "keep reading"
+ * strip. Scoped to `.rarticle`; colour/type/shape from the `--site-*` tokens
+ * (with grand-hotel champagne/charcoal hard fallbacks). Re-scopes the `.rhome`
+ * primitives, plus a `.r-prose` reading-column style.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.rarticle {
+  color: var(--site-ink, #16130e);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #ffffff);
+  overflow-x: clip;
+}
+.rarticle * {
+  box-sizing: border-box;
+}
+.rarticle img {
+  display: block;
+  max-width: 100%;
+}
+.rarticle p {
+  margin: 0;
+}
+.rarticle h1,
+.rarticle h2,
+.rarticle h3 {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: var(--site-weight-heading, 800);
+  letter-spacing: var(--site-tracking-heading, -0.02em);
+  line-height: 1.04;
+  margin: 0;
+  color: var(--site-ink, #16130e);
+  text-wrap: balance;
+}
+.rarticle .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.rarticle .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.rarticle .sand {
+  background: var(--site-soft, #f6f3ed);
+}
+.rarticle h2.lg {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1.02;
+}
+
+.rarticle .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #b08948);
+}
+.rarticle .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+}
+
+/* thin champagne rule */
+.rarticle .r-rule {
+  display: block;
+  width: 54px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--site-accent, #b08948);
+}
+
+.rarticle .sec-head {
+  max-width: 720px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.rarticle .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: var(--site-btn-primary-radius, 999px);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.rarticle .btn:hover {
+  transform: translateY(-3px);
+}
+.rarticle .btn-on-img {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+}
+.rarticle .btn-on-img:hover {
+  background: #fff;
+  color: var(--site-ink, #16130e);
+  border-color: #fff;
+}
+.rarticle .btn-white {
+  background: #fff;
+  color: var(--site-ink, #16130e);
+}
+.rarticle .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+.rarticle .alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--site-accent-deep, #8c6b34);
+  white-space: nowrap;
+}
+.rarticle .alink svg {
+  transition: transform 0.25s;
+}
+.rarticle .alink:hover svg {
+  transform: translateX(5px);
+}
+
+/* ======================================================================
+ * HEADER — centred title block
+ * ==================================================================== */
+.rarticle .r-art-head {
+  padding: clamp(56px, 8vw, 108px) 0 clamp(30px, 4vw, 48px);
+  text-align: center;
+}
+.rarticle .r-art-head .wrap {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rarticle .crumbs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6b655b);
+  margin-bottom: 24px;
+}
+.rarticle .crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.rarticle .crumbs a:hover {
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rarticle .r-art-head h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  line-height: 1.04;
+  max-width: 20ch;
+}
+.rarticle .r-art-head .r-rule {
+  margin: 28px 0 0;
+}
+.rarticle .r-art-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--site-mute, #6b655b);
+}
+.rarticle .r-art-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* ======================================================================
+ * HERO — optional wide image
+ * ==================================================================== */
+.rarticle .r-art-hero {
+  margin: 0;
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 12px));
+  box-shadow: 0 40px 70px -46px rgba(20, 17, 12, 0.5);
+}
+.rarticle .r-art-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ======================================================================
+ * BODY — centred reading column
+ * ==================================================================== */
+.rarticle .r-art-body {
+  padding: clamp(48px, 7vw, 92px) 0 clamp(64px, 9vw, 120px);
+}
+.rarticle .r-prose {
+  max-width: 68ch;
+  margin: 0 auto;
+}
+
+/* -- prose reading column ------------------------------------------------ */
+.rarticle .r-prose-lead {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2.2vw, 1.65rem);
+  line-height: 1.44;
+  color: var(--site-ink, #16130e);
+  margin-bottom: 32px;
+}
+.rarticle .r-prose p {
+  font-size: 1.12rem;
+  line-height: 1.85;
+  margin-top: 26px;
+  color: var(--site-ink, #16130e);
+}
+.rarticle .r-prose h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.12;
+  margin-top: 52px;
+}
+.rarticle .r-prose h3 {
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+  line-height: 1.18;
+  margin-top: 38px;
+}
+.rarticle .r-prose strong {
+  font-weight: 700;
+}
+.rarticle .r-prose a:not(.btn):not(.alink):not(.r-back) {
+  color: var(--site-accent-deep, #8c6b34);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.rarticle .r-prose blockquote {
+  margin: 44px 0;
+  padding: 4px 0 4px 26px;
+  border-left: 2px solid var(--site-accent, #b08948);
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 500;
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  line-height: 1.38;
+  color: var(--site-ink, #16130e);
+}
+.rarticle .r-prose blockquote cite {
+  display: block;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--site-mute, #6b655b);
+  margin-top: 14px;
+}
+.rarticle .r-prose figure {
+  margin: 44px 0;
+}
+.rarticle .r-prose figure img {
+  width: 100%;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 12px));
+}
+.rarticle .r-prose img {
+  border-radius: var(--site-img-radius, var(--site-radius-img, 12px));
+}
+.rarticle .r-prose figcaption {
+  font-size: 13px;
+  color: var(--site-mute, #6b655b);
+  margin-top: 12px;
+  text-align: center;
+}
+.rarticle .r-prose ul,
+.rarticle .r-prose ol {
+  padding-left: 0;
+  list-style: none;
+  margin-top: 24px;
+}
+.rarticle .r-prose li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  margin-top: 10px;
+  color: var(--site-ink, #16130e);
+}
+.rarticle .r-prose li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+}
+.rarticle .r-prose hr {
+  margin: 44px 0;
+}
+.rarticle .r-hr {
+  height: 1px;
+  background: var(--site-line, #e7e1d6);
+  border: none;
+  margin: 0;
+}
+
+/* ======================================================================
+ * FOOTER — author + share + back link
+ * ==================================================================== */
+.rarticle .r-art-foot {
+  margin-top: 56px;
+}
+.rarticle .r-art-footrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+.rarticle .r-auth {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rarticle .r-auth-av {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--site-accent, #b08948);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.rarticle .r-auth-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rarticle .r-auth-name {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--site-ink, #16130e);
+}
+.rarticle .r-auth-bio {
+  color: var(--site-mute, #6b655b);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.rarticle .r-share {
+  display: flex;
+  gap: 10px;
+}
+.rarticle .r-share a {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--site-line, #e7e1d6);
+  color: var(--site-mute, #6b655b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.rarticle .r-share a:hover {
+  color: var(--site-accent-deep, #8c6b34);
+  border-color: var(--site-accent, #b08948);
+}
+.rarticle .r-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 34px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--site-accent-deep, #8c6b34);
+  text-decoration: none;
+  transition: gap 0.25s ease;
+}
+.rarticle .r-back:hover {
+  gap: 12px;
+}
+
+/* ======================================================================
+ * KEEP READING — 3-up cards
+ * ==================================================================== */
+.rarticle .r-rel-head {
+  max-width: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.rarticle .r-rel-head .tag {
+  margin-bottom: 16px;
+}
+.rarticle .r-rel-head h2 {
+  margin-top: 14px;
+}
+.rarticle .r-rel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.6vw, 40px);
+}
+.rarticle .r-rel-card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+.rarticle .r-rel-fig {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 12px));
+}
+.rarticle .r-rel-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.rarticle .r-rel-card:hover .r-rel-fig img {
+  transform: scale(1.05);
+}
+.rarticle .r-rel-card h3 {
+  font-size: 1.35rem;
+  line-height: 1.16;
+  margin-top: 16px;
+  transition: color 0.2s ease;
+}
+.rarticle .r-rel-card:hover h3 {
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rarticle .rj-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-accent, #b08948),
+    var(--site-accent-deep, #8c6b34)
+  );
+}
+.rarticle .rj-ph span {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 2.4rem;
+  color: #fff;
+  opacity: 0.94;
+}
+
+/* ======================================================================
+ * CTA banner
+ * ==================================================================== */
+.rarticle .banner {
+  position: relative;
+  border-radius: var(--site-radius-xl, 24px);
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 96px) clamp(30px, 6vw, 80px);
+  text-align: center;
+  color: #fff;
+}
+.rarticle .banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rarticle .banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    120deg,
+    rgba(20, 17, 12, 0.72),
+    rgba(20, 17, 12, 0.48)
+  );
+}
+.rarticle .banner-in {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.rarticle .banner-in h2 {
+  color: #fff;
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+}
+.rarticle .banner-in p {
+  color: rgba(255, 255, 255, 0.88);
+  margin: 18px auto 0;
+  max-width: 46ch;
+  line-height: 1.6;
+}
+.rarticle .hero-cta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 860px) {
+  .rarticle .r-art-hero {
+    aspect-ratio: 16 / 10;
+  }
+  .rarticle .r-rel {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rarticle .r-rel-card:nth-child(3) {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .rarticle .wrap {
+    padding: 0 20px;
+  }
+  .rarticle .r-rel {
+    grid-template-columns: 1fr;
+  }
+  .rarticle .r-rel-card:nth-child(3) {
+    display: flex;
+  }
+  .rarticle .r-art-footrow {
+    justify-content: flex-start;
+  }
+  .rarticle .hero-cta {
+    flex-direction: column;
+  }
+  .rarticle .hero-cta .btn {
+    width: 100%;
+  }
+}

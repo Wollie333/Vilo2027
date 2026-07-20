@@ -45,6 +45,11 @@ import { SafariExperiences } from "./safari/SafariExperiences";
 import { SafariContact } from "./safari/SafariContact";
 import { SafariGallery } from "./safari/SafariGallery";
 import { SafariSpecials } from "./safari/SafariSpecials";
+import { RoyalAbout } from "./royal/RoyalAbout";
+import { RoyalExperiences } from "./royal/RoyalExperiences";
+import { RoyalContact } from "./royal/RoyalContact";
+import { RoyalGallery } from "./royal/RoyalGallery";
+import { RoyalSpecials } from "./royal/RoyalSpecials";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -638,11 +643,14 @@ export async function SitePageView({
   // content_profile; stats/imagery from live listing data; demo copy is fallback
   // only. Sections needing data we don't collect (multi-year timeline, full team)
   // are omitted, not fabricated. Same content-persistence contract as home.
-  // Safari (NenGama Lodge) — bespoke ABOUT (preset `safari`). Own component
-  // (`.sfabout`), the editorial lodge treatment (Fraunces, hairline rules,
-  // asymmetric story split, ruled stat numerals, editorial values roster). Above
-  // the shared branch so only Safari forks here. Phase B (subpages).
-  if (ctx.theme.preset === "safari" && result.page.kind === "about") {
+  // Safari + Royal — bespoke ABOUT. Each has its OWN component (Safari `.sfabout`
+  // editorial lodge; Royal `.rabout` grand-hotel). Above the shared branch so only
+  // these two fork here; both use the shared data-prep + chrome, differing only by
+  // the rendered component. Phase B (subpages).
+  if (
+    (ctx.theme.preset === "safari" || ctx.theme.preset === "royal") &&
+    result.page.kind === "about"
+  ) {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
       sbx
@@ -658,6 +666,8 @@ export async function SitePageView({
       findRoomsIndexHref(ctx),
     ]);
     const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const AboutComponent =
+      ctx.theme.preset === "royal" ? RoyalAbout : SafariAbout;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -684,7 +694,7 @@ export async function SitePageView({
             previewPages={previewPages}
             pageHasHero
           >
-            <SafariAbout
+            <AboutComponent
               brandName={ctx.brand.name}
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
@@ -1180,9 +1190,12 @@ export async function SitePageView({
   // live now/was price + savings, and a real booking deep-link. Empty → the
   // design's "no offers yet" placeholder (never demo cards). Gallery feeds the
   // page-head + CTA imagery. Same content-persistence contract as home.
-  // Safari — bespoke SPECIALS (preset `safari`). Own component (`.sfspecials`),
-  // editorial offer-card collection. Above the shared branch. Phase B (subpages).
-  if (ctx.theme.preset === "safari" && result.page.kind === "specials") {
+  // Safari + Royal — bespoke SPECIALS (Safari `.sfspecials` editorial cards; Royal
+  // `.rspecials` grand-hotel). Shared data-prep + chrome; only the component differs.
+  if (
+    (ctx.theme.preset === "safari" || ctx.theme.preset === "royal") &&
+    result.page.kind === "specials"
+  ) {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
       sbx
@@ -1198,6 +1211,8 @@ export async function SitePageView({
       findRoomsIndexHref(ctx),
     ]);
     const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const SpecialsComponent =
+      ctx.theme.preset === "royal" ? RoyalSpecials : SafariSpecials;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1224,7 +1239,7 @@ export async function SitePageView({
             previewPages={previewPages}
             pageHasHero
           >
-            <SafariSpecials
+            <SpecialsComponent
               brandName={ctx.brand.name}
               contactHref="/contact"
               roomsHref={roomsHrefRaw ?? "/rooms"}
@@ -1433,9 +1448,13 @@ export async function SitePageView({
   // card + map (right) are wired to LIVE establishment data; the FAQ comes from
   // content_profile (brand-agnostic direct-booking answers as fallback). Rooms
   // feed the form's room selector. Same content-persistence contract as home.
-  // Safari — bespoke CONTACT (preset `safari`). Own component (`.sfcontact`),
-  // editorial details list + framed shared form. Above the shared branch. Phase B.
-  if (ctx.theme.preset === "safari" && result.page.kind === "contact") {
+  // Safari + Royal — bespoke CONTACT (Safari `.sfcontact` editorial; Royal
+  // `.rcontact` grand-hotel). Both reuse the shared OceansContactForm; shared
+  // data-prep + chrome, only the wrapper component differs.
+  if (
+    (ctx.theme.preset === "safari" || ctx.theme.preset === "royal") &&
+    result.page.kind === "contact"
+  ) {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras] = await Promise.all([
       sbx
@@ -1459,6 +1478,8 @@ export async function SitePageView({
         .filter((r) => r.body?.trim())
         .slice()
         .sort((a, b) => b.rating - a.rating)[0] ?? null;
+    const ContactComponent =
+      ctx.theme.preset === "royal" ? RoyalContact : SafariContact;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1485,7 +1506,7 @@ export async function SitePageView({
             previewPages={previewPages}
             pageHasHero
           >
-            <SafariContact
+            <ContactComponent
               brandName={ctx.brand.name}
               websiteId={ctx.websiteId}
               interactive={!ctx.preview}
@@ -1829,9 +1850,12 @@ export async function SitePageView({
   // host's wizard `content_profile.experiences` (title/body/image); empty → a
   // tasteful "on the way" state (never fabricated). Same chrome + CTA as the
   // other bespoke pages.
-  // Safari — bespoke EXPERIENCES (preset `safari`). Own component (`.sfexp`),
-  // editorial ruled list. Above the shared branch. Phase B (subpages).
-  if (ctx.theme.preset === "safari" && result.page.kind === "experiences") {
+  // Safari + Royal — bespoke EXPERIENCES (Safari `.sfexp` editorial list; Royal
+  // `.rexp` grand-hotel). Shared data-prep + chrome; only the component differs.
+  if (
+    (ctx.theme.preset === "safari" || ctx.theme.preset === "royal") &&
+    result.page.kind === "experiences"
+  ) {
     const sbx = createAdminClient();
     const [{ data: cpRow }, roomsHrefRaw] = await Promise.all([
       sbx
@@ -1842,6 +1866,8 @@ export async function SitePageView({
       findRoomsIndexHref(ctx),
     ]);
     const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const ExperiencesComponent =
+      ctx.theme.preset === "royal" ? RoyalExperiences : SafariExperiences;
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
       body: e.body ?? null,
@@ -1873,7 +1899,7 @@ export async function SitePageView({
             previewPages={previewPages}
             pageHasHero
           >
-            <SafariExperiences
+            <ExperiencesComponent
               brandName={ctx.brand.name}
               heading={null}
               intro={cp.experiences?.intro ?? null}
@@ -2069,15 +2095,20 @@ export async function SitePageView({
   // Oceans View — bespoke GALLERY design. A mosaic of the property's LIVE photos
   // (assembleSiteDataByType "gallery") with a lightbox; empty → "photos coming
   // soon" (never fabricated). Same chrome + CTA as the other bespoke pages.
-  // Safari — bespoke GALLERY (preset `safari`). Own component (`.sfgallery`),
-  // warm daylight editorial mosaic (reuses the shared lightbox). Above the shared
-  // branch. Phase B (subpages).
-  if (ctx.theme.preset === "safari" && result.page.kind === "gallery") {
+  // Safari + Royal — bespoke GALLERY (Safari `.sfgallery` daylight mosaic; Royal
+  // `.rgallery` grand-hotel). Both reuse the shared OceansMosaicGallery lightbox;
+  // shared data-prep + chrome, only the wrapper component differs.
+  if (
+    (ctx.theme.preset === "safari" || ctx.theme.preset === "royal") &&
+    result.page.kind === "gallery"
+  ) {
     const sbx = createAdminClient();
     const [extras, roomsHrefRaw] = await Promise.all([
       assembleSiteDataByType(sbx, ctx, new Set(["gallery"] as const)),
       findRoomsIndexHref(ctx),
     ]);
+    const GalleryComponent =
+      ctx.theme.preset === "royal" ? RoyalGallery : SafariGallery;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -2104,7 +2135,7 @@ export async function SitePageView({
             previewPages={previewPages}
             pageHasHero
           >
-            <SafariGallery
+            <GalleryComponent
               brandName={ctx.brand.name}
               heading={null}
               intro={null}

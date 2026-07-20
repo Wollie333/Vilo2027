@@ -7,6 +7,7 @@ import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewJournal } from "@/components/site/oceansview/OceansViewJournal";
 import { SafariJournal } from "@/components/site/safari/SafariJournal";
+import { RoyalJournal } from "@/components/site/royal/RoyalJournal";
 import { MarmaladeJournal } from "@/components/site/marmalade/MarmaladeJournal";
 import { SabelaJournal } from "@/components/site/sabela/SabelaJournal";
 import { siteAsset } from "@/components/site/SitePageView";
@@ -91,6 +92,14 @@ export default async function SiteBlogIndexPage({
       >
         {ctx.theme.preset === "safari" ? (
           <SafariJournal
+            brandName={ctx.brand.name}
+            heading={ctx.blog.heading}
+            intro={ctx.blog.intro}
+            posts={posts}
+            asset={siteAsset}
+          />
+        ) : ctx.theme.preset === "royal" ? (
+          <RoyalJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}
             intro={ctx.blog.intro}

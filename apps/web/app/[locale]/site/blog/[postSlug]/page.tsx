@@ -10,6 +10,7 @@ import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewArticle } from "@/components/site/oceansview/OceansViewArticle";
 import { SafariArticle } from "@/components/site/safari/SafariArticle";
+import { RoyalArticle } from "@/components/site/royal/RoyalArticle";
 import { MarmaladeArticle } from "@/components/site/marmalade/MarmaladeArticle";
 import { SabelaArticle } from "@/components/site/sabela/SabelaArticle";
 import { siteAsset } from "@/components/site/SitePageView";
@@ -151,12 +152,21 @@ export default async function SiteBlogPostPage({
           previewPages={previewPages}
           pageHasHero={
             (ctx.theme.preset !== "safari" &&
+              ctx.theme.preset !== "royal" &&
               usesOceansViewLayout(ctx.theme.preset)) ||
             ctx.theme.preset === "marmalade"
           }
         >
           {ctx.theme.preset === "safari" ? (
             <SafariArticle
+              brandName={ctx.brand.name}
+              post={post}
+              related={relatedPosts}
+              socials={ctx.brand.socials}
+              asset={siteAsset}
+            />
+          ) : ctx.theme.preset === "royal" ? (
+            <RoyalArticle
               brandName={ctx.brand.name}
               post={post}
               related={relatedPosts}

@@ -1,0 +1,319 @@
+import "./royalArticle.css";
+
+import type { CSSProperties } from "react";
+
+import { siteImageUrl } from "@/lib/site/image";
+
+type RelatedPost = { title: string; slug: string; coverUrl: string | null };
+
+type ArticlePost = {
+  title: string;
+  bodyHtml: string;
+  coverUrl: string | null;
+  date: string | null;
+  authorName: string | null;
+  authorBio: string | null;
+  authorAvatarUrl: string | null;
+  excerpt: string | null;
+  tags: { name: string; slug: string }[];
+};
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return "•";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+const IgIcon = (
+  <svg
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    aria-hidden
+  >
+    <rect x="2" y="2" width="20" height="20" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
+const FbIcon = (
+  <svg
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    aria-hidden
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+const Arrow = (
+  <svg
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+const ArrowBack = (
+  <svg
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M19 12H5M11 18l-6-6 6-6" />
+  </svg>
+);
+
+/**
+ * Royal Hotel JOURNAL article (preset `royal`) — its own component + stylesheet
+ * (`.rarticle` / royalArticle.css): the formal GRAND-HOTEL treatment (Archivo
+ * display, a CENTRED title header block with a champagne rule, an optional wide
+ * hero, a centred reading column ~68ch with generous line-height, a hairline
+ * author/share footer, a back-to-journal link and a "keep reading" strip) —
+ * distinct from the OceansView full-bleed hero article and the Safari warm
+ * editorial column. Wired to a LIVE post (`loadSiteBlogPost`); the body is the
+ * SAME sanitised `body_html` rendered verbatim through `.r-prose`. Renders inside
+ * the shared themed chrome. Phase C.
+ */
+export function RoyalArticle({
+  brandName,
+  post,
+  related,
+  roomsHref = "/rooms",
+  contactHref = "/contact",
+  socials,
+  asset,
+}: {
+  brandName: string;
+  post: ArticlePost;
+  related: RelatedPost[];
+  roomsHref?: string;
+  contactHref?: string;
+  socials?: { instagram?: string | null; facebook?: string | null };
+  asset: (p: string | null | undefined) => string | undefined;
+}) {
+  const cover = post.coverUrl ? (asset(post.coverUrl) ?? post.coverUrl) : null;
+  const rel = related.filter((r) => r.title);
+  const ig = socials?.instagram?.trim();
+  const fb = socials?.facebook?.trim();
+
+  return (
+    <div className="rarticle">
+      {/* HEADER — centred title block */}
+      <section className="r-art-head">
+        <div className="wrap">
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <span>·</span>
+            <a href="/blog">Journal</a>
+          </nav>
+          <h1>{post.title}</h1>
+          <span className="r-rule" aria-hidden />
+          <div className="r-art-meta">
+            {post.authorName ? <span>{post.authorName}</span> : null}
+            {post.authorName && post.date ? (
+              <span className="r-art-dot" />
+            ) : null}
+            {post.date ? <span>{post.date}</span> : null}
+          </div>
+        </div>
+      </section>
+
+      {/* HERO — optional wide image */}
+      {cover ? (
+        <div className="wrap">
+          <figure className="r-art-hero">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={siteImageUrl(cover, { width: 2000 })}
+              alt={post.title}
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </div>
+      ) : null}
+
+      {/* ARTICLE — centred reading column */}
+      <section className="r-art-body">
+        <div className="wrap">
+          {post.excerpt ? (
+            <div className="r-prose">
+              <p className="r-prose-lead">{post.excerpt}</p>
+            </div>
+          ) : null}
+          <div
+            className="r-prose"
+            // body_html is sanitised in loadSiteBlogPost
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+          />
+
+          {/* FOOTER — author + share + back link */}
+          <div className="r-prose r-art-foot">
+            <hr className="r-hr" />
+            <div className="r-art-footrow">
+              {post.authorName ? (
+                <div className="r-auth">
+                  <span className="r-auth-av">
+                    {post.authorAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={siteImageUrl(post.authorAvatarUrl, { width: 200 })}
+                        alt={post.authorName}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      initials(post.authorName)
+                    )}
+                  </span>
+                  <div>
+                    <div className="r-auth-name">{post.authorName}</div>
+                    <div className="r-auth-bio">
+                      {post.authorBio?.trim() || brandName}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <span />
+              )}
+              {ig || fb ? (
+                <div className="r-share">
+                  {ig ? (
+                    <a
+                      href={ig}
+                      aria-label="Instagram"
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      {IgIcon}
+                    </a>
+                  ) : null}
+                  {fb ? (
+                    <a
+                      href={fb}
+                      aria-label="Facebook"
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      {FbIcon}
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <a href="/blog" className="r-back">
+              {ArrowBack} Back to the journal
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* KEEP READING */}
+      {rel.length ? (
+        <section className="section sand">
+          <div className="wrap">
+            <div className="sec-head r-rel-head" data-reveal>
+              <div>
+                <span className="tag">Keep reading</span>
+                <h2 className="lg">More from the journal</h2>
+              </div>
+              <a href="/blog" className="alink">
+                All stories {Arrow}
+              </a>
+            </div>
+            <div className="r-rel">
+              {rel.map((r, i) => {
+                const rc = r.coverUrl
+                  ? (asset(r.coverUrl) ?? r.coverUrl)
+                  : null;
+                return (
+                  <a
+                    key={r.slug}
+                    href={`/blog/${r.slug}`}
+                    className="r-rel-card"
+                    data-reveal
+                    style={
+                      { "--reveal-delay": `${(i % 3) * 90}ms` } as CSSProperties
+                    }
+                  >
+                    <div className="r-rel-fig">
+                      {rc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={siteImageUrl(rc, { width: 800 })}
+                          alt={r.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="rj-ph" aria-hidden>
+                          <span>{(r.title?.[0] ?? "•").toUpperCase()}</span>
+                        </div>
+                      )}
+                    </div>
+                    <h3>{r.title}</h3>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* CTA BANNER */}
+      <section className="section">
+        <div className="wrap">
+          <div className="banner" data-reveal>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={siteImageUrl(
+                "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=2000&q=80",
+                { width: 1600 },
+              )}
+              alt={brandName}
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="banner-in">
+              <h2>Come stay with us</h2>
+              <p>
+                Real rooms, real people, and a price that never moves.
+                We&apos;ll keep a room ready for you.
+              </p>
+              <div className="hero-cta">
+                <a href={roomsHref} className="btn btn-white btn-lg">
+                  View rooms
+                </a>
+                <a href={contactHref} className="btn btn-on-img btn-lg">
+                  Say hello
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

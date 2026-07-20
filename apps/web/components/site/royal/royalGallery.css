@@ -1,0 +1,448 @@
+/*
+ * Royal Hotel — bespoke GALLERY page (preset `royal`).
+ * Formal grand-hotel treatment (Archivo display, a centred champagne-ruled page
+ * head, a refined charcoal/champagne mosaic, a closing CTA banner). Scoped to
+ * `.rgallery`; all colour/type/shape comes from the theme's `--site-*` tokens
+ * (with grand-hotel hard fallbacks: white surface, charcoal anchor, champagne
+ * accent). The mosaic + lightbox markup is rendered verbatim by the shared
+ * <OceansMosaicGallery> (`.mosaic`/`.m` + `.ovroom-lightbox`/`.ovlb-*`), so
+ * those classes are re-skinned here — re-scoped to `.rgallery` — to keep every
+ * photo clickable/zoomable in the Royal look (the lightbox stays position:fixed
+ * inset:0 with a large centred image).
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.rgallery {
+  color: var(--site-ink, #1c1913);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  background: var(--site-bg, #ffffff);
+  overflow-x: clip;
+}
+.rgallery * {
+  box-sizing: border-box;
+}
+.rgallery img {
+  display: block;
+  max-width: 100%;
+}
+.rgallery p {
+  margin: 0;
+}
+.rgallery h1,
+.rgallery h2,
+.rgallery h3 {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, -0.01em);
+  line-height: 1.04;
+  margin: 0;
+  color: var(--site-ink, #1c1913);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.rgallery .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.rgallery .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.rgallery h2.lg {
+  font-size: clamp(2.1rem, 4.4vw, 3.4rem);
+  line-height: 1.02;
+}
+.rgallery .muted {
+  color: var(--site-mute, #6b655b);
+  line-height: 1.55;
+  max-width: 56ch;
+}
+
+/* -- eyebrow / tag ------------------------------------------------------- */
+.rgallery .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #b08948);
+}
+.rgallery .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.rgallery .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: var(--site-btn-primary-radius, 999px);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.rgallery .btn:hover {
+  transform: translateY(-3px);
+}
+.rgallery .btn-coral {
+  background: var(--site-accent, #b08948);
+  color: var(--site-accent-ink, #ffffff);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #b08948) 55%, transparent);
+}
+.rgallery .btn-coral:hover {
+  background: var(--site-accent-deep, #8c6b34);
+}
+.rgallery .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #1c1913);
+  border-color: var(--site-line, #e7e1d6);
+}
+.rgallery .btn-ghost:hover {
+  border-color: var(--site-accent, #b08948);
+  color: var(--site-accent, #b08948);
+}
+.rgallery .btn-white {
+  background: #fff;
+  color: var(--site-ink, #1c1913);
+}
+.rgallery .btn-on-img {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+}
+.rgallery .btn-on-img:hover {
+  background: #fff;
+  color: var(--site-ink, #1c1913);
+  border-color: #fff;
+}
+.rgallery .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+
+/* -- page head — centred, champagne-ruled -------------------------------- */
+.rgallery .phead {
+  position: relative;
+  min-height: clamp(420px, 56vh, 540px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.rgallery .phead img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 114%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rgallery .phead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 17, 12, 0.32) 0%,
+    rgba(20, 17, 12, 0.12) 40%,
+    rgba(20, 17, 12, 0.68) 100%
+  );
+}
+.rgallery .phead .wrap {
+  position: relative;
+  z-index: 2;
+  padding-bottom: clamp(44px, 6vw, 74px);
+  color: #fff;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.rgallery .phead .crumbs {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+.rgallery .phead .crumbs a {
+  color: inherit;
+}
+.rgallery .phead .crumbs a:hover {
+  color: #fff;
+}
+.rgallery .phead h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  margin-top: 18px;
+  max-width: 20ch;
+}
+.rgallery .phead h1::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 24px auto 0;
+  background: var(--site-accent, #b08948);
+  border-radius: 2px;
+}
+.rgallery .phead p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 22px;
+  max-width: 56ch;
+  font-size: 1.1rem;
+  line-height: 1.55;
+}
+
+/* -- empty state — tasteful "photos coming soon" (no fabricated images) --- */
+.rgallery .rg-empty {
+  max-width: 620px;
+  margin: 0 auto;
+  text-align: center;
+}
+.rgallery .rg-empty-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+  justify-content: center;
+}
+
+/* ======================================================================
+ * MOSAIC — refined grid (rendered by <OceansMosaicGallery>).
+ * The shared component emits `.mosaic > .m` (with `.w2`/`.h2` accents);
+ * re-skinned here into the champagne/charcoal Royal look.
+ * ==================================================================== */
+.rgallery .mosaic {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: clamp(160px, 20vw, 220px);
+  gap: 14px;
+}
+.rgallery .mosaic .m {
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 16px));
+  background: var(--site-soft, #f6f3ed);
+}
+.rgallery .mosaic .m img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.rgallery .mosaic .m:hover img {
+  transform: scale(1.05);
+}
+.rgallery .m.w2 {
+  grid-column: span 2;
+}
+.rgallery .m.h2 {
+  grid-row: span 2;
+}
+
+/* ======================================================================
+ * LIGHTBOX — full-screen slider (rendered by <OceansMosaicGallery> as
+ * `.ovroom-lightbox` + `.ovlb-*`); charcoal re-skin, kept fully working
+ * (position:fixed inset:0, large centred image).
+ * ==================================================================== */
+.rgallery .ovroom-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(16, 13, 9, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 38px;
+  cursor: zoom-out;
+}
+.rgallery .ovroom-lightbox.open {
+  display: flex;
+}
+.rgallery .ovroom-lightbox img {
+  max-width: min(92vw, 1400px);
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 8px));
+  cursor: default;
+}
+.rgallery .ovroom-lightbox .ovlb-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.rgallery .ovroom-lightbox .ovlb-arrow:hover {
+  background: color-mix(in srgb, var(--site-accent, #b08948) 55%, transparent);
+}
+.rgallery .ovroom-lightbox .ovlb-prev {
+  left: clamp(12px, 3vw, 40px);
+}
+.rgallery .ovroom-lightbox .ovlb-next {
+  right: clamp(12px, 3vw, 40px);
+}
+.rgallery .ovroom-lightbox .ovlb-close {
+  position: absolute;
+  top: clamp(14px, 3vw, 30px);
+  right: clamp(14px, 3vw, 30px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s;
+}
+.rgallery .ovroom-lightbox .ovlb-close:hover {
+  background: color-mix(in srgb, var(--site-accent, #b08948) 55%, transparent);
+}
+.rgallery .ovroom-lightbox .ovlb-count {
+  position: absolute;
+  bottom: clamp(16px, 3vw, 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+  cursor: default;
+}
+
+/* -- CTA banner ---------------------------------------------------------- */
+.rgallery .banner {
+  position: relative;
+  border-radius: var(--site-radius-xl, 24px);
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 96px) clamp(30px, 6vw, 80px);
+  text-align: center;
+  color: #fff;
+}
+.rgallery .banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rgallery .banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    120deg,
+    rgba(20, 17, 12, 0.72),
+    rgba(20, 17, 12, 0.46)
+  );
+}
+.rgallery .banner-in {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.rgallery .banner-in h2 {
+  color: #fff;
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+}
+.rgallery .banner-in p {
+  color: rgba(255, 255, 255, 0.88);
+  margin: 18px auto 0;
+  max-width: 46ch;
+  line-height: 1.55;
+}
+.rgallery .rg-cta-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 960px) {
+  .rgallery .mosaic {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rgallery .m.w2 {
+    grid-column: span 2;
+  }
+  .rgallery .m.h2 {
+    grid-row: span 1;
+  }
+}
+@media (max-width: 520px) {
+  .rgallery .wrap {
+    padding: 0 20px;
+  }
+  .rgallery .mosaic {
+    grid-template-columns: 1fr;
+    grid-auto-rows: clamp(200px, 60vw, 280px);
+  }
+  .rgallery .m.w2,
+  .rgallery .m.h2 {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+  .rgallery .ovroom-lightbox .ovlb-arrow {
+    width: 44px;
+    height: 44px;
+  }
+  .rgallery .rg-cta-row .btn,
+  .rgallery .rg-empty-cta .btn {
+    width: 100%;
+  }
+}

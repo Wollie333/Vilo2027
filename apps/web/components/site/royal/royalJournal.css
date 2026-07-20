@@ -1,0 +1,496 @@
+/*
+ * Royal Hotel — bespoke JOURNAL index (preset `royal`).
+ * The formal GRAND-HOTEL treatment: Archivo display, a centred champagne-ruled
+ * page head, a refined featured lead story, then a formal grid of the rest.
+ * Scoped to `.rjournal`; colour/type/shape from the `--site-*` tokens (with
+ * grand-hotel champagne/charcoal hard fallbacks). Re-scopes the `.rhome`
+ * primitives (.wrap/.section/.sand/.navy/.tag/.btn/.sec-head/.lead/...) so the
+ * page stands on its own — centred, formal, champagne + charcoal.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.rjournal {
+  color: var(--site-ink, #16130e);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #ffffff);
+  overflow-x: clip;
+}
+.rjournal * {
+  box-sizing: border-box;
+}
+.rjournal img {
+  display: block;
+  max-width: 100%;
+}
+.rjournal p {
+  margin: 0;
+}
+.rjournal h1,
+.rjournal h2,
+.rjournal h3 {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: var(--site-weight-heading, 800);
+  letter-spacing: var(--site-tracking-heading, -0.02em);
+  line-height: 1.04;
+  margin: 0;
+  color: var(--site-ink, #16130e);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.rjournal .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.rjournal .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.rjournal .sand {
+  background: var(--site-soft, #f6f3ed);
+}
+.rjournal .center {
+  text-align: center;
+}
+
+.rjournal .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #b08948);
+}
+.rjournal .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+}
+
+.rjournal h1.xl {
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  line-height: 1;
+}
+.rjournal h2.lg {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1.02;
+}
+.rjournal h3 {
+  font-size: var(--site-h3, 1.5rem);
+}
+.rjournal .lead {
+  font-size: clamp(1.08rem, 1.5vw, 1.32rem);
+  line-height: 1.55;
+  color: var(--site-mute, #6b655b);
+  font-weight: 400;
+}
+.rjournal .muted {
+  color: var(--site-mute, #6b655b);
+}
+
+/* thin champagne rule under centred heads */
+.rjournal .rj-rule {
+  display: block;
+  width: 54px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--site-accent, #b08948);
+}
+
+/* centred section head */
+.rjournal .sec-head {
+  max-width: 680px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.rjournal .sec-head.center {
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rjournal .sec-head.center .tag {
+  margin-bottom: 18px;
+}
+.rjournal .sec-head.center .rj-rule {
+  margin-top: 24px;
+}
+
+/* -- buttons ------------------------------------------------------------- */
+.rjournal .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: var(--site-btn-primary-radius, 999px);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.rjournal .btn:hover {
+  transform: translateY(-3px);
+}
+.rjournal .btn-on-img {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+}
+.rjournal .btn-on-img:hover {
+  background: #fff;
+  color: var(--site-ink, #16130e);
+  border-color: #fff;
+}
+.rjournal .btn-white {
+  background: #fff;
+  color: var(--site-ink, #16130e);
+}
+.rjournal .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+.rjournal .alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rjournal .alink svg {
+  transition: transform 0.25s;
+}
+.rjournal a:hover .rj-more svg,
+.rjournal .alink:hover svg {
+  transform: translateX(5px);
+}
+
+/* -- cover-less monogram placeholder ------------------------------------- */
+.rjournal .rj-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-accent, #b08948),
+    var(--site-accent-deep, #8c6b34)
+  );
+}
+.rjournal .rj-ph span {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 2.6rem;
+  color: #fff;
+  opacity: 0.94;
+}
+
+/* ======================================================================
+ * PAGE HEAD — centred, champagne-ruled
+ * ==================================================================== */
+.rjournal .rj-phead {
+  padding: clamp(64px, 9vw, 120px) 0 clamp(30px, 4vw, 48px);
+  text-align: center;
+}
+.rjournal .rj-phead .wrap {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rjournal .crumbs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6b655b);
+  margin-bottom: 24px;
+}
+.rjournal .crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.rjournal .crumbs a:hover {
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rjournal .rj-phead h1 {
+  max-width: 18ch;
+}
+.rjournal .rj-phead .rj-rule {
+  margin: 30px 0;
+}
+.rjournal .rj-phead .lead {
+  max-width: 56ch;
+}
+
+/* ======================================================================
+ * FEATURED — centred formal lead story
+ * ==================================================================== */
+.rjournal .rj-feat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+.rjournal .rj-feat-fig {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
+  border-radius: var(--site-img-radius, var(--site-radius-img, 12px));
+  box-shadow: 0 40px 70px -46px rgba(20, 17, 12, 0.5);
+}
+.rjournal .rj-feat-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.rjournal .rj-feat:hover .rj-feat-fig img {
+  transform: scale(1.03);
+}
+.rjournal .rj-feat-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 720px;
+  margin-top: clamp(32px, 4vw, 48px);
+}
+.rjournal .rj-feat-copy .tag {
+  margin-bottom: 18px;
+}
+.rjournal .rj-feat-copy .lg {
+  font-size: clamp(2rem, 4vw, 3rem);
+  max-width: 20ch;
+  transition: color 0.2s ease;
+}
+.rjournal .rj-feat:hover .rj-feat-copy .lg {
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rjournal .rj-feat-copy .rj-rule {
+  margin: 24px 0;
+}
+.rjournal .rj-feat-copy .lead {
+  max-width: 58ch;
+}
+.rjournal .rj-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--site-mute, #6b655b);
+}
+.rjournal .rj-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.rjournal .rj-feat-copy .rj-more {
+  margin-top: 26px;
+}
+
+/* ======================================================================
+ * THE REST — formal grid
+ * ==================================================================== */
+.rjournal .rj-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 2.8vw, 36px);
+}
+.rjournal .rj-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-card-border, var(--site-line, #e7e1d6));
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 16px));
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.rjournal .rj-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 36px 60px -30px rgba(20, 17, 12, 0.3);
+}
+.rjournal .rj-card-fig {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+}
+.rjournal .rj-card-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.rjournal .rj-card:hover .rj-card-fig img {
+  transform: scale(1.06);
+}
+.rjournal .rj-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 24px 24px 26px;
+}
+.rjournal .rj-card-date {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--site-accent, #b08948);
+  margin-bottom: 12px;
+}
+.rjournal .rj-card-body h3 {
+  font-size: 1.4rem;
+  line-height: 1.14;
+  transition: color 0.2s ease;
+}
+.rjournal .rj-card:hover .rj-card-body h3 {
+  color: var(--site-accent-deep, #8c6b34);
+}
+.rjournal .rj-card-body p {
+  font-size: 14.5px;
+  color: var(--site-mute, #6b655b);
+  line-height: 1.55;
+  margin-top: 12px;
+  flex: 1;
+  /* Convention: clamp card descriptions to 2 lines so cards stay uniform. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rjournal .rj-card-foot {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--site-line, #e7e1d6);
+}
+
+/* empty state */
+.rjournal .rj-empty {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rjournal .rj-empty .tag {
+  margin-bottom: 18px;
+}
+.rjournal .rj-empty .muted {
+  margin-top: 14px;
+}
+
+/* ======================================================================
+ * CTA banner
+ * ==================================================================== */
+.rjournal .banner {
+  position: relative;
+  border-radius: var(--site-radius-xl, 24px);
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 96px) clamp(30px, 6vw, 80px);
+  text-align: center;
+  color: #fff;
+}
+.rjournal .banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rjournal .banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    120deg,
+    rgba(20, 17, 12, 0.72),
+    rgba(20, 17, 12, 0.48)
+  );
+}
+.rjournal .banner-in {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.rjournal .banner-in h2 {
+  color: #fff;
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+}
+.rjournal .banner-in p {
+  color: rgba(255, 255, 255, 0.88);
+  margin: 18px auto 0;
+  max-width: 46ch;
+  line-height: 1.6;
+}
+.rjournal .hero-cta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 1040px) {
+  .rjournal .rj-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 860px) {
+  .rjournal .rj-feat-fig {
+    aspect-ratio: 16 / 10;
+  }
+}
+@media (max-width: 560px) {
+  .rjournal .wrap {
+    padding: 0 20px;
+  }
+  .rjournal .rj-grid {
+    grid-template-columns: 1fr;
+  }
+  .rjournal .hero-cta {
+    flex-direction: column;
+  }
+  .rjournal .hero-cta .btn {
+    width: 100%;
+  }
+}

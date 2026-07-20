@@ -1,0 +1,571 @@
+/*
+ * Royal Hotel — bespoke CONTACT page (preset `royal`).
+ * Formal grand-hotel treatment (Archivo display, a centred champagne-ruled page
+ * head, hairline-ruled contact details, the shared enquiry form in a refined
+ * framed card). Scoped to `.rcontact`; all colour/type/shape comes from the
+ * theme's `--site-*` tokens (with grand-hotel hard fallbacks: white surface,
+ * charcoal ink/anchor, champagne accent), so it stays on-theme + host-editable.
+ * The enquiry form is the shared `OceansContactForm`, so its inner classes
+ * (`.frow` / `.field` / `.btn` / `.btn-coral` / `.sent` / `.muted`) are
+ * re-dressed here into the Royal idiom.
+ */
+
+/* -- root ---------------------------------------------------------------- */
+.rcontact {
+  color: var(--site-ink, #1c1913);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  background: var(--site-bg, #ffffff);
+  overflow-x: clip;
+}
+.rcontact * {
+  box-sizing: border-box;
+}
+.rcontact img {
+  display: block;
+  max-width: 100%;
+}
+.rcontact p {
+  margin: 0;
+}
+.rcontact h1,
+.rcontact h2,
+.rcontact h3,
+.rcontact h4 {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: var(--site-weight-heading, 700);
+  letter-spacing: var(--site-tracking-heading, -0.01em);
+  line-height: 1.04;
+  margin: 0;
+  color: var(--site-ink, #1c1913);
+  text-wrap: balance;
+}
+
+/* -- layout -------------------------------------------------------------- */
+.rcontact .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.rcontact .wrap-read {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.rcontact .section {
+  padding: clamp(70px, 9vw, 130px) 0;
+}
+.rcontact .section-sm {
+  padding: clamp(48px, 6vw, 84px) 0;
+}
+.rcontact .sand {
+  background: var(--site-soft, #f6f3ed);
+}
+.rcontact .center {
+  text-align: center;
+}
+
+/* -- eyebrow / tag ------------------------------------------------------- */
+.rcontact .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: var(--site-text-accent, 12px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-accent, #b08948);
+}
+.rcontact .tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+}
+
+/* -- headings ------------------------------------------------------------ */
+.rcontact h2.lg {
+  font-size: clamp(2.1rem, 4.4vw, 3.4rem);
+  line-height: 1.02;
+}
+.rcontact .lead {
+  font-size: clamp(1.08rem, 1.5vw, 1.32rem);
+  line-height: 1.55;
+  color: var(--site-mute, #6b655b);
+  font-weight: 400;
+  max-width: 60ch;
+}
+.rcontact .muted {
+  color: var(--site-mute, #6b655b);
+  line-height: 1.55;
+}
+
+/* Centred formal section head + the thin champagne rule. */
+.rcontact .sec-head {
+  max-width: 680px;
+  margin-bottom: clamp(38px, 5vw, 58px);
+}
+.rcontact .sec-head.center {
+  margin-inline: auto;
+}
+.rcontact .sec-head.center .tag {
+  justify-content: center;
+}
+.rcontact .sec-head.center h2::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 2px;
+  margin: 20px auto 0;
+  background: var(--site-accent, #b08948);
+  border-radius: 2px;
+}
+
+/* -- buttons (also the shared form submit) ------------------------------- */
+.rcontact .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 30px;
+  border-radius: var(--site-btn-primary-radius, 999px);
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid transparent;
+  white-space: nowrap;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+.rcontact .btn:not(:disabled):hover {
+  transform: translateY(-3px);
+}
+/* The shared form's submit is `.btn-coral`; in Royal it reads as champagne. */
+.rcontact .btn-coral {
+  background: var(--site-accent, #b08948);
+  color: var(--site-accent-ink, #ffffff);
+  box-shadow: 0 14px 30px -12px
+    color-mix(in srgb, var(--site-accent, #b08948) 55%, transparent);
+}
+.rcontact .btn-coral:not(:disabled):hover {
+  background: var(--site-accent-deep, #8c6b34);
+}
+.rcontact .btn-ghost {
+  background: transparent;
+  color: var(--site-ink, #1c1913);
+  border-color: var(--site-line, #e7e1d6);
+}
+.rcontact .btn-ghost:hover {
+  border-color: var(--site-accent, #b08948);
+  color: var(--site-accent, #b08948);
+}
+.rcontact .btn-lg {
+  height: 60px;
+  padding: 0 38px;
+  font-size: 15px;
+}
+
+/* -- page head — centred, champagne-ruled -------------------------------- */
+.rcontact .phead {
+  position: relative;
+  min-height: clamp(420px, 56vh, 540px);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.rcontact .phead img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 114%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rcontact .phead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 17, 12, 0.32) 0%,
+    rgba(20, 17, 12, 0.12) 40%,
+    rgba(20, 17, 12, 0.68) 100%
+  );
+}
+.rcontact .phead .wrap {
+  position: relative;
+  z-index: 2;
+  padding-bottom: clamp(44px, 6vw, 74px);
+  color: #fff;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.rcontact .phead .crumbs {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+.rcontact .phead .crumbs a {
+  color: inherit;
+}
+.rcontact .phead .crumbs a:hover {
+  color: #fff;
+}
+.rcontact .phead h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  margin-top: 18px;
+  max-width: 20ch;
+}
+.rcontact .phead h1::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 24px auto 0;
+  background: var(--site-accent, #b08948);
+  border-radius: 2px;
+}
+.rcontact .phead p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 22px;
+  max-width: 56ch;
+  font-size: 1.1rem;
+  line-height: 1.55;
+}
+
+/* -- details + form grid ------------------------------------------------- */
+.rcontact .rc-grid {
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: clamp(36px, 6vw, 84px);
+  align-items: start;
+}
+
+/* details — formal hairline-ruled list */
+.rcontact .rc-details {
+  border-top: 1px solid var(--site-line, #e7e1d6);
+}
+.rcontact .rc-drow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+  padding: clamp(18px, 2.4vw, 26px) 0;
+  border-bottom: 1px solid var(--site-line, #e7e1d6);
+}
+.rcontact .rc-dic {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--site-accent, #b08948);
+  background: var(--site-tint, #f1e8d6);
+  color: var(--site-accent-deep, #8c6b34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rcontact .rc-dbody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rcontact .rc-dlabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6b655b);
+}
+.rcontact .rc-dval {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: clamp(1.14rem, 1.8vw, 1.4rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #1c1913);
+  word-break: break-word;
+}
+.rcontact .rc-dsub {
+  font-size: 13.5px;
+  color: var(--site-mute, #6b655b);
+}
+
+/* guest voice — formal pull-quote */
+.rcontact .rc-quote {
+  margin: clamp(30px, 4vw, 46px) 0 0;
+  padding-top: clamp(28px, 3.5vw, 40px);
+  border-top: 1px solid var(--site-line, #e7e1d6);
+}
+.rcontact .rc-qstars {
+  display: flex;
+  gap: 3px;
+  color: var(--site-accent, #b08948);
+  margin-bottom: 16px;
+}
+.rcontact .rc-quote blockquote {
+  margin: 0;
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 500;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #1c1913);
+  text-wrap: pretty;
+}
+.rcontact .rc-quote figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+.rcontact .rc-qav {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+  color: var(--site-accent-ink, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.rcontact .rc-qnm {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--site-ink, #1c1913);
+}
+.rcontact .rc-qdt {
+  display: block;
+  font-size: 13px;
+  color: var(--site-mute, #6b655b);
+  margin-top: 2px;
+}
+
+/* -- enquiry card wrapping the shared OceansContactForm ------------------ */
+.rcontact .rc-formcard {
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-line, #e7e1d6);
+  border-radius: var(--site-card-radius, var(--site-radius-lg, 14px));
+  padding: clamp(26px, 3.4vw, 44px);
+  box-shadow: 0 40px 70px -48px rgba(28, 22, 15, 0.4);
+}
+.rcontact .rc-formtitle {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.08;
+  margin-top: 14px;
+}
+
+/* shared form internals, re-dressed in the Royal idiom */
+.rcontact .frow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.rcontact .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.rcontact .field label {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6b655b);
+}
+.rcontact .field input,
+.rcontact .field select,
+.rcontact .field textarea {
+  font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
+  font-size: 15px;
+  color: var(--site-ink, #1c1913);
+  background: var(--site-bg, #ffffff);
+  border: 1px solid var(--site-line, #e7e1d6);
+  border-radius: var(--site-radius, 10px);
+  padding: 13px 14px;
+  width: 100%;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.rcontact .field input:focus,
+.rcontact .field select:focus,
+.rcontact .field textarea:focus {
+  outline: none;
+  border-color: var(--site-accent, #b08948);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--site-accent, #b08948) 18%, transparent);
+}
+.rcontact .field textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+/* muted helper text + the "message sent" confirmation state */
+.rcontact .sent {
+  padding: clamp(28px, 4vw, 40px);
+  background: var(--site-soft, #f6f3ed);
+  border: 1px solid var(--site-line, #e7e1d6);
+  border-radius: var(--site-radius, 12px);
+  text-align: center;
+  margin-top: 4px;
+}
+.rcontact .sent svg {
+  color: var(--site-accent, #b08948);
+}
+
+/* -- map ----------------------------------------------------------------- */
+.rcontact .rc-mapframe {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--site-img-radius, var(--site-radius-img, 16px));
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e7e1d6);
+}
+.rcontact .rc-mapframe iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.rcontact .rc-mapph {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--site-img-radius, var(--site-radius-img, 16px));
+  overflow: hidden;
+  border: 1px solid var(--site-line, #e7e1d6);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--site-soft, #f6f3ed),
+    var(--site-soft, #f6f3ed) 14px,
+    var(--site-bg, #ffffff) 14px,
+    var(--site-bg, #ffffff) 28px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rcontact .rc-mappin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--site-accent, #b08948);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--site-accent, #b08948) 22%, transparent),
+    0 0 0 18px color-mix(in srgb, var(--site-accent, #b08948) 10%, transparent);
+}
+.rcontact .rc-maptag {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background: var(--site-surface, #ffffff);
+  border: 1px solid var(--site-line, #e7e1d6);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-mute, #6b655b);
+}
+
+/* -- FAQ — hairline-ruled formal accordion ------------------------------- */
+.rcontact .rc-faqs {
+  border-bottom: 1px solid var(--site-line, #e7e1d6);
+}
+.rcontact .rc-faq {
+  border-top: 1px solid var(--site-line, #e7e1d6);
+  padding: clamp(20px, 2.6vw, 26px) 0;
+}
+.rcontact .rc-faq summary {
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: clamp(1.12rem, 1.8vw, 1.35rem);
+  line-height: 1.2;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  color: var(--site-ink, #1c1913);
+}
+.rcontact .rc-faq summary::-webkit-details-marker {
+  display: none;
+}
+.rcontact .rc-pm {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--site-line, #e7e1d6);
+  background: var(--site-surface, #ffffff);
+  color: var(--site-ink, #1c1913);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    color 0.3s,
+    border-color 0.3s;
+}
+.rcontact .rc-faq[open] .rc-pm {
+  transform: rotate(45deg);
+  background: var(--site-accent, #b08948);
+  border-color: var(--site-accent, #b08948);
+  color: var(--site-accent-ink, #fff);
+}
+.rcontact .rc-faq p {
+  margin-top: 14px;
+  color: var(--site-mute, #6b655b);
+  line-height: 1.68;
+  max-width: 64ch;
+}
+
+/* -- responsive ---------------------------------------------------------- */
+@media (max-width: 960px) {
+  .rcontact .rc-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(32px, 6vw, 52px);
+  }
+  .rcontact .rc-form {
+    order: -1;
+  }
+}
+@media (max-width: 560px) {
+  .rcontact .wrap,
+  .rcontact .wrap-read {
+    padding: 0 20px;
+  }
+  .rcontact .frow {
+    grid-template-columns: 1fr;
+  }
+  .rcontact .rc-formcard {
+    padding: 22px 18px;
+  }
+}
