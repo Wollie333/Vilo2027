@@ -12,11 +12,30 @@
 > **▶▶ NEW SESSION: read this top-to-bottom, then `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` for the
 > surrounding CMS/theme context. Start at Phase 1.**
 >
-> **📌 STATUS 2026-07-20 (HEAD `065cb94`):** Phase 1 ✅ (amended — see below), Phase 2 ✅, Phase 3 ✅
-> (booking, no-regression confirmed). **Two open items:** (1) **Phase 4** Google Places nearby +
-> **Phase 5** per-theme mobile pass — not started. (2) **Hydration errors on the site preview render —
-> NOT fixed** (recoverable/non-functional; needs a dev build to pinpoint — see the dedicated section
-> at the very bottom).
+> **📌 STATUS 2026-07-20 (HEAD `159bb7f`) — RESUME HERE.**
+>
+> **DONE:** Phase 1 ✅ (amended — see below), Phase 2 ✅ (publish-from-wizard + default-policy safety
+> net + one-site bounce flag), Phase 3 ✅ (booking, no-regression confirmed), **Phase 4 nearby data ✅
+> BUILT** (see ▼NEXT #2), home-story design regression ✅ fixed+verified, Safari room-detail gallery ✅
+> fixed+verified, full Safari page sweep ✅ (only the gallery was broken).
+>
+> **▼ OPEN — pick up here next session (priority order):**
+> 1. **Verify Phase 4 (nearby) end-to-end + decide data source.** The whole pipeline is BUILT + deployed
+>    but NOT yet E2E-verified: open mana's website editor Overview → click **"Find nearby places"** →
+>    confirm it fetches real OSM places, saves, and they render on the Safari/any-theme **Experiences**
+>    page (live = shown; live+none-curated = hidden; preview+none = placeholder). Files:
+>    `lib/site/nearbyFetch.ts` (Overpass+Nominatim, no key), `refreshNearbyExperiencesAction` in
+>    `dashboard/website/actions.ts`, `NearbyExperiencesCard.tsx`, `content_profile.experiences.nearby`
+>    slot, `SiteNearbyExperiences` + the 5 `*Experiences.tsx`. **DATA CAVEAT:** OSM has NO photos/ratings/
+>    reviews (card degrades gracefully — monogram instead of photo, rating row hidden). If the founder
+>    wants rich cards → swap to **Google Places** (needs an API key; `NearbyPlace` is already Places-shaped).
+> 2. **Hydration errors on the site preview render — NOT fixed** (recoverable/non-functional). Narrowed
+>    this session to a client component inside `SiteChrome` (dev-repro proved SiteThemeRoot/fonts are
+>    clean). Needs a dev build to name the exact node → needs `SUPABASE_SERVICE_ROLE_KEY` in
+>    `apps/web/.env.local`. See the dedicated section at the very bottom.
+> 3. **Phase 5** — per-theme differentiation polish + explicit mobile pass (not started). Mobile-viewport
+>    QA is tooling-limited here (authenticated browser can't resize; in-app browser can't reach the SSO
+>    deploy) — use CSS media-query audit + the in-app browser at mobile width on mirrored components.
 >
 > **⚠️ Phase-1 AMENDMENT (`b6be166`):** the render-path derived-content merge (`mergeDerivedProfile`)
 > originally filled `about.story`/`home.intro.body` from the account `propertyDescription`. Bespoke
@@ -136,7 +155,13 @@ Booking is wired (see "What works"). This phase is verification + fixes, not bui
 2. Confirm the header "Book now" + room/special card hrefs carry the theme (preview) + correct params.
 3. Fix anything found. **Acceptance:** a real (test-mode) booking completes from a wizard site.
 
-### PHASE 4 — (a) Nearby-experiences → Google Places wiring
+### PHASE 4 — (a) Nearby-experiences → real data ← **✅ BUILT (`badd1b7`+`21cd82c`), E2E-verify pending (▲STATUS #1)**
+> Built with the free OSM/Overpass path (no key) instead of Google Places, per the founder's steer.
+> `lib/site/nearbyFetch.ts` (Overpass POIs + Nominatim geocode, uses the LISTING address), cached into
+> `content_profile.experiences.nearby`, rendered on all 5 themes' Experiences pages (real→shown,
+> live+empty→hidden, preview+empty→placeholder), triggered by the **"Find nearby places"** card on the
+> website Overview (`refreshNearbyExperiencesAction` + `NearbyExperiencesCard`). Still need to click it on
+> mana + confirm the render, and decide OSM-vs-Places (OSM = no photos/ratings).
 The card UI already ships (this session). Now feed it real data. See memory
 `[[experiences-ai-autopopulate-idea]]`; founder correction: use the **LISTING/property's own
 address** (`properties.address_line1…`), not the business/settings address.
