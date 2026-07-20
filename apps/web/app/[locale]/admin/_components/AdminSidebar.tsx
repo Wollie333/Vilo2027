@@ -52,6 +52,13 @@ const OPERATIONS: GmailNavItem[] = [
     icon: HomeIcon,
     match: "prefix",
   },
+  {
+    // Public roadmap voting board (WS-3a). Top-level for quick access.
+    href: "/admin/build-board",
+    label: "Build Board",
+    icon: Lightbulb,
+    match: "prefix",
+  },
   // Host staff hidden for MVP (see the staff feature).
 ];
 
@@ -99,12 +106,6 @@ const FINANCE: GmailNavItem[] = [
 
 const MODERATION: GmailNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
-  {
-    href: "/admin/build-board",
-    label: "Build Board",
-    icon: Lightbulb,
-    match: "prefix",
-  },
   {
     href: "/admin/flagged-listings",
     label: "Flagged listings",
