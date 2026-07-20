@@ -14,6 +14,7 @@ import {
 import { combineName } from "@/lib/profile/name";
 import { isHoneypotTripped } from "@/lib/security/honeypot";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
+import { notifyAdmins } from "@/lib/admin/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -243,11 +244,25 @@ export async function finalizeGuestOnboardingAction(
       avatar_url: d.avatar_url && d.avatar_url.length > 0 ? d.avatar_url : null,
       preferred_cities: d.preferred_cities,
       marketing_opt_in: d.marketing_opt_in,
+      owns_accommodation: d.owns_accommodation,
       role: "guest",
     })
     .eq("id", user.id);
   if (profileErr) {
     return { ok: false, error: "Could not save your details. Try again." };
+  }
+
+  // WS-4: a guest who self-identifies as an accommodation owner is a HOST lead —
+  // surface it to staff so the funnel doubles as a host pipeline. Best-effort.
+  if (d.owns_accommodation === true) {
+    await notifyAdmins(createAdminClient(), {
+      category: "support",
+      kind: "host_lead",
+      title: "New host lead from guest signup",
+      body: `${d.full_name} signed up as a guest and said they own accommodation.`,
+      userId: user.id,
+      href: `/admin/users/${user.id}`,
+    });
   }
 
   // Honour a safe internal ?next (e.g. the Looking For landing sends new posters

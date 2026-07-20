@@ -49,6 +49,8 @@ export type GuestProfileInput = z.infer<typeof guestProfileSchema>;
 export const guestPrefsSchema = z.object({
   preferred_cities: z.array(z.string().min(1).max(80)).max(20).default([]),
   marketing_opt_in: z.boolean().default(false),
+  // WS-4 host-lead capture: null = not answered, true/false = answered.
+  owns_accommodation: z.boolean().nullable().default(null),
 });
 export type GuestPrefsInput = z.infer<typeof guestPrefsSchema>;
 
@@ -62,6 +64,7 @@ export const finalizeGuestOnboardingSchema = z.object({
   avatar_url: z.string().url().optional().or(z.literal("")),
   preferred_cities: z.array(z.string().min(1).max(80)).max(20).default([]),
   marketing_opt_in: z.boolean().default(false),
+  owns_accommodation: z.boolean().nullable().default(null),
 });
 export type FinalizeGuestOnboardingInput = z.infer<
   typeof finalizeGuestOnboardingSchema

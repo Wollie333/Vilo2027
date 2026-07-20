@@ -81,6 +81,8 @@ type WizardData = {
   avatarUrl: string;
   preferredCities: string[];
   marketingOptIn: boolean;
+  // WS-4 host-lead capture: null = unanswered, true/false = answered.
+  ownsAccommodation: boolean | null;
 };
 
 function initialData(prefilledEmail: string | null): WizardData {
@@ -101,6 +103,7 @@ function initialData(prefilledEmail: string | null): WizardData {
     avatarUrl: "",
     preferredCities: [],
     marketingOptIn: false,
+    ownsAccommodation: null,
   };
 }
 
@@ -282,6 +285,7 @@ export function Wizard({
           avatar_url: data.avatarUrl,
           preferred_cities: data.preferredCities,
           marketing_opt_in: data.marketingOptIn,
+          owns_accommodation: data.ownsAccommodation,
         },
         next,
       );
@@ -1028,6 +1032,48 @@ function StepPrefs({
               className="mt-1 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
             />
           </label>
+        </div>
+
+        {/* WS-4: turn the guest funnel into a host lead source. */}
+        <div className="rounded-card border border-brand-line bg-white p-5">
+          <div className="font-display text-sm font-semibold text-brand-ink">
+            Do you own accommodation?{" "}
+            <span className="font-normal text-brand-mute">(optional)</span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-brand-mute">
+            A guesthouse, B&amp;B, self-catering place or holiday home? Wielo
+            lets you take bookings directly from guests — commission-free.
+          </p>
+          <div className="mt-3 flex gap-2">
+            {(
+              [
+                { v: true, l: "Yes, I do" },
+                { v: false, l: "No" },
+              ] as const
+            ).map((o) => {
+              const on = data.ownsAccommodation === o.v;
+              return (
+                <button
+                  key={String(o.v)}
+                  type="button"
+                  onClick={() => patch({ ownsAccommodation: o.v })}
+                  className={`rounded-pill border px-4 py-1.5 text-xs font-semibold transition ${
+                    on
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-line bg-white text-brand-mute hover:bg-brand-accent hover:text-brand-ink"
+                  }`}
+                >
+                  {o.l}
+                </button>
+              );
+            })}
+          </div>
+          {data.ownsAccommodation === true ? (
+            <p className="mt-2.5 text-xs text-brand-secondary">
+              Great — you can list your place anytime, and the Wielo team will
+              be in touch to help you get set up.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-start gap-3 rounded-card border border-brand-line bg-brand-light/60 p-4">

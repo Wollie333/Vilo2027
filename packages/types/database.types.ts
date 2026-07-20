@@ -10488,6 +10488,7 @@ export type Database = {
           is_lead: boolean
           languages: string[]
           marketing_opt_in: boolean
+          owns_accommodation: boolean | null
           phone: string | null
           phone_verified_at: string | null
           preferred_cities: string[]
@@ -10512,6 +10513,7 @@ export type Database = {
           is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
+          owns_accommodation?: boolean | null
           phone?: string | null
           phone_verified_at?: string | null
           preferred_cities?: string[]
@@ -10536,6 +10538,7 @@ export type Database = {
           is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
+          owns_accommodation?: boolean | null
           phone?: string | null
           phone_verified_at?: string | null
           preferred_cities?: string[]
