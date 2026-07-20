@@ -711,7 +711,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **Checks:**
 - `CHECK ((entry_type = ANY (ARRAY['accrual'::text, 'clawback'::text])))`
-- `CHECK ((kind = ANY (ARRAY['subscription'::text, 'setup_fee'::text, 'upgrade'::text])))`
+- `CHECK ((kind = ANY (ARRAY['subscription'::text, 'setup_fee'::text, 'upgrade'::text, 'conversion_bonus'::text])))`
 - `CHECK ((rate_type = ANY (ARRAY['amount'::text, 'percent'::text])))`
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'cleared'::text, 'voided'::text, 'paid'::text])))`
 
