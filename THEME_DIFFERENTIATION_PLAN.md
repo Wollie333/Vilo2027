@@ -7,6 +7,56 @@
 
 ---
 
+## ✅✅ STATUS: COMPLETE (2026-07-20, HEAD `2d2ffe5`) — read this before anything else
+
+**The whole 3-phase effort is DONE and live-verified.** All 5 themes are now genuinely
+unique on EVERY public page across all four axes:
+
+- **Phase A — motion** ✅ per-theme scroll-reveal signatures (all 5 themes, all subpages).
+- **Phase B — bespoke layouts** ✅ every theme has its OWN component set for every public
+  page. OceansView `.ov*`, Marmalade `.mm*`, Sabela `.sb*`, **Safari `.sf*` (site-wide,
+  `179c2a7`+`6b85e83`)**, **Royal `.r*` (site-wide, `20b0acc`)**. No theme reuses another's
+  page components anywhere. (Home/Rooms/Room-detail + About/Experiences/Contact/Gallery/
+  Specials+detail/Journal+Article all forked per theme.)
+- **Phase C — Safari≠Sabela** ✅ Safari given its OWN typeface **Fraunces** (vs Sabela's
+  Cormorant) — the fix for "feel the same." Applied via `site_themes.base.font` (DB catalog,
+  migration `20260720120000` + live SQL). Live-verified.
+- **Typeface per theme:** Bricolage Grotesque / Gloock / Cormorant / Fraunces / Archivo.
+
+**Everything above was live-verified on mana via the authenticated browser** (each page:
+correct `.xx*` root, right display font, no horizontal overflow, motion settles, and the
+reused bits — contact form + gallery lightbox — work).
+
+### ▶▶ WHAT'S NEXT (nothing left in THIS plan — pick from these)
+1. **Branch hygiene (highest priority before shipping):** `feature/website-cms-10min-wizard`
+   is ~30+ migrations behind `main`/cloud (all the 07-18→07-20 billing/finance work landed on
+   main). Rebase/merge `main` into this branch before it ships. `supabase migration list`
+   shows the divergence. The one theme migration here (`20260720120000_safari_theme_fraunces_font.sql`)
+   is idempotent, so it re-runs harmlessly after merge.
+2. **Optional polish (NOT needed — verify first):** the Phase-C "imagery grade" was judged
+   unnecessary once the typeface split landed; only revisit if a fresh side-by-side still
+   reads too close.
+3. **New work** — this plan is closed; take direction from the founder / `CURRENT_TASK.md`.
+
+### 🔑 KEY FILES (for future theme edits)
+- Bespoke components: `apps/web/components/site/{oceansview,marmalade,sabela,safari,royal}/`.
+- Routing: `components/site/SitePageView.tsx` (per-page `preset===` branches; note the
+  Safari+Royal subpage branches are WIDENED to serve both via a component variable —
+  `const XComponent = preset==="royal" ? RoyalX : SafariX`), `SiteRoomView.tsx`,
+  `SiteSpecialView.tsx`, `app/[locale]/site/blog/{page,[postSlug]/page}.tsx` (ternaries).
+- Fonts: `lib/site/themes.ts` (`FONT_STACKS`, preset `font`), `SiteFontLinks.tsx` (web-font
+  loading), builder enums (`SITE_FONTS` in `dashboard/website/schemas.ts`, `studio.ts`,
+  `brand/_sections.tsx`, `font_*` i18n). Theme font is served from `site_themes.base.font`
+  (DB) — `SITE_PRESETS` is only the fallback.
+- ⚠️ **GOTCHA (learned the hard way):** never put `data-reveal` on an element that WRAPS a
+  `position:fixed` descendant — the reveal primitive sets `translate`, establishing a
+  containing block that breaks the fixed overlay (broke the gallery lightbox; fixed in
+  `6b85e83`). Gallery wrappers around `OceansMosaicGallery` must be reveal-free.
+
+_(The phased detail below is retained for history; it's all done.)_
+
+---
+
 ## 🎯 THE GOAL (founder's words, 2026-07-19)
 
 > "I do not want all the themes to look the same just with different palettes… I
