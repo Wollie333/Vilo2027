@@ -76,13 +76,11 @@ export function SafariGallery({
           />
           <span className="sf-scrim" aria-hidden />
         </div>
-        <div className="wrap sf-phead-top">
+        <div className="wrap sf-phead-in" data-reveal>
           <div className="sf-coverline on-photo">
             <span>{brandName}</span>
             <span className="sf-folio">The Field Journal · In Frame</span>
           </div>
-        </div>
-        <div className="wrap sf-phead-in" data-reveal>
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span>/</span>

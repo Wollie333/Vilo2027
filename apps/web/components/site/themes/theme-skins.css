@@ -935,19 +935,6 @@
 .wielo-safari .sf-coverline.on-photo .sf-folio {
   color: #fff;
 }
-/* Pin the cover-line to the TOP of a photo head (`.sf-phead` is bottom-aligned,
-   so an in-flow masthead would sink to the headline). `.sf-phead-top` also
-   carries `.wrap`, so its max-width + padding keep it aligned to page content. */
-.wielo-safari .sf-phead {
-  position: relative;
-}
-.wielo-safari .sf-phead-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-}
 
 /* Roman-numeral section marker — sections in roman, listing items stay arabic. */
 .wielo-safari .sf-secnum {

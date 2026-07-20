@@ -151,13 +151,11 @@ export function SafariContact({
           <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
           <span className="sf-scrim" aria-hidden />
         </div>
-        <div className="wrap sf-phead-top">
+        <div className="wrap sf-phead-in">
           <div className="sf-coverline on-photo">
             <span>{brandName}</span>
             <span className="sf-folio">The Field Journal · Reach Us</span>
           </div>
-        </div>
-        <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span>/</span>

@@ -744,40 +744,6 @@
  * Cover-line, Roman-numeral section markers, drop cap, pull-quote —
  * devices Sabela does not use, so Safari reads as its own daylight magazine.
  * ==================================================================== */
-/* Hero cover-line — magazine masthead ruled across the top of the photo. */
-.sfhome .sf-hero-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  color: #fff;
-}
-.sfhome .sf-hero-top .wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 22px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
-}
-.sfhome .sf-hero-top span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.92);
-}
-.sfhome .sf-hero-top .sf-folio {
-  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  font-size: 15px;
-}
-
 /* (`.sf-secnum` Roman markers + `.sf-drop` drop cap are shared utilities in
    theme-skins.css under `.wielo-safari`, used site-wide across Safari pages.) */
 
@@ -942,10 +908,6 @@
 @media (max-width: 560px) {
   .sfhome .sf-hero {
     min-height: 78vh;
-  }
-  /* Keep just the lodge name on phones — the folio would crowd the rule. */
-  .sfhome .sf-hero-top .sf-folio {
-    display: none;
   }
   .sfhome .sf-hero-meta {
     flex-wrap: wrap;

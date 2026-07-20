@@ -216,14 +216,12 @@ export function SafariHome({
           <img src={siteImageUrl(heroImg, { width: 2560 })} alt={brandName} />
           <span className="sf-hero-scrim" aria-hidden />
         </div>
-        {/* Cover-line — magazine masthead across the top of the hero photo. */}
-        <div className="sf-hero-top">
-          <div className="wrap">
+        <div className="wrap sf-hero-in">
+          {/* Cover-line — in-flow above the meta, clear of the overlay header. */}
+          <div className="sf-coverline on-photo">
             <span>{brandName}</span>
             <span className="sf-folio">The Field Journal</span>
           </div>
-        </div>
-        <div className="wrap sf-hero-in">
           <div className="sf-hero-meta">
             <span>{brandName}</span>
             <i aria-hidden />
