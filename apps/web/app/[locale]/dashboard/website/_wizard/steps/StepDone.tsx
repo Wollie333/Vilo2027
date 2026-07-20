@@ -1,10 +1,15 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Globe, Rocket } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, CheckCircle2, Globe, Loader2, Rocket } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import { ReadinessChecklist } from "../../_components/ReadinessChecklist";
+import {
+  checkWebsiteReadinessAction,
+  publishWebsiteAction,
+} from "../../actions";
 import type { ReadinessItem } from "@/lib/website/readiness";
 
 export function StepDone({
@@ -24,9 +29,41 @@ export function StepDone({
   const router = useRouter();
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
 
+  // Live-updatable go-live state: the wizard finished with `published`/`missing`,
+  // but the host can fix the remaining items (the checklist deep-links each one)
+  // and then publish RIGHT HERE — so mirror both into state and let the
+  // "Re-check & publish" button flip the site live without leaving the wizard.
+  const [isPublished, setIsPublished] = useState(published);
+  const [remaining, setRemaining] = useState<ReadinessItem[]>(missing);
+  const [publishing, setPublishing] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function recheckAndPublish() {
+    setPublishing(true);
+    setNote(null);
+    // Publishing enforces the same readiness gate server-side, so a single call
+    // both re-checks and goes live when everything's in place.
+    const res = await publishWebsiteAction(websiteId);
+    if (res.ok) {
+      setIsPublished(true);
+      setPublishing(false);
+      return;
+    }
+    // Not ready yet — refresh the checklist so the host sees exactly what's still
+    // outstanding (an item they've since fixed drops off).
+    if (res.error === "not_ready") {
+      const report = await checkWebsiteReadinessAction(websiteId);
+      if (report.ok) setRemaining(report.missing);
+      setNote(t("wizardPublishStillMissing"));
+    } else {
+      setNote(t("wizardPublishError"));
+    }
+    setPublishing(false);
+  }
+
   // Draft outcome — the go-live readiness gate held the new site back. Show the
-  // host exactly what's left and route them straight to fixing it.
-  if (!published) {
+  // host exactly what's left, deep-link each fix, and let them publish from here.
+  if (!isPublished) {
     return (
       <div className="flex flex-col gap-5 py-4">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -47,14 +84,38 @@ export function StepDone({
         </div>
 
         <div className="mx-auto w-full max-w-sm">
-          <ReadinessChecklist missing={missing} onFixNavigate={onClose} />
+          <ReadinessChecklist missing={remaining} onFixNavigate={onClose} />
         </div>
+
+        {note ? (
+          <p className="mx-auto max-w-sm rounded-[10px] border border-brand-line bg-brand-light px-3.5 py-2.5 text-center text-[12px] leading-snug text-brand-mute">
+            {note}
+          </p>
+        ) : null}
 
         <div className="mx-auto flex w-full max-w-sm flex-col gap-2.5">
           <button
             type="button"
+            onClick={recheckAndPublish}
+            disabled={publishing}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:opacity-60"
+          >
+            {publishing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t("wizardPublishing")}
+              </>
+            ) : (
+              <>
+                <Rocket className="h-4 w-4" />
+                {t("wizardPublishNow")}
+              </>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => router.push(`/dashboard/website/${websiteId}`)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-brand-line px-5 py-3 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
           >
             {t("wizardContinueEditor")}
             <ArrowRight className="h-4 w-4" />
