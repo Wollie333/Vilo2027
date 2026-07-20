@@ -159,6 +159,12 @@ export function SafariHome({
     `${brandName} sits where the bush opens onto a wide, quiet plain — a handful of rooms, long verandahs, and the kind of stillness you can only find far from the road.`;
   const leadRest = storyParas.slice(1).join("\n\n");
 
+  // Pull-quote breather — host's OWN words only (the tagline, or the story's
+  // opening line). Omitted entirely when we'd otherwise fabricate a quote.
+  const pullText =
+    tagline?.trim() ||
+    (storyParas.length ? firstSentence(storyParas[0]).head : null);
+
   // Stats — derived from live data (editorial inline numerals).
   const maxSleeps = (rooms ?? []).reduce((m, r) => {
     for (const f of r.facts ?? []) {
@@ -210,6 +216,13 @@ export function SafariHome({
           <img src={siteImageUrl(heroImg, { width: 2560 })} alt={brandName} />
           <span className="sf-hero-scrim" aria-hidden />
         </div>
+        {/* Cover-line — magazine masthead across the top of the hero photo. */}
+        <div className="sf-hero-top">
+          <div className="wrap">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal</span>
+          </div>
+        </div>
         <div className="wrap sf-hero-in">
           <div className="sf-hero-meta">
             <span>{brandName}</span>
@@ -250,9 +263,14 @@ export function SafariHome({
         <div className="wrap">
           <div className="sf-intro">
             <div className="sf-intro-copy" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Welcome to {brandName}</span>
               <h2 className="sf-h2">{firstSentence(lead).head}</h2>
-              <p className="sf-lead">{firstSentence(lead).rest || sub}</p>
+              <p className="sf-lead sf-drop">
+                {firstSentence(lead).rest || sub}
+              </p>
               {leadRest ? (
                 <p className="sf-muted" style={{ whiteSpace: "pre-line" }}>
                   {leadRest}
@@ -306,6 +324,9 @@ export function SafariHome({
         <section className="sf-sec sf-sand" id="rooms">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                II
+              </span>
               <span className="sf-eyebrow">Where you&apos;ll sleep</span>
               <h2 className="sf-h2">Rooms open to the plain</h2>
             </div>
@@ -377,11 +398,28 @@ export function SafariHome({
         </section>
       ) : null}
 
+      {/* PULL-QUOTE — full-width terracotta breather (keeps the page daylight
+          while giving an editorial pause between rooms and field notes). */}
+      {pullText ? (
+        <section className="sf-pull">
+          <div className="wrap" data-reveal>
+            <span className="sf-pull-mark" aria-hidden>
+              &ldquo;
+            </span>
+            <q>{pullText}</q>
+            <cite>{brandName}</cite>
+          </div>
+        </section>
+      ) : null}
+
       {/* FIELD NOTES — experiences as an editorial ruled list */}
       {exps.length > 0 ? (
         <section className="sf-sec" id="experiences">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                III
+              </span>
               <span className="sf-eyebrow">Field notes</span>
               <h2 className="sf-h2">Days worth waking early for</h2>
             </div>
@@ -443,6 +481,9 @@ export function SafariHome({
         <section className="sf-sec">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                IV
+              </span>
               <span className="sf-eyebrow">A look around</span>
               <h2 className="sf-h2">The lodge, in daylight</h2>
             </div>
@@ -463,9 +504,10 @@ export function SafariHome({
         </section>
       ) : null}
 
-      {/* REVIEWS — warm-dark band, left-aligned editorial */}
+      {/* REVIEWS — DAYLIGHT editorial band (recut off the old dark band, which
+          mirrored Sabela's ebony; Safari now stays daylight top-to-bottom). */}
       {avg != null || hasQuotes ? (
-        <section className="sf-sec sf-dark">
+        <section className="sf-sec sf-reviews">
           <div className="wrap">
             <div className="sf-rev">
               <div className="sf-rev-head" data-reveal>

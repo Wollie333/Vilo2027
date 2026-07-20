@@ -843,9 +843,14 @@
      palette — additive, brand-safe. */
   --site-soft: #efe6d4; /* warm sand alternating band */
   --site-soft-2: #e7dcc4;
-  --site-tint: rgba(178, 108, 46, 0.12); /* ochre tint (chips / icon boxes) */
-  --site-accent-deep: #8f5320; /* darker ochre (hover / text on light) */
-  --site-ring: rgba(178, 108, 46, 0.24);
+  --site-tint: rgba(
+    176,
+    73,
+    42,
+    0.12
+  ); /* terracotta tint (chips / icon boxes) */
+  --site-accent-deep: #8a3418; /* darker clay-red (hover / text on light) */
+  --site-ring: rgba(176, 73, 42, 0.24);
   /* Deep espresso anchor for dark bands (experiences / location / CTA use
      tone="dark", which resolves to --site-ink; navy is defined so a navy tone
      still reads as a distinct warm-dark band rather than blue). */
@@ -856,7 +861,7 @@
   /* Two more tokens the reused OceansView bespoke components (.ov*) read: the
      solid "conversion" background (OceansView coral) → deep ochre here, and the
      pale sand focus-ring. Without these the .ov* pages would leak coral/aqua. */
-  --site-secondary-deep: #8f5320;
+  --site-secondary-deep: #8a3418;
   --site-sand: #efe6d4;
 
   /* Hero display type — editorial lodge scale, read by HeroSection as the
@@ -882,6 +887,136 @@
   --site-h1: clamp(2.9rem, 6.5vw, 5.6rem);
   --site-h2: clamp(2rem, 4vw, 3.3rem);
   --site-h3: 1.5rem;
+}
+
+/* ======================================================================
+ * SAFARI EDITORIAL FIELD-JOURNAL UTILITIES — shared across EVERY Safari page
+ * (scoped to the theme root so each bespoke `.sf<page>` component can drop them
+ * in). These are the signatures that make Safari read as one daylight magazine
+ * and set it apart from Sabela's dark stacked hotel: a cover-line masthead, a
+ * Roman-numeral section marker, and a drop cap. Theme differentiation.
+ * ==================================================================== */
+/* Cover-line — slim ruled masthead ("Brand · The Field Journal") that opens
+   every page. `.on-photo` variant sits in white over a hero image. */
+.wielo-safari .sf-coverline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+}
+.wielo-safari .sf-coverline > span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wielo-safari .sf-coverline .sf-folio {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 15px;
+  color: var(--site-ink, #221a11);
+  flex-shrink: 0;
+}
+.wielo-safari .sf-coverline.on-photo {
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+.wielo-safari .sf-coverline.on-photo > span {
+  color: rgba(255, 255, 255, 0.92);
+}
+.wielo-safari .sf-coverline.on-photo .sf-folio {
+  color: #fff;
+}
+/* Pin the cover-line to the TOP of a photo head (`.sf-phead` is bottom-aligned,
+   so an in-flow masthead would sink to the headline). `.sf-phead-top` also
+   carries `.wrap`, so its max-width + padding keep it aligned to page content. */
+.wielo-safari .sf-phead {
+  position: relative;
+}
+.wielo-safari .sf-phead-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+/* Roman-numeral section marker — sections in roman, listing items stay arabic. */
+.wielo-safari .sf-secnum {
+  display: block;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  line-height: 1;
+  color: var(--site-accent, #b0492a);
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+
+/* Drop cap — apply `.sf-drop` to a page's opening lead paragraph. */
+.wielo-safari .sf-drop::first-letter {
+  float: left;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 560;
+  font-size: 3.6em;
+  line-height: 0.78;
+  padding: 6px 12px 0 0;
+  color: var(--site-accent, #b0492a);
+}
+
+/* Pull-quote breather — full-width terracotta band; drop `.sf-pullband` on a
+   <section> with a .wrap > (.sf-pull-mark, q, cite) inside. */
+.wielo-safari .sf-pullband {
+  padding: clamp(60px, 9vw, 116px) 0;
+  background: var(--site-accent, #b0492a);
+  color: #fff;
+}
+.wielo-safari .sf-pullband .sf-pull-mark {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: clamp(4rem, 9vw, 8rem);
+  line-height: 0.6;
+  color: rgba(255, 255, 255, 0.34);
+  display: block;
+  margin-bottom: -0.1em;
+}
+.wielo-safari .sf-pullband q {
+  quotes: none;
+  display: block;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3.4vw, 2.7rem);
+  line-height: 1.28;
+  color: #fff;
+  max-width: 24ch;
+}
+.wielo-safari .sf-pullband cite {
+  display: block;
+  margin-top: 26px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+.wielo-safari .sf-pullband cite::before {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  vertical-align: middle;
+  margin-right: 12px;
 }
 
 /* ======================================================================

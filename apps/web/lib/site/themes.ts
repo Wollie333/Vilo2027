@@ -82,7 +82,10 @@ export const SITE_PRESETS = {
       ink: "#221A11",
       mute: "#6E6048",
       line: "#DBCFB8",
-      accent: "#B26C2E",
+      // Terracotta / clay-red — African red-earth. Deliberately shifted off the
+      // old ochre (#B26C2E) so Safari reads distinctly from Sabela's yellow-gold
+      // (#C9A24A): two warm lodges no longer look like siblings. Theme differentiation.
+      accent: "#B0492A",
       accentInk: "#FFFFFF",
     },
     font: "fraunces",

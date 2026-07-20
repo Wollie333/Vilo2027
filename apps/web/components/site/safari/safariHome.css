@@ -740,6 +740,146 @@
 }
 
 /* ======================================================================
+ * EDITORIAL FIELD-JOURNAL SIGNATURES  (theme-differentiation push)
+ * Cover-line, Roman-numeral section markers, drop cap, pull-quote —
+ * devices Sabela does not use, so Safari reads as its own daylight magazine.
+ * ==================================================================== */
+/* Hero cover-line — magazine masthead ruled across the top of the photo. */
+.sfhome .sf-hero-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  color: #fff;
+}
+.sfhome .sf-hero-top .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+}
+.sfhome .sf-hero-top span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+.sfhome .sf-hero-top .sf-folio {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 15px;
+}
+
+/* (`.sf-secnum` Roman markers + `.sf-drop` drop cap are shared utilities in
+   theme-skins.css under `.wielo-safari`, used site-wide across Safari pages.) */
+
+/* Full-width pull-quote breather — bold terracotta band (keeps daylight). */
+.sfhome .sf-pull {
+  padding: clamp(64px, 9vw, 120px) 0;
+  background: var(--site-accent, #b0492a);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.sfhome .sf-pull .wrap {
+  position: relative;
+  max-width: 1040px;
+}
+.sfhome .sf-pull-mark {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: clamp(4rem, 9vw, 8rem);
+  line-height: 0.6;
+  color: rgba(255, 255, 255, 0.34);
+  display: block;
+  margin-bottom: -0.1em;
+}
+.sfhome .sf-pull q {
+  quotes: none;
+  display: block;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3.4vw, 2.7rem);
+  line-height: 1.28;
+  color: #fff;
+  max-width: 24ch;
+}
+.sfhome .sf-pull cite {
+  display: block;
+  margin-top: 28px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sfhome .sf-pull cite::before {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  vertical-align: middle;
+  margin-right: 12px;
+}
+
+/* ======================================================================
+ * REVIEWS — DAYLIGHT recut (overrides the dark .sf-rev-* rules above via the
+ * extra .sf-reviews class). Sand band, ink score, terracotta stars, quote
+ * cards with a clay top-rule — the old warm-dark band mirrored Sabela's ebony.
+ * ==================================================================== */
+.sfhome .sf-reviews {
+  background: var(--site-soft, #efe6d4);
+}
+.sfhome .sf-reviews .sf-rev-head {
+  border-bottom-color: var(--site-line, #dbcfb8);
+}
+.sfhome .sf-reviews .sf-rev-score b {
+  color: var(--site-ink, #221a11);
+}
+.sfhome .sf-reviews .sf-rev-score .stars {
+  color: var(--site-accent, #b0492a);
+}
+.sfhome .sf-reviews .sf-rev-count {
+  color: var(--site-mute, #6e6048);
+}
+.sfhome .sf-reviews .sf-quote {
+  background: var(--site-surface, #fbf6ec);
+  border-top: 3px solid var(--site-accent, #b0492a);
+  padding: clamp(24px, 2vw, 32px);
+  border-radius: 0 0 var(--sf-radius) var(--sf-radius);
+  box-shadow: 0 20px 40px -34px rgba(34, 26, 17, 0.5);
+}
+.sfhome .sf-reviews .sf-quote blockquote {
+  color: var(--site-ink, #221a11);
+}
+.sfhome .sf-reviews .sf-quote blockquote::before {
+  color: var(--site-accent, #b0492a);
+}
+.sfhome .sf-reviews .sf-quote figcaption {
+  border-top-color: var(--site-line, #dbcfb8);
+}
+.sfhome .sf-reviews .sf-av {
+  background: var(--site-tint, rgba(176, 73, 42, 0.12));
+  color: var(--site-accent-deep, #8a3418);
+}
+.sfhome .sf-reviews .sf-quote figcaption b {
+  color: var(--site-ink, #221a11);
+}
+.sfhome .sf-reviews .sf-quote figcaption em {
+  color: var(--site-mute, #6e6048);
+}
+
+/* ======================================================================
  * RESPONSIVE
  * ==================================================================== */
 @media (max-width: 960px) {
@@ -802,6 +942,10 @@
 @media (max-width: 560px) {
   .sfhome .sf-hero {
     min-height: 78vh;
+  }
+  /* Keep just the lodge name on phones — the folio would crowd the rule. */
+  .sfhome .sf-hero-top .sf-folio {
+    display: none;
   }
   .sfhome .sf-hero-meta {
     flex-wrap: wrap;

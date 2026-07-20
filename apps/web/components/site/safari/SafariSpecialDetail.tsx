@@ -246,6 +246,9 @@ export function SafariSpecialDetail({
     <div className="sfspecial">
       {/* breadcrumbs */}
       <section className="wrap">
+        <div className="sf-coverline">
+          <span className="sf-folio">The Field Journal · Offers</span>
+        </div>
         <nav className="sf-crumbs" aria-label="Breadcrumb">
           <a href="/">Home</a>
           <span className="sep">/</span>
@@ -276,13 +279,16 @@ export function SafariSpecialDetail({
         <div className="wrap">
           <div className="sf-layout">
             <div className="sf-main">
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Special offer</span>
               <h1>{special.title}</h1>
               {special.propertyName ? (
                 <p className="sf-place">{special.propertyName}</p>
               ) : null}
 
-              {lead ? <p className="sf-lead">{lead}</p> : null}
+              {lead ? <p className="sf-lead sf-drop">{lead}</p> : null}
               {bodyParas.length > 0 ? (
                 <div className="sf-body">
                   {bodyParas.map((para, i) => (
@@ -351,6 +357,9 @@ export function SafariSpecialDetail({
         <section className="sf-sec sf-sand">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                II
+              </span>
               <span className="sf-eyebrow">Keep exploring</span>
               <h2 className="sf-h2">More offers</h2>
             </div>

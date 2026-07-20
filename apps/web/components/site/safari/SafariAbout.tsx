@@ -150,6 +150,12 @@ export function SafariAbout({
           <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · Our Story</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -166,9 +172,12 @@ export function SafariAbout({
         <div className="wrap">
           <div className="sf-story">
             <div className="sf-story-copy" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Our story</span>
               <h2 className="sf-h2">Why we do it this way</h2>
-              <p className="sf-lead">{lead}</p>
+              <p className="sf-lead sf-drop">{lead}</p>
               {rest.map((p, i) => (
                 <p className="sf-muted" key={i}>
                   {p}
@@ -210,6 +219,9 @@ export function SafariAbout({
       <section className="sf-sec sf-sand">
         <div className="wrap">
           <div className="sf-sechead" data-reveal>
+            <span className="sf-secnum" aria-hidden>
+              II
+            </span>
             <span className="sf-eyebrow">How we run it</span>
             <h2 className="sf-h2">What you can count on</h2>
           </div>
@@ -255,6 +267,9 @@ export function SafariAbout({
                 </div>
               </div>
               <div className="sf-story-copy" data-reveal>
+                <span className="sf-secnum" aria-hidden>
+                  III
+                </span>
                 <span className="sf-eyebrow">Your host</span>
                 <h2 className="sf-h2">The person behind the stay</h2>
                 {bio.split(/\n{2,}/).map((p, i) =>

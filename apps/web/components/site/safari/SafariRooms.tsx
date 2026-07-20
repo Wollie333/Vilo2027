@@ -102,6 +102,12 @@ export function SafariRooms({
           />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · The Rooms</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>

@@ -177,6 +177,9 @@
     rgba(28, 21, 14, 0.74) 100%
   );
 }
+/* Cover-line masthead pinned across the top of the photo hero (mirrors home's
+   `.sf-hero-top`); the shared `.sf-coverline.on-photo` handles the white type. */
+/* (`.sf-phead-top` pin is a shared rule in theme-skins.css under `.wielo-safari`.) */
 .sfjournal .sf-phead-in {
   position: relative;
 }

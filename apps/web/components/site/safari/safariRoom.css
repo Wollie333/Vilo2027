@@ -262,8 +262,8 @@
   border-radius: 999px;
 }
 .sfroom .sf-sbadge.peak {
-  background: var(--site-navy, #1c150e);
-  color: var(--site-navy-ink, #f4ede0);
+  background: var(--site-accent-deep, #8a3418);
+  color: var(--site-accent-ink, #fff);
 }
 .sfroom .sf-smo {
   margin-top: 6px;

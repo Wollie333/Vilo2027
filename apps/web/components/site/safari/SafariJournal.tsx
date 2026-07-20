@@ -106,6 +106,12 @@ export function SafariJournal({
           />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · Journal</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -121,9 +127,12 @@ export function SafariJournal({
         <section className="sf-sec">
           <div className="wrap">
             <div className="sfj-empty" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">The journal</span>
               <h2 className="sf-h2">Your journal is almost here</h2>
-              <p className="sf-lead">
+              <p className="sf-lead sf-drop">
                 Once {brandName} publishes its first stories they&apos;ll appear
                 here.
               </p>
@@ -178,6 +187,9 @@ export function SafariJournal({
             <section className="sf-sec sf-sand sfj-list-sec">
               <div className="wrap">
                 <div className="sf-sechead" data-reveal>
+                  <span className="sf-secnum" aria-hidden>
+                    II
+                  </span>
                   <span className="sf-eyebrow">More stories</span>
                   <h2 className="sf-h2">From the journal</h2>
                 </div>

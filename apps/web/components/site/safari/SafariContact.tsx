@@ -151,6 +151,12 @@ export function SafariContact({
           <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · Reach Us</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -168,6 +174,9 @@ export function SafariContact({
           <div className="sf-cgrid">
             {/* LEFT — contact details + a real guest voice */}
             <div className="sf-cinfo" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Reach us</span>
               <h2 className="sf-h2">Come and find us</h2>
 
@@ -289,6 +298,9 @@ export function SafariContact({
             {/* RIGHT — the shared enquiry form in a framed card */}
             <div className="sf-cform" data-reveal>
               <div className="sf-formcard">
+                <span className="sf-secnum" aria-hidden>
+                  II
+                </span>
                 <span className="sf-eyebrow">Send a message</span>
                 <h2 className="sf-h3">Tell us about your trip</h2>
                 <OceansContactForm
@@ -333,6 +345,9 @@ export function SafariContact({
         <section className="sf-sec sf-sand">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                III
+              </span>
               <span className="sf-eyebrow">Good to know</span>
               <h2 className="sf-h2">Frequently asked</h2>
             </div>

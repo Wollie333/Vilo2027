@@ -76,6 +76,12 @@ export function SafariGallery({
           />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · In Frame</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in" data-reveal>
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -92,9 +98,12 @@ export function SafariGallery({
         <div className="wrap">
           {shots.length === 0 ? (
             <div className="sf-empty" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">In the making</span>
               <h2 className="sf-h2">Photos coming soon</h2>
-              <p className="sf-lead">
+              <p className="sf-lead sf-drop">
                 {brandName} is putting the gallery together. New photos appear
                 here the moment they&apos;re added.
               </p>

@@ -120,6 +120,10 @@ export function SafariArticle({
       {/* HEADER — centred editorial title block */}
       <section className="sf-art-head">
         <div className="wrap">
+          <div className="sf-coverline">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · Journal</span>
+          </div>
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span>/</span>
@@ -156,7 +160,7 @@ export function SafariArticle({
         <div className="wrap">
           {post.excerpt ? (
             <div className="sf-prose">
-              <p className="sf-prose-lead">{post.excerpt}</p>
+              <p className="sf-prose-lead sf-drop">{post.excerpt}</p>
             </div>
           ) : null}
           <div
@@ -233,6 +237,9 @@ export function SafariArticle({
           <div className="wrap">
             <div className="sf-sechead sf-rel-head" data-reveal>
               <div>
+                <span className="sf-secnum" aria-hidden>
+                  I
+                </span>
                 <span className="sf-eyebrow">Keep reading</span>
                 <h2 className="sf-h2">More from the journal</h2>
               </div>

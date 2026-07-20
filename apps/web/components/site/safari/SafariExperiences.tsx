@@ -73,6 +73,12 @@ export function SafariExperiences({
           <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
           <span className="sf-scrim" aria-hidden />
         </div>
+        <div className="wrap sf-phead-top">
+          <div className="sf-coverline on-photo">
+            <span>{brandName}</span>
+            <span className="sf-folio">The Field Journal · Field Notes</span>
+          </div>
+        </div>
         <div className="wrap sf-phead-in">
           <nav className="sf-crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -89,9 +95,12 @@ export function SafariExperiences({
         <div className="wrap">
           {list.length === 0 ? (
             <div className="sf-empty" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Things to do</span>
               <h2 className="sf-h2">Experiences are on the way</h2>
-              <p className="sf-lead">
+              <p className="sf-lead sf-drop">
                 {brandName} is still shaping the things to see and do out here.
                 Check back soon — or say hello and we&apos;ll build the days
                 around you.
@@ -108,6 +117,9 @@ export function SafariExperiences({
           ) : (
             <>
               <div className="sf-sechead" data-reveal>
+                <span className="sf-secnum" aria-hidden>
+                  II
+                </span>
                 <span className="sf-eyebrow">Things to do</span>
                 <h2 className="sf-h2">Out on the land</h2>
               </div>

@@ -256,6 +256,9 @@ export function SafariRoomDetail({
     <div className="sfroom">
       {/* breadcrumbs */}
       <section className="wrap">
+        <div className="sf-coverline">
+          <span className="sf-folio">The Field Journal · {room.name}</span>
+        </div>
         <nav className="sf-crumbs" aria-label="Breadcrumb">
           <a href="/">Home</a>
           <span className="sep">/</span>
@@ -284,7 +287,7 @@ export function SafariRoomDetail({
                 ) : null}
               </div>
               <h1>{room.name}</h1>
-              {lead ? <p className="sf-lead">{lead}</p> : null}
+              {lead ? <p className="sf-lead sf-drop">{lead}</p> : null}
 
               {specs.length > 0 ? (
                 <div className="sf-specs">
@@ -394,6 +397,9 @@ export function SafariRoomDetail({
         <section className="sf-sec sf-sand">
           <div className="wrap">
             <div className="sf-sechead" data-reveal>
+              <span className="sf-secnum" aria-hidden>
+                I
+              </span>
               <span className="sf-eyebrow">Guest words</span>
               <h2 className="sf-h2">
                 {count
@@ -471,6 +477,9 @@ export function SafariRoomDetail({
           <div className="wrap">
             <div className="sf-sechead sf-sechead-row" data-reveal>
               <div>
+                <span className="sf-secnum" aria-hidden>
+                  II
+                </span>
                 <span className="sf-eyebrow">Also available</span>
                 <h2 className="sf-h2">The other rooms</h2>
               </div>
