@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-19
+> **Last generated:** 2026-07-20
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,15 +16,20 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **181** (181 with RLS) |
+| Tables | **182** (182 with RLS) |
 | Functions | **167** (134 SECURITY DEFINER, 61 trigger fns) |
-| Cron jobs | **37** (12 Vault-gated, 0 inactive) |
+| Cron jobs | **39** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **15** |
 
 ## 🚩 Automated red flags
 
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
+
+### 2 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
+
+- `reconcile-subscriptions` needs `subscription_reconcile_worker_url`
+- `renew-subscriptions` needs `subscription_renewal_worker_url`
 
 ### 1 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
@@ -69,6 +74,8 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `queue-review-requests` | `0 9 * * *` | yes | — |
 | `recalculate-rankings` | `*/15 * * * *` | yes | — |
 | `reconcile-host-card-payments` | `*/5 * * * *` | yes | yes |
+| `reconcile-subscriptions` | `20 * * * *` | yes | yes |
+| `renew-subscriptions` | `0 6 * * *` | yes | yes |
 | `restrict-overdue-subscriptions` | `0 * * * *` | yes | — |
 | `scheduled-reports-hourly` | `0 * * * *` | yes | — |
 | `send-access-cards` | `*/15 * * * *` | yes | — |
@@ -3491,6 +3498,8 @@ CASE
 | `paypal_client_id` | text | yes | — |
 | `paypal_secret_cipher` | text | yes | — |
 | `eft_swift_code` | text | yes | — |
+| `paystack_recurring_enabled` | boolean | — | `false` |
+| `paypal_recurring_enabled` | boolean | — | `false` |
 
 **Checks:**
 - `CHECK (id)`
@@ -3729,6 +3738,33 @@ CASE
 - `host_read_booking_snapshots` (SELECT) — `USING (booking_id IN ( SELECT bookings.id
    FROM bookings
   WHERE (bookings.host_id = get_my_host_id())))`
+
+### `product_billing_plans`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `product_id` | uuid | — | — |
+| `provider` | text | — | — |
+| `cycle` | text | — | — |
+| `amount` | numeric | — | — |
+| `currency` | text | — | `'ZAR'::text` |
+| `provider_amount` | numeric | yes | — |
+| `provider_currency` | text | yes | — |
+| `environment` | text | — | — |
+| `provider_product_id` | text | yes | — |
+| `provider_plan_id` | text | — | — |
+| `status` | text | — | `'active'::text` |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((cycle = ANY (ARRAY['monthly'::text, 'annual'::text])))`
+- `CHECK ((environment = ANY (ARRAY['test'::text, 'live'::text])))`
+- `CHECK ((provider = 'paypal'::text))`
+- `CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text])))`
 
 ### `product_features`
 
@@ -5474,6 +5510,10 @@ CASE
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `product_id` | uuid | yes | — |
+| `paystack_authorization_code_cipher` | text | yes | — |
+| `paystack_card_last4` | text | yes | — |
+| `paystack_card_brand` | text | yes | — |
+| `paystack_card_exp` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`

@@ -36,6 +36,7 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Quotes (request → build → send → accept → convert to booking) | `quotes.md` | 🟢 deep audit 2026-07-13; expire-cron + pay hand-off fixed; host paths verified live |
 | Looking-For (guest request → host board → unlock → quote → fulfil) | `looking-for.md` | 🟢 deep audit; lead locking + credit metering live |
 | Subscriptions (guest tier → membership → renew → change → pause → cancel) | `subscriptions.md` | 🟢 one-membership rule enforced + rehearsed live (`20260716240000`); renewal/scheduled-change crons ⚠️ not verified |
+| Recurring billing (first charge → auto-renew → upgrade proration → dunning → reconcile) | `recurring-billing.md` | 🟡 hybrid engine built (Paystack saved-auth + cron, PayPal native) + gated OFF; ⚠️ all live charges founder-verified at go-live, one rail at a time |
 | Account deletion (soft delete → 30-day hold → admin hard purge) | `account-deletion.md` | 🟢 GDPR purge fixed + proven live against an account holding every blocking row (`20260716230000`) |
 | Add-ons (create → attach → charge → refundability) | `addons.md` | 🟢 |
 | Coupons — HOST codes for BOOKINGS (create → redeem → limits) | `coupons.md` | 🟢 redemption verified live (`3ed85c1b`) |
