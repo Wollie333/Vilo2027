@@ -512,11 +512,14 @@ export type Database = {
       affiliate_accounts: {
         Row: {
           accepted_at: string
+          bio: string | null
           created_at: string
           currency: string
           default_payout_method: string | null
+          display_headline: string | null
           id: string
           payout_threshold: number | null
+          photo_url: string | null
           slug: string
           status: string
           suspended_at: string | null
@@ -528,11 +531,14 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
+          bio?: string | null
           created_at?: string
           currency?: string
           default_payout_method?: string | null
+          display_headline?: string | null
           id?: string
           payout_threshold?: number | null
+          photo_url?: string | null
           slug: string
           status?: string
           suspended_at?: string | null
@@ -544,11 +550,14 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
+          bio?: string | null
           created_at?: string
           currency?: string
           default_payout_method?: string | null
+          display_headline?: string | null
           id?: string
           payout_threshold?: number | null
+          photo_url?: string | null
           slug?: string
           status?: string
           suspended_at?: string | null
@@ -570,6 +579,204 @@ export type Database = {
             foreignKeyName: "affiliate_accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_campaign_daily_scores: {
+        Row: {
+          active_listings: number
+          affiliate_id: string
+          campaign_id: string
+          created_at: string
+          id: string
+          score: number
+          score_date: string
+        }
+        Insert: {
+          active_listings?: number
+          affiliate_id: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+          score?: number
+          score_date: string
+        }
+        Update: {
+          active_listings?: number
+          affiliate_id?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          score?: number
+          score_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaign_daily_scores_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_daily_scores_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_campaign_enrollments: {
+        Row: {
+          affiliate_id: string
+          campaign_id: string
+          created_at: string
+          enrolled_at: string
+          id: string
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          campaign_id: string
+          created_at?: string
+          enrolled_at?: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          campaign_id?: string
+          created_at?: string
+          enrolled_at?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaign_enrollments_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_enrollments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_campaign_floors: {
+        Row: {
+          affiliate_id: string
+          awarded_at: string
+          awarded_by: string | null
+          campaign_id: string
+          floor_rate: number
+          id: string
+          won_via: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          awarded_at?: string
+          awarded_by?: string | null
+          campaign_id: string
+          floor_rate: number
+          id?: string
+          won_via?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          awarded_at?: string
+          awarded_by?: string | null
+          campaign_id?: string
+          floor_rate?: number
+          id?: string
+          won_via?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaign_floors_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_floors_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_floors_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_campaigns: {
+        Row: {
+          commission_structure: Json
+          competition: Json | null
+          created_at: string
+          created_by: string | null
+          eligible_partners: string
+          eligible_referrals: string
+          ends_at: string | null
+          id: string
+          name: string
+          rules_doc_slug: string | null
+          slug: string
+          starts_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_structure?: Json
+          competition?: Json | null
+          created_at?: string
+          created_by?: string | null
+          eligible_partners?: string
+          eligible_referrals?: string
+          ends_at?: string | null
+          id?: string
+          name: string
+          rules_doc_slug?: string | null
+          slug: string
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_structure?: Json
+          competition?: Json | null
+          created_at?: string
+          created_by?: string | null
+          eligible_partners?: string
+          eligible_referrals?: string
+          ends_at?: string | null
+          id?: string
+          name?: string
+          rules_doc_slug?: string | null
+          slug?: string
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
@@ -621,6 +828,7 @@ export type Database = {
           affiliate_id: string
           base_amount: number
           billing_period: number | null
+          campaign_id: string | null
           cleared_at: string | null
           commission_amount: number
           created_at: string
@@ -646,6 +854,7 @@ export type Database = {
           affiliate_id: string
           base_amount: number
           billing_period?: number | null
+          campaign_id?: string | null
           cleared_at?: string | null
           commission_amount: number
           created_at?: string
@@ -671,6 +880,7 @@ export type Database = {
           affiliate_id?: string
           base_amount?: number
           billing_period?: number | null
+          campaign_id?: string | null
           cleared_at?: string | null
           commission_amount?: number
           created_at?: string
@@ -903,6 +1113,7 @@ export type Database = {
         Row: {
           affiliate_id: string
           bound_at: string
+          campaign_id: string | null
           click_id: string | null
           created_at: string
           id: string
@@ -913,6 +1124,7 @@ export type Database = {
         Insert: {
           affiliate_id: string
           bound_at?: string
+          campaign_id?: string | null
           click_id?: string | null
           created_at?: string
           id?: string
@@ -923,6 +1135,7 @@ export type Database = {
         Update: {
           affiliate_id?: string
           bound_at?: string
+          campaign_id?: string | null
           click_id?: string | null
           created_at?: string
           id?: string
@@ -936,6 +1149,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
             referencedColumns: ["id"]
           },
           {

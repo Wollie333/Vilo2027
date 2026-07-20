@@ -16,7 +16,7 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **182** (182 with RLS) |
+| Tables | **186** (186 with RLS) |
 | Functions | **167** (134 SECURITY DEFINER, 61 trigger fns) |
 | Cron jobs | **39** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
@@ -514,6 +514,9 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `suspended_reason` | text | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
+| `display_headline` | text | yes | — |
+| `bio` | text | yes | — |
+| `photo_url` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (suspended_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -529,6 +532,116 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **RLS policies:**
 - `affiliate_accounts_own_read` (SELECT) — `USING (user_id = auth.uid())`
+
+### `affiliate_campaign_daily_scores`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `campaign_id` | uuid | — | — |
+| `affiliate_id` | uuid | — | — |
+| `score_date` | date | — | — |
+| `active_listings` | integer | — | `0` |
+| `score` | numeric | — | `0` |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (campaign_id, affiliate_id, score_date)`
+
+**RLS policies:**
+- `affiliate_campaign_daily_scores_public_read` (SELECT) — `USING true`
+
+### `affiliate_campaign_enrollments`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `affiliate_id` | uuid | — | — |
+| `campaign_id` | uuid | — | — |
+| `status` | text | — | `'active'::text` |
+| `enrolled_at` | timestamp with time zone | — | `now()` |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (affiliate_id, campaign_id)`
+
+**Checks:**
+- `CHECK ((status = ANY (ARRAY['active'::text, 'withdrawn'::text, 'removed'::text])))`
+
+**RLS policies:**
+- `affiliate_campaign_enrollments_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
+   FROM affiliate_accounts
+  WHERE (affiliate_accounts.user_id = auth.uid())))`
+
+### `affiliate_campaign_floors`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `affiliate_id` | uuid | — | — |
+| `campaign_id` | uuid | — | — |
+| `floor_rate` | numeric | — | — |
+| `won_via` | text | yes | — |
+| `awarded_by` | uuid | yes | — |
+| `awarded_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
+- `FOREIGN KEY (awarded_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (affiliate_id, campaign_id)`
+
+**Checks:**
+- `CHECK (((floor_rate >= (0)::numeric) AND (floor_rate <= (1)::numeric)))`
+
+**RLS policies:**
+- `affiliate_campaign_floors_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
+   FROM affiliate_accounts
+  WHERE (affiliate_accounts.user_id = auth.uid())))`
+
+### `affiliate_campaigns`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `slug` | text | — | — |
+| `name` | text | — | — |
+| `status` | text | — | `'draft'::text` |
+| `starts_at` | timestamp with time zone | yes | — |
+| `ends_at` | timestamp with time zone | yes | — |
+| `eligible_partners` | text | — | `'all'::text` |
+| `eligible_referrals` | text | — | `'activated_in_window'::text` |
+| `commission_structure` | jsonb | — | `'{"model": "inherit"}'::jsonb` |
+| `competition` | jsonb | yes | — |
+| `rules_doc_slug` | text | yes | — |
+| `created_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (slug)`
+
+**Checks:**
+- `CHECK ((eligible_partners = ANY (ARRAY['all'::text, 'tagged'::text, 'invite'::text])))`
+- `CHECK ((eligible_referrals = ANY (ARRAY['all_time'::text, 'referred_in_window'::text, 'activated_in_window'::text])))`
+- `CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'ended'::text, 'archived'::text])))`
+- `CHECK (((commission_structure ->> 'model'::text) = ANY (ARRAY['ladder'::text, 'flat'::text, 'inherit'::text])))`
+
+**RLS policies:**
+- `affiliate_campaigns_public_read` (SELECT) — `USING (status <> 'draft'::text)`
 
 ### `affiliate_clicks`
 
@@ -578,6 +691,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `payout_id` | uuid | yes | — |
 | `paid_at` | timestamp with time zone | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
+| `campaign_id` | uuid | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE RESTRICT`
@@ -700,9 +814,11 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `click_id` | uuid | yes | — |
 | `bound_at` | timestamp with time zone | — | `now()` |
 | `created_at` | timestamp with time zone | — | `now()` |
+| `campaign_id` | uuid | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE SET NULL`
 - `FOREIGN KEY (click_id) REFERENCES affiliate_clicks(id) ON DELETE SET NULL`
 - `FOREIGN KEY (referred_host_id) REFERENCES hosts(id) ON DELETE SET NULL`
 - `FOREIGN KEY (referred_user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
