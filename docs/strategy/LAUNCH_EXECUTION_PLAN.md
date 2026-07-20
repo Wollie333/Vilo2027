@@ -40,26 +40,71 @@ Of everything below, **exactly one item is a genuine rebuild** (the affiliate co
 
 ## 2. Workstreams (each: goal · reuse · new · least-code approach · money/security · effort)
 
-### WS-1 — Affiliate → Competition Platform  *(the flagship build)*
+### WS-1 — Affiliate Campaign Layer  *(the flagship build)*  — DESIGN LOCKED 2026-07-20
 
-**Goal.** Turn the existing affiliate system into a competition-capable platform: revenue-banded commission ladder, permanent prize floors, a reusable campaign engine, a public leaderboard, and an enhanced partner portal.
+**Architecture (founder-decided).** The **default affiliate program stays exactly as it is** —
+per-product rates + the lifetime-earnings tier bonus, always-on for every affiliate, **untouched**.
+A **campaign** is an *additive layer on top*:
+1. **Its own attribution** — a unique campaign link; referrals through it are tagged `campaign_id`.
+2. **Its own commission structure** — typed config: `ladder` (the Founding Race revenue bands +
+   floors) / `flat` / `inherit` (= default). Governs attributed referrals, **lifetime** (outlives the
+   competition window).
+3. **An optional competition overlay** — scoring events + weights + `total`/`net_change` mode + public
+   leaderboard + prizes + dates + rules-doc slug. **Time-boxed** (the Founding Race = 8 months).
 
-**Reuse.** Attribution spine, `affiliate_referrals`, `affiliate_commissions` (accrual/hold/clawback/payout), admin screens, the `leaderboard/page.tsx` **UI shell**, `computeCommission`.
+**The one mechanism:** `affiliate_referrals.campaign_id` (nullable). Plain link → null → **default**
+commission (unchanged). Campaign link → tagged → **campaign** structure. A referral resolves under
+**exactly one** rule set → no double-count, default money-path never touched. This is why the earlier
+"ladder replaces tiers globally" question dissolves: **tiers stay in the default program; the ladder
+lives inside the campaign.** Multiple concurrent campaigns work (a referral tags at most one). Original
+referral binding always wins (a campaign link for an already-bound host is ignored). Campaign earnings
+**count toward lifetime totals** (which drive the default-program tier).
 
-**New / changed.**
-- **1a. Commission-rate model (the one unavoidable rebuild).** Today: per-product rate × lifetime-earnings tier bonus. Needed (§4.4): ONE revenue-banded rate on the partner's **whole book**, recalculated **monthly** on collected revenue, retroactive on band-crossing, drops on churn.
-  - *Approach:* add an **effective-rate resolver** instead of reading `products.affiliate_value` at accrual. A monthly cron (`recompute-affiliate-rates`, mirrors existing affiliate crons) sums each partner's trailing-month collected revenue → writes `current_ladder_rate` on `affiliate_accounts`. Accrual uses `MAX(current_ladder_rate, commission_floor_rate)`. Re-rate the month's still-`pending`/`cleared` rows on band change; never touch `paid`.
-  - **DECISION NEEDED:** does the ladder **replace** the `affiliate_tiers` bonus, or coexist? Running both double-counts. *(Recommend: ladder replaces tiers for the Founding cohort; retire the tier-bonus multiplier.)*
-- **1b. Commission floor (prize).** Add `affiliate_accounts.commission_floor_rate`; awarding a prize floor writes `GREATEST(existing, won)`. Effective rate = `MAX(ladder, floor)`.
-- **1c. Conversion bonus (R250/R400).** Add `kind='conversion_bonus'` to `affiliate_commissions`; accrue a flat amount the first time a referred host's paid subscription activates. Reuses the entire hold/clear/payout/clawback pipeline.
-- **1d. Campaign engine.** New `affiliate_campaigns` config row (slug, window, eligibility, **scoring_mode `total|net_change`**, weights, prizes, tie-breaker, visibility) + `affiliate_campaign_prizes_awarded`. **Score = nightly live query** over `affiliate_referrals → hosts → properties (published/active)` — **no points ledger** (churn auto-decrements; this is the strategy's explicit design and it removes all clawback/dispute machinery). `net_change` mode snapshots daily standings.
-- **1e. Public leaderboard.** Clone the existing leaderboard UI; point it at campaign score; add an **unauthenticated** public route (live day one).
-- **1f. Enhanced partner portal.** Extend the overview (the existing tier card is the pattern): my score · rank · current rate · **points-to-next-rate-rung** · an **earnings CALCULATOR** ("if all my live hosts convert at R599 = RX/mo" — word "potential", conditional framing, CPA-safe). Reuse `computeCommission`.
-- **1g. Co-branded `/partners/[slug]`.** New public route; add `display_headline/bio/photo_url` to `affiliate_accounts`; page drops the same `vilo_ref` cookie as `/r/[slug]` so attribution is unchanged.
+**Reuse.** Attribution spine (`/r/[slug]` cookie + `bindAffiliateReferral`), `affiliate_referrals`,
+`affiliate_commissions` (accrual/hold/clawback/payout), admin screens, the `leaderboard/page.tsx` **UI
+shell**, `computeCommission`. **The entire default program is reused verbatim.**
 
-**Money/security.** The rate rebuild touches money — build it behind the effective-rate resolver so accrual stays idempotent and clawback logic is untouched; the `is_prorated_upgrade`/`kind` discipline from the recent hardening applies. Campaign scoring is **read-only** (no money), so it carries near-zero financial risk. Anti-gaming (§8.5): activations verified (address+photos), no self-referral, floors non-transferable.
+**New / changed (all additive).**
+- **1a. Campaign config.** `affiliate_campaigns` (slug, name, dates, eligibility, **commission_structure**
+  JSON {model: ladder|flat|inherit, bands, ...}, **competition** JSON {events, weights, scoring_mode
+  `total|net_change`, prizes, tie_breaker, leaderboard_visibility}, rules_doc_slug → `legal_documents`).
+  `affiliate_campaign_enrollments` (affiliate ↔ campaign → drives the Competitions tab + campaign link).
+- **1b. Campaign attribution.** A campaign link (e.g. `/c/[campaign]/[affiliate]`, or `/partners/[slug]`
+  with a campaign variant) drops a cookie carrying **both** affiliate + campaign so signup writes
+  `affiliate_referrals.campaign_id`. Reuses the existing attribution spine unchanged.
+- **1c. Campaign commission resolver.** `accrue_affiliate_commission` gains **one branch**: if the source
+  referral has an active `campaign_id`, resolve under that campaign's structure; else today's logic
+  verbatim. For the `ladder` model: a monthly cron (`recompute-affiliate-campaign-rates`, mirrors existing
+  affiliate crons) sums each affiliate's trailing-month collected **subscription** revenue *for that
+  campaign* → writes their band rate; accrual uses `MAX(band_rate, won_floor)`; re-rate the month's still-
+  `pending`/`cleared` rows on band change, never `paid`. Default accrual path unchanged → lowest money risk.
+- **1d. Commission floor (prize), campaign-scoped.** Won floor = permanent MINIMUM rate on **that
+  campaign's** ledger: `effective = MAX(band_rate, floor)`. Store per (affiliate, campaign). Does not
+  touch default per-product referrals (no ladder rate there to lift).
+- **1e. Conversion bonus (R250/R400).** `kind='conversion_bonus'` on `affiliate_commissions`; flat accrual
+  the first time a campaign-referred host's paid subscription activates. Separate from the ladder; reuses
+  the hold/clear/payout/clawback pipeline.
+- **1f. Scoring + public leaderboard.** **Score = nightly live query** over the campaign's attributed
+  referrals → `hosts → properties (published/active)` — **no points ledger** (churn auto-decrements;
+  removes all clawback/dispute machinery). `net_change` mode snapshots daily standings. Clone the
+  leaderboard UI, point it at the campaign score, add an **unauthenticated public route per campaign**
+  (live day one).
+- **1g. Enhanced portal — "Competitions" tab.** Campaigns the affiliate is in / can join, each with rules,
+  commission structure, **their campaign link**, live score · rank · current rate · points-to-next-rung ·
+  an **earnings CALCULATOR** ("if all my live hosts convert at R599 = RX/mo" — word "potential",
+  conditional, CPA-safe). Standard dashboard unchanged.
+- **1h. Co-branded `/partners/[slug]`.** Public route; add `display_headline/bio/photo_url` to
+  `affiliate_accounts`; drops the same cookie as `/r/[slug]` (optionally with a campaign tag).
+- **1i. Admin.** Create/configure campaigns — **config-in-code for the first run** (§8.7.6 defers the UI);
+  a builder later.
 
-**Effort.** Largest workstream. Rate model + campaign engine + leaderboard + portal ≈ the bulk of the platform work. Admin campaign UI can be **config-in-code** for the first run (§8.7.6).
+**Money/security.** The default accrual path is **untouched** → the campaign resolver is a single new
+branch, gated on `campaign_id`, held to the same idempotency + clawback + `kind` discipline as the recent
+recurring-billing hardening. Campaign **scoring is read-only** (no money) → near-zero financial risk.
+Anti-gaming (§8.5): verified activations (address+photos), no self-referral, floors non-transferable.
+
+**Effort.** Largest workstream, but **de-risked**: no global rate change, the default program is reused
+verbatim, and the money-touching part is one gated branch + one monthly recompute.
 
 ---
 
