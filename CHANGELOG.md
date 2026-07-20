@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-07-20 (pt32) — Recurring billing Phase 3: self-serve upgrade proration + method chooser.
+
+Third phase of the recurring-subscription-billing epic. Mid-cycle upgrades now
+charge the **prorated delta** on the Paystack rail instead of the full new price,
+with a server-authoritative preview shown before the host pays. Everything stays
+gated behind the recurring flags → dormant in beta, zero real-charge risk.
+
+- **`lib/billing/upgrade.ts` (new):** `getUpgradeQuote` (prices an upgrade
+  server-side — prorated delta when the Paystack recurring rail is armed + there's
+  unused paid time, else full price) and `runProratedPaystackUpgrade` (rewrites the
+  ONE membership row in place to the new tier, **preserving the period** (R3),
+  grants the higher tier's credits for the current period, and collects the delta
+  via a one-time `activate_on_pay:false` top-up → straight to the Paystack card
+  form). Delta order + checkout are created **before** the plan is rewritten, so a
+  failed order never leaves a host upgraded without a pending charge.
+- **`switchToProductAction`:** takes a `method` (`paystack` | `paypal`). Paystack
+  mid-cycle upgrade with the engine armed → prorated delta (falls through to today's
+  full-price checkout when there's nothing to prorate). PayPal rail (armed only when
+  `paypal_recurring_enabled`) → native subscription checkout, wiring the previously
+  UI-less `startPayPalSubscriptionCheckout` (PayPal proration is a scoped follow-up —
+  founder decision). New `previewUpgradeAction` returns the quote for the confirm UI.
+- **`PlanPicker.tsx`:** a paid upgrade now opens a **confirm dialog** — server-priced
+  "Due now" amount (prorated note + days left + next full charge, or the plain billed
+  amount), a **Card / PayPal method chooser** (PayPal appears only when its rail is
+  on), and a "Pay R…" confirm. Free switches stay one-click.
+- **Tests:** `lib/billing/proration.test.ts` (new, 10) covers the delta / unused-
+  fraction / no-period-→-full-price money math. Build + lint + tsc green.
+- **Verified live (recurring OFF):** the dialog renders in-app for the test host on
+  free → *"Due now R 599 · billed now; renews at R 599 / month"*, Card-only (no
+  PayPal chooser) — the exact gated-off path. Prorated-delta execution is
+  founder-verified at go-live per the epic pattern.
+
 ## 2026-07-19/20 (pt29–pt30) — Coupons + Quotes live-green, financial-document money sweep, CSP + beta-infra, LIVE payment round-trips.
 
 Live-green treatment of the remaining money features, a full audit + fix of every

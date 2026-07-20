@@ -8,7 +8,14 @@ import {
   isPlatformBillingConfigured,
   startSubscriptionCheckout,
 } from "@/lib/billing/platform-billing";
+import { startPayPalSubscriptionCheckout } from "@/lib/billing/paypal-subscription";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
+import { getRecurringConfig } from "@/lib/billing/recurring";
+import {
+  getUpgradeQuote,
+  runProratedPaystackUpgrade,
+  type UpgradeQuote,
+} from "@/lib/billing/upgrade";
 import { requireHost as getMyHostId } from "@/lib/host/current";
 import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
 import { notifyAdmins } from "@/lib/admin/notify";
@@ -268,13 +275,21 @@ export async function startPlanCheckoutAction(input: {
  *  - Free product, or billing not wired yet (pre-MVP) → state-only activation:
  *    set product_id + the mapped plan directly so gates re-evaluate now.
  */
-const switchProductSchema = z.object({ productId: z.string().uuid() });
+const switchProductSchema = z.object({
+  productId: z.string().uuid(),
+  // The rail the host chose in the confirm step. Paystack is the standing rail
+  // (and the only one that prorates today); PayPal is offered as a native
+  // subscription only when its recurring flag is on. Defaults to Paystack.
+  method: z.enum(["paystack", "paypal"]).optional(),
+});
 
 export async function switchToProductAction(input: {
   productId: string;
+  method?: "paystack" | "paypal";
 }): Promise<CheckoutResult> {
   const parsed = switchProductSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid product." };
+  const method = parsed.data.method ?? "paystack";
 
   const host = await getMyHostId();
   if (!host.ok) return host;
@@ -348,10 +363,54 @@ export async function switchToProductAction(input: {
 
   const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
   const paid = Number(product.price) > 0;
+  const origin = headers().get("origin");
+  const recurring = await getRecurringConfig();
+
+  // PayPal rail (native recurring subscription). Offered only when the PayPal
+  // recurring flag is armed. Charges the full new plan on approval — PayPal
+  // proration is a scoped follow-up (founder decision); the unused-period credit
+  // isn't applied on this rail yet.
+  if (paid && method === "paypal" && recurring.paypal) {
+    const base = `${origin ?? ""}/dashboard/settings/subscription`;
+    const r = await startPayPalSubscriptionCheckout({
+      hostId: host.hostId,
+      productId: product.id,
+      cycle,
+      returnUrl: `${base}/billing/return`,
+      cancelUrl: base,
+    });
+    if (!r.ok) return { ok: false, error: r.error };
+    return { ok: true, redirectUrl: r.approveUrl };
+  }
+
+  // Paystack rail, mid-cycle upgrade with the recurring engine armed → charge the
+  // prorated DELTA only (rewrite the plan in place, preserve the period). Falls
+  // through to the full-price checkout below when there's nothing to prorate.
+  if (
+    paid &&
+    method === "paystack" &&
+    recurring.paystack &&
+    existing?.product_id
+  ) {
+    const up = await runProratedPaystackUpgrade({
+      hostId: host.hostId,
+      userId: user.id,
+      email: user.email,
+      subId: existing.id,
+      planKey: plan,
+      newProductId: product.id,
+      origin,
+    });
+    if (!up.ok) return up;
+    if (!("proceed" in up)) {
+      revalidatePath("/dashboard/settings/subscription");
+      return { ok: true, redirectUrl: up.redirectUrl };
+    }
+    // proceed:"full" → no unused period; fall through to full-price checkout.
+  }
 
   // A paid product with live billing → real checkout (charges the product price).
   if (paid && (await isPlatformBillingConfigured()) && product.slug) {
-    const origin = headers().get("origin");
     const r = await startProductCheckoutDirect(
       product.slug,
       user.email,
@@ -394,6 +453,26 @@ export async function switchToProductAction(input: {
 
 function newPeriodEndFrom(start: Date, cycle: "monthly" | "annual"): Date {
   return cycle === "annual" ? addMonths(start, 12) : addMonths(start, 1);
+}
+
+/**
+ * Price an upgrade for the confirm dialog. Server-authoritative — the client
+ * shows this figure but switchToProductAction recomputes before charging. Reports
+ * the prorated delta only when the Paystack recurring rail is armed and there's
+ * unused paid time; otherwise the full new price (today's behaviour).
+ */
+export async function previewUpgradeAction(input: {
+  productId: string;
+}): Promise<UpgradeQuote> {
+  const parsed = z.object({ productId: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid product." };
+
+  const host = await getMyHostId();
+  if (!host.ok) return { ok: false, error: host.error };
+
+  const supabase = createServerClient();
+  const subId = await membershipSubId(supabase, host.hostId);
+  return getUpgradeQuote({ subId, newProductId: parsed.data.productId });
 }
 
 // Host self-serve PAUSE: put the membership on hold (status → paused). Reversible
