@@ -5,6 +5,58 @@
 
 ---
 
+## 2026-07-20 — Safari "field-journal" differentiation + nearby-experience cards + booking-bar mobile fix + wizard→website plan (`4707189`).
+
+**1. Safari re-differentiated (founder: Safari + Sabela read as the same theme).** Kept Safari a bush
+lodge but diverged hard on palette + layout so it's a **daylight field-journal magazine**, not a
+second dark lodge:
+- Accent flipped ochre `#B26C2E` → **terracotta/clay `#B0492A`** theme-wide (`themes.ts` + the
+  `.wielo-safari` tokens) so every Safari page separates from Sabela's yellow-gold.
+- Home ported to the approved redesign: hero **cover-line** masthead, **Roman-numeral** section
+  markers (I–IV; rooms stay arabic), **drop cap**, terracotta **pull-quote**, and the reviews band
+  recut dark → **daylight** (killed the ebony band that mirrored Sabela).
+- Shared editorial utilities added ONCE under `.wielo-safari` (`sf-coverline`/`sf-secnum`/`sf-drop`/
+  `sf-pullband`) and applied across all 10 subpages (cover-line on every head, drop caps on intros,
+  Roman numerals on multi-section pages). Commits `6b3e067` → `4707189`.
+- **Live bug caught + fixed (`4707189`):** the cover-line, pinned to the top of each hero, collided
+  with the site's **overlay chrome header** (nav "over" mode) + the "Book a stay" button on all 8
+  hero pages — the static design mock had no chrome so it only surfaced on the real render. Moved the
+  cover-line **in-flow** as the first line of the hero content block (bottom-aligned, clears the
+  header). Live-verified `collides:false`, no h-overflow, on home + subpages.
+
+**2. Nearby-experience cards on every theme's Experiences page** (`e38f090`). New "around the
+property" section — a **shared, token-driven** `SiteNearbyExperiences` card grid (scoped
+`.site-nearby`) that reads each theme's `--site-*` tokens, so it renders on-brand per theme from ONE
+component (like the shared contact form + gallery). Every element maps to a **Google Places (Places
+API v1)** field — photo, category chip, distance badge, rating + review count, price, open-now,
+editorial blurb, Directions link — plus a category filter row. Ships with a clearly-flagged
+placeholder set (`lib/site/nearby.ts` `NEARBY_PLACEHOLDER`); the real Google fetch is a scoped
+follow-up (Phase 4 in `WIZARD_TO_WEBSITE_PLAN.md`). Mobile-first (3→2→1 cols; filter row scrolls
+sideways on phones; 44px targets; hover gated behind `hover:hover`). Live-verified (6 cards, 3-col,
+no overflow).
+
+**3. Booking availability bar mobile fix** (`33493ea`). `BookingSearchSection` collapsed 3-col →
+2-col at ≤760px but never to a single column, so the date-range field was squeezed on narrow phones.
+Added a ≤520px breakpoint that stacks all fields full-width. Verified at 375px (1 col, no overflow).
+Audit confirmed the bespoke theme pages already collapse to 1 col via their own media queries and the
+checkout uses responsive Tailwind (no h-overflow live) — this bar was the one gap.
+
+**4. NEW PLAN written — `WIZARD_TO_WEBSITE_PLAN.md`** (founder's next priority). Mapped the current
+wizard → published-site → booking flow (Explore pass) and wrote a phased plan to make "host selects
+theme → completes wizard → professional mobile-ready booking-integrated website" real. Key finding:
+**booking is already wired end-to-end** — the real work is content-flow (pass `derived` account
+fallbacks at seed; verify bespoke themes consume every `content_profile` slot) + go-live UX (the
+readiness gate leaves new hosts at `status:draft`). Plan also covers (a) Google Places wiring, (b)
+per-theme differentiation + mobile pass, (c) docs. Savepoint updated to point here.
+
+**Verification tooling note (learned this session):** `claude-in-chrome` `resize_window` is a no-op
+here (viewport stays 1920) so a true mobile viewport isn't reachable in the authenticated browser;
+the SSO deploy isn't reachable by the resizable in-app browser. Mobile verified via CSS audit +
+`scrollWidth<=innerWidth` + mirrored components at mobile width in the in-app browser. Screenshots
+flaky (all-dark on scrolled full-bleed pages) → DOM/geometry queries are the reliable path.
+
+All commits `tsc` + `pnpm lint` clean.
+
 ## 2026-07-20 — Theme differentiation: Royal forked site-wide — all remaining shared subpages bespoke (`20b0acc`).
 
 Royal no longer falls back to the shared OceansView layout on ANY public page

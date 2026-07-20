@@ -1,9 +1,20 @@
 # 🟢 Website CMS — SAVE POINT / Resume Here
 
-**Branch:** `feature/website-cms-10min-wizard` · **Last pushed:** `7700665` · **Vercel auto-deploys on push**
-**Updated:** 2026-07-19 (pt18 — Phase A motion system DONE + live-verified for all 5 themes)
+**Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `4707189` · **Vercel auto-deploys on push**
+**Updated:** 2026-07-20 (pt40 — Safari field-journal differentiation + nearby cards + mobile fix; NEW PLAN written)
 
-> ## ▶▶ NEXT SESSION STARTS HERE — read `THEME_DIFFERENTIATION_PLAN.md` (repo root) FIRST
+> ## ▶▶ NEXT SESSION STARTS HERE — read **`WIZARD_TO_WEBSITE_PLAN.md`** (repo root) FIRST
+> Founder's current priority (2026-07-20): make the **wizard → theme select → complete wizard →
+> professional, mobile-ready, booking-integrated live website** flow real, then (a) Google Places for
+> the nearby cards, (b) per-theme differentiation + mobile pass, (c) docs. The full phased plan +
+> current wizard flow map + the gaps live in `WIZARD_TO_WEBSITE_PLAN.md`. **Booking is already wired
+> end-to-end** — the real work is content-flow + go-live UX. Start at Phase 1 there.
+>
+> _Earlier arc:_ theme differentiation (`THEME_DIFFERENTIATION_PLAN.md`) is COMPLETE for all 5 themes;
+> Safari was re-differentiated into a daylight "field-journal" theme this session (see the plan's
+> "DONE THIS SESSION"). The pt18 motion-system note below is historical.
+
+> ## (historical) ▶▶ read `THEME_DIFFERENTIATION_PLAN.md` — theme-diff arc
 > Founder directive (2026-07-19): **the themes must each be UNIQUE — not one layout in
 > different palettes.** Each *unique · modern · professional · mobile-responsive* with its
 > **own minimal, tasteful JS animations** that enhance the visitor experience.
