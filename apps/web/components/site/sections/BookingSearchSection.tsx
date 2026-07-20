@@ -83,6 +83,13 @@ export function BookingSearchSection({
           .siteab-go{grid-column:1 / -1;padding:0 12px 14px;}
           .siteab-btn{width:100%;}
         }
+        /* Narrow phones — stack to a single column so the date-range field gets
+           full width instead of being squeezed into a half column. */
+        @media(max-width:520px){
+          .siteab-in{grid-template-columns:1fr;}
+          .siteab-field{border-right:none;border-bottom:1px solid var(--site-line,#e9e1d1);padding:14px 18px;}
+          .siteab-go{padding:12px 18px 16px;}
+        }
       `}</style>
       <div className="siteab-in">
         <div className="siteab-field">
