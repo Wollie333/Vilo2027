@@ -40,8 +40,18 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   radius visual, sticky respond card (0%-commission + view/quote/days stats), guest card, mobile
   sticky action bar, and BreadcrumbList JSON-LD. Reuses the real QuoteButton + RequestRequirements;
   no fabricated trust badges, no dead controls. Verified live on two posts; pushed.
-- Still TODO in WS-2: **2a** (post-first public wizard + anon drafts) → **2b** (silent
-  passwordless submit; POPIA consent) — the sequential funnel-inversion pair, not started.
+- **WS-2a/2b — post-first public funnel** (later the same session): a signed-out visitor can
+  now post a request without a signup wall. Extracted the shared `insertLookingForPost` writer
+  (insert + activity log + requirements + host alerting) reused by the authed action and the new
+  public path. Public submit = `createRequestPublic.ts` + `POST /api/looking-for/publish`:
+  Zod-validated, **POPIA consent gates the INSERT**, honeypot + hourly rate-limit, mints a
+  passwordless lead + stamps consent, and mints an auto-sign-in magic link **only for a lead**
+  (never an existing account). New `/looking-for/post` route renders `RequestForm` with a nullable
+  `userId` — local-only drafts, review-step name/email/consent capture, deferred photo upload — and
+  the `/looking-for/start` CTAs now point there. **Verified live end-to-end**: signed-out wizard →
+  Post → lead minted + consent stamped (t3-p2) + public post → magic-link redirect lands signed in
+  on the portal record page; consent:false rejected; test data cleaned up. **WS-2 is now complete
+  (2a–2e).**
 
 ---
 
