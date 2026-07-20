@@ -57,6 +57,12 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   had stripped `authenticated` too, so the RPC failed 42501. Granted EXECUTE to `authenticated` (the
   fn is SECURITY DEFINER returning only a `Q-NNNN` string; anon stays out — the public enquiry path
   uses service_role). Migration `20260720160000`; verified the RPC now returns a number for that role.
+- **WS-4 (start) — "Do you own accommodation?" host-lead capture.** The guest signup's preferences
+  step now asks the question; a Yes persists `user_profiles.owns_accommodation` (migration
+  `20260720190000`) and fires a `host_lead` admin notification linking to the user record — turning the
+  guest funnel into a host pipeline. Verified live end-to-end (persist + notification). Remaining WS-4
+  (user-facing guest→"Wielo account" rename; magic-link as the funnel default) deferred as product-copy/UX
+  calls.
 - **Founder testing fixes (Paystack signup round).** (1) **Seasonal pricing was gated off in
   onboarding** — `check_feature_permission("seasonal_pricing")` had no row anywhere so it defaulted to
   disabled, and the feature wasn't in the product catalog so admins couldn't enable it. Added it to
