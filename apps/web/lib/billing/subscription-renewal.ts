@@ -141,7 +141,16 @@ async function renewOne(
       ? Number(product.annual_price ?? product.price)
       : Number(product.price);
   if (!(amount > 0)) return "skipped"; // free / unpriced → nothing to charge
-  const currency = product.currency ?? "ZAR";
+  // H1.1 — Wielo subscription revenue is ALWAYS ZAR (MODEL-2): the platform
+  // Paystack account is ZAR and no Plane-B row may carry a host currency. A
+  // membership/service product mispriced in another currency is a config error;
+  // we still charge + record ZAR rather than leak a non-ZAR ledger row.
+  if (product.currency && product.currency !== "ZAR") {
+    console.warn(
+      `subscription-renewal: product ${sub.product_id} currency ${product.currency} != ZAR — forcing ZAR`,
+    );
+  }
+  const currency = "ZAR";
 
   // Resolve the billing email (host owner).
   const { data: host } = await admin
@@ -183,6 +192,7 @@ async function renewOne(
     host_id: sub.host_id,
     subscription_id: sub.id,
     plan: sub.plan,
+    product_id: sub.product_id, // H1.2 — so affiliate accrual resolves the product directly (not slug==plan fallback) and reports can attribute the row
     billing_cycle: cycle,
     type: "charge",
     status: "pending",

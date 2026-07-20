@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-07-20 (pt35) — Recurring billing hardening (H1–H4) + multi-business/multi-listing audit.
+
+Executed the hardening plan from `docs/RECURRING_BILLING_HARDENING_AND_GOLIVE.md` and,
+per founder request, audited multi-business/multi-listing accounts for financial +
+pricing correctness (audit came back clean — no Critical/High; core money paths sound).
+All green (build+lint), migrations applied to the linked cloud project, `paystack-webhook`
+redeployed (v16), types + `docs/SCHEMA.md` regenerated.
+
+- **H1.1 — force ZAR (MODEL-2).** `lib/billing/subscription-renewal.ts` + the
+  `paystack-webhook` renewal backstop record `currency='ZAR'` (no host-currency leak
+  into Plane-B). PayPal path already hardcoded ZAR.
+- **H1.2 — product_id + label on recurring ledger rows.** Renewal, PayPal sale, webhook
+  backstop, and the upgrade-delta rows now carry `product_id` (so affiliate accrual
+  resolves the product directly instead of the `slug==plan` fallback) and use the order
+  label as `reason` (an upgrade reads "Upgrade to X (prorated)" in reports).
+- **H1.3 — orphan pp_sale re-link.** A PayPal sale that beats ACTIVATED is tagged
+  `[ppsub:<id>]`; `reconcilePayPalSubscriptions` back-fills user/host/sub/product and
+  accrues the now-attributable commission (`relinkOrphanPayPalSales`).
+- **H2 — affiliate treatment of upgrade deltas (founder decision).** Migration
+  `20260720050000`: `platform_ledger.is_prorated_upgrade` + `accrue_affiliate_commission`
+  accrues a prorated upgrade delta as `kind='upgrade'` — earns at the recurring rate,
+  does NOT consume a once/months duration slot (fixes the capped-affiliate under-pay).
+  Wired on the **Paystack** rail; **PayPal** rail deferred (setup-fee sale can't be
+  positively identified without a fragile heuristic — marker + RPC branch are in place).
+- **H3 — unified reporting permission.** Migration `20260720060000`: `analytics_basic`→
+  `reporting`, dead `analytics_advanced` dropped; `features.ts`, `reports/page.tsx`,
+  `seed-single-host.mjs` + prose updated.
+- **Multi-business/multi-listing (MB) fixes.** #1 migration `20260720070000` —
+  `check_feature_permission` is now deterministic (most-permissive-first) across a host's
+  overlapping subs. #2 `paystack-webhook` — duplicate service-sub lookups use
+  `order+limit(1)` so a 2nd purchase of the same service can't PGRST-throw and abort
+  activation.
+- **H4 (verified live).** Column + `upgrade` kind constraint present; clawback is
+  kind-agnostic (handles `upgrade`); reporting remap confirmed. Flagged: the **`beta`**
+  product has `slug='beta'` but `plan_key='business'` (neutralised by H1.2; founder to
+  align). Sandbox round-trips + env-isolation remain founder-manual in the go-live runbook.
+
 ## 2026-07-20 (pt34) — Recurring billing: PayPal upgrade proration (single-approval setup-fee).
 
 Completes the deferred "PayPal follows" piece from Phase 3 — mid-cycle upgrades now

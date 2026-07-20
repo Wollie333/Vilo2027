@@ -457,7 +457,7 @@ async function processProductEvent(
   const { data: order } = await supabase
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
+      "id, product_id, product_name, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
     )
     .eq("provider_reference", ref)
     .maybeSingle();
@@ -527,7 +527,8 @@ async function processProductEvent(
       coupon_id: order.coupon_id ?? null,
       environment,
       paid_at: now,
-      reason: "Product purchase",
+      reason: order.product_name?.trim() || "Product purchase", // H1.2 — label the upgrade delta / product in reports
+      is_prorated_upgrade: order.activate_on_pay === false, // H2 — upgrade delta earns without consuming an affiliate slot
     });
   }
 
@@ -619,11 +620,16 @@ async function processProductEvent(
               ? "annual"
               : "monthly";
         const periodEnd = addMonths(new Date(), cycle === "annual" ? 12 : 1);
+        // Service products have no (host_id, product_id) unique constraint (a host
+        // may hold several) — order + limit so a duplicate never throws PGRST116
+        // and aborts activation; the newest active row wins deterministically.
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("id, plan")
           .eq("host_id", host.id)
           .eq("product_id", order.product_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         // Keep `plan` a valid plans.key (FK): the product's plan_key/slug only
@@ -699,6 +705,8 @@ async function processProductEvent(
           .select("id")
           .eq("host_id", capHost.id)
           .eq("product_id", order.product_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         const cipher = capSub
           ? await encryptSecret(auth.authorization_code)
@@ -836,7 +844,10 @@ async function processSubscriptionEvent(
   // Paystack key that matched the signature, NOT from event metadata (which a
   // native renewal may omit). Defaulting to "live" here would misbook test money.
   const amount = Number(event.data.amount ?? 0) / 100;
-  const currency = event.data.currency ?? "ZAR";
+  // H1.1 — Wielo subscription revenue is ALWAYS ZAR (MODEL-2). The platform
+  // Paystack account is ZAR, so force ZAR rather than trust event.data.currency
+  // and leak a host currency into a Plane-B ledger row.
+  const currency = "ZAR";
   const now = new Date();
 
   // Existing ledger row (first checkout) if any.
@@ -892,6 +903,7 @@ async function processSubscriptionEvent(
         host_id: hostId,
         subscription_id: sub?.id ?? null,
         plan,
+        product_id: productId, // H1.2 — direct product attribution for affiliate accrual + reporting
         billing_cycle: cycle,
         type: "charge",
         status: "completed",

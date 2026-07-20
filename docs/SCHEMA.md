@@ -19,17 +19,12 @@ it after any migration.
 | Tables | **182** (182 with RLS) |
 | Functions | **167** (134 SECURITY DEFINER, 61 trigger fns) |
 | Cron jobs | **39** (14 Vault-gated, 0 inactive) |
-| Vault secrets set | **15** |
+| Vault secrets set | **17** |
 
 ## 🚩 Automated red flags
 
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
-
-### 2 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
-
-- `reconcile-subscriptions` needs `subscription_reconcile_worker_url`
-- `renew-subscriptions` needs `subscription_renewal_worker_url`
 
 ### 1 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
@@ -595,7 +590,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **Checks:**
 - `CHECK ((entry_type = ANY (ARRAY['accrual'::text, 'clawback'::text])))`
-- `CHECK ((kind = ANY (ARRAY['subscription'::text, 'setup_fee'::text])))`
+- `CHECK ((kind = ANY (ARRAY['subscription'::text, 'setup_fee'::text, 'upgrade'::text])))`
 - `CHECK ((rate_type = ANY (ARRAY['amount'::text, 'percent'::text])))`
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'cleared'::text, 'voided'::text, 'paid'::text])))`
 
@@ -3445,6 +3440,7 @@ CASE
 | `setup_fee_amount` | numeric | — | `0` |
 | `affiliate_commission_id` | uuid | yes | — |
 | `affiliate_payout_id` | uuid | yes | — |
+| `is_prorated_upgrade` | boolean | — | `false` |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_commission_id) REFERENCES affiliate_commissions(id) ON DELETE SET NULL`

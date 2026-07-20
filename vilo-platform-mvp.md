@@ -1129,8 +1129,7 @@ plan_features (
 | `reviews_respond` | Respond to guest reviews | ❌ | ✅ | ✅ | ✅ |
 | `calendar_management` | Block dates, manage availability | ❌ | ✅ | ✅ | ✅ |
 | `instant_booking` | Enable instant booking | ❌ | ✅ | ✅ | ✅ |
-| `analytics_basic` | View basic dashboard stats | ❌ | ✅ | ✅ | ✅ |
-| `analytics_advanced` | Full analytics (post-MVP) | ❌ | ❌ | ✅ | ✅ |
+| `reporting` | Reporting (dashboard stats + exports) | ❌ | ✅ | ✅ | ✅ |
 | `custom_profile_url` | Custom handle / vanity URL | ❌ | ✅ | ✅ | ✅ |
 | `export_bookings` | Export bookings as CSV | ❌ | ❌ | ✅ | ✅ |
 | `canned_replies` | Message templates in inbox | ❌ | ❌ | ✅ | ✅ |

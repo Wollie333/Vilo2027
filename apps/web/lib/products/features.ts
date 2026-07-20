@@ -81,8 +81,7 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
   { key: "reviews_respond", label: "Respond to reviews", scope: "toggle" },
   { key: "canned_replies", label: "Message templates", scope: "toggle" },
   // Insights
-  { key: "analytics_basic", label: "Basic analytics", scope: "toggle" },
-  { key: "analytics_advanced", label: "Advanced analytics", scope: "toggle" },
+  { key: "reporting", label: "Reporting", scope: "toggle" },
   { key: "export_bookings", label: "CSV export", scope: "toggle" },
 ];
 

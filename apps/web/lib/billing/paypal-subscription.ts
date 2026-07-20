@@ -613,6 +613,7 @@ export async function recordPayPalSaleCompleted(
       host_id: sub?.host_id ?? null,
       subscription_id: sub?.id ?? null,
       plan: sub?.plan ?? null,
+      product_id: sub?.product_id ?? null, // H1.2 — direct product attribution for affiliate accrual + reporting (null when the sale beats ACTIVATED; re-linked by reconcile, H1.3)
       billing_cycle: cycle,
       type: "charge",
       status: "completed",
@@ -624,7 +625,12 @@ export async function recordPayPalSaleCompleted(
       paid_at: now.toISOString(),
       period_start: periodStart,
       period_end: periodEnd,
-      reason: "Subscription renewal (PayPal)",
+      // H1.3 — if the SALE beats ACTIVATED (no local sub yet) the row is orphaned
+      // (null user/host/sub). Tag it with the PayPal sub id so the reconcile sweep
+      // can find + re-attach it once the subscription exists. Cleaned on re-link.
+      reason: sub
+        ? "Subscription renewal (PayPal)"
+        : `Subscription renewal (PayPal) [ppsub:${input.subscriptionId}]`,
     })
     .select("id");
   if (error || !inserted || inserted.length === 0) return; // already settled
@@ -754,6 +760,7 @@ export type PayPalReconcileSummary = {
   checked: number;
   extended: number;
   ended: number;
+  relinked: number;
   errors: number;
 };
 
@@ -782,6 +789,7 @@ export async function reconcilePayPalSubscriptions(
     checked: 0,
     extended: 0,
     ended: 0,
+    relinked: 0,
     errors: 0,
   };
 
@@ -794,7 +802,9 @@ export async function reconcilePayPalSubscriptions(
   const dueBefore = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const { data: subs } = await admin
     .from("subscriptions")
-    .select("id, status, current_period_end, paypal_subscription_id")
+    .select(
+      "id, status, current_period_end, paypal_subscription_id, host_id, plan, product_id",
+    )
     .in("status", ["active", "past_due"])
     .not("paypal_subscription_id", "is", null)
     .lte("current_period_end", dueBefore)
@@ -804,6 +814,9 @@ export async function reconcilePayPalSubscriptions(
     const subscriptionId = sub.paypal_subscription_id as string;
     summary.checked += 1;
     try {
+      // H1.3 — re-attach any orphaned pp_sale rows now that this sub is mapped.
+      summary.relinked += await relinkOrphanPayPalSales(admin, sub);
+
       const remote = await getPayPalSubscription(subscriptionId, creds);
       if (!remote) {
         summary.errors += 1;
@@ -848,6 +861,74 @@ export async function reconcilePayPalSubscriptions(
   }
 
   return summary;
+}
+
+/**
+ * H1.3 — Re-attach orphaned PayPal sale rows to their subscription.
+ *
+ * recordPayPalSaleCompleted books the money even when PAYMENT.SALE.COMPLETED beats
+ * BILLING.SUBSCRIPTION.ACTIVATED (the local sub isn't mapped yet), leaving a
+ * platform_ledger row with null user/host/subscription whose `reason` is tagged
+ * `[ppsub:<paypal_subscription_id>]`. That charge counts in the admin ZAR total but
+ * is invisible in the host's billing history forever — the old reconcile never
+ * re-linked it (the comment lied). Once the local subscription exists, back-fill the
+ * attribution, accrue any affiliate commission it now qualifies for, and clean the tag.
+ *
+ * Idempotent: the update is compare-and-set on `subscription_id IS NULL`, so a
+ * concurrent link or a second reconcile tick can't double-attach or double-accrue.
+ */
+async function relinkOrphanPayPalSales(
+  admin: Admin,
+  sub: {
+    id: string;
+    host_id: string | null;
+    plan: string | null;
+    product_id: string | null;
+    paypal_subscription_id: string | null;
+  },
+): Promise<number> {
+  if (!sub.paypal_subscription_id || !sub.host_id) return 0;
+  // PayPal subscription ids (e.g. I-BW452GLLEP1G) contain no LIKE metacharacters,
+  // so the tag can be matched literally; brackets are literal in SQL LIKE.
+  const tag = `[ppsub:${sub.paypal_subscription_id}]`;
+  const { data: orphans } = await admin
+    .from("platform_ledger")
+    .select("id")
+    .eq("provider", "paypal")
+    .is("subscription_id", null)
+    .like("provider_reference", "pp_sale\\_%")
+    .like("reason", `%${tag}%`)
+    .limit(50);
+  if (!orphans || orphans.length === 0) return 0;
+
+  const { data: host } = await admin
+    .from("hosts")
+    .select("user_id")
+    .eq("id", sub.host_id)
+    .maybeSingle();
+
+  let relinked = 0;
+  for (const row of orphans) {
+    const { data: won } = await admin
+      .from("platform_ledger")
+      .update({
+        user_id: host?.user_id ?? null,
+        host_id: sub.host_id,
+        subscription_id: sub.id,
+        plan: sub.plan,
+        product_id: sub.product_id,
+        reason: "Subscription renewal (PayPal)",
+      })
+      .eq("id", row.id)
+      .is("subscription_id", null) // compare-and-set — don't clobber a concurrent link
+      .select("id");
+    if (!won || won.length === 0) continue; // another tick won it
+    relinked += 1;
+    // Now that the row is attributed to a host, accrue affiliate if that host was
+    // referred (a no-op at orphan time — there was no host to resolve).
+    await accrueAffiliateAndNotify(admin, row.id);
+  }
+  return relinked;
 }
 
 /**

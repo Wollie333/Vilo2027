@@ -1,11 +1,62 @@
 # Recurring Billing — Hardening + Go-Live Plan
 
 > Compiled 2026-07-20 from a 4-way audit (affiliate, reporting, two-plane finance,
-> booking regression) run after the recurring-subscription-billing epic. **No code
-> changed yet** — this is the execution plan for the next session. Everything below
-> is gated OFF-in-production semantics: both recurring flags are ON but in
+> booking regression) run after the recurring-subscription-billing epic. Everything
+> below is gated OFF-in-production semantics: both recurring flags are ON but in
 > **test/sandbox** (no real money) until go-live. Read
 > `docs/lifecycles/recurring-billing.md` first.
+
+---
+
+## ✅ EXECUTION STATUS (updated 2026-07-20, session pt35)
+
+**Done + shipped (build+lint green, migrations applied to linked cloud, webhook v16
+deployed, types + SCHEMA regenerated):**
+- **H1.1** — Paystack renewal + webhook backstop force ledger `currency='ZAR'`.
+- **H1.2** — `product_id` (+ order label as `reason`) on renewal / pp_sale / webhook
+  backstop / upgrade-delta ledger rows. Affiliate now resolves the product DIRECTLY,
+  so the `slug==plan` fallback (and the beta-product mismatch below) no longer drops
+  commission on any recurring path.
+- **H1.3** — orphan `pp_sale_*` rows are tagged `[ppsub:<id>]` at insert and re-linked
+  (+ affiliate accrued) by `relinkOrphanPayPalSales` in the PayPal reconcile.
+- **H2 (Paystack rail)** — migration `20260720050000`: `platform_ledger.is_prorated_upgrade`
+  + `accrue_affiliate_commission` branches upgrade deltas to `kind='upgrade'` — earns at
+  the **recurring rate**, does **NOT** consume a once/months duration slot (founder
+  decision 2026-07-20). Paystack delta marked via `activate_on_pay=false`.
+- **H3** — migration `20260720060000`: `analytics_basic`→`reporting`, dead
+  `analytics_advanced` dropped; `features.ts` / `reports/page.tsx` / `seed-single-host.mjs`
+  + prose updated. Verified live: zero `analytics_*` rows remain, `reporting` present.
+- **MB audit fixes** (multi-business/multi-listing, founder-requested):
+  - #1 migration `20260720070000`: `check_feature_permission` now deterministic
+    (most-permissive-first) when a host holds overlapping subs.
+  - #2 webhook: duplicate service-sub lookups use `order+limit(1)` so a 2nd purchase of
+    the same service product can't throw PGRST116 and abort activation.
+- **H4 (automatable parts)** — verified live: `is_prorated_upgrade` col + `upgrade` kind
+  constraint present; clawback is kind-agnostic (handles `upgrade`, gated on
+  `reverses_ledger_id`); reporting remap confirmed.
+
+**⚠️ Open follow-ups (do NOT lose these):**
+- **H2 (PayPal rail) — DEFERRED.** The setup-fee/delta sale can't be positively
+  identified in `recordPayPalSaleCompleted` without a fragile heuristic (amount- or
+  deferred-period-based detection collides with a normal new-sub's first charge
+  depending on ACTIVATED/SALE ordering). The universal marker + RPC branch are IN
+  PLACE, so wiring PayPal is a one-line `is_prorated_upgrade:true` on the setup-fee
+  sale once a reliable signal is chosen. Until then a PayPal upgrade delta keeps the
+  prior slot-consuming behaviour (an UNDER-pay, bounded to capped affiliates' first
+  PayPal upgrade — never over-pays) — and PayPal is not the go-live-first rail.
+- **H1.4** — PayPal setup-fee row still labeled "Subscription renewal (PayPal)"
+  (cosmetic; pairs with the PayPal H2 wiring above).
+- **Data hygiene (found in H4.1):** the **`beta` membership product** has `slug='beta'`
+  but `plan_key='business'`. H1.2 neutralises the affiliate-drop for all recurring
+  rails (product_id is now always set), but the native Paystack-subscription webhook
+  backstop (`processSubscriptionEvent`, resolves product via `WHERE slug = plan`) and
+  any future product_id-less insert would still mis-resolve. Founder decision: align
+  `slug` and `plan_key` for this product (both directions have blast radius — pick and
+  sweep references), or keep relying on product_id always being set.
+- **H4.3 / H4.4 (founder-manual):** sandbox round-trips (Paystack+PayPal renewal+upgrade
+  asserting exactly one correct accrual per real charge) and env-isolation check
+  (`paystack_mode` vs PayPal `env`) — need the hosted-card click that hangs headlessly
+  here + reading `platform_payment_settings` (classifier-gated). In the go-live runbook.
 
 ## Audit verdict (what's already correct — do NOT re-litigate)
 - **No plane leakage.** Every recurring write hits `platform_ledger` + `subscriptions`

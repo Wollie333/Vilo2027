@@ -174,7 +174,7 @@ async function main() {
   {
     const UNLIMITED = { staff_seats: 99, listings_limit: 99, inbox_limit: 999 };
     const FEATURES = [
-      "addons", "analytics_advanced", "analytics_basic", "banking_details",
+      "addons", "reporting", "banking_details",
       "directory_listing", "directory_priority", "looking_for_access", "policies",
       "seasonal_pricing", "website_builder", "coupons", "direct_booking",
       "enquiry_only", "inbox_messages", "payment_paystack", "payment_paypal",

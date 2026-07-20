@@ -84,10 +84,10 @@ export default async function ReportsPage({
     return renderQuotesOnlyReport(host.id, searchParams);
   }
 
-  // Check feature permission: analytics_basic (Basic+)
+  // Check feature permission: reporting (Basic+)
   const { data: featureRaw } = await supabase.rpc("check_feature_permission", {
     p_host_id: host.id,
-    p_feature_key: "analytics_basic",
+    p_feature_key: "reporting",
   });
   const feature = featureRaw as { is_enabled: boolean } | null;
   // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.

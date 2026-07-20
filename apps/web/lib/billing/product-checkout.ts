@@ -727,7 +727,7 @@ export async function startProductPaystack(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, product_name, payer_email, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, coupon_id",
+      "id, product_id, product_name, payer_email, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, coupon_id, activate_on_pay",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -779,7 +779,15 @@ export async function startProductPaystack(
       provider_reference: reference,
       coupon_id: order.coupon_id ?? null,
       environment,
-      reason: "Product purchase",
+      // H1.2 — carry the order's label so an upgrade delta reads e.g. "Upgrade to
+      // Starter (prorated)" in billing history/reports instead of a generic string.
+      // createProductOrder stores the label as product_name (falls back to the
+      // product name), so this is a strict reporting improvement for every purchase.
+      reason: order.product_name?.trim() || "Product purchase",
+      // H2 — activate_on_pay=false marks the prorated upgrade top-up (the only
+      // caller that sets it). Tag the charge so affiliate accrual treats it as a
+      // kind='upgrade' delta that doesn't consume a duration slot.
+      is_prorated_upgrade: order.activate_on_pay === false,
     });
     // Alert staff a card payment is being taken (so nothing is missed).
     await notifyAdmins(admin, {

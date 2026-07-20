@@ -65,7 +65,7 @@ Driven on Wollie Stoney (u_8b4bc108). Every tab + function verified live + DB:
 ### 🔴 FINDING 1 (fixed for testing): incomplete pre-MVP "unlock-all" feature override seed
 Specials showed "aren't on your plan yet" for the Beta test host. Root cause: the test host's
 `host_feature_overrides` seed (reason "unlock all features for founder testing (AGENT_RULES §3.4)")
-had 25 features but **MISSED 6**: `specials`, `analytics_advanced`, `businesses_limit`,
+had 25 features but **MISSED 6**: `specials`, `reporting` (was `analytics_advanced`, unified 2026-07-20), `businesses_limit`,
 `custom_website_design`, `website_blog`, `website_custom_domain`. So those tabs were falsely gated.
 Added the 6 missing overrides (data-only, test host) → `check_feature_permission(specials)` now
 `{source:"override", is_enabled:true}`. **Deeper issue for the founder:** the gates are NOT

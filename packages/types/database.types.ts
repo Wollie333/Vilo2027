@@ -6176,6 +6176,7 @@ export type Database = {
           host_id: string | null
           id: string
           invoice_id: string | null
+          is_prorated_upgrade: boolean
           paid_at: string | null
           period_end: string | null
           period_start: string | null
@@ -6206,6 +6207,7 @@ export type Database = {
           host_id?: string | null
           id?: string
           invoice_id?: string | null
+          is_prorated_upgrade?: boolean
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -6236,6 +6238,7 @@ export type Database = {
           host_id?: string | null
           id?: string
           invoice_id?: string | null
+          is_prorated_upgrade?: boolean
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
