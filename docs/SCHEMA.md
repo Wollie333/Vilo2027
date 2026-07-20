@@ -17,8 +17,8 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **186** (186 with RLS) |
-| Functions | **169** (136 SECURITY DEFINER, 61 trigger fns) |
-| Cron jobs | **40** (14 Vault-gated, 0 inactive) |
+| Functions | **172** (138 SECURITY DEFINER, 61 trigger fns) |
+| Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
 ## 🚩 Automated red flags
@@ -68,6 +68,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `publish-scheduled-posts` | `*/5 * * * *` | yes | yes |
 | `queue-review-requests` | `0 9 * * *` | yes | — |
 | `recalculate-rankings` | `*/15 * * * *` | yes | — |
+| `recompute-affiliate-campaign-rates` | `35 1 * * *` | yes | — |
 | `reconcile-host-card-payments` | `*/5 * * * *` | yes | yes |
 | `reconcile-subscriptions` | `20 * * * *` | yes | yes |
 | `renew-subscriptions` | `0 6 * * *` | yes | yes |
@@ -109,6 +110,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `calculate_looking_for_match_score` | **yes** | yes | callable |
 | `calculate_policy_refund_amount` | **yes** | yes | callable |
 | `campaign_active_listings` | **yes** | yes | callable |
+| `campaign_ladder_book` | **yes** | yes | callable |
 | `can_send_broadcast` | **yes** | yes | callable |
 | `check_feature_permission` | **yes** | yes | callable |
 | `check_host_availability_for_dates` | **yes** | yes | callable |
@@ -179,6 +181,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `increment_help_article_view` | **yes** | yes | callable |
 | `is_period_closed` | **yes** | yes | callable |
 | `is_super_admin` | **yes** | yes | callable |
+| `ladder_rate_for_book` | — | — | callable |
 | `listing_doc_code` | **yes** | yes | callable |
 | `listing_is_available_whole` | — | — | callable |
 | `log_refund_status_change` | **yes** | yes | trigger |
@@ -209,6 +212,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `product_units_sold` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
 | `recalculate_listing_ranking` | **yes** | yes | callable |
+| `recompute_affiliate_campaign_rates` | **yes** | yes | callable |
 | `record_guest_post` | **yes** | yes | callable |
 | `redeem_coupon` | **yes** | yes | callable |
 | `redeem_platform_coupon` | **yes** | yes | callable |

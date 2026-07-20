@@ -11722,6 +11722,10 @@ export type Database = {
           affiliate_id: string
         }[]
       }
+      campaign_ladder_book: {
+        Args: { p_affiliate_id: string; p_asof?: string; p_campaign_id: string }
+        Returns: number
+      }
       can_send_broadcast: { Args: { p_host_id: string }; Returns: Json }
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
@@ -12180,6 +12184,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      ladder_rate_for_book: {
+        Args: { p_bands: Json; p_book: number }
+        Returns: number
+      }
       listing_doc_code: { Args: { p_listing_id: string }; Returns: string }
       listing_is_available_whole: {
         Args: { p_check_in: string; p_check_out: string; p_listing_id: string }
@@ -12268,6 +12276,7 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: undefined
       }
+      recompute_affiliate_campaign_rates: { Args: never; Returns: number }
       record_guest_post: {
         Args: { p_post_id: string; p_user_id: string }
         Returns: undefined
