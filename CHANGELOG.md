@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-20 — Fix: site-render hydration errors root-caused to in-body font-stylesheet hoisting (`d07a544`).
+
+**Fixed the pre-existing React hydration errors (#418/#423/#425) on the public site render** (reported
+across every theme's preview pages).
+
+- **Root cause (evidence-based, via live-DOM inspection):** `SiteFontLinks` renders the Google-Fonts
+  `<link rel="stylesheet">` INSIDE `<body>` (within `.wielo-site-root`). React 18.3 Float hoists it to
+  `<head>` on the server, but the client component tree kept it as the FIRST child of
+  `.wielo-site-root` — the live DOM showed the font `<link>` in BOTH `<head>` (server-hoisted) AND as
+  the first in-body child (client). That one-node shift makes every sibling mismatch → structural
+  hydration failure (#418) cascading into ~20 page text nodes (#425), on every themed page.
+- **Fix (`d07a544`):** `precedence="default"` on the stylesheet links → React manages them as proper
+  stylesheet resources, hoisted to `<head>` IDENTICALLY on server and client with no body footprint,
+  so `.wielo-site-root`'s children match on both sides.
+- **Secondary (`177ef78`):** `suppressHydrationWarning` on `<body>` in the root layout silences the
+  separate, benign body-ATTRIBUTE noise from browser extensions (Grammarly `data-gr-*`, ColorZilla
+  `cz-shortcut-listen`) that also mutate `<body>` before hydration. This did NOT fix the structural
+  cascade above (verified: ~23 errors persisted) — the font fix does; the body suppress is kept as
+  correct hardening for real Grammarly users.
+- tsc + lint green. **Live before/after error-count verification pending** a Claude-in-Chrome
+  reconnect (the SSO deploy is only reachable via the authenticated browser).
+
 ## 2026-07-20 — Wizard→website Phase 2: go-live UX — publish from the wizard + lower the wall (`51d8e78`).
 
 **WIZARD_TO_WEBSITE_PLAN Phase 2 — make "finish wizard → live site" reliable.** When the go-live
