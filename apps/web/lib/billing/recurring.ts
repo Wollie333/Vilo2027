@@ -45,3 +45,23 @@ export async function isPaystackRecurringEnabled(): Promise<boolean> {
 export async function isPayPalRecurringEnabled(): Promise<boolean> {
   return (await getRecurringConfig()).paypal;
 }
+
+/**
+ * WS-5 — is the Founding-offers window open? While true (beta), a host converting
+ * to the paid plan is auto-priced at the Founding rate and gets the lifetime lock
+ * (see product-checkout activation). Fail CLOSED: any read error → false, so no
+ * host is ever accidentally locked to the below-list Founding price.
+ */
+export async function isFoundingOffersOpen(): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("platform_payment_settings")
+      .select("founding_offers_open")
+      .eq("id", true)
+      .maybeSingle();
+    return data?.founding_offers_open === true;
+  } catch {
+    return false;
+  }
+}

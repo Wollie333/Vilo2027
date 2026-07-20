@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-20 (pt44c) — WS-5: beta→Founding auto-conversion (flag-gated; admin toggle; verified live).
+
+The last WS-5 piece: hosts now convert to Founding pricing automatically instead of an admin
+applying the lock by hand. Founder decision: gated by a platform **"Founding offers open"** flag
+(ON during beta → any host subscribing to the paid plan gets the Founding rate + lifetime lock;
+OFF → list price). All green (type-check + lint + `pnpm build` + 29 billing tests).
+
+- **Flag (`20260720230000`):** `platform_payment_settings.founding_offers_open` (default **false**,
+  fail-closed) on the singleton billing-config row, alongside the recurring rails. Reader
+  `isFoundingOffersOpen()` (`lib/billing/recurring.ts`) fails closed so no host is ever accidentally
+  locked to the below-list price.
+- **Auto-conversion at checkout + activation** (`product-checkout.ts`): while the flag is open, a
+  membership checkout is priced at the **Founding rate** (base + per-listing from the product's
+  `founding_*` config, via `resolveMembershipAmount`), and `activateMappedPlan` applies the **lifetime
+  lock** (`applyFoundingLock`) to the new sub. PayPal native checkout (`paypal-subscription.ts`) mints
+  its Billing Plan at the Founding amount too when the window is open.
+- **Admin toggle:** a self-contained "Founding offers open/closed" switch on Admin → Products →
+  Payment settings (`FoundingOffersToggle`), audited via `setFoundingOffersOpenAction`.
+- **Verified live:** the toggle flips the DB flag both ways (default closed); left safely **closed**
+  so the founder opts in when ready. Conversion pricing/lock reuse the already-tested
+  `resolveMembershipAmount` (Founding cases) + `applyFoundingLock` (rollback probe); a full charge
+  round-trip still needs recurring billing enabled (the go-live gate) + a free-tier host.
+
 ## 2026-07-20 (pt44b) — WS-5 follow-up: PayPal + upgrade paths are now Founding-lock-aware.
 
 Closes the last money gap from pt44: the recurring rails other than Paystack now honour the

@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PaystackModeBadge } from "../PaystackModeBadge";
+import { FoundingOffersToggle } from "./FoundingOffersToggle";
 import {
   PaymentSettingsForm,
   type PaymentSettings,
@@ -19,7 +20,7 @@ export default async function AdminPaymentSettingsPage() {
   const { data } = await service
     .from("platform_payment_settings")
     .select(
-      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, paypal_enabled, paypal_environment, paypal_client_id, paypal_secret_cipher, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_swift_code, eft_reference_hint",
+      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, paypal_enabled, paypal_environment, paypal_client_id, paypal_secret_cipher, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_swift_code, eft_reference_hint, founding_offers_open",
     )
     .eq("id", true)
     .maybeSingle();
@@ -68,6 +69,7 @@ export default async function AdminPaymentSettingsPage() {
           it accepts.
         </p>
       </header>
+      <FoundingOffersToggle open={data?.founding_offers_open ?? false} />
       <PaymentSettingsForm initial={initial} />
     </div>
   );

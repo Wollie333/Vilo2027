@@ -3,11 +3,13 @@ import "server-only";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { isBreachedPassword, passwordSchema } from "@/lib/auth/password";
 import {
+  applyFoundingLock,
   countHostListings,
   resolveMembershipAmount,
 } from "@/lib/billing/membershipAmount";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
+import { isFoundingOffersOpen } from "@/lib/billing/recurring";
 import {
   grantCreditsForOrder,
   grantSubscriptionCredits,
@@ -92,7 +94,7 @@ export async function createProductOrder(
   const { data: product } = await admin
     .from("products")
     .select(
-      "id, name, price, annual_price, per_listing_amount, currency, is_active, product_type, setup_fee, billing_cycle",
+      "id, name, price, annual_price, per_listing_amount, founding_price, founding_annual_price, founding_per_listing_amount, currency, is_active, product_type, setup_fee, billing_cycle",
     )
     .eq("id", input.productId)
     .maybeSingle();
@@ -150,18 +152,27 @@ export async function createProductOrder(
     hostId = host?.id ?? null;
   }
 
-  // WS-5 per-listing: a membership charges base + per-ADDITIONAL-listing at the
-  // LIST rate (a fresh checkout has no Founding lock yet — the lock is applied at
-  // Founding provisioning and honoured on renewal). The first listing is included
-  // in the base. Custom-amount top-ups and non-membership products are unaffected.
+  // WS-5: a membership charges base + per-ADDITIONAL-listing (first listing
+  // included). During the Founding-offers window a host converting to the paid
+  // plan is priced at the Founding rate here, and the lifetime lock is applied at
+  // activation. Otherwise the live LIST price. Top-ups / non-membership unaffected.
   let membershipBase = base;
-  if (product.product_type === "membership" && !isOverride && hostId) {
-    const listingCount = await countHostListings(admin, hostId);
+  if (product.product_type === "membership" && !isOverride) {
+    const listingCount = hostId ? await countHostListings(admin, hostId) : 0;
+    const foundingLock =
+      product.founding_price != null && (await isFoundingOffersOpen())
+        ? {
+            locked_base_amount: wantsAnnual
+              ? (product.founding_annual_price ?? product.founding_price)
+              : product.founding_price,
+            locked_per_listing_amount: product.founding_per_listing_amount ?? 0,
+          }
+        : null;
     membershipBase = resolveMembershipAmount({
       cycle: wantsAnnual ? "annual" : "monthly",
       listingCount,
       product,
-      lock: null,
+      lock: foundingLock,
     });
   }
 
@@ -1152,7 +1163,7 @@ async function activateMappedPlan(
   if (!payerUserId || !productId) return;
   const { data: product } = await admin
     .from("products")
-    .select("product_type, slug, billing_cycle, plan_key")
+    .select("product_type, slug, billing_cycle, plan_key, founding_price")
     .eq("id", productId)
     .maybeSingle();
   // Only subscription-like products (membership | service) become subscriptions;
@@ -1268,6 +1279,21 @@ async function activateMappedPlan(
     await admin.from("subscriptions").update(patch).eq("id", existing.id);
   } else {
     await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+  }
+
+  // WS-5: during the Founding-offers window, a host converting to the paid plan
+  // locks in the Founding price for life. Snapshots the product's founding_* onto
+  // the (now active) sub. No-op once the founder closes the window (beta ends).
+  if (isMembership && product.founding_price != null) {
+    if (await isFoundingOffersOpen()) {
+      const { data: activeSub } = await admin
+        .from("subscriptions")
+        .select("id")
+        .eq("host_id", host.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (activeSub) await applyFoundingLock(admin, activeSub.id);
+    }
   }
 
   // Grant this plan's recurring credit allotment for the new period (idempotent

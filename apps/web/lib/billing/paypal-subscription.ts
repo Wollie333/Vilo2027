@@ -9,7 +9,10 @@ import {
   membershipSwitchAmount,
   unusedFraction,
 } from "@/lib/billing/proration";
-import { isPayPalRecurringEnabled } from "@/lib/billing/recurring";
+import {
+  isFoundingOffersOpen,
+  isPayPalRecurringEnabled,
+} from "@/lib/billing/recurring";
 import { convertCurrency, convertZarToUsd } from "@/lib/fx";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { grantSubscriptionCredits } from "@/lib/credits/wallet";
@@ -221,7 +224,7 @@ export async function startPayPalSubscriptionCheckout(input: {
   const { data: product } = await admin
     .from("products")
     .select(
-      "id, name, price, annual_price, per_listing_amount, currency, product_type, is_active",
+      "id, name, price, annual_price, per_listing_amount, founding_price, founding_annual_price, founding_per_listing_amount, currency, product_type, is_active",
     )
     .eq("id", input.productId)
     .maybeSingle();
@@ -231,19 +234,33 @@ export async function startPayPalSubscriptionCheckout(input: {
 
   // WS-5: bill the lock-aware amount (Founding lock + per-additional-listing) so a
   // Founding host on PayPal recurs at their frozen price, not the live list price.
-  // Reads the host's existing membership sub for this product (if any) for the lock.
+  // Priority: an EXISTING lock on the host's sub → else the Founding rate while the
+  // Founding-offers window is open (a fresh conversion) → else the live list price.
   const { data: lockSub } = await admin
     .from("subscriptions")
     .select("is_founding, locked_base_amount, locked_per_listing_amount")
     .eq("host_id", input.hostId)
     .eq("product_id", product.id)
     .maybeSingle();
+  const foundingOffer =
+    (lockSub?.locked_base_amount == null ||
+      Number(lockSub.locked_base_amount) <= 0) &&
+    product.founding_price != null &&
+    (await isFoundingOffersOpen())
+      ? {
+          locked_base_amount:
+            input.cycle === "annual"
+              ? (product.founding_annual_price ?? product.founding_price)
+              : product.founding_price,
+          locked_per_listing_amount: product.founding_per_listing_amount ?? 0,
+        }
+      : null;
   const listingCount = await countHostListings(admin, input.hostId);
   const effectiveAmount = resolveMembershipAmount({
     cycle: input.cycle,
     listingCount,
     product,
-    lock: lockSub ?? null,
+    lock: lockSub?.locked_base_amount != null ? lockSub : foundingOffer,
   });
 
   const planId = await ensurePayPalPlan(admin, {

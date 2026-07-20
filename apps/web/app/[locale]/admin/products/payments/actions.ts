@@ -154,3 +154,38 @@ export async function savePaymentSettings(
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
   }
 }
+
+// WS-5 — toggle the Founding-offers window. While ON, a host converting to the
+// paid plan is auto-priced at the Founding rate and gets the lifetime lock.
+export const setFoundingOffersOpenAction = withAdminAudit<
+  { open: boolean; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.founding_offers_open",
+    targetType: "platform_setting",
+    getTargetId: () => PAY_SETTINGS_TARGET,
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("platform_payment_settings")
+      .update({
+        founding_offers_open: args.open === true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", true);
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/products/payments");
+    return { result: { ok: true }, after: { founding_offers_open: args.open } };
+  },
+);
+
+export async function setFoundingOffersOpen(open: boolean): Promise<Res> {
+  try {
+    await setFoundingOffersOpenAction({ open });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
