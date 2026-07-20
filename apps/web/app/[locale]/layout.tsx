@@ -89,7 +89,14 @@ export default async function RootLayout({
       lang={locale}
       className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="font-sans antialiased">
+      {/* suppressHydrationWarning: browser extensions (Grammarly →
+          data-gr-ext-installed / data-new-gr-c-s-check-loaded, ColorZilla →
+          cz-shortcut-listen, password managers, Dark Reader, …) mutate <body>
+          attributes AFTER the server render but BEFORE hydration, which React
+          otherwise reports as a hydration mismatch (#418/#423/#425) and bails
+          the tree over. Suppressing the warning on <body> only (one level deep)
+          keeps genuine mismatches deeper in the tree still reported. */}
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {/* Instant top-bar feedback on EVERY navigation (link click, router
             push, back/forward) so a click never feels dead while the next
             route loads. Brand green on the Wielo app; on a host's themed site
