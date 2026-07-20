@@ -57,6 +57,14 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   had stripped `authenticated` too, so the RPC failed 42501. Granted EXECUTE to `authenticated` (the
   fn is SECURITY DEFINER returning only a `Q-NNNN` string; anon stays out — the public enquiry path
   uses service_role). Migration `20260720160000`; verified the RPC now returns a number for that role.
+- **WS-6a — generic legal document store**: a slug-addressable store so the attorney can paste final
+  copy for ANY instrument and have it go live at `/legal/<slug>`, version-retained. Migration
+  `20260720170000` adds `legal_documents` (slug/title/body_html/version/is_published/published_at)
+  with RLS (public reads published; writes service_role-only) and seeds the four Founding-Programme
+  slugs (competition rules, Founding Host terms, review disclosure, Looking-For POPIA) as published
+  DRAFT placeholders. New public `/legal/[slug]` route + an admin **Documents** tab that creates/edits
+  via the existing RichTextEditor (sanitise + version-bump-on-body-change, `withAdminAudit`). Verified
+  live: seeded route renders; super-admin body edit bumped v1→v2 and the public page reflected it.
 
 ---
 
