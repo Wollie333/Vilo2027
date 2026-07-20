@@ -1593,6 +1593,14 @@ function Dossier({
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <RolePill role={user.role} />
+              {data.subscriptions.some(
+                (s) => s.productType === "membership" && s.isFounding,
+              ) ? (
+                <span className="inline-flex items-center gap-1 rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Founding host
+                </span>
+              ) : null}
               {!user.is_active ? <Pill tone="bad">Suspended</Pill> : null}
               {user.deleted_at ? <Pill tone="bad">Deleted</Pill> : null}
               {user.is_lead ? <Pill tone="muted">Passwordless</Pill> : null}
