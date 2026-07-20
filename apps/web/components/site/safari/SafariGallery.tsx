@@ -108,7 +108,11 @@ export function SafariGallery({
               </div>
             </div>
           ) : (
-            <div className="sf-gallery-grid" data-reveal>
+            <div className="sf-gallery-grid">
+              {/* NB: no data-reveal on this wrapper — the reveal primitive sets
+                  the independent `translate` property, which (like `transform`)
+                  establishes a containing block and would break the shared
+                  lightbox's position:fixed overlay rendered inside here. */}
               <OceansMosaicGallery
                 images={shots}
                 brandName={brandName}

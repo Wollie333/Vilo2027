@@ -37,7 +37,7 @@ Five themes exist. **Two are already bespoke + distinct; three share ONE layout.
 | **OceansView** | `oceansview` | bespoke `.ov*` (`components/site/oceansview/`) | the reference layout |
 | **Marmalade** | `marmalade` | bespoke `.mm*` (`components/site/marmalade/`) | ✅ already distinct (postcards, tilts/tape, serif) |
 | **Sabela** | `hotel` | bespoke `.sb*` (`components/site/sabela/`) | ✅ already distinct (dark editorial lodge) |
-| **Safari** | `safari` | ✅ bespoke `.sf*` (`components/site/safari/`) for **Home/Rooms/Room-detail** (pt22); other pages still reuse `.ov*` | ✅ layout forked (editorial daylight savanna) — was a savanna re-skin of OceansView |
+| **Safari** | `safari` | ✅ bespoke `.sf*` (`components/site/safari/`) for **ALL public pages** (Home/Rooms/Room-detail + About/Experiences/Contact/Gallery/Specials+detail/Journal+Article, `179c2a7`) | ✅ FULLY forked site-wide (editorial daylight savanna + Fraunces) — no longer reuses OceansView anywhere |
 | **Royal Hotel** | `royal` | ✅ bespoke `.r*` (`components/site/royal/`) for **Home/Rooms/Room-detail** (pt21); other pages still reuse `.ov*` | ✅ layout forked (grand hotel) — was a champagne re-skin of OceansView |
 
 > **UPDATE (pt21 Royal, pt22 Safari):** Safari + Royal now have their OWN bespoke

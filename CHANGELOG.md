@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-07-20 — Theme differentiation: Safari forked site-wide — all remaining shared subpages bespoke (`179c2a7`).
+
+Safari no longer falls back to the shared OceansView layout on ANY public page.
+The six remaining shared page-types were forked into the Safari editorial design
+language (warm daylight, Fraunces display, hairline rules, the `.sf-*` primitive
+system), each routed via a `preset==='safari'` branch above the shared
+`usesOceansViewLayout` branch, with the SAME data contract as its OceansView
+counterpart (so the routing is a clean 1:1 swap and content persists on theme
+switch):
+
+- **SafariAbout** (`.sfabout`) — asymmetric story split, inline ruled stat
+  numerals, an editorial VALUES roster (vs OV's card tiles).
+- **SafariExperiences** (`.sfexp`) — a numbered editorial ruled list (vs OV's
+  image-overlay tile grid).
+- **SafariContact** (`.sfcontact`) — editorial hairline-ruled details list + a
+  framed card around the SHARED OceansContactForm (form reused, not rebuilt).
+- **SafariGallery** (`.sfgallery`) — a daylight editorial mosaic that reuses the
+  SHARED OceansMosaicGallery lightbox (its classes re-skinned under `.sfgallery`).
+- **SafariSpecials** (`.sfspecials`) + **SafariSpecialDetail** (`.sfspecial`) —
+  editorial offer-card collection + a single-offer detail (now/was/save, sticky
+  book card), mirroring OV's inline (no shared sub-component) structure.
+- **SafariJournal** (`.sfjournal`) + **SafariArticle** (`.sfarticle`) — an
+  editorial blog index (featured lead + ruled list) and a centered Fraunces
+  reading column; the article body is rendered by the SAME prose renderer
+  verbatim, and the article uses a solid header (`pageHasHero=false`) since it
+  opens with a light title block, not a dark hero.
+
+Routing touched: `SitePageView.tsx` (about/experiences/contact/gallery/specials
+branches), `SiteSpecialView.tsx` (special-detail ternary), `blog/page.tsx` +
+`blog/[postSlug]/page.tsx` (journal/article ternaries). Honesty kept everywhere
+(host data + always-true direct-booking truths only). Six of the eight components
+were built by parallel subagents against a precise spec (SafariAbout as the design
+reference + the exact OceansView props interface), then reviewed + wired + tsc/
+eslint/prettier-verified here. **Live-verify next.**
+
+---
+
 ## 2026-07-20 — Theme differentiation Phase C: Safari given its own typeface (Fraunces) to separate it from Sabela (`f3a145a`).
 
 Founder flagged Safari + Sabela "feel like the same theme." A live side-by-side
