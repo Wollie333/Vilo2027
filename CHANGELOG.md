@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-07-20 — Theme differentiation Phase C: Safari given its own typeface (Fraunces) to separate it from Sabela (`f3a145a`).
+
+Founder flagged Safari + Sabela "feel like the same theme." A live side-by-side
+audit on mana (`?theme=safari` vs `?theme=hotel`) pinned the root cause: both
+presets shared the `elegant` font role, so both lodges rendered their display
+headings in the **identical Cormorant Garamond serif** — the strongest shared-DNA
+signal (on top of similar warm gold/ochre accents). Their layouts + light/dark
+palettes already diverge since the pt22 Safari fork.
+
+- New **`fraunces` font role** (`FONT_STACKS`): Fraunces — a warm, characterful
+  editorial soft-serif with optical sizing — over an Inter body. A deliberately
+  different personality from Sabela's refined high-contrast Cormorant, and a better
+  fit for the airy daylight-savanna editorial identity.
+- Safari preset `font: "elegant"` → `"fraunces"`; **Sabela (hotel) keeps Cormorant**.
+- `SiteFontLinks` loads Fraunces + Inter for the safari theme (Google Fonts, already
+  CSP-allowlisted). The bespoke `.sf*` CSS already fell back to Fraunces, so it just
+  upgrades to the real web font.
+- Threaded the role through the builder font enums + label: `SiteFont` union,
+  `SITE_FONTS` (schemas), `studio.ts` + `_sections.tsx` (`FONTS`/`FONT_SAMPLE`), and
+  the `font_fraunces` i18n label ("Fraunces (editorial lodge)").
+- **Operative change is a DB migration, not the code preset.** Live verification
+  found the theme's font is served from the `site_themes.base` JSON, not
+  `SITE_PRESETS`: `buildSiteVars` resolves `type.headingFont ?? theme.font ??
+  theme.base.font`, and `resolveThemeBase` returns the `site_themes` row (its
+  `base.font` was `"elegant"`). So the code preset change is only the fallback/
+  builder-default; the render still showed Cormorant. Added migration
+  **`20260720120000_safari_theme_fraunces_font.sql`** — `jsonb_set` flips
+  `site_themes.base->font` from `elegant` → `fraunces` for slug `safari` (Sabela
+  keeps `elegant`). tsc + eslint + prettier green.
+- ⚠️ **NOT LIVE-VERIFIED YET — blocked on applying the migration.** This
+  environment has no `supabase link` and the branch lacks the cloud's billing
+  migrations, so `db push` was NOT run from here (would risk migration-history
+  divergence on the shared DB). **OPS-TODO (founder):** `supabase db push --linked`
+  to apply the migration, then preview `?theme=safari` on mana and confirm the
+  headings render in Fraunces (not Cormorant). Only then is Phase C's typeface
+  split verified. Existing applied sites (e.g. mana's live theme) keep the old
+  copied font until the Safari theme is re-picked in Brand Studio.
+
+---
+
 ## 2026-07-20 — Theme differentiation Phase B: Safari fully forked (Home + Rooms + Room-detail), built from scratch — Phase B COMPLETE (`d651e36`).
 
 Safari (NenGama Lodge) no longer clones the OceansView `.ov*` components. It gets

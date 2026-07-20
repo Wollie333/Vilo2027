@@ -266,8 +266,41 @@ own component while unforked pages still fall back to the shared OceansView set.
 ### PHASE C — separate Safari from Sabela (founder-flagged "feel the same")
 
 > **▶▶ RESUME HERE (next session), 2026-07-20.** Phase A (motion) + Phase B (Safari
-> AND Royal fully forked) are DONE + live-verified. The ONLY remaining differentiation
-> work is Phase C below. Read this whole plan top-to-bottom first, then this section.
+> AND Royal fully forked) are DONE + live-verified. Phase C is IN PROGRESS — the code +
+> migration for the biggest move (Safari's own typeface) are done (commits `f3a145a` +
+> the `20260720120000` migration) BUT the migration is **NOT applied yet**, so Fraunces
+> is **NOT live-verified**. FIRST STEP next session: apply the migration + verify (see
+> the ⚠️ below). Read the whole plan first.
+>
+> **PHASE C PROGRESS (2026-07-20) — Safari given its OWN display typeface (Fraunces).**
+> The side-by-side live audit found the root cause of "feel the same": Safari (`safari`)
+> and Sabela (`hotel`) BOTH used the `elegant` font role → identical Cormorant Garamond
+> serif headings, plus similar warm gold/ochre accents. Fix = a new `fraunces` font role
+> (Fraunces — warm editorial soft-serif + Inter body): code preset + FONT_STACKS +
+> SiteFontLinks (loads Fraunces+Inter) + builder font enums (SITE_FONTS, studio.ts,
+> _sections.tsx) + `font_fraunces` i18n label (commit `f3a145a`); Sabela keeps Cormorant.
+>
+> ⚠️ **KEY FINDING — the font is served from the DB, not the code preset.**
+> `buildSiteVars` resolves the font as `type.headingFont ?? theme.font ??
+> theme.base.font`, and `resolveThemeBase(slug)` returns the **`site_themes` catalog
+> row** (`base` JSON), whose `base.font` was `"elegant"`. So `SITE_PRESETS.safari.font`
+> is only the FALLBACK — the live render kept showing Cormorant after the code change.
+> The operative fix is migration **`supabase/migrations/20260720120000_safari_theme_fraunces_font.sql`**
+> (`jsonb_set` flips `site_themes.base->font` → `fraunces` for slug `safari`).
+> **This environment has no `supabase link` + the branch lacks the cloud's newer billing
+> migrations, so `db push` was NOT run here (would risk migration-history divergence).**
+>
+> **▶ FIRST STEP next session (OPS-TODO, founder): `supabase db push --linked`** to apply
+> the migration, then preview `?theme=safari` on mana and confirm the headings compute to
+> Fraunces (not Cormorant) — DOM check: `getComputedStyle(h1).fontFamily` starts with
+> "Fraunces", and a `Fraunces` googleapis `<link>` is in `<head>`. Only THEN is the
+> typeface split verified. (Existing applied sites like mana's LIVE theme keep the old
+> copied font until Safari is re-picked in Brand Studio — pre-MVP, acceptable.)
+>
+> **REMAINING for C after that (optional, verify first): imagery grade (a subtle daylight/
+> warmth lift on Safari vs Sabela's moodier grade, CSS filter only) + any type-scale/rhythm
+> nudges IF the audit still reads them as too close. Likely minor — light/dark palette +
+> different layouts + different typefaces should separate them cleanly.**
 
 Both are warm-earth lodges with serif display. Push them apart: Safari → lighter, sun /
 bush / daylight, airier; Sabela → keep the dark filmic editorial. Different motion
