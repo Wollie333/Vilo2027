@@ -176,7 +176,9 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 interface RequestFormProps {
   mode: "create" | "edit";
-  userId: string;
+  // null = the PUBLIC post-first funnel (no session): drafts stay local-only and
+  // submit goes through the passwordless /api/looking-for/publish endpoint.
+  userId: string | null;
   postId?: string;
   initial: RequestEditValues;
   serverDraft: LoadedDraft | null;
@@ -192,7 +194,14 @@ export function RequestForm({
   requirementGroups,
 }: RequestFormProps) {
   const router = useRouter();
+  const publicMode = userId === null;
+  const backHref = publicMode ? "/looking-for" : "/portal/looking-for";
   const [savePending, startSave] = useTransition();
+  // Public-funnel contact + POPIA consent (only collected when publicMode).
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const [section, setSection] = useState<SectionKey>("basics");
   const sectionIdx = SECTIONS.findIndex((s) => s.key === section);
 
@@ -335,11 +344,12 @@ export function RequestForm({
   );
 
   const draft = useAutosaveDraft({
-    userId,
+    userId: userId ?? "anon",
     target: draftTarget,
     value: draftValue,
     onRestore: applyDraft,
-    serverDraft,
+    serverDraft: publicMode ? null : serverDraft,
+    localOnly: publicMode,
   });
 
   function touch() {
@@ -599,12 +609,64 @@ export function RequestForm({
       setSection("photo");
       return;
     }
+    // Public funnel: contact + POPIA consent are required to post.
+    if (publicMode) {
+      if (contactName.trim().length < 2) {
+        toast.error("Add your name so hosts know who's asking.");
+        setSection("review");
+        return;
+      }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail.trim())) {
+        toast.error("Enter a valid email so we can send you quotes.");
+        setSection("review");
+        return;
+      }
+      if (!consent) {
+        toast.error("Please accept the terms to post your request.");
+        setSection("review");
+        return;
+      }
+    }
     startSave(async () => {
       const payload = buildPayload();
       try {
+        // ── PUBLIC funnel: passwordless submit via the API route. On success it
+        // returns a magic-link redirect that signs the new lead in and lands
+        // them on their request — use a full navigation so the session cookie is
+        // picked up.
+        if (publicMode) {
+          const resp = await fetch("/api/looking-for/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...payload,
+              name: contactName.trim(),
+              email: contactEmail.trim(),
+              consent,
+              hp: honeypot,
+            }),
+          });
+          const json = (await resp.json()) as {
+            ok: boolean;
+            error?: string;
+            data?: { redirectTo?: string };
+          };
+          if (!json.ok) {
+            toast.error(json.error ?? "Couldn't post your request.");
+            return;
+          }
+          draft.clearSaved();
+          setDirty(false);
+          window.location.assign(json.data?.redirectTo || "/looking-for");
+          return;
+        }
+
         const res =
           mode === "create"
-            ? await createRequestAction({ ...payload, guest_id: userId })
+            ? await createRequestAction({
+                ...payload,
+                guest_id: userId as string,
+              })
             : await updateRequestAction(postId as string, payload);
         if (!res?.success) {
           toast.error(res?.error ?? "Something went wrong.");
@@ -647,7 +709,7 @@ export function RequestForm({
         </div>
         <div className="min-w-0">
           <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
-            <Link href="/portal/looking-for" className="hover:text-brand-ink">
+            <Link href={backHref} className="hover:text-brand-ink">
               Looking For
             </Link>
             <ChevronRight className="h-3 w-3" />
@@ -682,7 +744,7 @@ export function RequestForm({
             )}
           </span>
           <Link
-            href="/portal/looking-for"
+            href={backHref}
             className="inline-flex items-center rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
           >
             Cancel
@@ -1203,7 +1265,12 @@ export function RequestForm({
                     Max 5MB.
                   </p>
                 </div>
-                {imageUrl ? (
+                {publicMode ? (
+                  <p className="rounded-card border border-dashed border-brand-line bg-brand-light/50 px-4 py-4 text-[13px] text-brand-mute">
+                    You can add a photo once you&apos;ve posted and signed in —
+                    it only takes a few seconds.
+                  </p>
+                ) : imageUrl ? (
                   <div className="relative w-full max-w-sm overflow-hidden rounded-card border border-brand-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1427,6 +1494,95 @@ export function RequestForm({
                   last
                 />
               </div>
+
+              {/* Public funnel: capture contact + POPIA consent to mint the free
+                  account and land the guest on their request. */}
+              {publicMode ? (
+                <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                  <div className="border-b border-brand-line px-5 py-4">
+                    <div className="font-display text-[15px] font-bold text-brand-ink">
+                      Where should hosts send your quotes?
+                    </div>
+                    <div className="text-[12px] text-brand-mute">
+                      We&apos;ll set up your free Wielo account and email you a
+                      magic link — no password needed.
+                    </div>
+                  </div>
+                  <div className="space-y-4 p-5">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="lf_name">Your name</Label>
+                        <Input
+                          id="lf_name"
+                          value={contactName}
+                          onChange={(e) => {
+                            setContactName(e.target.value);
+                            touch();
+                          }}
+                          placeholder="e.g. Thandi Mahlangu"
+                          autoComplete="name"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="lf_email">Email</Label>
+                        <Input
+                          id="lf_email"
+                          type="email"
+                          value={contactEmail}
+                          onChange={(e) => {
+                            setContactEmail(e.target.value);
+                            touch();
+                          }}
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                        />
+                      </div>
+                    </div>
+                    <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-brand-mute">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => {
+                          setConsent(e.target.checked);
+                          touch();
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary accent-brand-primary"
+                      />
+                      <span>
+                        I agree to Wielo&apos;s{" "}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-secondary underline"
+                        >
+                          Terms
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-secondary underline"
+                        >
+                          Privacy Policy
+                        </a>
+                        , and consent to hosts contacting me about this request.
+                      </span>
+                    </label>
+                    {/* Honeypot — hidden from real users, catches bots. */}
+                    <input
+                      type="text"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      aria-hidden="true"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
                 <div className="min-w-0">

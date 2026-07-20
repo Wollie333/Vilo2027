@@ -5,6 +5,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { guestCan } from "@/lib/guests/permissions";
 import { MAX_ACTIVE_LOOKING_FOR_POSTS } from "@/lib/looking-for/limits";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import {
+  insertLookingForPost,
+  type LookingForPostInput,
+} from "@/lib/looking-for/insertPost";
 import { notifyMatchingAlerts } from "@/lib/looking-for/matchAlerts";
 import { replacePostRequirements } from "@/lib/looking-for/writeRequirements";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
@@ -13,34 +17,11 @@ import { revalidatePath } from "next/cache";
 const REQUEST_IMAGE_BUCKET = "looking-for-images";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-type CreateRequestInput = {
+// The authed portal action's input = the shared post payload + the verified
+// guest id. Field list lives on LookingForPostInput (shared with the public
+// funnel writer) so the two never drift.
+type CreateRequestInput = LookingForPostInput & {
   guest_id: string;
-  title: string;
-  description?: string;
-  category: string;
-  check_in_date?: string;
-  check_out_date?: string;
-  date_flexibility_days?: number;
-  adults: number;
-  children: number;
-  infants: number;
-  child_ages?: number[];
-  pets?: number;
-  location_text?: string;
-  location_region?: string;
-  location_lat?: number;
-  location_lng?: number;
-  search_radius_km?: number;
-  destination_flexible?: boolean;
-  budget_min?: number;
-  budget_max?: number;
-  budget_per?: string;
-  is_urgent: boolean;
-  is_public: boolean;
-  quote_deadline?: string;
-  min_host_rating?: number;
-  image_url?: string | null;
-  requirement_keys?: string[];
 };
 
 /**
@@ -132,105 +113,18 @@ export async function createRequestAction(input: CreateRequestInput) {
     };
   }
 
-  // Set expiry (30 days by default)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30);
-
-  // Create the post
-  const { data: post, error } = await supabase
-    .from("looking_for_posts")
-    .insert({
-      guest_id: input.guest_id,
-      title: input.title,
-      description: input.description
-        ? sanitiseListingHtml(input.description)
-        : null,
-      category: input.category,
-      check_in_date: input.check_in_date || null,
-      check_out_date: input.check_out_date || null,
-      date_flexibility_days: input.date_flexibility_days ?? 0,
-      adults: input.adults,
-      children: input.children,
-      infants: input.infants,
-      child_ages:
-        input.child_ages && input.child_ages.length > 0
-          ? input.child_ages
-          : null,
-      pets: input.pets ?? null,
-      location_text: input.location_text || null,
-      location_region: input.location_region || null,
-      location_lat: input.location_lat ?? null,
-      location_lng: input.location_lng ?? null,
-      search_radius_km: input.search_radius_km ?? null,
-      destination_flexible: input.destination_flexible ?? false,
-      budget_min: input.budget_min || null,
-      budget_max: input.budget_max || null,
-      budget_currency: "ZAR",
-      budget_per: input.budget_per || null,
-      is_urgent: input.is_urgent,
-      is_public: input.is_public,
-      status: "active",
-      expires_at: expiresAt.toISOString(),
-      quote_deadline: input.quote_deadline || null,
-      min_host_rating: input.min_host_rating || null,
-      image_url: input.image_url || null,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    // The DB cap trigger raises this on a race past the count check above.
-    if (error.message?.includes("looking_for_post_cap_reached")) {
-      return {
-        success: false,
-        error: `You can have up to ${MAX_ACTIVE_LOOKING_FOR_POSTS} active requests at a time. Close or fulfil one to post another.`,
-      };
-    }
-    console.error("Failed to create request:", error);
-    return { success: false, error: error.message };
+  // Insert + activity log + requirements + real-time host alerting (the shared
+  // writer, also used by the public post-first funnel). Runs with the admin
+  // client; guest_id is the verified session user set server-side above.
+  const result = await insertLookingForPost(
+    createAdminClient(),
+    user.id,
+    input,
+  );
+  if (result.id === null) {
+    return { success: false, error: result.error };
   }
-
-  // Record the action log row. This deliberately does NOT swallow its error: the
-  // predecessor did (`console.error` + "continue anyway"), which is exactly why a
-  // hard 42P01 on every single post went unnoticed for a day and left
-  // `looking_for_usage` silently empty. A logging failure here is a real bug —
-  // surface it rather than let the platform lie about what it recorded.
-  const { error: recErr } = await supabase.rpc("record_guest_post", {
-    p_user_id: user.id,
-    p_post_id: post.id,
-  });
-  if (recErr) {
-    await createAdminClient()
-      .from("looking_for_posts")
-      .delete()
-      .eq("id", post.id);
-    return {
-      success: false,
-      error: "Could not post your request. Please try again.",
-    };
-  }
-
-  // Save the admin-managed requirement selections (Property type, Facilities…).
-  await replacePostRequirements(post.id, input.requirement_keys ?? []);
-
-  // Real-time: notify hosts whose active saved-search alert matches this request.
-  await notifyMatchingAlerts({
-    id: post.id,
-    title: input.title,
-    category: input.category,
-    location_region: input.location_region ?? null,
-    location_text: input.location_text ?? null,
-    adults: input.adults,
-    children: input.children,
-    infants: input.infants,
-    budget_min: input.budget_min ?? null,
-    budget_max: input.budget_max ?? null,
-    check_in_date: input.check_in_date ?? null,
-    is_public: input.is_public,
-    location_lat: input.location_lat ?? null,
-    location_lng: input.location_lng ?? null,
-    search_radius_km: input.search_radius_km ?? null,
-  });
+  const post = { id: result.id };
 
   revalidatePath("/portal/looking-for");
   return { success: true, data: { id: post.id } };

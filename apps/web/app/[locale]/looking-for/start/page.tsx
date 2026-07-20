@@ -273,14 +273,11 @@ export default async function LookingForStartPage() {
   // Real posts first, examples fill the remaining slots (up to 3 total).
   const showcasePosts = [...livePosts, ...EXAMPLE_POSTS].slice(0, 3);
 
-  // Signed-in guests go straight to the form; everyone else signs up first and
-  // lands right back on it (?next survives the guest signup).
-  const postHref = user
-    ? "/portal/looking-for/new"
-    : "/signup/guest?next=/portal/looking-for/new";
-  const ctaLabel = user
-    ? "Post your free request"
-    : "Sign up & post — it's free";
+  // Post-first funnel (WS-2a): signed-in guests go straight to the portal form;
+  // everyone else uses the PUBLIC wizard — no signup wall. The submit mints a
+  // passwordless account at the end, so they reach the form in one click.
+  const postHref = user ? "/portal/looking-for/new" : "/looking-for/post";
+  const ctaLabel = "Post your free request";
 
   return (
     <div className="bg-brand-light text-brand-ink">

@@ -41,6 +41,13 @@ export type UseAutosaveDraftArgs<T> = {
   enabled?: boolean;
   /** Durable draft loaded server-side and passed in for reconciliation. */
   serverDraft?: LoadedDraft | null;
+  /**
+   * localStorage-ONLY mode (default false). For anonymous editors with no
+   * session (the public post-first funnel): the durable `form_drafts` store is
+   * user-scoped, so skip every server call (save / beacon / unmount flush /
+   * discard) and keep the draft purely on this device.
+   */
+  localOnly?: boolean;
 };
 
 export type AutosaveStatus = "idle" | "saving" | "saved";
@@ -86,6 +93,7 @@ export function useAutosaveDraft<T>({
   onRestore,
   enabled = true,
   serverDraft = null,
+  localOnly = false,
 }: UseAutosaveDraftArgs<T>): UseAutosaveDraftResult {
   const key = useMemo(() => localKey(userId, target), [userId, target]);
   const serial = useMemo(() => JSON.stringify(value ?? null), [value]);
@@ -140,6 +148,12 @@ export function useAutosaveDraft<T>({
   const serverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flushServer = useCallback(() => {
+    // Anonymous editor → localStorage only; the mount effect already persisted
+    // it locally, so just mark saved and skip the user-scoped durable store.
+    if (localOnly) {
+      setStatus("saved");
+      return;
+    }
     // A timer scheduled just before a Save can fire after it — never resurrect a
     // draft that now equals the saved baseline.
     if (
@@ -151,7 +165,7 @@ export function useAutosaveDraft<T>({
     void saveFormDraftAction(targetRef.current, valueRef.current).then(() =>
       setStatus("saved"),
     );
-  }, []);
+  }, [localOnly]);
 
   const clearTimers = useCallback(() => {
     if (localTimer.current) clearTimeout(localTimer.current);
@@ -210,7 +224,9 @@ export function useAutosaveDraft<T>({
       } catch {
         /* ignore */
       }
-      // Best-effort durable flush that survives the page going away.
+      // Best-effort durable flush that survives the page going away. Skipped for
+      // an anonymous editor — the durable store is user-scoped (local is enough).
+      if (localOnly) return;
       try {
         const blob = new Blob(
           [
@@ -235,7 +251,7 @@ export function useAutosaveDraft<T>({
       window.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", persistNow);
     };
-  }, [enabled, key]);
+  }, [enabled, key, localOnly]);
 
   // ---- Final flush on unmount (client-side route change fires no pagehide) ----
   useEffect(() => {
@@ -253,9 +269,10 @@ export function useAutosaveDraft<T>({
       } catch {
         /* ignore */
       }
-      void saveFormDraftAction(targetRef.current, valueRef.current);
+      if (!localOnly)
+        void saveFormDraftAction(targetRef.current, valueRef.current);
     };
-  }, [key]);
+  }, [key, localOnly]);
 
   // ---- Controls ----
   const restore = useCallback(() => {
@@ -271,8 +288,8 @@ export function useAutosaveDraft<T>({
     } catch {
       /* ignore */
     }
-    void discardFormDraftAction(targetRef.current);
-  }, [key]);
+    if (!localOnly) void discardFormDraftAction(targetRef.current);
+  }, [key, localOnly]);
 
   const discard = useCallback(() => {
     // Rebaseline to the current form so it isn't re-detected as a draft.
