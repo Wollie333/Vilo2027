@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-20 — Wizard→website Phase 1: real host content (no demo copy) on wizard-seeded + bespoke themes (`3c2acfc`).
+
+**WIZARD_TO_WEBSITE_PLAN Phase 1 — a completed wizard now yields the host's REAL content on every
+theme instead of falling through to the theme's DEMO copy.** The wizard only asks the short "Your
+story" step, so most content slots are empty for a new host; those empty slots were rendering the
+theme's placeholder copy.
+
+- **New shared `lib/website/deriveContent.ts`** — one SSOT for the account-sourced fallbacks:
+  - `buildDerivedContent(supabase, {businessId})` computes host name/photo (owning `hosts` row →
+    account `user_profiles` fallback), the primary property's description + first photo, and a small
+    **policies FAQ** (cancellation label + check-in/out window + house rules).
+  - `mergeDerivedProfile(profile, derived)` folds those into a `ContentProfile`'s **empty** canonical
+    slots (a filled slot always wins), using the SAME slots `SLOT_BINDINGS` binds.
+  - `resolveEffectiveProfile(...)` is the render-path resolver, short-circuiting the DB reads when
+    nothing is missing.
+- **Seed path** (`createWebsiteWithWizardAction`): pass `derived` into `seedWebsiteContent` so the
+  hydrated PageDoc that **generic** themes render is populated (closes plan gaps #2, #3 — the
+  previously-empty Contact FAQ + missing account fallbacks).
+- **Render path** (`SitePageView`): all 26 bespoke `content_profile` reads now resolve through the
+  effective profile, so **bespoke** themes (safari/royal/oceansview/marmalade/hotel/sabela) — which
+  read the profile directly and bypass the seeded PageDoc — get the same real-content fallbacks
+  instead of demo copy (closes the divergent-paths gap #5 for the derived slots).
+- **Publish guard** (`publishWebsiteAction`): `isEmptySections()` skips copying an EMPTY draft over a
+  page's `published_sections`, so a blank draft can never blank a live page (closes gap #6).
+- Unit test for the pure merge (`deriveContent.test.ts`, 6 cases). tsc + lint + vitest green.
+
 ## 2026-07-20 — Safari "field-journal" differentiation + nearby-experience cards + booking-bar mobile fix + wizard→website plan (`4707189`).
 
 **1. Safari re-differentiated (founder: Safari + Sabela read as the same theme).** Kept Safari a bush

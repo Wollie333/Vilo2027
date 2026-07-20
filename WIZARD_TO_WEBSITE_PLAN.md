@@ -76,7 +76,7 @@ Mapped 2026-07-20 (flow map from an Explore pass; file refs in `apps/web/`):
 
 ## 🎯 THE PLAN — phased, fastest logical order
 
-### PHASE 1 — Wizard produces a FULLY-POPULATED site (content flow) ← **START HERE**
+### PHASE 1 — Wizard produces a FULLY-POPULATED site (content flow) ← **✅ CODE DONE (`3c2acfc`), live-verify pending**
 The highest-leverage work: make a completed wizard yield the host's REAL content on the chosen theme,
 with zero demo copy. Contained + high-impact.
 
@@ -202,5 +202,29 @@ Keep `CHANGELOG.md` + `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` current each phase;
 - **Mobile:** booking availability bar now stacks to 1 column ≤520px (was cramped 2-col). Commit
   `33493ea`. Verified at 375px (1 col, no overflow). Broader per-theme mobile QA = Phase 5.
 - HEAD `4707189`. All commits tsc+lint clean.
+
+## 🗒️ DONE — Phase 1 (2026-07-20, HEAD `3c2acfc`)
+- **Wizard-seeded + bespoke themes now render the host's REAL content, no demo copy.** New shared
+  `apps/web/lib/website/deriveContent.ts` is the SSOT for account-derived fallbacks:
+  `buildDerivedContent({businessId})` (host name/photo via `hosts`→`user_profiles`; primary property
+  description + first photo; a policies FAQ from cancellation label + check-in/out + house rules),
+  `mergeDerivedProfile(profile, derived)` (fills only EMPTY canonical slots — filled slots win), and
+  `resolveEffectiveProfile(...)` (render resolver, short-circuits when nothing's missing).
+- **Seed** (`createWebsiteWithWizardAction`): now passes `derived` into `seedWebsiteContent` → generic
+  themes' hydrated PageDoc is populated (gaps #2, #3 closed).
+- **Render** (`SitePageView`): all **26** bespoke `content_profile` reads route through
+  `resolveEffectiveProfile` → bespoke themes get the same fallbacks (gap #5 closed for derived slots).
+- **Publish guard** (`publishWebsiteAction`): `isEmptySections()` won't copy an empty draft over a
+  live page (gap #6 closed).
+- **Decision on gap #4 (`home.intro.body`/Welcome):** the wizard does NOT collect Welcome (StepStory
+  collects hero headline/sub, about.story, hostBio.body, experiences). So there's no "host filled both
+  and lost Welcome" case in the wizard. The `story = about.story ?? home.intro.body ?? propertyDescription`
+  fallback chain now surfaces it. A dedicated Welcome BLOCK on bespoke homes = a Phase-5 design call, not
+  Phase-1. No wizard field dropped.
+- tsc + lint + vitest (`deriveContent.test.ts`, 6 cases) green. **⏳ Live-verify** on the `3c2acfc`
+  deploy (branch alias) via authenticated Claude-in-Chrome: pick a bespoke theme, confirm host
+  name/photo/story/hero/FAQ show the real business data (no theme demo strings). NB derived fallbacks
+  need the business to actually HAVE a property description / photo / policy — an empty account still
+  shows demo copy by design.
 
 **This file is COMMITTED. Update + commit it before ending any session.**
