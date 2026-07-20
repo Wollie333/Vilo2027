@@ -2946,6 +2946,9 @@ CASE
 | `image_url` | text | yes | — |
 | `date_flexibility_days` | integer | — | `0` |
 | `search_radius_km` | numeric | yes | — |
+| `child_ages` | integer[] | yes | — |
+| `pets` | integer | yes | — |
+| `destination_flexible` | boolean | — | `false` |
 
 **Foreign keys:**
 - `FOREIGN KEY (fulfilled_booking_id) REFERENCES bookings(id)`
@@ -2962,6 +2965,7 @@ CASE
 - `CHECK ((fulfilled_via = ANY (ARRAY['vilo_booking'::text, 'ota'::text, 'direct'::text, 'other'::text])))`
 - `CHECK ((infants >= 0))`
 - `CHECK (((min_host_rating IS NULL) OR ((min_host_rating >= 1.0) AND (min_host_rating <= 5.0))))`
+- `CHECK (((pets IS NULL) OR (pets >= 0)))`
 - `CHECK ((status = ANY (ARRAY['active'::text, 'fulfilled'::text, 'expired'::text, 'removed'::text, 'quotes_closed'::text, 'cancelled'::text, 'flagged'::text, 'suspended'::text])))`
 - `CHECK ((char_length(title) <= 100))`
 - `CHECK (((total_headcount IS NULL) OR (total_headcount >= 1)))`

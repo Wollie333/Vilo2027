@@ -1,4 +1,12 @@
-import { Banknote, Calendar, MapPin, Search, Users, Zap } from "lucide-react";
+import {
+  Banknote,
+  Calendar,
+  MapPin,
+  PawPrint,
+  Search,
+  Users,
+  Zap,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { formatMoney } from "@/lib/format";
@@ -37,6 +45,10 @@ export type RequestInfoCardProps = {
   adults?: number | null;
   childrenCount?: number | null;
   infants?: number | null;
+  /** Ages of the children, if the guest supplied them. */
+  childAges?: number[] | null;
+  /** Number of pets travelling, if any. */
+  pets?: number | null;
   budgetMin?: number | null;
   budgetMax?: number | null;
   budgetPer?: string | null;
@@ -61,6 +73,8 @@ export function RequestInfoCard({
   adults,
   childrenCount,
   infants,
+  childAges,
+  pets,
   budgetMin,
   budgetMax,
   budgetPer,
@@ -70,6 +84,9 @@ export function RequestInfoCard({
   className,
 }: RequestInfoCardProps) {
   const guests = (adults ?? 0) + (childrenCount ?? 0) + (infants ?? 0);
+  const agesLabel =
+    childAges && childAges.length > 0 ? `ages ${childAges.join(", ")}` : null;
+  const petCount = pets ?? 0;
   const cur = budgetCurrency ?? "ZAR";
   const budget =
     budgetMin || budgetMax
@@ -152,6 +169,15 @@ export function RequestInfoCard({
               <span className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 shrink-0" />
                 {guests} guest{guests !== 1 ? "s" : ""}
+                {agesLabel ? (
+                  <span className="text-brand-mute/70">· {agesLabel}</span>
+                ) : null}
+              </span>
+            ) : null}
+            {petCount > 0 ? (
+              <span className="flex items-center gap-1.5">
+                <PawPrint className="h-3.5 w-3.5 shrink-0" />
+                {petCount} pet{petCount !== 1 ? "s" : ""}
               </span>
             ) : null}
             {budget ? (

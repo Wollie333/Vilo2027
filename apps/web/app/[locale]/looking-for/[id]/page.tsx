@@ -5,6 +5,7 @@ import {
   Calendar,
   Clock,
   MapPin,
+  PawPrint,
   Users,
   Banknote,
   Eye,
@@ -111,6 +112,8 @@ export default async function PublicPostDetailPage({ params }: Props) {
       adults,
       children,
       infants,
+      child_ages,
+      pets,
       location_text,
       location_region,
       search_radius_km,
@@ -157,6 +160,13 @@ export default async function PublicPostDetailPage({ params }: Props) {
     (post.children ?? 0) > 0 || (post.infants ?? 0) > 0
       ? `${post.adults} adult${post.adults !== 1 ? "s" : ""}${(post.children ?? 0) > 0 ? `, ${post.children} child${(post.children ?? 0) !== 1 ? "ren" : ""}` : ""}${(post.infants ?? 0) > 0 ? `, ${post.infants} infant${(post.infants ?? 0) !== 1 ? "s" : ""}` : ""}`
       : `${post.adults} guest${post.adults !== 1 ? "s" : ""}`;
+
+  const childAges = post.child_ages ?? [];
+  const guestSummaryWithAges =
+    childAges.length > 0
+      ? `${guestSummary} (ages ${childAges.join(", ")})`
+      : guestSummary;
+  const petCount = post.pets ?? 0;
 
   const budgetDisplay =
     post.budget_min || post.budget_max
@@ -303,9 +313,20 @@ export default async function PublicPostDetailPage({ params }: Props) {
                     Guests
                   </div>
                   <p className="text-sm font-medium text-brand-ink">
-                    {guestSummary}
+                    {guestSummaryWithAges}
                   </p>
                 </div>
+                {petCount > 0 ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs text-brand-mute">
+                      <PawPrint className="h-3.5 w-3.5" />
+                      Pets
+                    </div>
+                    <p className="text-sm font-medium text-brand-ink">
+                      {petCount} pet{petCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-xs text-brand-mute">
                     <Banknote className="h-3.5 w-3.5" />

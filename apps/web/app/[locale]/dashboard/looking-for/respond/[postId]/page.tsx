@@ -91,6 +91,8 @@ export default async function RespondToPostPage({ params }: Props) {
       adults,
       children,
       infants,
+      child_ages,
+      pets,
       location_text,
       location_region,
       search_radius_km,
@@ -260,6 +262,8 @@ export default async function RespondToPostPage({ params }: Props) {
         adults={post.adults}
         childrenCount={post.children}
         infants={post.infants}
+        childAges={post.child_ages}
+        pets={post.pets}
         budgetMin={post.budget_min}
         budgetMax={post.budget_max}
         budgetPer={post.budget_per}

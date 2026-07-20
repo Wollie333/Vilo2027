@@ -24,11 +24,14 @@ type CreateRequestInput = {
   adults: number;
   children: number;
   infants: number;
+  child_ages?: number[];
+  pets?: number;
   location_text?: string;
   location_region?: string;
   location_lat?: number;
   location_lng?: number;
   search_radius_km?: number;
+  destination_flexible?: boolean;
   budget_min?: number;
   budget_max?: number;
   budget_per?: string;
@@ -149,11 +152,17 @@ export async function createRequestAction(input: CreateRequestInput) {
       adults: input.adults,
       children: input.children,
       infants: input.infants,
+      child_ages:
+        input.child_ages && input.child_ages.length > 0
+          ? input.child_ages
+          : null,
+      pets: input.pets ?? null,
       location_text: input.location_text || null,
       location_region: input.location_region || null,
       location_lat: input.location_lat ?? null,
       location_lng: input.location_lng ?? null,
       search_radius_km: input.search_radius_km ?? null,
+      destination_flexible: input.destination_flexible ?? false,
       budget_min: input.budget_min || null,
       budget_max: input.budget_max || null,
       budget_currency: "ZAR",
@@ -274,11 +283,17 @@ export async function updateRequestAction(
       adults: input.adults,
       children: input.children,
       infants: input.infants,
+      child_ages:
+        input.child_ages && input.child_ages.length > 0
+          ? input.child_ages
+          : null,
+      pets: input.pets ?? null,
       location_text: input.location_text || null,
       location_region: input.location_region || null,
       location_lat: input.location_lat ?? null,
       location_lng: input.location_lng ?? null,
       search_radius_km: input.search_radius_km ?? null,
+      destination_flexible: input.destination_flexible ?? false,
       budget_min: input.budget_min || null,
       budget_max: input.budget_max || null,
       budget_per: input.budget_per || null,
@@ -579,8 +594,11 @@ export async function duplicateRequestAction(postId: string) {
     adults: original.adults,
     children: original.children,
     infants: original.infants,
+    child_ages: original.child_ages ?? undefined,
+    pets: original.pets ?? undefined,
     location_text: original.location_text,
     location_region: original.location_region,
+    destination_flexible: original.destination_flexible ?? false,
     budget_min: original.budget_min,
     budget_max: original.budget_max,
     budget_per: original.budget_per,

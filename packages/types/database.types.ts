@@ -5136,10 +5136,12 @@ export type Database = {
           category: string
           check_in_date: string | null
           check_out_date: string | null
+          child_ages: number[] | null
           children: number
           created_at: string
           date_flexibility_days: number
           description: string | null
+          destination_flexible: boolean
           event_type: string | null
           expires_at: string | null
           extension_count: number
@@ -5157,6 +5159,7 @@ export type Database = {
           location_region: string | null
           location_text: string | null
           min_host_rating: number | null
+          pets: number | null
           quote_count: number
           quote_deadline: string | null
           reopen_count: number
@@ -5179,10 +5182,12 @@ export type Database = {
           category?: string
           check_in_date?: string | null
           check_out_date?: string | null
+          child_ages?: number[] | null
           children?: number
           created_at?: string
           date_flexibility_days?: number
           description?: string | null
+          destination_flexible?: boolean
           event_type?: string | null
           expires_at?: string | null
           extension_count?: number
@@ -5200,6 +5205,7 @@ export type Database = {
           location_region?: string | null
           location_text?: string | null
           min_host_rating?: number | null
+          pets?: number | null
           quote_count?: number
           quote_deadline?: string | null
           reopen_count?: number
@@ -5222,10 +5228,12 @@ export type Database = {
           category?: string
           check_in_date?: string | null
           check_out_date?: string | null
+          child_ages?: number[] | null
           children?: number
           created_at?: string
           date_flexibility_days?: number
           description?: string | null
+          destination_flexible?: boolean
           event_type?: string | null
           expires_at?: string | null
           extension_count?: number
@@ -5243,6 +5251,7 @@ export type Database = {
           location_region?: string | null
           location_text?: string | null
           min_host_rating?: number | null
+          pets?: number | null
           quote_count?: number
           quote_deadline?: string | null
           reopen_count?: number

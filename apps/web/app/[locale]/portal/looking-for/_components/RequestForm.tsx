@@ -64,8 +64,11 @@ export type RequestEditValues = {
   adults: string;
   children: string;
   infants: string;
+  childAges: string[]; // one age (0–17) per child, index-aligned
+  pets: string; // number of pets, "" = none
   locationText: string;
   region: string;
+  destinationFlexible: boolean; // "I'm not sure where yet"
   locationLat: string; // "" = no pin
   locationLng: string;
   searchRadiusKm: string; // "" = no radius
@@ -90,8 +93,11 @@ export const BLANK_REQUEST: RequestEditValues = {
   adults: "2",
   children: "0",
   infants: "0",
+  childAges: [],
+  pets: "",
   locationText: "",
   region: "",
+  destinationFlexible: false,
   locationLat: "",
   locationLng: "",
   searchRadiusKm: "",
@@ -201,8 +207,13 @@ export function RequestForm({
   const [adults, setAdults] = useState(initial.adults);
   const [children, setChildren] = useState(initial.children);
   const [infants, setInfants] = useState(initial.infants);
+  const [childAges, setChildAges] = useState<string[]>(initial.childAges);
+  const [pets, setPets] = useState(initial.pets);
   const [locationText, setLocationText] = useState(initial.locationText);
   const [region, setRegion] = useState(initial.region);
+  const [destinationFlexible, setDestinationFlexible] = useState(
+    initial.destinationFlexible,
+  );
   const [locationLat, setLocationLat] = useState(initial.locationLat);
   const [locationLng, setLocationLng] = useState(initial.locationLng);
   const [searchRadiusKm, setSearchRadiusKm] = useState(initial.searchRadiusKm);
@@ -235,8 +246,11 @@ export function RequestForm({
       adults,
       children,
       infants,
+      childAges,
+      pets,
       locationText,
       region,
+      destinationFlexible,
       locationLat,
       locationLng,
       searchRadiusKm,
@@ -260,8 +274,11 @@ export function RequestForm({
       adults,
       children,
       infants,
+      childAges,
+      pets,
       locationText,
       region,
+      destinationFlexible,
       locationLat,
       locationLng,
       searchRadiusKm,
@@ -287,8 +304,11 @@ export function RequestForm({
     setAdults(p.adults);
     setChildren(p.children);
     setInfants(p.infants);
+    setChildAges(p.childAges ?? []);
+    setPets(p.pets ?? "");
     setLocationText(p.locationText);
     setRegion(p.region);
+    setDestinationFlexible(p.destinationFlexible ?? false);
     setLocationLat(p.locationLat ?? "");
     setLocationLng(p.locationLng ?? "");
     setSearchRadiusKm(p.searchRadiusKm ?? "");
@@ -339,7 +359,42 @@ export function RequestForm({
       : checkIn
         ? `From ${fmtShort(checkIn)}${flexSuffix}`
         : "Flexible dates";
-  const whereLabel = locationText || region || "Anywhere";
+  const whereLabel = destinationFlexible
+    ? "Flexible destination"
+    : locationText || region || "Anywhere";
+  const childCount = Number(children) || 0;
+
+  // Nights between the selected dates (0 when open-ended) — drives the live
+  // budget breakdown below. Both dates required for a concrete count.
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 0;
+    const from = new Date(`${checkIn}T00:00:00`);
+    const to = new Date(`${checkOut}T00:00:00`);
+    const diff = Math.round((to.getTime() - from.getTime()) / 86400000);
+    return diff > 0 ? diff : 0;
+  }, [checkIn, checkOut]);
+
+  // Client-side "≈ R X/night · R Y total" from the chosen budget + nights.
+  // Pure display — budget_min/budget_max/budget_per stay the stored truth.
+  const derivedBudget = useMemo(() => {
+    const amount = Number(budgetMax) || Number(budgetMin) || 0;
+    if (amount <= 0) return null;
+    const heads = guestCount || 1;
+    let perNight: number | null = null;
+    let total: number | null = null;
+    if (budgetPer === "night") {
+      perNight = amount;
+      total = nights > 0 ? amount * nights : null;
+    } else if (budgetPer === "total") {
+      total = amount;
+      perNight = nights > 0 ? amount / nights : null;
+    } else {
+      // per person → treat as a per-guest total for the whole stay
+      total = amount * heads;
+      perNight = nights > 0 ? total / nights : null;
+    }
+    return { perNight, total };
+  }, [budgetMax, budgetMin, budgetPer, nights, guestCount]);
   const requirementLabels = requirementGroups
     .flatMap((g) => g.options)
     .filter((o) => requirementKeys.includes(o.slug))
@@ -357,7 +412,10 @@ export function RequestForm({
       { label: "Title (5+ characters)", done: trimmedTitle.length >= 5 },
       { label: "Travel dates set", done: Boolean(checkIn && checkOut) },
       { label: "At least 1 adult", done: (Number(adults) || 0) >= 1 },
-      { label: "Location or region", done: Boolean(locationText || region) },
+      {
+        label: "Location or region",
+        done: destinationFlexible || Boolean(locationText || region),
+      },
       { label: "Budget set", done: Boolean(budgetMin || budgetMax) },
     ];
     const done = items.filter((i) => i.done).length;
@@ -377,6 +435,7 @@ export function RequestForm({
     adults,
     locationText,
     region,
+    destinationFlexible,
     budgetMin,
     budgetMax,
   ]);
@@ -388,7 +447,7 @@ export function RequestForm({
       case "dates":
         return (Number(adults) || 0) >= 1;
       case "location":
-        return Boolean(locationText || region);
+        return destinationFlexible || Boolean(locationText || region);
       case "requirements":
         return true; // optional
       case "photo":
@@ -477,6 +536,16 @@ export function RequestForm({
 
   function buildPayload() {
     const numOrUndef = (s: string) => (s.trim() === "" ? undefined : Number(s));
+    // Ages for the children currently counted; drop blanks so we never store 0
+    // for an un-answered slot.
+    const ages =
+      childCount > 0
+        ? childAges
+            .slice(0, childCount)
+            .map((a) => a.trim())
+            .filter((a) => a !== "")
+            .map(Number)
+        : [];
     return {
       title: trimmedTitle,
       description: description.trim() || undefined,
@@ -487,8 +556,11 @@ export function RequestForm({
       adults: Number(adults) || 1,
       children: Number(children) || 0,
       infants: Number(infants) || 0,
+      child_ages: ages.length > 0 ? ages : undefined,
+      pets: numOrUndef(pets),
       location_text: locationText.trim() || undefined,
       location_region: region || undefined,
+      destination_flexible: destinationFlexible,
       location_lat: numOrUndef(locationLat),
       location_lng: numOrUndef(locationLng),
       search_radius_km: numOrUndef(searchRadiusKm),
@@ -872,14 +944,80 @@ export function RequestForm({
                   }}
                 />
               </div>
+
+              {/* Ages for each child — helps hosts size beds and price. */}
+              {childCount > 0 ? (
+                <div className="space-y-2 border-t border-brand-line pt-4">
+                  <Label>Ages of children</Label>
+                  <div className="flex flex-wrap gap-3">
+                    {Array.from({ length: childCount }).map((_, i) => (
+                      <div key={i} className="w-20 space-y-1">
+                        <Label
+                          htmlFor={`child_age_${i}`}
+                          className="text-[11px] text-brand-mute"
+                        >
+                          Child {i + 1}
+                        </Label>
+                        <Input
+                          id={`child_age_${i}`}
+                          type="number"
+                          min={0}
+                          max={17}
+                          placeholder="Age"
+                          value={childAges[i] ?? ""}
+                          onChange={(e) => {
+                            const next = [...childAges];
+                            // Pad so index i is writable even on a sparse array.
+                            while (next.length < childCount) next.push("");
+                            next[i] = e.target.value;
+                            setChildAges(next);
+                            touch();
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="border-t border-brand-line pt-4 sm:max-w-xs">
+                <NumberField
+                  id="pets"
+                  label="Travelling with pets?"
+                  min={0}
+                  max={20}
+                  placeholder="Number of pets"
+                  value={pets}
+                  onChange={(v) => {
+                    setPets(v);
+                    touch();
+                  }}
+                />
+                <p className="mt-1.5 text-xs text-brand-mute">
+                  Let hosts know so they can confirm they&apos;re pet-friendly.
+                </p>
+              </div>
             </div>
           ) : null}
 
           {/* ----- LOCATION & BUDGET ----- */}
           {section === "location" ? (
             <div className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
+              {/* Not-sure-where toggle — relaxes the location requirement so the
+                  request can post without a pinned destination. */}
+              <ToggleRow
+                icon={<MapPin className="h-4 w-4" />}
+                title="I'm not sure where yet"
+                desc="Open to suggestions — hosts anywhere can quote you"
+                checked={destinationFlexible}
+                onChange={(v) => {
+                  setDestinationFlexible(v);
+                  touch();
+                }}
+              />
+
               {/* Map pin + search — drop a pin where you want to be. */}
-              <div className="space-y-2">
+              <div className="space-y-2 border-t border-brand-line pt-4">
                 <Label>Where do you want to be?</Label>
                 <LocationPicker
                   latitude={locationLat ? Number(locationLat) : null}
@@ -972,47 +1110,67 @@ export function RequestForm({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 border-t border-brand-line pt-4">
-                <NumberField
-                  id="budget_min"
-                  label="Budget min (R)"
-                  min={0}
-                  placeholder="0"
-                  value={budgetMin}
-                  onChange={(v) => {
-                    setBudgetMin(v);
+              <div className="space-y-4 border-t border-brand-line pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label>Budget range</Label>
+                  <span className="text-[13px] font-semibold text-brand-ink">
+                    {budgetLabel}
+                  </span>
+                </div>
+                <BudgetRangeSlider
+                  min={budgetMin}
+                  max={budgetMax}
+                  onChange={(lo, hi) => {
+                    setBudgetMin(lo);
+                    setBudgetMax(hi);
                     touch();
                   }}
                 />
-                <NumberField
-                  id="budget_max"
-                  label="Budget max (R)"
-                  min={0}
-                  placeholder="No limit"
-                  value={budgetMax}
-                  onChange={(v) => {
-                    setBudgetMax(v);
-                    touch();
-                  }}
-                />
-                <div className="space-y-2">
-                  <Label>Per</Label>
-                  <Select
-                    value={budgetPer}
-                    onValueChange={(v) => {
-                      setBudgetPer(v as RequestEditValues["budgetPer"]);
-                      touch();
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="night">Per night</SelectItem>
-                      <SelectItem value="total">Total</SelectItem>
-                      <SelectItem value="person">Per person</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+                  <div className="space-y-2 sm:max-w-[12rem]">
+                    <Label>Per</Label>
+                    <Select
+                      value={budgetPer}
+                      onValueChange={(v) => {
+                        setBudgetPer(v as RequestEditValues["budgetPer"]);
+                        touch();
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="night">Per night</SelectItem>
+                        <SelectItem value="total">Total</SelectItem>
+                        <SelectItem value="person">Per person</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {derivedBudget ? (
+                    <p className="text-[13px] text-brand-mute">
+                      ≈{" "}
+                      {derivedBudget.perNight != null ? (
+                        <span className="font-semibold text-brand-ink">
+                          {rZar(derivedBudget.perNight)}/night
+                        </span>
+                      ) : null}
+                      {derivedBudget.perNight != null &&
+                      derivedBudget.total != null
+                        ? " · "
+                        : ""}
+                      {derivedBudget.total != null ? (
+                        <span className="font-semibold text-brand-ink">
+                          {rZar(derivedBudget.total)} total
+                        </span>
+                      ) : null}
+                      {nights > 0 ? (
+                        <span className="text-brand-mute">
+                          {" "}
+                          over {nights} night{nights === 1 ? "" : "s"}
+                        </span>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1346,6 +1504,79 @@ function flexLabel(days: number): string {
   if (days === 7) return "± 1 week";
   if (days === 14) return "± 2 weeks";
   return `± ${days} day${days === 1 ? "" : "s"}`;
+}
+
+// Whole-rand display for the live budget breakdown (no cents in the wizard).
+function rZar(n: number): string {
+  return `R${Math.round(n).toLocaleString("en-ZA")}`;
+}
+
+const BUDGET_SLIDER_MAX = 50000;
+const BUDGET_SLIDER_STEP = 250;
+
+// Dual-thumb budget range (no slider primitive in components/ui yet — two
+// overlaid range inputs, the standard pattern). Empty max === "no limit".
+function BudgetRangeSlider({
+  min,
+  max,
+  onChange,
+}: {
+  min: string;
+  max: string;
+  onChange: (lo: string, hi: string) => void;
+}) {
+  const lo = Math.min(Math.max(Number(min) || 0, 0), BUDGET_SLIDER_MAX);
+  const hi =
+    max.trim() === ""
+      ? BUDGET_SLIDER_MAX
+      : Math.min(Math.max(Number(max) || 0, 0), BUDGET_SLIDER_MAX);
+  const loPct = (lo / BUDGET_SLIDER_MAX) * 100;
+  const hiPct = (hi / BUDGET_SLIDER_MAX) * 100;
+  const thumb =
+    "pointer-events-none absolute inset-x-0 top-1/2 h-0 w-full -translate-y-1/2 appearance-none bg-transparent focus:outline-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-primary [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-primary [&::-moz-range-thumb]:bg-white";
+  return (
+    <div>
+      <div className="relative h-6">
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-light" />
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary"
+          style={{ left: `${loPct}%`, right: `${100 - hiPct}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={BUDGET_SLIDER_MAX}
+          step={BUDGET_SLIDER_STEP}
+          value={lo}
+          onChange={(e) => {
+            const v = Math.min(Number(e.target.value), hi);
+            onChange(v <= 0 ? "" : String(v), max);
+          }}
+          className={thumb}
+          aria-label="Budget minimum"
+        />
+        <input
+          type="range"
+          min={0}
+          max={BUDGET_SLIDER_MAX}
+          step={BUDGET_SLIDER_STEP}
+          value={hi}
+          onChange={(e) => {
+            const v = Math.max(Number(e.target.value), lo);
+            onChange(min, v >= BUDGET_SLIDER_MAX ? "" : String(v));
+          }}
+          className={thumb}
+          aria-label="Budget maximum"
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[12px] text-brand-mute">
+        <span>{rZar(lo)}</span>
+        <span>
+          {max.trim() === "" ? `${rZar(BUDGET_SLIDER_MAX)}+` : rZar(hi)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function NumberField({
