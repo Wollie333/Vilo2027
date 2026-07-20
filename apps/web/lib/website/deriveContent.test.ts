@@ -12,17 +12,17 @@ const DERIVED: DerivedContent = {
 };
 
 describe("mergeDerivedProfile", () => {
-  it("fills every empty derivable slot from the account fallback", () => {
+  it("fills the safe derivable slots from the account fallback", () => {
     const out = mergeDerivedProfile({}, DERIVED);
     expect(out.home?.hero?.imagePath).toBe("https://cdn.example/hero.jpg");
-    expect(out.home?.intro?.body).toBe(
-      "A restored beach house steps from the sand.",
-    );
-    expect(out.about?.story).toBe(
-      "A restored beach house steps from the sand.",
-    );
     expect(out.about?.hostBio?.photoPath).toBe("https://cdn.example/host.jpg");
     expect(out.contact?.faq).toEqual(DERIVED.policiesFaq);
+  });
+
+  it("does NOT derive story/intro (long text would break bespoke heading slots)", () => {
+    const out = mergeDerivedProfile({}, DERIVED);
+    expect(out.home?.intro?.body).toBeUndefined();
+    expect(out.about?.story).toBeUndefined();
   });
 
   it("never overwrites a slot the host already filled", () => {
@@ -45,15 +45,13 @@ describe("mergeDerivedProfile", () => {
     expect(out.contact?.faq).toEqual([{ q: "Own Q", a: "Own A" }]);
   });
 
-  it("treats blank strings and empty arrays as empty (fills them)", () => {
+  it("treats an empty array as empty (fills faq)", () => {
     const profile: ContentProfile = {
-      about: { story: "   " },
+      about: { hostBio: { photoPath: "" } },
       contact: { faq: [] },
     };
     const out = mergeDerivedProfile(profile, DERIVED);
-    expect(out.about?.story).toBe(
-      "A restored beach house steps from the sand.",
-    );
+    expect(out.about?.hostBio?.photoPath).toBe("https://cdn.example/host.jpg");
     expect(out.contact?.faq).toEqual(DERIVED.policiesFaq);
   });
 

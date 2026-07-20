@@ -150,11 +150,19 @@ const isBlank = (v: unknown): boolean =>
 
 /**
  * Merge account-derived fallbacks into a Content Profile's EMPTY canonical slots,
- * returning a new effective profile (the input is never mutated). This is what
- * lets bespoke themes — which read the profile directly — show the host's real
- * data instead of demo copy, using the SAME slots the generic-theme hydration
- * binds (see SLOT_BINDINGS in contentProfile.schema.ts). Only slots that map to
- * a derived value are touched; a filled slot always wins.
+ * returning a new effective profile (the input is never mutated). This lets
+ * bespoke themes — which read the profile directly — show the host's real data
+ * instead of demo copy.
+ *
+ * IMPORTANT — only the "safe" slots are derived here: hero image, host photo, and
+ * contact FAQ. The long-form `propertyDescription` is deliberately NOT merged into
+ * `about.story` / `home.intro.body`, because several bespoke themes render the
+ * `story` slot as a large DISPLAY HEADING (a short one-line editorial statement,
+ * e.g. Safari's "Wake to the wild…"). Dropping a full multi-sentence property
+ * description into that slot blows up into a giant heading that breaks the layout.
+ * Those slots keep the theme's short curated fallback here; the SEED path still
+ * derives them for GENERIC themes, which render them as body copy where length is
+ * fine (see SLOT_BINDINGS + hydrateProfile). A filled slot always wins.
  */
 export function mergeDerivedProfile(
   profile: ContentProfile,
@@ -168,15 +176,6 @@ export function mergeDerivedProfile(
       hero: { ...p.home?.hero, imagePath: derived.heroPhotoPath },
     };
   }
-  if (isBlank(p.home?.intro?.body) && derived.propertyDescription) {
-    p.home = {
-      ...p.home,
-      intro: { ...p.home?.intro, body: derived.propertyDescription },
-    };
-  }
-  if (isBlank(p.about?.story) && derived.propertyDescription) {
-    p.about = { ...p.about, story: derived.propertyDescription };
-  }
   if (isBlank(p.about?.hostBio?.photoPath) && derived.hostPhotoPath) {
     p.about = {
       ...p.about,
@@ -189,13 +188,12 @@ export function mergeDerivedProfile(
   return p;
 }
 
-/** True when every profile slot that a derived value can fill is already set —
- *  so the render path can skip the derive DB reads entirely. */
+/** True when every profile slot that the render-path merge can fill is already
+ *  set — so the render path can skip the derive DB reads entirely. Mirrors the
+ *  slots `mergeDerivedProfile` actually touches (NOT story/intro — see there). */
 function allDerivableSlotsFilled(p: ContentProfile): boolean {
   return (
     !isBlank(p.home?.hero?.imagePath) &&
-    !isBlank(p.home?.intro?.body) &&
-    !isBlank(p.about?.story) &&
     !isBlank(p.about?.hostBio?.photoPath) &&
     !isBlank(p.contact?.faq)
   );
