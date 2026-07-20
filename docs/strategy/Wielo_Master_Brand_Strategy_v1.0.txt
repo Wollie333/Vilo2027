@@ -1,0 +1,585 @@
+WIELO
+Master Brand Strategy
+Version 1.0  ·  July 2025  ·  Confidential
+South Africa&apos;s direct booking platform for accommodation owners
+Zero commission. Your guests. Your revenue. One subscription.
+Your guests. Your revenue. Your business.
+PART A  —  BRAND FOUNDATION  ·  Purpose · Vision · Mission · Values · Brand Facts
+PART B  —  BRAND SUBSTANCE  ·  Archetype · ICP Archetypes · Interaction · Traits · Beliefs · Promise · Manifesto
+PART C  —  MARKET CONTEXT  ·  The Opportunity · Timing · Tailwinds · Risks · TAM/SAM/SOM
+PART D  —  THE THREE PROBLEMS  ·  Commission · Guest Access · Fragmentation — each data-backed
+PART E  —  IDEAL CUSTOMER PROFILES  ·  Elsa · Pieter · Thandi — psychology, pain, buying triggers
+PART F  —  MARKET POSITIONING  ·  Statement · Differentiation · Category Design · Competitive Map
+PART G  —  BRAND MESSAGING  ·  Strapline · Voice · Pillars · Homepage · Hooks · Objections · Emails · Ads
+PART H  —  GO-TO-MARKET STRATEGY  ·  Acquisition · Flywheel · Channels · Pricing · 36-Month Target
+PART I  —  PRODUCT PRIORITIES  ·  Build sequence from research and competitor gaps
+PART J  —  OPEN QUESTIONS  ·  Decisions needed before launch
+This document synthesises five source documents into one authoritative guide.
+Brand Substance v2.0  ·  Brand Positioning v1.0  ·  Brand Messaging v1.0  ·  Integrated Strategy v3.0  ·  Market Research v2.2 (40 sources)
+  PART A
+  Brand Foundation
+  The unchanging core — who Wielo is and why it exists
+Brand Name
+Wielo
+Domain
+wielo.co.za
+Strapline
+Your guests. Your revenue. Your business.
+Category
+SA Direct Booking Management (category Wielo is defining)
+Market
+South Africa (primary) · Pan-Africa (expansion)
+Origin
+Evolved from Villlo / Vilo · Built in Limpopo by people who understand SA hospitality
+Name meaning
+Polish prefix: multi-, many, multiple — many properties, bookings, guests, one platform
+Revenue model
+Pure subscription. Zero per-booking fees. Ever.
+Logo
+Circular emerald W mark · white-to-mint gradient · forest green circle
+Typography
+Plus Jakarta Sans (headings) · Inter (body) · JetBrains Mono (numbers)
+Primary colours
+#10B981 Emerald · #064E3B Forest · #D1FAE5 Accent Mint · #F0FDF4 Light Fill
+Purpose — Why Wielo Exists
+To give accommodation owners full control over their revenue, their guests, and their business — by replacing expensive OTA dependency with one simple, powerful platform they actually own.
+Vision — Where We Are Going
+A future where every accommodation owner in Southern Africa runs a profitable, independent business — knowing every guest by name, keeping every rand they earn, and never paying a commission to a platform that doesn&apos;t care about them.
+Mission — What We Do Every Day
+We build the simplest, most complete accommodation management platform in South Africa — one subscription that gives every host a professional website, a booking system, and full access to their guests, with zero commission on every booking they take.
+Brand Values
+Ownership — Your guests are yours. Your revenue is yours. Your data is yours. We build tools that put control back in your hands.
+Simplicity — If it takes more than 10 minutes to set up, it is not ready to ship. We build for the guesthouse owner in the Lowveld, not for a tech team in Cape Town.
+Transparency — One price. No commission. No hidden fees. No surprises on your bank statement at the end of the month.
+Empowerment — We treat hosts as intelligent business owners who deserve proper tools — not as listings on someone else&apos;s platform.
+Community — The Wielo directory is curated, not open. Every host on it has earned their place. Quality over volume, always.
+  PART B
+  Brand Substance
+  The soul of the brand — archetype, character, beliefs, promise, manifesto
+This section defines who Wielo is at its deepest level. The strategy adapts. The market changes. This does not.
+Brand Archetype — The Mark & Pearson Model
+  PRIMARY ARCHETYPE  —  MASTERY QUADRANT
+  The Outlaw
+  Core desire: to overturn what is not working.  Core fear: powerlessness, complicity with a broken system.
+  SECONDARY ARCHETYPE  —  BELONGING QUADRANT
+  The Everyman  — makes Wielo warm, SA-local, accessible
+The Outlaw gives Wielo its mission and its anger. The Everyman gives it warmth and accessibility. Together: principled but approachable. Righteous but never preachy. Bold but never arrogant.
+Why The Outlaw:  The named enemy (OTA commission). The freedom frame ("your guests"). The founding story (insider who saw exploitation and fixed it). The values (Ownership, Transparency, Empowerment). The competitive frame ("we exist to make that behaviour unnecessary."). All Outlaw.
+ICP Archetypes
+Elsa (Tier 1) The Caregiver
+Core desire: to protect and nurture. She built a guesthouse because she loves looking after people. Needs safety from Wielo, not rebellion. Liberation framed as safety: "you deserve to own your guest relationships."
+Pieter (Tier 2) The Ruler + Hero
+Core desire: to create order and control his domain. The OTA commission is a tax on his kingdom. Needs sovereignty and premium quality. Liberation framed as sovereignty: "stop letting agents take a third of your kingdom."
+Thandi (Tier 3) The Sage + Creator
+Core desire: to find truth through analysis and build something of enduring value. Already knows the problem. Needs evidence-based leverage. Liberation framed as proof: "here is the data that proves it works."
+Critical rule:  Wielo does not change its archetype per ICP. What changes is how liberation is framed — as safety for Elsa, sovereignty for Pieter, evidence for Thandi. Same brand. Three emotional registers.
+Brand Character — Eight Traits
+Principled
+Clear point of view. Will not compromise for growth or convenience.
+Warm
+Genuinely cares. Friend warm, not customer-service warm. Uses first names.
+Direct
+One idea per sentence. No filler. No qualifiers. If it doesn&apos;t add meaning, it doesn&apos;t exist.
+Grounded
+Comes from this market. Talks in rand. Knows what a double-booking on Friday afternoon feels like.
+Confident
+Knows what it has built is good. Does not undersell. Does not hedge.
+Practical
+Solves real problems. Every feature must: save Elsa time or put money in Pieter&apos;s pocket.
+Honest
+Tells the truth even when uncomfortable. Does not sell features not yet built.
+Understated
+Confident enough not to shout. Lets R108,000 do the talking.
+What Wielo Is NOT:
+NOT Disruptive
+We are not disrupting anything. We are fixing something broken.
+NOT Corporate
+We do not talk like a press release. We talk like a smart SA colleague.
+NOT Evangelical
+We do not preach about OTAs. We offer a better option.
+NOT Aggressive
+We are building something, not tearing something down.
+NOT Apologetic
+We know what we have built is good.
+NOT Exclusive
+The directory is curated. The brand is not. Wielo is for every host who built something real.
+Brand Beliefs — Seven Convictions
+1.  Every rand you earn from direct bookings belongs entirely to you.
+Not 85%. Not 82%. All of it. This is why Wielo is subscription-only, never per-booking.
+2.  Your guests are yours — not the platform&apos;s.
+OTAs mask guest data. Airbnb&apos;s Off-Platform Policy (May 2025) prohibits hosts from sharing their own website URL before booking confirmation. We believe this is wrong.
+3.  Professional tools should not require a developer.
+The assumption that hosts need a tech team to have a professional online presence is false. Wielo disproves it in 10 minutes.
+4.  South Africa deserves software built for South Africa.
+Rand. Paystack. SA channels. Local support. The global players did not solve this. We did.
+5.  Simplicity is a form of respect.
+A complicated product does not trust the person using it. Simplicity is not dumbing down — it is eliminating the unnecessary.
+6.  A curated directory is worth more than a large one.
+Quality over volume, always.
+7.  The direct booking shift in SA is already happening — and it is irreversible.
+SA ranked in the top two direct booking markets globally in 2025 (SiteMinder, 125M reservations). We are the infrastructure for a shift that is underway.
+Brand Promise
+  Wielo gives every South African accommodation owner a professional direct booking presence and full access to their guests — without commissions, without complexity, and without compromise.
+Brand Manifesto
+  THE WIELO MANIFESTO
+You built something real.
+You renovated the rooms yourself. You planted the garden. You learned what every repeat guest takes in their coffee. You answered the 11pm call from a guest who could not find the key safe. You made the beds, balanced the books, and carried the whole thing on your back — because you love what you built.
+Then Booking.com sent you the invoice.
+15%. On every booking. On the property you built. On the guests you charmed. On the beds you made. On the garden you planted. On the phone call you answered at 11pm.
+They did not help you build it. They do not know your guests&apos; names. They masked the email address so you could not contact your own customers directly. They told you what your own rate should be. They took their cut before you saw a single rand.
+And the worst part? They gave you no choice.
+We are Wielo. And we are done with that system.
+We built a platform where every booking you take is 100% yours. Where every guest who books with you gives you their name, their number, and their history — because they are your guest, not a platform&apos;s data point. Where your website goes live in 10 minutes, looks like it cost R30,000, and you can update it yourself on your phone on a Sunday morning.
+One subscription. Zero commission. Your website, your directory listing, and your full booking system — all connected, all yours.
+We built this in South Africa, for South Africa. Because the global players were not coming to solve this for a guesthouse in the Lowveld or a lodge outside Hoedspruit. So we did.
+Your guests. Your revenue. Your business.
+Welcome to Wielo.
+Elevator Pitches
+For hosts (30 seconds)
+Wielo is a South African booking platform for accommodation owners. For one monthly subscription, you get your own professional website, a listing on our curated directory, and a full booking management system — with zero commission on every booking you take. Every guest who books through you gives you their name, their number, and their history. Your guests. Your revenue. Nothing taken.
+For investors (45 seconds)
+SA small accommodation operators pay R648 million to R2 billion in OTA commissions annually. No SA-built platform bundles a booking engine, a property website, and a curated directory into one zero-commission subscription. We do. South Africa already ranks in the top two direct booking markets globally — the shift is underway. We are the infrastructure layer for that shift: built in SA, priced in rand, with Paystack, local channels, and local support. One subscription. Every property. Zero commission.
+  PART C
+  Market Context
+  The opportunity, the timing, the tailwinds, and the risks
+All figures sourced from Stats SA P6410, Mordor Intelligence, IMARC Group, SiteMinder, and 35 other independent sources. Full citations in the Wielo Market Research v2.2 document.
+The Opportunity — What the Numbers Say
+R207B+
+SA hospitality market 2025
+6.05%
+Market CAGR to 2031
+R648M–R2B+
+Annual OTA commission paid by SA small properties
+8,000–12,000
+SA guesthouses & B&Bs Wielo&apos;s core market
+At an estimated R1,500/month subscription, Wielo costs a host less than 2% of what they pay Booking.com annually. The ROI case: fewer than two additional direct bookings per month covers the full Wielo subscription cost.
+The Timing — Why Now
+#1 or #2
+Direct bookings&apos; SA channel rank 2025 (SiteMinder 125M reservations)
+62%
+Revenue premium: direct vs OTA booking (SiteMinder)
+18.2%
+Direct booking cancellation rate vs ~50% for OTAs
+12.05%
+CAGR of direct digital channel in SA to 2031
+The most strategically important data point in the research: South Africa already ranks in the top two direct booking markets globally. The demand exists. Wielo is not creating a new behaviour — it is giving hosts the right tool to act on what they already know.
+“Direct bookings again finished in the top three in 90% of markets and earned a top two position in Ireland, Portugal, South Africa and Spain.”  — SiteMinder Hotel Booking Trends 2025 — 125M reservations, 20 countries
+Four Macro Tailwinds
+International arrivals rebounding
+8.92M arrivals to SA in 2024. UK +15%, Germany +14% in 2025. European alternatives to Southeast Asia driving SA demand.
+Direct booking SaaS fastest-growing hospitality tech
+Global market at USD 3.8B growing at 18.2% CAGR to USD 17.2B by 2034. Sub-Saharan Africa specifically identified as underpenetrated.
+OTA rate parity clauses crumbling
+EU Digital Markets Act ended rate parity requirements. Regulatory pressure accelerating globally. Direct pricing advantage is becoming legally possible everywhere.
+SA tourism infrastructure investment
+Remote Work Visa (Oct 2024), G20 host (Nov 2025), R2.1B Club Med investment (July 2026). The guest pool is growing in quality and volume.
+The Two Risks That Must Be Managed
+RISK 1:  NightsBridge loyalty is deeper than any competitor analysis conveys. 10,000+ SA clients. Hosts call it their "lifeline." Do not attack it directly — demonstrate what it cannot give: a website, a directory, and full guest access.
+RISK 2:  63.4% of independent property bookings globally still go through OTAs in 2025. Most SA hosts have never successfully run a direct booking strategy. If a host signs up and gets no direct bookings within 30 days, they will leave. Onboarding is as important as the product.
+Market Sizing — TAM / SAM / SOM
+TAM — Total Addressable Market
+R55–60B in annual SA tourist accommodation revenue. R6–10B+ annually lost to OTA commissions. This is the revenue pool Wielo exists to recapture.
+SAM — Serviceable Addressable Market
+8,000–12,000 SA small properties. R77M–R216M in annual subscription revenue at full penetration.
+SOM — 36-Month Target
+Year 1: 250–500 properties · R2.4M–R4.8M ARR Year 2: 1,000–2,000 properties · R12M–R24M ARR Year 3: 3,000–5,000 properties · R43M–R72M ARR
+Unit economics
+Wielo costs a host <2% of their annual OTA commission. Fewer than two extra direct bookings per month = break-even. Every booking after that is pure margin recovered.
+  PART D
+  The Three Problems Wielo Solves
+  The core product logic — each backed by market data
+Every product decision, every marketing message, and every sales conversation maps to one of these three problems.
+  PROBLEM 1
+  Expensive success fees are eating your revenue.
+  WIELO SOLUTION →  0% success fees. Pure subscription. Keep every rand.
+OTAs charge 10–25% commission on every booking. On R60,000/month in bookings, that is R6,000–R15,000 gone before a single expense is paid. A guesthouse paying 15% Booking.com commission on R60,000/month loses R108,000/year — to a company that has never met their guests.
+R108,000/year
+Lost to Booking.com at 15% on a typical R60k/month property
+15–25%
+Booking.com commission range
+15.5%
+Airbnb host-only commission (late 2025)
+15–18%
+LekkeSlaap commission rate
+  PROBLEM 2
+  You are running a business without knowing your customers.
+  WIELO SOLUTION →  Full access to every guest — details, history, and direct messaging.
+When a guest books through Booking.com or Airbnb, the host receives their first name and arrival date. The OTA keeps the email, the phone number, the booking history, and the relationship. Airbnb&apos;s Off-Platform Policy (May 2025) now actively prohibits hosts from sharing their own website URL before a booking is confirmed.
+“Airbnb now prohibits hosts from sharing contact information or linking to external websites before a booking is confirmed.”  — CTHA Cape Town Hospitality Analysis, May 2026
+Wielo answer:  Every guest who books through Wielo gives the host their full name, email, phone number, and booking history. The guest list becomes the host&apos;s most valuable business asset.
+  PROBLEM 3
+  A website, a directory, and a booking system are three separate expenses.
+  WIELO SOLUTION →  One subscription. Website + directory + booking management. Bundled.
+Most SA hosts use a Facebook page as their "website," a Booking.com listing for discovery, and a manual calendar on their phone. The average SA web designer charges R8,000–R35,000+ to build a website the host cannot manage themselves. Then they still need a separate booking engine and directory.
+Wielo answer:  One subscription bundles a professional property website (live in 10 minutes), a Wielo directory listing (zero commission), and a full booking management system. All connected. All in one place.
+What you pay Booking.com in one month  >  What you pay Wielo in one year. That is the single most powerful truth in the Wielo arsenal. Lead with it everywhere.
+  PART E
+  Ideal Customer Profiles
+  Three tiers — psychology, pain, buying triggers, and the message that lands
+Full deep-dive ICP profiles including demographics, psychographics, day-in-the-life, and objection tables are in the Wielo ICP Deep Dive v1 document. This section contains the strategic essentials.
+  TIER 1  —  ELSA  The Independent Guesthouse & B&B Owner  ·  Primary Target
+52-year-old guesthouse owner in the Lowveld. 8 rooms. 11 years of hard-earned hospitality knowledge. Facebook page as her "website." Pays R9,000/month to Booking.com and it makes her sick. Does not trust complicated software. Buys from peer recommendations, not ads.
+Archetype
+The Caregiver. Built a guesthouse because she loves looking after people. Needs safety from Wielo, not rebellion.
+Commission pain
+R4,000–R20,000/month. Annual loss: R81,000–R172,800.
+Guest access pain
+Gets a name and arrival date. Cannot contact repeat guests. The OTA owns them.
+Tools pain
+Facebook page + Booking.com extranet + manual calendar on her phone. Three broken things.
+Decision speed
+4–8 weeks. Slow. Needs social proof from someone she knows.
+Buying trigger
+Peer in a Facebook group shares real commission savings. Annual calculation. Web designer quote of R15,000+.
+What moves her
+The exact rand amount she pays Booking.com per month. Make her calculate it herself.
+What never to say
+"Channel manager," "API," "SaaS," "CRM." Speak to her like a smart businessperson.
+Lead with:  "What you paid Booking.com last month." One number. Then show her peer proof from a real SA guesthouse. Then: "Live in 10 minutes. No designer. No developer."
+  TIER 2  —  PIETER  The Safari Lodge Operator  ·  Secondary Target
+46-year-old bush lodge operator outside Hoedspruit. 10 chalets. 4.8 stars on TripAdvisor. 61% occupancy. His lodge is extraordinary; his website is a 2019 contact form. Paying 25–35% agent commission on bookings that cost R45,000 each.
+Archetype
+The Ruler (with Hero aspiration). Built a domain. Commission is a tax on his kingdom. Needs sovereignty and premium quality.
+Commission pain
+A 5-night stay at R4,500/night = R45,000. 25% agent commission = R11,250 per booking.
+Guest access pain
+Agents own the guest. He has no database of loyal repeat visitors.
+Tools pain
+Excel + email + EFT deposits via WhatsApp + a 2019 contact form. Fragile and embarrassing.
+Decision speed
+2–6 weeks. More analytical. Compares options carefully.
+Buying trigger
+Calculates R11,250 per booking in agent commission. Instagram follower asks "how do I book?" and there is no good answer.
+What moves him
+Premium lodge-appropriate templates. The per-booking commission maths at lodge rates.
+What never to do
+Call it a "hotel booking system." Show guesthouse templates. Anything that makes his lodge look ordinary.
+Lead with:  R4,500/night × 5 nights × 25% = R11,250 to an agent. One direct booking pays for Wielo for the year.
+  TIER 3  —  THANDI  The Multi-Property Manager  ·  Tertiary Target (highest leverage)
+39-year-old property manager. 6 properties across Joburg and Pretoria. Not intimidated by software — frustrated by software not built for her workflow. Logs into 4 platforms, 6 accounts, 2 email inboxes just to see what is happening today.
+Archetype
+The Sage (with Creator ambition). Already knows the problem. Needs evidence and leverage, not education.
+Commission pain
+6 properties × R50,000/month × 15% = R45,000/month leaving her clients&apos; accounts.
+Consolidation pain
+No unified guest database. No consolidated view. Manual owner reports: 6–10 hours/month.
+Tools pain
+4 platforms, 6 logins, no single source of truth.
+Decision speed
+6–14 weeks. Pilots first. Validates data before committing.
+Buying trigger
+7th property approaches and she cannot take it on with current systems. Or a full day of owner reports breaks her.
+What moves her
+The multi-property dashboard. Automated owner reports. Time saved at scale.
+The flywheel
+Win Thandi and she brings 6 properties on day one and refers 3 more property managers within a year.
+Lead with:  Hours saved per month at portfolio scale. "If Wielo saves 15 hours/month, that is capacity for 2 more properties without hiring."
+ICP Comparison at a Glance
+Tier 1 — Elsa
+Tier 2 — Pieter
+Tier 3 — Thandi
+Priority
+Primary
+Secondary
+Tertiary
+Decision speed
+4–8 weeks
+2–6 weeks
+6–14 weeks
+Key hook
+Commission saved in rand
+Per-booking agent cost
+Hours saved at scale
+Proof needed
+Peer testimonials
+Lodge case study
+Live demo + trial
+Referral power
+High (Facebook groups)
+Medium
+Highest — brings 6+ properties
+LTV
+Medium
+High
+Very High
+  PART F
+  Market Positioning
+  Where Wielo sits, what it owns, and how it wins
+Positioning Statement — Locked
+For South African accommodation owners who are tired of paying success fees, losing access to their own guests, and paying separately for a website, a directory, and a booking system — Wielo is the all-in-one direct booking platform that bundles all three into one subscription, charges zero commission on every booking, and gives you full access to every guest you have ever hosted. Unlike NightsBridge (no website, no directory), Booking.com/LekkeSlaap (15–18% commission, masked data), or Lodgify (USD, no SA channels) — Wielo is the only platform built specifically for South African accommodation owners, priced in rand, with local payment integration, local support, and zero commission.
+Differentiation Statement — Locked
+  Only Wielo gives South African accommodation owners a professional direct booking website, a curated directory listing, and a full booking management system — in one subscription, with zero commission on every booking and full access to every guest — built in South Africa, priced in rand, and backed by local support.
+Category Design — SA Direct Booking Management
+Wielo is not competing within existing categories. It is defining a new one: SA Direct Booking Management — the first platform to bundle booking management, a property website, and a curated directory into one zero-commission subscription for SA accommodation owners. No competitor currently occupies this position.
+Category name
+SA Direct Booking Management
+What it replaces
+A PMS (NightsBridge) + a directory (LekkeSlaap) + a web agency — three separate costs, logins, and relationships
+Category enemy
+OTA commission dependency — not Booking.com the company, but the behaviour of accepting commission extraction as the cost of doing business
+Category promise
+Every SA accommodation owner can have a professional direct booking presence, full guest ownership, and zero commission — in one subscription
+Phase 1
+Own SA guesthouses/B&Bs. Build the category.
+Phase 2
+Expand into safari lodges + multi-property managers. The category deepens.
+Phase 3
+Pan-Africa: Kenya, Namibia, Botswana. The SA category king becomes the African category king.
+The Competitive Map
+Competitor
+Booking Mgmt
+Directory
+Website
+0% Fee
+SA-Built
+NightsBridge
+✓
+✗
+✗
+✓
+✓
+RoomRaccoon
+✓
+✗
+✗
+✗
+✗
+Little Hotelier
+✓
+✗
+Add-on
++1% fee
+✗
+Booking.com
+✗
+✓
+✗
+✗
+✗
+Airbnb
+✗
+✓
+✗
+✗
+✗
+LekkeSlaap
+✗
+✓
+✗
+✗
+✓
+SA-Venues
+✗
+✓
+✗
+Ref fee
+✓
+Lodgify
+✓
+✗
+✓
+✓
+✗
+Web Agency
+✗
+✗
+✓
+N/A
+Varies
+WIELO
+✓
+✓
+✓
+✓
+✓
+Wielo is the only row where every column is green. That is the competitive moat in one visual.
+The Three Strategic Plays
+vs. Booking Management (NightsBridge, Little Hotelier):  "NightsBridge is a booking button. You still need a website to put it on and LekkeSlaap to be found. That is three separate costs and three separate logins. Wielo is one."
+vs. Directories & OTAs (Booking.com, LekkeSlaap):  "Keep your Booking.com listing for discovery. Use Wielo for everything after that first click — and pay zero commission on every direct booking."
+vs. Website Builders (Lodgify, agencies):  "Your web agency quoted R18,000 and a 6-week build time. Wielo goes live in 10 minutes. Professional. Bookable. Yours."
+Perceptual Map — White Space Wielo Owns
+Two axes: SA-Specific Fit (X) vs Completeness of Offering (Y). Wielo occupies the top-right quadrant alone. NightsBridge = high SA fit, low completeness. Lodgify = low SA fit, medium completeness. All others miss at least one axis. No competitor is in Wielo&apos;s quadrant.
+  PART G
+  Brand Messaging
+  The words Wielo uses — strapline, voice, pillars, copy, scripts
+The Locked Strapline
+Your guests. Your revenue. Your business.
+The triple "your" is the Outlaw ownership frame compressed into six words. Warm enough for Elsa. Sovereign enough for Pieter. Efficient enough for Thandi. Goes under the logo on every surface. Never replaced by a campaign line.
+The Core Message
+Stop paying commission. Start owning your bookings.
+Brand Voice — Five Traits
+Direct
+One idea per sentence. No filler. No "kind of" or "a bit."
+Warm
+Friend warm, not customer-service warm. First names. Cares.
+Grounded
+Comes from this market. Talks in rand. Knows what a double-booking on Friday afternoon feels like.
+Confident
+Knows what it has built is good. Does not undersell. Does not hedge.
+Honest
+Does not oversell. Does not sell features not yet built. Trust compounds.
+USE
+success fee, commission, direct booking, your guests, your revenue, 0% commission, host, property owner, one subscription, full access, live in 10 minutes, built in South Africa
+NEVER USE
+disrupt, game-changer, seamless, revolutionary, SaaS, CRM, API, PMS, channel manager (jargon framing), users, empowering, cutting-edge, innovative
+The Three Message Pillars
+  PILLAR 1  —  ZERO COMMISSION
+Headline:  "0% success fees. Ever."
+Body:  One flat monthly subscription. No percentage of your bookings leaves your account. Whether you take 5 bookings or 50, your Wielo subscription costs exactly the same.
+Proof:  SA guesthouses lose R3,000–R15,000/month in OTA commission. Wielo subscription: less than one booking&apos;s commission. (SiteMinder 125M reservation study)
+  PILLAR 2  —  FULL GUEST ACCESS
+Headline:  "Your guests. Your data. Your relationship."
+Body:  Every guest who books through Wielo gives you their full name, email, phone number, and booking history. Build the repeat-guest business OTAs make impossible.
+Proof:  Booking.com gives you a first name. Airbnb now prohibits sharing website URL before booking confirmation (May 2025). Wielo: name, email, phone, history, direct message.
+  PILLAR 3  —  EVERYTHING BUNDLED
+Headline:  "Website. Directory. Booking system. One subscription."
+Body:  Stop paying separately for a website you cannot manage, a directory that charges commission, and a booking system that does not talk to either. Wielo bundles all three.
+Proof:  Average SA web designer: R8,000–R35,000 + R500–R2,000/month. NightsBridge: button only, no website. LekkeSlaap: 15–18% commission. Wielo: all three, one price, zero commission.
+Homepage Copy — wielo.co.za
+H1 — Primary headline
+Your guests. Your revenue. Your business.
+H2 — Sub-headline
+Stop paying Booking.com commission. Get your own website, a directory listing, and a full booking system — one subscription, zero commission, full guest access.
+CTA button
+Start for free
+CTA support line
+No credit card. No developer. Live in 10 minutes.
+Commission calculator headline
+How much are you paying Booking.com?
+Three problems headline
+Three problems. One subscription.
+Social proof headline
+SA hosts who went direct.
+Pricing headline
+Simple pricing. Zero surprises.
+Pricing philosophy line
+One price per property per month. No booking fees. No commission. No percentage of anything. Ever.
+Closing CTA headline
+Ready to keep what you earn?
+The Commission Hook — Use Everywhere
+"A guesthouse doing R60,000/month through Booking.com pays R9,000 in commission. Every month. That is R108,000 a year — to a company that has never met your guests, never made your beds, and never answered your phone at 11pm.  Wielo: one subscription. Zero commission."
+The Five Objection Scripts
+"If I leave Booking.com I will lose bookings."
+You are not leaving Booking.com. You are adding a direct channel alongside it. Keep your listings for discovery. Wielo is for every guest who already knows you. Your first month goal: five direct bookings that would have cost you 15% commission. That alone pays for Wielo.
+"I am not good with technology."
+Wielo is built for you specifically — not for a tech team. Setup takes 10 minutes. If you can send a WhatsApp, you can use Wielo. Call our SA number and a real person picks up.
+"I cannot afford another subscription."
+You are not adding a cost. You are replacing one. You are currently paying R4,000–R15,000/month in OTA commission. Wielo costs a fraction of that. Try the free trial. The maths will show you.
+"How do I know this will actually work?"
+We will show you a real SA guesthouse owner, their real property, and the real rand amount they saved. If you want to speak to a current host before deciding, we can arrange that.
+"Guests still prefer booking through Booking.com."
+Some will, some will not — and both are fine. What changes: every guest who already knows you now books at zero commission. Direct booking guests also generate 62% more revenue and cancel 3× less. (SiteMinder, 125M reservations)
+Email Subject Lines — Key Bank
+Commission-focused
+How much did you pay Booking.com last month?  ·  R108,000. That is what the average SA guesthouse pays per year.  ·  What if that R9,000 stayed in your account?
+Direct booking-focused
+Your next guest could book for free. (For you, anyway.)  ·  Direct bookings pay 62% more. Here&apos;s why.
+Onboarding triggered
+Your Wielo account is live. Let&apos;s get your website up.  ·  [Guest name] just booked directly. Their number is [number].
+30-day nurture
+One month in. Here is what your direct bookings have saved you.
+Ad Copy Framework — Meta Ads
+Structure: Hook (3–5 words, stops the scroll) → Problem (1–2 sentences, personal and specific) → Solution (name Wielo, name the one feature) → Proof (one number or real host) → CTA (direct instruction, not "learn more").
+Tier 1 — Elsa (safety frame)
+HOOK: R108,000 a year. PROBLEM: That is what the average SA guesthouse pays Booking.com. On a property you built, guests you looked after personally. SOLUTION: Wielo gives you your own website, directory listing, and booking system — zero commission. PROOF: [Host name] saved R7,200 in two months. CTA: Calculate what you&apos;re paying →
+Tier 2 — Pieter (sovereignty frame)
+HOOK: R11,250. One booking. PROBLEM: A 5-night safari lodge stay = R45,000. Agent commission = R11,250 gone. SOLUTION: One Wielo subscription. One direct booking pays for the year. PROOF: [Lodge name] took first direct international booking within 90 days. CTA: See premium lodge templates →
+Tier 3 — Thandi (evidence frame)
+HOOK: 6 properties. 4 logins. 1 problem. PROBLEM: R45,000/month in OTA commission across portfolio. 90 minutes every morning just to see what&apos;s happening. SOLUTION: One dashboard. All properties. Automated owner reports. Zero commission. CTA: Book a portfolio demo →
+  PART H
+  Go-to-Market Strategy
+  Acquisition, flywheel, channels, pricing, and the 36-month target
+Wielo is not a directory trying to attract guests. It is a SaaS platform that sells to hosts. The directory fills as a consequence of hosts joining — not the other way around. Sell the platform. Always.
+The Growth Flywheel
+  Host activates Wielo website in 10 minutes  →  Shows it to a peer host  →  Peer signs up  →  Both on directory  →  Directory grows  →  More guests  →  More direct bookings  →  More loyalty  →  More referrals.
+This flywheel only starts spinning if the first product experience is genuinely impressive. A mediocre template breaks the chain. A beautiful, instantly live website starts it.
+Three Priority Acquisition Channels
+1. SA Facebook Groups (Highest conversion)
+SA guesthouse owner groups are where Tier 1 hosts (Elsa) make all technology decisions. They buy from peer recommendations, not ads. Seed 3–5 beta hosts with genuine results and encourage authentic posts. One real post from a real SA host outperforms R100,000 in Meta ad spend.
+2. The Commission Maths Post (Highest reach)
+A single piece of content showing the exact rand amount a typical SA guesthouse loses to Booking.com per year — followed by what Wielo costs — is the most shareable marketing asset. Run as a Facebook post, a calculator tool, and a Meta ad. The maths persuades on cold audiences.
+3. Tier 3 Property Managers (Highest value)
+One multi-property manager (Thandi) brings 5–10 properties on day one and refers others within her network. Find 10 Thandis in Year 1 and you have 50–100 properties without a single B2C campaign. Target property management companies with agency pricing.
+Supporting Channels
+•  Meta ads (Facebook/Instagram) — target SA accommodation owners, guesthouse groups, hospitality communities. Lead with commission maths. Budget: R100k initial test.
+•  FEDHASA partnership — member directory access, speaking slots, industry credibility.
+•  Google Ads — "booking system South Africa", "0% commission accommodation", "B&B website and booking."
+•  SEO content — "How to cut OTA commissions," "best B&B software South Africa."
+•  Referral programme — hosts earn by referring other hosts. Tier 3 (Thandi) is highest-leverage.
+Pricing Model
+Pure subscription. Zero per-booking fees. Ever. One price per property per month. Everything included.
+Wielo One — Single property
+Website + directory + booking management. Zero commission. Full guest access.
+Wielo Pro — Growing properties
+All Wielo One + advanced reporting, multi-room management, priority support.
+Wielo Agency — Portfolio managers
+Multi-property dashboard, consolidated reporting, automated owner reports, agency pricing. Built for Thandi.
+36-Month Revenue Target
+Year
+Target Properties
+Avg MRR/Property
+Monthly Revenue
+Annual Revenue
+Year 1
+250–500
+R800
+R200k–R400k
+R2.4M–R4.8M
+Year 2
+1,000–2,000
+R1,000
+R1M–R2M
+R12M–R24M
+Year 3
+3,000–5,000
+R1,200
+R3.6M–R6M
+R43M–R72M
+  PART I
+  Product Priorities
+  Build sequence informed by research and competitor gaps
+These priorities are derived from competitor gaps, verified host complaints across independent review platforms, and what drives word-of-mouth growth.
+  PRIORITY 1  BUILD NOW
+  The Property Website Must Be Genuinely Beautiful in Under 10 Minutes
+This is the word-of-mouth trigger. NightsBridge requires hosts to already have a website. Most Tier 1 hosts use Facebook. Wielo&apos;s website is the feature that visibly and immediately changes their professional standing.
+Research basis:  NightsBridge: no website builder. Lodgify: USD, no SA channels. Web agencies: R8k–R35k, 4–12 weeks.
+  PRIORITY 2  BUILD NOW
+  Guest Data as a Visible Celebrated Feature
+When a guest books, the host receives full contact details immediately and visibly — front and centre. Not buried in settings. Consider: "Maria Joubert just booked 3 nights. Her email is maria@gmail.com. She is yours." This is the emotional core of the Wielo value proposition made tangible.
+Research basis:  Booking.com masks data. Airbnb prohibits sharing contact details pre-booking (May 2025).
+  PRIORITY 3  BUILD NOW
+  Mobile-First Guest Booking Experience
+The most verified complaint about NightsBridge across Hotel Tech Report, Capterra, and GetApp: the booking engine is not mobile-optimised. One SA owner reported 90–95% of guests book on mobile. This is the clearest product gap to exploit.
+Research basis:  "The booking platform is not mobile-friendly for guests. This leads to lost bookings." — Verified SA property owner, Hotel Tech Report 2024
+  PRIORITY 4  BUILD NEXT
+  "First Direct Booking" Onboarding Flow
+63.4% of independent property bookings globally still go through OTAs. Most SA hosts have never run a direct booking strategy. If a host gets no direct booking in 30 days, they leave. Build obsessively toward one booking in the first 14 days.
+Research basis:  Churn risk is the primary risk in the research. Onboarding is as important as the product.
+  PRIORITY 5  DO NOT BUILD FIRST
+  Channel Manager
+The first Wielo customer is Elsa — using Facebook as her website with no booking system at all. The channel manager serves a later-stage customer. Build for Elsa first.
+Research basis:  NightsBridge already serves channel management for the multi-OTA host. Wielo&apos;s first customer does not have this problem yet.
+  PART J
+  Open Questions
+  Decisions that must be made before launch
+These questions do not have answers yet. They need decisions. This section exists so they are not forgotten.
+Subscription pricing per tier
+R/month for Wielo One, Pro, and Agency. The research suggests R800–R1,500/month for single property positions Wielo at <2% of annual commission cost — the highest-ROI price point.
+Payment gateways at launch
+Paystack confirmed. EFT? PayPal? SA hosts value local payment methods above international alternatives.
+Directory launch strategy
+Curated beta hosts vs. open to all subscribers from day one? Curated protects quality positioning; open accelerates directory size.
+Safari-specific templates
+When do lodge-appropriate templates come into the roadmap? Pieter (Tier 2) is a high-LTV customer but needs a product that matches his premium context.
+White-label for Agency tier
+Launch feature or post-MVP? A buying criterion for Thandi but adds development complexity.
+Referral programme mechanics
+What does a host earn per successful referral? Referral is the primary acquisition channel — the mechanics need to be compelling enough to trigger action.
+Channel manager on roadmap
+When does it become a priority? The research says not first — but it is necessary for Tier 1 hosts who are already on multiple OTAs to reduce dependency gradually.
+First 50 beta hosts
+Who are they? Where are they? Getting 50 hosts with real results before broader launch is the difference between a flywheel that spins and one that stalls.
+This is the Wielo Master Brand Strategy — Version 1.0.
+It synthesises five source documents into one authoritative guide.
+Brand Substance v2.0  ·  Brand Positioning v1.0  ·  Brand Messaging v1.0  ·  Integrated Strategy v3.0  ·  Market Research v2.2
+wielo.co.za  ·  Master Brand Strategy v1.0  ·  July 2025  ·  Confidential
