@@ -34,6 +34,12 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   count is low. Code-complete + green; not independently rendered (needs an unlock scenario).
 - **chore(mobile):** added a flat ESLint config (eslint 9 + eslint-config-expo) to the Expo
   app — an unrelated in-tree change, committed separately.
+- **Redesign — public request detail page** (`looking-for/[id]`): friendlier, more SEO-forward
+  layout from a founder mockup — dark gradient hero (breadcrumb, category/urgent/region pills,
+  display title, guest byline, closes-in countdown), a scannable brief card grid, search-area
+  radius visual, sticky respond card (0%-commission + view/quote/days stats), guest card, mobile
+  sticky action bar, and BreadcrumbList JSON-LD. Reuses the real QuoteButton + RequestRequirements;
+  no fabricated trust badges, no dead controls. Verified live on two posts; pushed.
 - Still TODO in WS-2: **2a** (post-first public wizard + anon drafts) → **2b** (silent
   passwordless submit; POPIA consent) — the sequential funnel-inversion pair, not started.
 
