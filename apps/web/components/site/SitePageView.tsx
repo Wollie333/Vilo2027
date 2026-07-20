@@ -21,6 +21,7 @@ import type { SiteAssetResolver } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { parseContentProfileLoose } from "@/lib/website/contentProfile.schema";
+import { resolveEffectiveProfile } from "@/lib/website/deriveContent";
 import { usesOceansViewLayout } from "@/lib/site/themeFamily";
 import {
   pageStartsWithHero,
@@ -235,7 +236,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const roomsHref = roomsHrefRaw ?? "/rooms";
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
@@ -325,7 +330,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const roomsHref = roomsHrefRaw ?? "/rooms";
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
@@ -411,7 +420,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const roomsHref = roomsHrefRaw ?? "/rooms";
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
@@ -499,7 +512,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const roomsHref = roomsHrefRaw ?? "/rooms";
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
@@ -579,7 +596,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const roomsHref = roomsHrefRaw ?? "/rooms";
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
@@ -665,7 +686,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const AboutComponent =
       ctx.theme.preset === "royal" ? RoyalAbout : SafariAbout;
     return (
@@ -736,7 +761,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -809,7 +838,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -880,7 +913,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -951,7 +988,11 @@ export async function SitePageView({
         new Set(["rooms_preview", "gallery"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1013,7 +1054,11 @@ export async function SitePageView({
         new Set(["rooms_preview", "gallery"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1077,7 +1122,11 @@ export async function SitePageView({
         new Set(["rooms_preview", "gallery"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1140,7 +1189,11 @@ export async function SitePageView({
         new Set(["rooms_preview", "gallery"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1210,7 +1263,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const SpecialsComponent =
       ctx.theme.preset === "royal" ? RoyalSpecials : SafariSpecials;
     return (
@@ -1275,7 +1332,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1336,7 +1397,11 @@ export async function SitePageView({
         new Set(["rooms_preview", "gallery"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1398,7 +1463,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1468,7 +1537,11 @@ export async function SitePageView({
         new Set(["location", "rooms_preview", "policies", "reviews"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const loc = extras.location;
     const roomNames = (extras.rooms_preview?.rooms ?? [])
       .map((r) => r.name)
@@ -1553,7 +1626,11 @@ export async function SitePageView({
         new Set(["location", "rooms_preview", "policies", "reviews"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const loc = extras.location;
     const roomNames = (extras.rooms_preview?.rooms ?? [])
       .map((r) => r.name)
@@ -1636,7 +1713,11 @@ export async function SitePageView({
       ),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -1698,7 +1779,11 @@ export async function SitePageView({
         new Set(["location", "rooms_preview", "policies", "reviews"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const loc = extras.location;
     const roomNames = (extras.rooms_preview?.rooms ?? [])
       .map((r) => r.name)
@@ -1781,7 +1866,11 @@ export async function SitePageView({
         new Set(["location", "rooms_preview", "policies", "reviews"] as const),
       ),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const loc = extras.location;
     const roomNames = (extras.rooms_preview?.rooms ?? [])
       .map((r) => r.name)
@@ -1865,7 +1954,11 @@ export async function SitePageView({
         .maybeSingle<{ content_profile: unknown }>(),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const ExperiencesComponent =
       ctx.theme.preset === "royal" ? RoyalExperiences : SafariExperiences;
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
@@ -1927,7 +2020,11 @@ export async function SitePageView({
         .maybeSingle<{ content_profile: unknown }>(),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
       body: e.body ?? null,
@@ -1986,7 +2083,11 @@ export async function SitePageView({
         .maybeSingle<{ content_profile: unknown }>(),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
       body: e.body ?? null,
@@ -2045,7 +2146,11 @@ export async function SitePageView({
         .maybeSingle<{ content_profile: unknown }>(),
       findRoomsIndexHref(ctx),
     ]);
-    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const cp = await resolveEffectiveProfile(
+      sbx,
+      ctx.businessId,
+      parseContentProfileLoose(cpRow?.content_profile),
+    );
     const experiences = (cp.experiences?.items ?? []).map((e) => ({
       title: e.title,
       body: e.body ?? null,

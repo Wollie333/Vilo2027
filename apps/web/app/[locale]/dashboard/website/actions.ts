@@ -59,6 +59,7 @@ import { parseSectionsLoose } from "@/lib/website/sections.schema";
 import type { PageDoc } from "@/lib/website/pageDoc.schema";
 import { hydratePageDoc } from "@/lib/website/hydrateProfile";
 import { buildLegalSeed } from "@/lib/website/legalPages";
+import { buildDerivedContent } from "@/lib/website/deriveContent";
 import type {
   ContentProfile,
   DerivedContent,
@@ -934,6 +935,11 @@ export async function createWebsiteWithWizardAction(
   await supabase.from("website_forms").delete().eq("website_id", siteId);
   await supabase.from("website_pages").delete().eq("website_id", siteId);
 
+  // Account-derived fallbacks for the slots the short wizard doesn't collect
+  // (host name/photo, property description, hero photo, policies FAQ) — so empty
+  // slots render the host's REAL data instead of the theme's demo copy.
+  const derived = await buildDerivedContent(supabase, { businessId });
+
   await seedWebsiteContent(supabase, {
     siteId,
     siteName: siteName.trim(),
@@ -942,8 +948,10 @@ export async function createWebsiteWithWizardAction(
     hostId: host.hostId,
     contactEmail: contactEmail?.trim() || undefined,
     wizardPages: pages,
-    // Hydrate the seeded theme pages with the host's answers (empty → demo copy).
+    // Hydrate the seeded theme pages with the host's answers (empty → derived
+    // account fallback → the theme's demo copy as the last resort).
     contentProfile: contentProfile ?? {},
+    derived,
   });
 
   // Auto-publish — copy draft→published per page + freeze the snapshot + set
@@ -2281,6 +2289,21 @@ async function reconcileWebsiteRooms(
  * into `published_snapshot`, and mark the site `published`. The public renderer
  * reads ONLY this frozen state, so unpublished edits never leak.
  */
+/**
+ * True when a page's stored sections carry no renderable content — an empty flat
+ * array, an empty/absent PageDoc `root.kids`, or a nullish value. Used to guard
+ * the draft→published copy so a blank draft can never blank a live page.
+ */
+function isEmptySections(sections: unknown): boolean {
+  if (sections == null) return true;
+  if (Array.isArray(sections)) return sections.length === 0;
+  if (typeof sections === "object") {
+    const kids = (sections as { root?: { kids?: unknown[] } }).root?.kids;
+    return !Array.isArray(kids) || kids.length === 0;
+  }
+  return true;
+}
+
 export async function publishWebsiteAction(
   websiteId: string,
 ): Promise<ActionResult> {
@@ -2309,11 +2332,16 @@ export async function publishWebsiteAction(
 
   // Copy draft → published for every page. There's no SQL column-to-column copy
   // via the JS client, so read the drafts and write them back (pages are few).
+  // GUARD: never publish an EMPTY draft over a page (it would blank the live
+  // page). A seeded/edited page always carries a PageDoc ({root:{kids:[…]}}) or a
+  // non-empty flat-section array; an empty draft means something went wrong
+  // upstream, so we skip it and keep whatever was published before.
   const { data: pages } = await supabase
     .from("website_pages")
     .select("id, draft_sections")
     .eq("website_id", websiteId);
   for (const page of pages ?? []) {
+    if (isEmptySections(page.draft_sections)) continue;
     const { error: pageErr } = await supabase
       .from("website_pages")
       .update({ published_sections: page.draft_sections })
