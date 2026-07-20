@@ -29,6 +29,49 @@ async function assertFeatureEnabled(hostId: string): Promise<boolean> {
   return result?.is_enabled ?? false;
 }
 
+// Max seasonal rules the account may hold — the seasonal_pricing feature's
+// limit_value (founder-adjustable per product in the admin product editor).
+// NULL = unlimited (also when features are globally open pre-MVP).
+async function seasonalRuleLimit(hostId: string): Promise<number | null> {
+  if (PRE_MVP_FEATURES_OPEN) return null;
+  const supabase = createServerClient();
+  const { data } = await supabase.rpc("check_feature_permission", {
+    p_host_id: hostId,
+    p_feature_key: "seasonal_pricing",
+  });
+  const r = data as { limit_value: number | null } | null;
+  return r?.limit_value ?? null;
+}
+
+// Count the host's existing seasonal rules across all their live listings.
+async function countHostSeasonalRules(hostId: string): Promise<number> {
+  const supabase = createServerClient();
+  const { data: props } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("host_id", hostId)
+    .is("deleted_at", null);
+  const ids = (props ?? []).map((p) => p.id);
+  if (ids.length === 0) return 0;
+  const { count } = await supabase
+    .from("property_seasonal_pricing")
+    .select("id", { count: "exact", head: true })
+    .in("property_id", ids);
+  return count ?? 0;
+}
+
+// Block a new rule when the account is at its seasonal_pricing limit.
+async function seasonalLimitReached(hostId: string): Promise<string | null> {
+  const limit = await seasonalRuleLimit(hostId);
+  if (limit === null) return null;
+  if ((await countHostSeasonalRules(hostId)) >= limit) {
+    return `You've reached your seasonal-pricing limit of ${limit} rule${
+      limit === 1 ? "" : "s"
+    }. Remove one or upgrade your plan to add more.`;
+  }
+  return null;
+}
+
 async function assertListingOwnership(
   listingId: string,
   hostId: string,
@@ -83,6 +126,8 @@ export async function createSeasonalRuleAction(
   if (!(await assertFeatureEnabled(host.hostId))) {
     return { ok: false, error: PLAN_GATE_MSG };
   }
+  const limitMsg = await seasonalLimitReached(host.hostId);
+  if (limitMsg) return { ok: false, error: limitMsg };
 
   const parsed = seasonalRuleInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -414,6 +459,11 @@ export async function createSeasonalRuleForListingAction(
   if (!ctx.ok) return { ok: false, error: ctx.error };
   if (!(await inlineFeatureOk(ctx.db, ctx.hostId, ctx.asAdmin))) {
     return { ok: false, error: PLAN_GATE_MSG };
+  }
+  // Staff acting on a host bypass plan caps; a host adding their own is capped.
+  if (!ctx.asAdmin) {
+    const limitMsg = await seasonalLimitReached(ctx.hostId);
+    if (limitMsg) return { ok: false, error: limitMsg };
   }
 
   const parsed = seasonalRuleInputSchema.safeParse({

@@ -74,6 +74,15 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
     label: "Done-for-you website design",
     scope: "toggle",
   },
+  // Pricing — "total" so the product editor shows a quantity input: the max
+  // number of seasonal-pricing rules the account may create (NULL = unlimited).
+  // Enforced in the seasonal create actions; the gate's is_enabled unlocks the
+  // feature, limit_value caps the count.
+  {
+    key: "seasonal_pricing",
+    label: "Seasonal pricing rules",
+    scope: "total",
+  },
   // Merchandising
   { key: "specials", label: "Specials", scope: "toggle" },
   // Engagement
