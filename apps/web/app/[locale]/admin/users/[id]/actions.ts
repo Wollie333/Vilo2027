@@ -249,6 +249,52 @@ export const updateUserProfileAction = withAdminAudit<
   },
 );
 
+// ─── Manually confirm a user's email (admin override) ──────────
+const confirmEmailSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+// Stamp email_verified_at so the user clears the "confirm your email" gate/banner
+// without the email round-trip — for guests the founder has vouched for. Also
+// best-effort-confirms the Supabase auth record so auth-level checks agree.
+// Admin-only + audited.
+export const confirmUserEmailAction = withAdminAudit<
+  z.infer<typeof confirmEmailSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.confirm_email",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    if (!confirmEmailSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    const nowIso = new Date().toISOString();
+    const { error } = await service
+      .from("user_profiles")
+      .update({ email_verified_at: nowIso })
+      .eq("id", args.userId);
+    if (error) throw new Error(error.message);
+    // Best-effort: also confirm the auth user (a lead is already confirmed).
+    try {
+      await service.auth.admin.updateUserById(args.userId, {
+        email_confirm: true,
+      });
+    } catch {
+      /* profile flag is the one the app gates on; ignore auth hiccups */
+    }
+    revalidatePath(`/admin/users/${args.userId}`);
+    return {
+      result: { ok: true },
+      after: { userId: args.userId, email_verified_at: nowIso },
+    };
+  },
+);
+
 // ─── Change role ──────────────────────────────────────────────
 const roleSchema = z.object({
   userId: z.string().uuid(),

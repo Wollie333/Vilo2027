@@ -32,7 +32,7 @@ export default async function AdminUserDetailPage({
   const { data: user } = await service
     .from("user_profiles")
     .select(
-      "id, full_name, email, role, phone, avatar_url, is_active, is_lead, phone_verified_at, id_verified_at, country, created_at, updated_at, deleted_at",
+      "id, full_name, email, role, phone, avatar_url, is_active, is_lead, phone_verified_at, id_verified_at, email_verified_at, country, created_at, updated_at, deleted_at",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -656,6 +656,7 @@ export default async function AdminUserDetailPage({
       created_at: user.created_at,
       phone_verified_at: user.phone_verified_at,
       id_verified_at: user.id_verified_at,
+      email_verified_at: user.email_verified_at,
       avatar_url: user.avatar_url,
     },
     host: host

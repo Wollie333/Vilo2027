@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
 import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
 import { HostAccessControls } from "./HostAccessControls";
+import { EmailConfirmButton } from "./EmailConfirmButton";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import {
   AdminTable,
@@ -186,6 +187,7 @@ export type UserRecordData = {
     created_at: string | null;
     phone_verified_at: string | null;
     id_verified_at: string | null;
+    email_verified_at: string | null;
     avatar_url: string | null;
   };
   host: {
@@ -1655,17 +1657,14 @@ function Dossier({
         {/* verification */}
         <div>
           <div className={`${eyebrow} mb-2.5`}>Verified</div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <EmailConfirmButton
+              userId={user.id}
+              verified={!!user.email_verified_at}
+            />
             {user.phone_verified_at ? <Pill tone="good">Phone</Pill> : null}
             {user.id_verified_at ? <Pill tone="good">ID</Pill> : null}
             {host?.is_verified ? <Pill tone="good">Host verified</Pill> : null}
-            {!user.phone_verified_at &&
-            !user.id_verified_at &&
-            !host?.is_verified ? (
-              <span className="text-[12px] text-brand-mute">
-                Nothing verified yet.
-              </span>
-            ) : null}
           </div>
         </div>
 
