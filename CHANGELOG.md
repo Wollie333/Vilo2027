@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-20 — Fix: home design regression from Phase-1 derived story (`b6be166`).
+
+**Fixed a home-page design break introduced by Phase 1.** The render-path merge
+(`mergeDerivedProfile`) filled `about.story` / `home.intro.body` from the account's long-form
+`propertyDescription`. Bespoke themes render the `story` slot as a large DISPLAY HEADING (a short
+one-line editorial statement), so on mana the entire *"Mana Bush Lodge sits on 240 hectares of private
+big-game country…"* paragraph rendered as a giant H2 and broke the layout. Confirmed via live
+before/after (home body text 5,880 → 7,310 chars).
+
+- **Fix (`b6be166`):** `mergeDerivedProfile` now derives only the SAFE slots — hero image, host photo,
+  contact FAQ (no length/heading hazard) — and no longer touches story/intro on the render path, so a
+  host who hasn't written a story keeps the theme's short curated fallback. The SEED path (generic
+  themes) still derives story/intro via `SLOT_BINDINGS`, where they render as body copy and length is
+  fine. `allDerivableSlotsFilled` + unit tests updated.
+- **Verified live** on mana (Safari): story heading back to the curated *"Mana sits where the bush
+  opens onto a wide, quiet plain…"* in the two-column story block (image, drop cap, CTAs, stats band);
+  body text back to 5,880. tsc + lint + vitest (7) green.
+
 ## 2026-07-20 — Site-render hydration errors: partially narrowed, NOT yet fixed (`d07a544`, `177ef78`).
 
 **Status: real bug isolated to the site render, two contributing issues fixed, but the errors are NOT
