@@ -230,6 +230,23 @@ they stop cloning OceansView.
 > via `usesOceansViewLayout` — home/rooms/room-detail are the highest-traffic forks, matching
 > the Royal scope.** NEXT: Phase C (push Safari vs Sabela further apart).
 
+> **PROGRESS (2026-07-20, commits `179c2a7` + `6b85e83`) — Safari forked SITE-WIDE.**
+> The six remaining shared subpages are now bespoke too, so Safari no longer uses the
+> OceansView layout on ANY public page: `SafariAbout` (`.sfabout`), `SafariExperiences`
+> (`.sfexp`), `SafariContact` (`.sfcontact`, reuses the shared `OceansContactForm`),
+> `SafariGallery` (`.sfgallery`, reuses the shared `OceansMosaicGallery` lightbox),
+> `SafariSpecials` (`.sfspecials`) + `SafariSpecialDetail` (`.sfspecial`), `SafariJournal`
+> (`.sfjournal`) + `SafariArticle` (`.sfarticle`). Routed via `preset==='safari'` branches
+> above the shared branches in SitePageView (about/experiences/contact/gallery/specials),
+> SiteSpecialView (special-detail ternary) + blog/page & blog/[postSlug] (journal/article
+> ternaries). ALL live-verified on mana (`.sf*` render, Fraunces headings, no h-overflow,
+> forms + lightbox work). **GOTCHA fixed (`6b85e83`): never put `data-reveal` on an element
+> that WRAPS a `position:fixed` descendant** — the reveal primitive sets `translate`, which
+> establishes a containing block and broke the gallery lightbox's fixed overlay (the wrapper
+> around `OceansMosaicGallery` must be reveal-free; SafariRoomDetail's shared gallery is
+> likewise un-wrapped). Royal still shares its non-core subpages with OceansView — fork
+> those too only if the founder wants Royal fully bespoke as well.
+
 > **FINDING (2026-07-19) — Royal Rooms/Room-detail ≈ OceansView layout.**
 > `docs/themes/royalhotel/pages/{Rooms,Room}.html` are structurally the SAME as the
 > OceansView Rooms/Room-detail (OceansViewRooms already ships the included chip bar +
