@@ -20,6 +20,7 @@ import { Link } from "@/i18n/navigation";
 import type { AnalyticsRange } from "@/lib/website/analytics";
 
 import { loadOverviewData } from "../loadOverviewData";
+import { NearbyExperiencesCard } from "../_components/NearbyExperiencesCard";
 import { RangeTabs } from "../_components/overview/RangeTabs";
 import { TrafficChart } from "../_components/overview/TrafficChart";
 
@@ -250,6 +251,9 @@ export default async function WebsiteOverviewPage({
           })}
         </div>
       </section>
+
+      {/* ── Nearby experiences (real OSM data → Experiences page) ── */}
+      <NearbyExperiencesCard websiteId={websiteId} />
 
       {/* ── Performance header ───────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
