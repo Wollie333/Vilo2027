@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-20 (pt39) — WS-2 Looking For funnel: 2c + 2d + 2e (recovered mid-build after a desktop crash).
+
+Resumed from pt38. The working tree held an in-progress WS-2 build (uncommitted) when
+Claude Desktop closed. Reviewed, completed, verified, and committed it as four focused
+commits. All green (type-check + lint + `pnpm build`). Migration applied to the linked
+cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see save point).
+
+- **WS-2c — default regional host alerting (brand non-negotiable).** `notifyMatchingAlerts`
+  gains a second pass after the saved-search dispatch: **every host with a published
+  property in range** (geo pin+radius, else `province = location_region`) is notified of a
+  new public request, not only saved-search holders. Deduped by `user_id` across both
+  passes; on an edit only hosts newly in range fire (prior-version matches suppressed → no
+  region re-blast). The hourly province digest is demoted to **drain-only** to avoid
+  double-sending. **Witnessed at the DB:** a Western Cape probe enqueued exactly one
+  `looking_for_new_post_region` row to the sole WC published-property host (who has no
+  saved search) — pass-2 + dedup proven.
+- **WS-2e — request extra fields + budget slider.** Additive nullable columns `child_ages
+  int[]`, `pets int`, `destination_flexible bool` on `looking_for_posts` (migration
+  `20260720130000`). RequestForm gains per-child age inputs, a pets count, an "I'm not sure
+  where yet" toggle that relaxes the location requirement, and a dual-thumb budget range
+  slider with a live per-night/total breakdown. Surfaced on the public detail page, guest
+  info card, host respond screen; threaded through edit/duplicate. **Verified live** in the
+  wizard (canvas) and the public detail page (round-trips the DB: child_ages [7,4], pets 1,
+  destination_flexible true).
+- **WS-2d — "N hosts preparing offers" hint.** `loadRequestRecord` counts distinct hosts
+  who unlocked the lead but have not yet responded; `RequestRecord` shows it while quote
+  count is low. Code-complete + green; not independently rendered (needs an unlock scenario).
+- **chore(mobile):** added a flat ESLint config (eslint 9 + eslint-config-expo) to the Expo
+  app — an unrelated in-tree change, committed separately.
+- Still TODO in WS-2: **2a** (post-first public wizard + anon drafts) → **2b** (silent
+  passwordless submit; POPIA consent) — the sequential funnel-inversion pair, not started.
+
+---
+
 ## 2026-07-20 (pt35) — Recurring billing hardening (H1–H4) + multi-business/multi-listing audit.
 
 Executed the hardening plan from `docs/RECURRING_BILLING_HARDENING_AND_GOLIVE.md` and,
