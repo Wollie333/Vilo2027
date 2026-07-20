@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-20 — Theme differentiation: Royal forked site-wide — all remaining shared subpages bespoke (`20b0acc`).
+
+Royal no longer falls back to the shared OceansView layout on ANY public page
+(mirrors the Safari site-wide fork). The six remaining shared page-types were
+forked into the Royal **grand-hotel** design language — Archivo display, thin
+champagne rules under centred formal section heads, charcoal (`--site-navy`) dark
+bands, champagne accent — each with the SAME data contract as its OceansView
+counterpart:
+
+- **RoyalAbout** (`.rabout`), **RoyalExperiences** (`.rexp`), **RoyalContact**
+  (`.rcontact`, reuses the shared `OceansContactForm`), **RoyalGallery**
+  (`.rgallery`, reuses the shared `OceansMosaicGallery` lightbox — no `data-reveal`
+  on the wrapper, per the fixed containing-block gotcha), **RoyalSpecials**
+  (`.rspecials`) + **RoyalSpecialDetail** (`.rspecial`), **RoyalJournal**
+  (`.rjournal`) + **RoyalArticle** (`.rarticle`, centred Archivo reading column;
+  body renderer preserved verbatim; solid header via `pageHasHero=false`).
+
+Routing: rather than duplicate branches, the existing Safari subpage branches in
+`SitePageView.tsx` were **widened to handle both safari + royal** via a component
+variable (`const AboutComponent = preset === "royal" ? RoyalAbout : SafariAbout`)
+— shared data-prep + chrome, only the rendered component differs (least code, no
+drift). `SiteSpecialView.tsx` + `blog/page.tsx` + `blog/[postSlug]/page.tsx` gained
+a `preset==='royal'` arm above the shared `usesOceansViewLayout` arm. Six of the
+eight components built by parallel subagents against a precise Royal-identity spec,
+then reviewed + wired here. Honesty kept. tsc + eslint + prettier green.
+**All 5 themes are now fully bespoke site-wide.** Live-verify next.
+
+---
+
 ## 2026-07-20 — Theme differentiation: Safari forked site-wide — all remaining shared subpages bespoke (`179c2a7`).
 
 Safari no longer falls back to the shared OceansView layout on ANY public page.
