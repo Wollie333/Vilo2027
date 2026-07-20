@@ -639,31 +639,6 @@ async function processProductEvent(
           if (planRow) plan = planRow.key;
         }
 
-        // Capture the reusable card authorization so the renewal cron can
-        // re-charge it each cycle (hybrid Paystack rail). The self-serve PRODUCT
-        // purchase (PlanPicker → startProductCheckoutDirect, purpose:"product") is
-        // the FIRST charge for a membership/service, so — like processSubscription
-        // Event — grab the token here or a product-bought sub would never renew.
-        const auth = event.data.authorization;
-        const savedAuth: Record<string, unknown> = {};
-        if (auth?.reusable && auth.authorization_code) {
-          const cipher = await encryptSecret(auth.authorization_code);
-          if (cipher) {
-            savedAuth.paystack_authorization_code_cipher = cipher;
-            savedAuth.paystack_card_last4 = auth.last4 ?? null;
-            savedAuth.paystack_card_brand =
-              auth.card_type ?? auth.brand ?? null;
-            savedAuth.paystack_card_exp =
-              auth.exp_month && auth.exp_year
-                ? `${String(auth.exp_month).padStart(2, "0")}/${String(
-                    auth.exp_year,
-                  ).slice(-2)}`
-                : null;
-          }
-        }
-        const custCode = event.data.customer?.customer_code;
-        if (custCode) savedAuth.paystack_customer_code = custCode;
-
         const patch = {
           product_id: order.product_id,
           plan,
@@ -671,7 +646,6 @@ async function processProductEvent(
           status: "active",
           current_period_start: now,
           current_period_end: periodEnd,
-          ...savedAuth,
         };
         if (sub) {
           await supabase.from("subscriptions").update(patch).eq("id", sub.id);
@@ -699,6 +673,53 @@ async function processProductEvent(
             p_ref_type: "subscription",
             p_ref_id: `${order.product_id}:${now.slice(0, 10)}`,
           });
+        }
+      }
+    }
+  }
+
+  // Capture the reusable card authorization for the renewal cron — INDEPENDENT of
+  // activate_on_pay, because a prorated UPGRADE delta order (activate_on_pay:false)
+  // is still a real card charge and may be the host's FIRST, so the saved card
+  // must land on their membership sub for that product or it would never renew.
+  // Keyed to the (host, product_id) sub, which exists by now either from the
+  // activation above or from the app's in-place upgrade rewrite. Refreshed on
+  // every charge so a card update stays current. Mirrors processSubscriptionEvent.
+  if (order.payer_user_id && order.product_id) {
+    const auth = event.data.authorization;
+    if (auth?.reusable && auth.authorization_code) {
+      const { data: capHost } = await supabase
+        .from("hosts")
+        .select("id")
+        .eq("user_id", order.payer_user_id)
+        .maybeSingle();
+      if (capHost) {
+        const { data: capSub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("host_id", capHost.id)
+          .eq("product_id", order.product_id)
+          .maybeSingle();
+        const cipher = capSub
+          ? await encryptSecret(auth.authorization_code)
+          : null;
+        if (capSub && cipher) {
+          const custCode = event.data.customer?.customer_code;
+          await supabase
+            .from("subscriptions")
+            .update({
+              paystack_authorization_code_cipher: cipher,
+              paystack_card_last4: auth.last4 ?? null,
+              paystack_card_brand: auth.card_type ?? auth.brand ?? null,
+              paystack_card_exp:
+                auth.exp_month && auth.exp_year
+                  ? `${String(auth.exp_month).padStart(2, "0")}/${String(
+                      auth.exp_year,
+                    ).slice(-2)}`
+                  : null,
+              ...(custCode ? { paystack_customer_code: custCode } : {}),
+            })
+            .eq("id", capSub.id);
         }
       }
     }
