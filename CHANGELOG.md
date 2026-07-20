@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-20 — Fix: Safari room-detail gallery + full Safari page sweep (`317992f`).
+
+- **Room-detail gallery was broken on Safari** (photos stacked full-size down the page, "View all
+  photos" pill unstyled). Root cause: the room detail reuses the shared `OceansRoomGallery`
+  (`.rgal`/`.g`/`.gcount`), whose mosaic-grid CSS is defined PER THEME scoped to the room wrapper
+  (`.ovroom …`, `.rroom …`). `safariRoom.css` never got its copy, so under `.sfroom` the `.g` cells
+  fell back to `display:block`. Added the `.sfroom`-scoped mosaic grid + count-pill + ≤860px responsive
+  rules (terracotta-toned, sharper radius to match Safari). **Verified live:** `.rgal` now `display:grid`
+  `757px 378px`, height clamped 574px (was 3791px), gcount `position:absolute` — renders as the proper
+  one-tall-main + two-stacked-side mosaic. The lightbox (`.ovroom-lightbox`/`.ovlb-*`) is theme-agnostic
+  and already worked.
+- **Full Safari page sweep** (home / about / rooms / contact / specials / journal / gallery): no
+  horizontal overflow, no collapsed sections, no genuinely broken images. (An initial pass flagged
+  "broken images" on several pages — a false alarm from `loading="lazy"` images below the fold not yet
+  loaded at measure time; forcing load showed 0 broken.) So the room-detail gallery was the only real
+  Safari layout break.
+
 ## 2026-07-20 — Fix: home design regression from Phase-1 derived story (`b6be166`).
 
 **Fixed a home-page design break introduced by Phase 1.** The render-path merge
