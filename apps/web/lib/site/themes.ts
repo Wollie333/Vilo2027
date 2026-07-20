@@ -16,7 +16,8 @@ export type SiteFont =
   | "grotesk"
   | "editorial"
   | "homely"
-  | "archivo";
+  | "archivo"
+  | "fraunces";
 export type SiteRadius = "none" | "sm" | "md" | "lg" | "xl";
 
 export type SitePalette = {
@@ -70,7 +71,9 @@ export const SITE_PRESETS = {
     radius: "xl",
   },
   // Safari — unfenced wilderness lodge. Warm bone/sand ground, espresso ink,
-  // savanna-ochre accent; serif display headings (elegant), near-sharp corners.
+  // savanna-ochre accent; warm editorial soft-serif display (Fraunces — its OWN
+  // face, distinct from Sabela's Cormorant so the two lodges don't share a
+  // typeface, Phase C), near-sharp corners.
   safari: {
     label: "Safari",
     palette: {
@@ -82,7 +85,7 @@ export const SITE_PRESETS = {
       accent: "#B26C2E",
       accentInk: "#FFFFFF",
     },
-    font: "elegant",
+    font: "fraunces",
     radius: "sm",
   },
   // Oceans View — bright Mediterranean beach resort. Airy white ground, deep
@@ -223,6 +226,16 @@ const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
     heading:
       '"Archivo", "Arial Narrow", "Helvetica Neue", "Segoe UI", system-ui, sans-serif',
     body: '"Manrope", "Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
+  },
+  fraunces: {
+    // The savanna-lodge face — Fraunces (a warm, characterful editorial soft-
+    // serif with optical sizing) over a clean humanist sans body. Loaded by
+    // SiteFontLinks for the `safari` theme; deliberately DIFFERENT from the
+    // `elegant` Cormorant Garamond that Sabela (hotel) uses, so the two
+    // warm-earth lodges no longer share a display typeface (Phase C).
+    heading:
+      '"Fraunces", "Fraunces 72", Georgia, Cambria, "Times New Roman", ui-serif, serif',
+    body: '"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   },
 };
 

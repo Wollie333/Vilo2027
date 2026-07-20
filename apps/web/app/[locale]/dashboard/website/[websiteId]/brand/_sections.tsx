@@ -79,6 +79,7 @@ const FONTS: SiteFont[] = [
   "editorial",
   "homely",
   "archivo",
+  "fraunces",
 ];
 
 const FONT_SAMPLE: Record<SiteFont, string> = {
@@ -90,6 +91,7 @@ const FONT_SAMPLE: Record<SiteFont, string> = {
   homely: '"Gloock", "Playfair Display", Georgia, ui-serif, serif',
   archivo:
     '"Archivo", "Arial Narrow", "Helvetica Neue", "Segoe UI", sans-serif',
+  fraunces: '"Fraunces", Georgia, Cambria, "Times New Roman", ui-serif, serif',
 };
 
 // ── Identity ──────────────────────────────────────────────
