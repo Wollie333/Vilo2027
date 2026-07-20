@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-20 (pt33) — Recurring billing Phase 4: time-driven reconcile worker + trials confirmed Wielo-owned.
+
+Repairs drift on both recurring rails after a missed webhook or a worker crash
+between charge and settle. Each rail is independently gated + fully idempotent, so
+this is a no-op until a rail is armed at go-live.
+
+- **`lib/billing/subscription-renewal.ts`** — `reconcilePaystackPendingRenewals`:
+  scans stuck `renew_…` ledger claims (pending 15 min–3 days), verifies each against
+  Paystack, and settles through the SAME idempotent helpers — `success` → extend the
+  period (compare-and-set, no-op if a late webhook already won); `failed/abandoned/
+  reversed` → dunning. A transient verify failure LEAVES the claim pending — never
+  deletes a claim it can't prove was un-charged (re-issuing would risk a double
+  charge). Recovers the "charged-but-not-extended" crash window.
+- **`lib/billing/paypal-subscription.ts`** — `reconcilePayPalSubscriptions`: cross-
+  checks every live sub with a PayPal handle at/past due against provider state.
+  `ACTIVE` with a later next-billing → extend the period (repairs ACCESS only; money
+  is booked solely from the real SALE.COMPLETED event, which PayPal redelivers —
+  never fabricated). `CANCELLED/EXPIRED` → mark ended (guarded to the matching id).
+  `SUSPENDED` → left to the PAYMENT.FAILED dunning path.
+- **`lib/billing/subscription-reconcile.ts` (new)** + **`/api/subscription-reconcile
+  -worker` (new)** — orchestrate both rails behind the shared `EMAIL_WORKER_SECRET`
+  bearer. **`reconcile-subscriptions` pg_cron** (hourly, migration `20260720040000`,
+  **applied to linked DB + verified active**): kill-switched on both `*_recurring_
+  enabled` flags, skips the round-trip when nothing is stuck/due, fail-soft on a
+  missing Vault secret. New Vault secret at go-live: `subscription_reconcile_worker_url`.
+- **R6 (trials) — confirmed, no change:** trials stay state-only (`trialing` + no
+  saved auth / no provider sub). Neither the renewal worker (filters `active/past_due`
+  with a saved card) nor either reconcile path (touches only `renew_` claims /
+  `paypal_subscription_id` handles) can act on a trial → the "no real charge until the
+  first real charge" guarantee holds. Build + lint + tsc green.
+
 ## 2026-07-20 (pt32) — Recurring billing Phase 3: self-serve upgrade proration + method chooser.
 
 Third phase of the recurring-subscription-billing epic. Mid-cycle upgrades now

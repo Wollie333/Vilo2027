@@ -6,7 +6,7 @@ import { isPaystackRecurringEnabled } from "@/lib/billing/recurring";
 import { nextPeriod, renewalReference } from "@/lib/billing/renewal-schedule";
 import { grantSubscriptionCredits } from "@/lib/credits/wallet";
 import { decryptSecret } from "@/lib/crypto/payments";
-import { chargeAuthorization } from "@/lib/paystack";
+import { chargeAuthorization, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -382,4 +382,143 @@ async function settleRenewalDecline(
   } catch {
     // Never break the money path over a notification.
   }
+}
+
+// A renewal claim is genuinely stuck only after the live charge + settle window
+// has passed — before that a pending row is normal in-flight state.
+const RECONCILE_MIN_AGE_MS = 15 * 60 * 1000; // 15 minutes
+// Don't chase claims older than this — beyond the grace window a stuck sub is a
+// support case, not a reconcile target.
+const RECONCILE_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+export type RenewalReconcileSummary = {
+  enabled: boolean;
+  checked: number;
+  recovered: number;
+  declined: number;
+  leftPending: number;
+  errors: number;
+};
+
+/**
+ * Reconcile Paystack renewal claims that never resolved (Phase 4 — time-driven).
+ *
+ * runPaystackRenewals inserts a pending ledger claim, charges the saved card, then
+ * settles (extend on success / dunning on decline). If the process dies AFTER the
+ * charge but BEFORE the settle, the ledger row stays `pending`, the period is never
+ * extended, and — because the per-(sub, period, attempt) reference is UNIQUE — the
+ * daily worker will only ever hit a conflict and skip it. That subscription is
+ * stuck: money possibly taken, access not granted.
+ *
+ * This worker verifies each stuck claim against Paystack (the arbiter) and settles
+ * it through the SAME idempotent helpers:
+ *  - status "success"  → settle + extend the period (compare-and-set; a no-op if a
+ *    late webhook already won the flip).
+ *  - status failed/abandoned/reversed → the dunning path.
+ *  - anything else / a transient verify failure (null) → LEAVE it pending. Never
+ *    delete a claim we can't prove was un-charged: re-issuing would risk a double
+ *    charge. A truly phantom claim degrades to a support case, never to lost money.
+ *
+ * Gated by paystack_recurring_enabled → a no-op while the rail is OFF.
+ */
+export async function reconcilePaystackPendingRenewals(
+  admin: Admin = createAdminClient(),
+): Promise<RenewalReconcileSummary> {
+  const summary: RenewalReconcileSummary = {
+    enabled: false,
+    checked: 0,
+    recovered: 0,
+    declined: 0,
+    leftPending: 0,
+    errors: 0,
+  };
+
+  if (!(await isPaystackRecurringEnabled())) return summary;
+  summary.enabled = true;
+
+  const secret = await getPlatformPaystackSecret();
+  if (!secret) return summary;
+
+  const now = Date.now();
+  const minAge = new Date(now - RECONCILE_MIN_AGE_MS).toISOString();
+  const maxAge = new Date(now - RECONCILE_MAX_AGE_MS).toISOString();
+
+  // Stuck renewal claims: pending Paystack charge rows keyed by a `renew_…`
+  // reference (the escape `\_` matches a literal underscore), inside the window.
+  const { data: rows, error } = await admin
+    .from("platform_ledger")
+    .select(
+      "id, subscription_id, host_id, plan, billing_cycle, amount, currency, provider_reference, environment, period_start, period_end",
+    )
+    .eq("provider", "paystack")
+    .eq("type", "charge")
+    .eq("status", "pending")
+    .not("subscription_id", "is", null)
+    .like("provider_reference", "renew\\_%")
+    .lt("created_at", minAge)
+    .gt("created_at", maxAge)
+    .limit(100);
+  if (error) throw new Error(error.message);
+
+  for (const row of rows ?? []) {
+    if (!row.provider_reference || !row.subscription_id) continue;
+    summary.checked += 1;
+    try {
+      const verified = await verifyTransaction(row.provider_reference, secret);
+      if (!verified) {
+        summary.leftPending += 1;
+        continue;
+      }
+      const cycle = row.billing_cycle === "annual" ? "annual" : "monthly";
+      if (verified.status === "success") {
+        const { data: sub } = await admin
+          .from("subscriptions")
+          .select("product_id")
+          .eq("id", row.subscription_id)
+          .maybeSingle();
+        await settleRenewalSuccess(admin, {
+          subId: row.subscription_id,
+          hostId: row.host_id as string,
+          productId: (sub?.product_id as string) ?? "",
+          plan: row.plan,
+          cycle,
+          amount: Number(row.amount),
+          currency: row.currency ?? "ZAR",
+          environment: row.environment === "live" ? "live" : "test",
+          reference: row.provider_reference,
+          newStart: row.period_start ?? new Date().toISOString(),
+          newEnd: row.period_end ?? new Date().toISOString(),
+        });
+        summary.recovered += 1;
+      } else if (
+        ["failed", "abandoned", "reversed"].includes(verified.status)
+      ) {
+        const { data: sub } = await admin
+          .from("subscriptions")
+          .select("status, failed_payment_count")
+          .eq("id", row.subscription_id)
+          .maybeSingle();
+        await settleRenewalDecline(admin, {
+          subId: row.subscription_id,
+          hostId: row.host_id as string,
+          reference: row.provider_reference,
+          amount: Number(row.amount),
+          currency: row.currency ?? "ZAR",
+          priorFails: Number(sub?.failed_payment_count ?? 0),
+          status: sub?.status ?? "active",
+        });
+        summary.declined += 1;
+      } else {
+        summary.leftPending += 1;
+      }
+    } catch (err) {
+      summary.errors += 1;
+      console.error(
+        `subscription-reconcile: paystack claim ${row.provider_reference} errored:`,
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
+  return summary;
 }

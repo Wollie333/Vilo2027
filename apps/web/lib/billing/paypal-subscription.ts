@@ -1,6 +1,7 @@
 import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
+import { isPayPalRecurringEnabled } from "@/lib/billing/recurring";
 import { convertCurrency, convertZarToUsd } from "@/lib/fx";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { grantSubscriptionCredits } from "@/lib/credits/wallet";
@@ -545,6 +546,107 @@ export async function markPayPalPaymentFailed(
   } catch {
     // Never break the money path over a notification.
   }
+}
+
+export type PayPalReconcileSummary = {
+  enabled: boolean;
+  checked: number;
+  extended: number;
+  ended: number;
+  errors: number;
+};
+
+/**
+ * Reconcile PayPal subscriptions against provider state (Phase 4 — time-driven).
+ *
+ * PayPal drives recurring charges + fires webhooks (/api/paypal-webhook), but a
+ * webhook can be missed (delivery failure past PayPal's retry horizon, an outage).
+ * This cross-checks every live sub whose period is at/past due against PayPal's own
+ * record and repairs the drift:
+ *  - ACTIVE with a later next_billing_time than our period_end → a renewal we never
+ *    recorded; extend the period so the host isn't wrongly restricted. It does NOT
+ *    fabricate a ledger row — money is booked ONLY from the real PAYMENT.SALE.
+ *    COMPLETED event (idempotent on the sale id, R2/R4), which PayPal redelivers;
+ *    inventing a charge here would double-count or guess the fx.
+ *  - CANCELLED / EXPIRED → mark the local row ended (guarded to the matching id).
+ *  - SUSPENDED → left for the PAYMENT.FAILED dunning path.
+ *
+ * Gated by paypal_recurring_enabled → a no-op while the rail is OFF.
+ */
+export async function reconcilePayPalSubscriptions(
+  admin: Admin = createAdminClient(),
+): Promise<PayPalReconcileSummary> {
+  const summary: PayPalReconcileSummary = {
+    enabled: false,
+    checked: 0,
+    extended: 0,
+    ended: 0,
+    errors: 0,
+  };
+
+  if (!(await isPayPalRecurringEnabled())) return summary;
+  summary.enabled = true;
+
+  const creds = await getPlatformPayPal();
+  if (!creds) return summary;
+
+  const dueBefore = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const { data: subs } = await admin
+    .from("subscriptions")
+    .select("id, status, current_period_end, paypal_subscription_id")
+    .in("status", ["active", "past_due"])
+    .not("paypal_subscription_id", "is", null)
+    .lte("current_period_end", dueBefore)
+    .limit(100);
+
+  for (const sub of subs ?? []) {
+    const subscriptionId = sub.paypal_subscription_id as string;
+    summary.checked += 1;
+    try {
+      const remote = await getPayPalSubscription(subscriptionId, creds);
+      if (!remote) {
+        summary.errors += 1;
+        continue;
+      }
+      if (remote.status === "ACTIVE") {
+        // A renewal happened at PayPal that our webhook missed → repair ACCESS by
+        // extending to the provider's next-billing date (money settles separately).
+        if (
+          remote.nextBillingTime &&
+          sub.current_period_end &&
+          new Date(remote.nextBillingTime).getTime() >
+            new Date(sub.current_period_end).getTime()
+        ) {
+          await admin
+            .from("subscriptions")
+            .update({
+              status: "active",
+              current_period_end: remote.nextBillingTime,
+              failed_payment_count: 0,
+              grace_period_ends_at: null,
+            })
+            .eq("id", sub.id);
+          summary.extended += 1;
+        }
+      } else if (["CANCELLED", "EXPIRED"].includes(remote.status)) {
+        await markPayPalSubscriptionEnded(admin, {
+          subscriptionId,
+          status: "cancelled",
+          reason: `PayPal ${remote.status} (reconcile)`,
+        });
+        summary.ended += 1;
+      }
+      // SUSPENDED → leave to the PAYMENT.FAILED dunning path.
+    } catch (err) {
+      summary.errors += 1;
+      console.error(
+        `subscription-reconcile: paypal sub ${subscriptionId} errored:`,
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
+  return summary;
 }
 
 /**
