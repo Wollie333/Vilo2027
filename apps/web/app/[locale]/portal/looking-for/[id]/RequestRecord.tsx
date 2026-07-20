@@ -14,6 +14,7 @@ import {
   MapPin,
   MessageSquare,
   Package,
+  PenLine,
   Star,
   Tag,
   Users,
@@ -119,7 +120,7 @@ export function RequestRecord({
   const router = useRouter();
   const params = useSearchParams();
   const tab = params.get("tab") ?? "overview";
-  const { post, responses, unreadTotal } = data;
+  const { post, responses, unreadTotal, preparingCount } = data;
 
   const setTab = (t: string) => {
     const next = new URLSearchParams(params.toString());
@@ -291,6 +292,13 @@ export function RequestRecord({
             <MessageSquare className="h-4 w-4" />
             {responses.length} quote{responses.length !== 1 ? "s" : ""}
           </span>
+          {preparingCount > 0 && (
+            <span className="flex items-center gap-1.5 font-medium text-brand-primary">
+              <PenLine className="h-4 w-4" />
+              {preparingCount} host{preparingCount !== 1 ? "s" : ""} preparing
+              offer{preparingCount !== 1 ? "s" : ""}
+            </span>
+          )}
           {unreadTotal > 0 && (
             <span className="flex items-center gap-1.5 font-medium text-brand-primary">
               {unreadTotal} unread

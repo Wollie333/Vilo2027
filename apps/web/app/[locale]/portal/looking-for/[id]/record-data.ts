@@ -189,6 +189,10 @@ export type RequestRecordData = {
   quotesById: Record<string, ThreadQuote>;
   bookingsById: Record<string, ThreadBooking>;
   unreadTotal: number;
+  // Distinct hosts who unlocked this lead but have not yet responded — i.e. are
+  // actively preparing an offer. Powers the "N hosts preparing offers" hint so a
+  // freshly-posted request never looks ignored.
+  preparingCount: number;
   selfId: string;
 };
 
@@ -257,6 +261,22 @@ export async function loadRequestRecord(
   }>;
 
   const admin = createAdminClient();
+
+  // ---- 2d: hosts actively preparing an offer — distinct hosts who unlocked
+  // this lead (spent a credit) but have not yet submitted a response. Unlocks
+  // are host-only under RLS, so read them with the admin client now that
+  // ownership of the post is confirmed. The (post_id, host_id) unique key means
+  // unlock rows are already one-per-host; we subtract those who have responded.
+  const respondedHostIds = new Set(
+    responsesRaw.map((r) => one(r.host)?.id).filter((id): id is string => !!id),
+  );
+  const { data: unlockRows } = await admin
+    .from("looking_for_post_unlocks")
+    .select("host_id")
+    .eq("post_id", postId);
+  const preparingCount = (unlockRows ?? []).filter(
+    (u) => !respondedHostIds.has(u.host_id),
+  ).length;
 
   // ---- Quotes (guest RLS is token-gated, so read with the admin client after
   // ownership is confirmed, scoped to this post's quote ids). ----
@@ -516,6 +536,7 @@ export async function loadRequestRecord(
     quotesById,
     bookingsById,
     unreadTotal,
+    preparingCount,
     selfId: userId,
   };
 }
