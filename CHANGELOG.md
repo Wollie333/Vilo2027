@@ -52,6 +52,11 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   Post → lead minted + consent stamped (t3-p2) + public post → magic-link redirect lands signed in
   on the portal record page; consent:false rejected; test data cleaned up. **WS-2 is now complete
   (2a–2e).**
+- **Fix — "Could not assign a quote number"**: hosts couldn't submit a quote. `next_quote_number()`
+  is called via the user's client (`authenticated` role), but the wiring-audit `REVOKE … FROM PUBLIC`
+  had stripped `authenticated` too, so the RPC failed 42501. Granted EXECUTE to `authenticated` (the
+  fn is SECURITY DEFINER returning only a `Q-NNNN` string; anon stays out — the public enquiry path
+  uses service_role). Migration `20260720160000`; verified the RPC now returns a number for that role.
 
 ---
 
