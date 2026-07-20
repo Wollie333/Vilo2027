@@ -52,6 +52,9 @@ export async function createGuestAccountAction(
   }
   const d = parsed.data;
   const full_name = combineName(d.first_name, d.surname);
+  // Guest signup is passwordless by default (magic-link). A non-empty password
+  // means the user opted into the password fallback; null means passwordless.
+  const pw = d.password && d.password.length > 0 ? d.password : null;
 
   const hdrs = headers();
   const origin = hdrs.get("origin") ?? "";
@@ -76,7 +79,8 @@ export async function createGuestAccountAction(
   }
 
   // 3. Reject known-breached passwords (best-effort; never blocks on outage).
-  if (await isBreachedPassword(d.password)) {
+  //    Only relevant when the user set a password — passwordless has none.
+  if (pw && (await isBreachedPassword(pw))) {
     return {
       ok: false,
       error:
@@ -87,11 +91,12 @@ export async function createGuestAccountAction(
   const admin = createAdminClient();
 
   // 4. Provision the user (confirmed for guaranteed sign-in; inbox ownership is
-  //    tracked via email_verified_at — see host/actions.ts).
+  //    tracked via email_verified_at — see host/actions.ts). Passwordless users
+  //    are created with no password and sign in with a magic link.
   const { data: created, error: createErr } = await admin.auth.admin.createUser(
     {
       email: d.email,
-      password: d.password,
+      ...(pw ? { password: pw } : {}),
       email_confirm: true,
       user_metadata: { full_name },
     },
@@ -121,17 +126,48 @@ export async function createGuestAccountAction(
   }
   const newUserId = created.user.id;
 
-  // 5. Sign them in so the wizard can continue.
+  // 5. Establish a session so the wizard can continue in-place (about + prefs
+  //    steps need an authenticated caller). Password users sign in directly;
+  //    passwordless users get a one-time magic link that we verify server-side —
+  //    no email round-trip mid-wizard. Mirrors /auth/confirm's verifyOtp.
   const supabase = createServerClient();
-  const { error: signInErr } = await supabase.auth.signInWithPassword({
-    email: d.email,
-    password: d.password,
-  });
-  if (signInErr) {
-    return {
-      ok: false,
-      error: "Account was created but sign-in failed. Try signing in manually.",
-    };
+  if (pw) {
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: d.email,
+      password: pw,
+    });
+    if (signInErr) {
+      return {
+        ok: false,
+        error:
+          "Account was created but sign-in failed. Try signing in manually.",
+      };
+    }
+  } else {
+    const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: d.email,
+    });
+    const hashed = link?.properties?.hashed_token;
+    if (!hashed) {
+      console.error("[guest signup] magic-link mint failed:", linkErr?.message);
+      return {
+        ok: false,
+        error:
+          "Account was created but sign-in failed. Try signing in instead.",
+      };
+    }
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      type: "magiclink",
+      token_hash: hashed,
+    });
+    if (otpErr) {
+      return {
+        ok: false,
+        error:
+          "Account was created but sign-in failed. Try signing in instead.",
+      };
+    }
   }
 
   // 6. Seed the name + role + legal consent so /portal greets them even if they

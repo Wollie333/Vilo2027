@@ -1,9 +1,10 @@
 import { z } from "zod";
 
+import { passwordSchema } from "@/lib/auth/password";
+import { nameFields } from "@/lib/profile/name";
 import {
   COUNTRIES,
   LANGUAGE_OPTIONS,
-  accountSchema as hostAccountSchema,
 } from "@/app/[locale]/signup/host/schemas";
 
 // SA cities surfaced as preferred-cities chips on Step 3. Extend freely —
@@ -25,8 +26,30 @@ export const SA_CITIES = [
 
 export { COUNTRIES, LANGUAGE_OPTIONS };
 
-// Re-export the host accountSchema verbatim — same shape works for guests.
-export const accountSchema = hostAccountSchema;
+// Guest account schema. Unlike the host flow, guest signup is PASSWORDLESS by
+// default (magic-link) — so `password` is optional. When the user opts to set a
+// password, a non-empty value must satisfy the shared password policy; the
+// superRefine surfaces the exact policy message on the password field.
+export const accountSchema = z.object({
+  ...nameFields,
+  email: z.string().trim().toLowerCase().email("Enter a valid email."),
+  password: z
+    .string()
+    .optional()
+    .superRefine((v, ctx) => {
+      if (!v) return; // passwordless — nothing to validate
+      const r = passwordSchema.safeParse(v);
+      if (!r.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: r.error.issues[0]?.message ?? "That password is too weak.",
+        });
+      }
+    }),
+  terms: z.boolean().refine((v) => v === true, {
+    message: "Please accept the terms to continue.",
+  }),
+});
 export type AccountInput = z.infer<typeof accountSchema>;
 
 export const guestProfileSchema = z.object({

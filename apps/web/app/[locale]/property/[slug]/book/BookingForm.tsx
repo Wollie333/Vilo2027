@@ -1941,7 +1941,7 @@ export function BookingForm({
       <section className={cardLabel}>
         <div className="border-b border-brand-line px-5 py-4">
           <div className="font-display font-semibold text-brand-ink">
-            {isAuthenticated ? "Contact details" : "Create your guest account"}
+            {isAuthenticated ? "Contact details" : "Create your Wielo account"}
           </div>
           <div className="mt-0.5 text-xs text-brand-mute">
             {isAuthenticated
@@ -3248,7 +3248,7 @@ export function BookingForm({
                     ? "You’ll get the host’s banking details to complete payment."
                     : isAuthenticated
                       ? "You won’t be charged until payment completes."
-                      : "We’ll create your guest account, then open secure checkout."}
+                      : "We’ll create your Wielo account, then open secure checkout."}
                 </p>
               ) : null}
             </div>

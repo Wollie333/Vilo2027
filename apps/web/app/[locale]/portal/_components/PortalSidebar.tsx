@@ -119,7 +119,7 @@ export function PortalSidebar({
 
   return (
     <GmailNav
-      ariaLabel="Guest portal navigation"
+      ariaLabel="Wielo account navigation"
       top={
         <div className="space-y-2">
           <WorkspaceSwitcher

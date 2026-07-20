@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-20 (pt41) — WS-4 deferred pieces: user-facing "guest"→"Wielo account" rename + magic-link signup default.
+
+Resumed from pt40. Shipped the two deferred WS-4 items the founder asked to start with. All green
+(type-check + lint). Verified live end-to-end in the running app.
+
+- **Rename — user-facing "guest" account label → "Wielo account".** A deliberate, narrow pass over
+  account-LABEL strings only (a person who books is still a "guest"): guest signup wizard sidebar
+  "Guest onboarding" → **"Account setup"**; wizard heading already reads "Create your {brand} account";
+  guest signup meta "your guest profile" → "your Wielo account"; `WorkspaceSwitcher` "Guest portal" →
+  **"Wielo account"**; `PortalSidebar` aria "Guest portal navigation" → **"Wielo account navigation"**;
+  `BookingForm` inline account "Create your guest account" / "We'll create your guest account…" →
+  **"…your Wielo account…"** (×2). The internal `role = 'guest'` and all person-as-guest copy are
+  untouched. **Verified live:** wizard ("Account setup", "Create your Wielo account"), authenticated
+  portal ("Wielo account navigation"), and the booking form Step 2 ("Create your Wielo account").
+- **Magic-link is now the guest signup default** (password becomes a reveal-toggle fallback). The
+  account step no longer requires a password: the default card reads "No password needed — we'll email
+  you a secure sign-in link", with a "Prefer to set a password? Set one now" toggle (and a "Use a magic
+  link instead" toggle back). Guest `accountSchema` makes `password` optional (a non-empty value still
+  must satisfy the shared password policy, surfaced via superRefine). `createGuestAccountAction` creates
+  the user with **no password** when passwordless and establishes the in-session auth cookie server-side
+  via `admin.generateLink({type:'magiclink'})` → `verifyOtp` (mirrors `/auth/confirm`), so the wizard's
+  About + Prefs steps (incl. the WS-4 host-lead capture) still run in one session — no email round-trip
+  mid-signup. The soft email-verify posture is unchanged (`email_verified_at` stays null → nag banner).
+  **Verified live:** a full passwordless signup (Thandi Mokoena) created the account, auto-signed-in,
+  completed all four wizard steps, and landed in an authenticated `/portal` (soft-verify banner showing).
+- **Note (not done — separate decision):** the *inline booking-form* account creation still uses a
+  password. Item 2 was scoped to the signup wizard; whether the booking inline path should also go
+  passwordless is a founder call.
+
 ## 2026-07-20 (pt39) — WS-2 Looking For funnel: 2c + 2d + 2e (recovered mid-build after a desktop crash).
 
 Resumed from pt38. The working tree held an in-progress WS-2 build (uncommitted) when

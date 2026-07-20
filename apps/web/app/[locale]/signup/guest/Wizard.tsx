@@ -68,6 +68,9 @@ type WizardData = {
   surname: string;
   fullName: string;
   email: string;
+  // Passwordless (magic-link) is the default; `usePassword` reveals the
+  // password fallback and makes the password fields required.
+  usePassword: boolean;
   password: string;
   confirmPassword: string;
   showPassword: boolean;
@@ -91,6 +94,7 @@ function initialData(prefilledEmail: string | null): WizardData {
     surname: "",
     fullName: "",
     email: prefilledEmail ?? "",
+    usePassword: false,
     password: "",
     confirmPassword: "",
     showPassword: false,
@@ -223,18 +227,19 @@ export function Wizard({
   }
 
   function handleAccountNext() {
+    const password = data.usePassword ? data.password : "";
     const parsed = accountSchema.safeParse({
       first_name: data.firstName,
       surname: data.surname,
       email: data.email,
-      password: data.password,
+      password,
       terms: data.terms,
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
-    if (data.confirmPassword !== data.password) {
+    if (data.usePassword && data.confirmPassword !== data.password) {
       setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
@@ -249,7 +254,7 @@ export function Wizard({
           first_name: data.firstName,
           surname: data.surname,
           email: data.email,
-          password: data.password,
+          password,
           terms: data.terms,
         },
         captchaToken,
@@ -460,7 +465,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
               {brandName}
             </div>
             <div className="mt-0.5 text-[10px] text-emerald-200/70">
-              Guest onboarding
+              Account setup
             </div>
           </div>
         </div>
@@ -667,47 +672,95 @@ function StepAccount({
           />
         </FormField>
 
-        <FormField
-          label="Password"
-          hint="At least 8 characters."
-          error={errors.password}
-        >
-          <div className="relative">
-            <TextInput
-              type={data.showPassword ? "text" : "password"}
-              value={data.password}
-              onChange={(e) => patch({ password: e.target.value })}
-              placeholder="••••••••"
-              className="pr-10"
-              disabled={pending}
-              autoComplete="new-password"
-            />
+        {data.usePassword ? (
+          <>
+            <FormField
+              label="Password"
+              hint="At least 8 characters."
+              error={errors.password}
+            >
+              <div className="relative">
+                <TextInput
+                  type={data.showPassword ? "text" : "password"}
+                  value={data.password}
+                  onChange={(e) => patch({ password: e.target.value })}
+                  placeholder="••••••••"
+                  className="pr-10"
+                  disabled={pending}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => patch({ showPassword: !data.showPassword })}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-mute hover:text-brand-ink"
+                  tabIndex={-1}
+                >
+                  {data.showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <PasswordStrengthMeter
+                password={data.password}
+                email={data.email}
+              />
+            </FormField>
+
+            <FormField label="Confirm password" error={errors.confirmPassword}>
+              <TextInput
+                type={data.showPassword ? "text" : "password"}
+                value={data.confirmPassword}
+                onChange={(e) => patch({ confirmPassword: e.target.value })}
+                placeholder="Re-enter your password"
+                disabled={pending}
+                autoComplete="new-password"
+              />
+            </FormField>
+
             <button
               type="button"
-              onClick={() => patch({ showPassword: !data.showPassword })}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-mute hover:text-brand-ink"
-              tabIndex={-1}
+              onClick={() =>
+                patch({
+                  usePassword: false,
+                  password: "",
+                  confirmPassword: "",
+                })
+              }
+              disabled={pending}
+              className="text-xs font-semibold text-brand-primary hover:underline disabled:opacity-50"
             >
-              {data.showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              Use a magic link instead — no password
             </button>
+          </>
+        ) : (
+          <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-brand-ink">
+                  No password needed
+                </div>
+                <p className="mt-0.5 text-xs leading-relaxed text-brand-mute">
+                  We&apos;ll email you a secure sign-in link whenever you want
+                  to log in — nothing to remember. You can add a password
+                  anytime from your settings.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => patch({ usePassword: true })}
+                  disabled={pending}
+                  className="mt-2.5 text-xs font-semibold text-brand-primary hover:underline disabled:opacity-50"
+                >
+                  Prefer to set a password? Set one now
+                </button>
+              </div>
+            </div>
           </div>
-          <PasswordStrengthMeter password={data.password} email={data.email} />
-        </FormField>
-
-        <FormField label="Confirm password" error={errors.confirmPassword}>
-          <TextInput
-            type={data.showPassword ? "text" : "password"}
-            value={data.confirmPassword}
-            onChange={(e) => patch({ confirmPassword: e.target.value })}
-            placeholder="Re-enter your password"
-            disabled={pending}
-            autoComplete="new-password"
-          />
-        </FormField>
+        )}
 
         <div>
           <label className="flex cursor-pointer select-none items-start gap-2.5">

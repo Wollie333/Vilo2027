@@ -8,7 +8,7 @@ import { Wizard } from "./Wizard";
 export const metadata: Metadata = {
   title: "Create your account",
   description:
-    "Set up your guest profile and start booking direct stays — three quick steps.",
+    "Set up your Wielo account and start booking direct stays — three quick steps.",
 };
 
 export const dynamic = "force-dynamic";

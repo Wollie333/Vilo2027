@@ -37,7 +37,7 @@ const DEFAULTS: Record<Workspace, Option> = {
   },
   guest: {
     id: "guest",
-    label: "Guest portal",
+    label: "Wielo account",
     href: "/portal",
     icon: Compass,
     blurb: "Browse, book, view your trips",
