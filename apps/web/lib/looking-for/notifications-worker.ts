@@ -78,106 +78,23 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
     result.expiryProcessed += 1;
   }
 
-  // ---- 2. Region digest → hosts operating there --------------------------
+  // ---- 2. Region digest → DRAIN ONLY (superseded by WS-2c) ----------------
+  // Default regional alerting is now real-time: on publish, notifyMatchingAlerts
+  // (matchAlerts.ts, pass 2) notifies EVERY host with a published property in
+  // range — not just saved-search holders. The hourly province digest would
+  // therefore double-send the same `looking_for_new_post_region` to those hosts,
+  // later and coarser. So we no longer DISPATCH from the digest; we just drain
+  // the queue (mark rows processed) so the pg_cron-filled queue never backs up.
+  // The real-time path is the single source of the "new request in your area"
+  // notification. (Keep this drain until the pg_cron that fills the queue is
+  // retired in a later migration.)
   const { data: digestRows } = await admin
     .from("looking_for_region_digest_queue")
-    .select("id, region, post_count, sample_post_ids")
+    .select("id")
     .is("processed_at", null)
-    .limit(100);
+    .limit(500);
 
   for (const row of digestRows ?? []) {
-    const region = row.region as string;
-    const samplePostId = ((row.sample_post_ids as string[] | null) ?? [])[0];
-
-    if (region && samplePostId) {
-      // Sample post details to enrich the host email/notification.
-      const { data: sample } = await admin
-        .from("looking_for_posts")
-        .select(
-          "title, location_text, adults, children, infants, budget_min, budget_max, check_in_date",
-        )
-        .eq("id", samplePostId)
-        .maybeSingle();
-      const sGuests =
-        (sample?.adults ?? 0) +
-        (sample?.children ?? 0) +
-        (sample?.infants ?? 0);
-      const sBudget =
-        sample?.budget_min && sample?.budget_max
-          ? `R ${sample.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")} – R ${sample.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
-          : sample?.budget_max
-            ? `Up to R ${sample.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
-            : sample?.budget_min
-              ? `From R ${sample.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")}`
-              : undefined;
-      const sCheckIn = sample?.check_in_date
-        ? new Date(`${sample.check_in_date}T00:00:00`).toLocaleDateString(
-            "en-ZA",
-            { day: "numeric", month: "short", year: "numeric" },
-          )
-        : undefined;
-
-      // Hosts with a published listing in this province.
-      const { data: props } = await admin
-        .from("properties")
-        .select("host_id")
-        .ilike("province", region)
-        .eq("is_published", true)
-        .is("deleted_at", null);
-      const hostIds = Array.from(
-        new Set((props ?? []).map((p) => p.host_id as string)),
-      );
-
-      if (hostIds.length) {
-        // Skip hosts who already get precise real-time alerts for this region —
-        // they were notified per-post at creation time (matchAlerts).
-        const { data: alertHosts } = await admin
-          .from("looking_for_alerts")
-          .select("host_id")
-          .eq("is_active", true)
-          .ilike("location_region", region)
-          .in("host_id", hostIds);
-        const excluded = new Set(
-          (alertHosts ?? []).map((a) => a.host_id as string),
-        );
-        const targets = hostIds.filter((h) => !excluded.has(h));
-
-        if (targets.length) {
-          const { data: hostRows } = await admin
-            .from("hosts")
-            .select("id, user_id, display_name")
-            .in("id", targets)
-            .is("deleted_at", null);
-          for (const h of hostRows ?? []) {
-            if (!h.user_id) continue;
-            await dispatchEvent({
-              kind: "looking_for_new_post_region",
-              recipientUserId: h.user_id as string,
-              hostId: h.id as string,
-              refs: {
-                post_id: samplePostId,
-                location_text: sample?.location_text ?? region,
-                // Email props (LookingForNewRequestHost):
-                hostFirstName:
-                  ((h.display_name as string | null) ?? "").split(" ")[0] ||
-                  undefined,
-                postTitle: sample?.title ?? undefined,
-                locationText: sample?.location_text ?? region,
-                postId: samplePostId,
-                checkIn: sCheckIn,
-                guests:
-                  sGuests > 0
-                    ? `${sGuests} guest${sGuests === 1 ? "" : "s"}`
-                    : undefined,
-                budget: sBudget,
-              },
-            });
-            result.regionNotified += 1;
-          }
-        }
-      }
-    }
-
     await admin
       .from("looking_for_region_digest_queue")
       .update({ processed_at: new Date().toISOString() })
