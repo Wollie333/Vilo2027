@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-20 (pt42b) — WS-3b: data-backed changelog with host credit (verified live).
+
+Continued from pt42. Completed WS-3 with the data-backed changelog. All green (type-check +
+lint + `pnpm build`). Migration applied to the linked cloud project; types + `docs/SCHEMA.md`
+regenerated. Verified live end-to-end.
+
+- **Schema (`20260720210000`).** `changelog_entries` (slug/title/`body_html`/`credited_host_id`
+  →hosts SET NULL/`credited_name` snapshot/`feature_request_id`→feature_requests SET NULL/
+  `shipped_at`/`is_published`/touch trigger) mirroring the `legal_documents` pipeline (HTML
+  sanitised on write AND read; public reads published; writes service-role-only). Also extends the
+  `admin_audit_log` CHECK constraint + `AUDIT_TARGET_TYPES` with `changelog_entry`. Seeded 3
+  truthful shipped-feature entries (seasonal pricing, PayPal, EFT) — **no fabricated host credits**.
+- **Admin editor (`/admin/changelog`, new sidebar item).** Create/edit entries with the shared
+  `RichTextEditor`, a **credit-a-host picker** (real hosts, snapshots the display name server-side),
+  an optional link to a shipped Build Board item, a shipped-date, and a publish toggle. Actions via
+  `withAdminAudit`.
+- **Public `/change-log` now data-backed.** Renders DB entries (Shipped pill · date · "Suggested by
+  {host}") when any are published; **falls back to the repo `CHANGELOG.md` file parse** when none are
+  (both paths verified live by toggling `is_published`). Hero now points to the Build Board. Rich-text
+  body styled to match the editor (the typography plugin isn't installed).
+- **Verified live (super-admin):** public page shows the 3 DB entries; edited one to credit a real
+  host → "Suggested by Elmarie van Wyk" rendered on the public page; unpublishing all → file fallback
+  renders; re-published + cleared the demo credit so nothing fabricated ships.
+
 ## 2026-07-20 (pt42) — WS-3a Build Board: public feature-request voting + moderation (seeded, verified live).
 
 Resumed from pt41. Built the WS-3a Build Board — Wielo's public roadmap where signed-in

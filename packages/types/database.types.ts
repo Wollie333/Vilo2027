@@ -2068,6 +2068,69 @@ export type Database = {
           },
         ]
       }
+      changelog_entries: {
+        Row: {
+          body_html: string | null
+          created_at: string
+          credited_host_id: string | null
+          credited_name: string | null
+          feature_request_id: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          shipped_at: string | null
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          created_at?: string
+          credited_host_id?: string | null
+          credited_name?: string | null
+          feature_request_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          shipped_at?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          created_at?: string
+          credited_host_id?: string | null
+          credited_name?: string | null
+          feature_request_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          shipped_at?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "changelog_entries_credited_host_id_fkey"
+            columns: ["credited_host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "changelog_entries_feature_request_id_fkey"
+            columns: ["feature_request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_notes: {
         Row: {
           author_id: string | null

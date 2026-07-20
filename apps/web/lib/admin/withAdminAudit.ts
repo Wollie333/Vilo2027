@@ -80,6 +80,7 @@ export const AUDIT_TARGET_TYPES = [
   "looking_for_requirement_group",
   "looking_for_requirement_option",
   "feature_request",
+  "changelog_entry",
   "permission_denied",
 ] as const;
 

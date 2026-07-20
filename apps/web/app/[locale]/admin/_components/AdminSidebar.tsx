@@ -17,6 +17,7 @@ import {
   Mail,
   Megaphone,
   Package,
+  ScrollText,
   Send,
   ShieldAlert,
   Sparkles,
@@ -153,6 +154,12 @@ const PLATFORM: GmailNavItem[] = [
     href: "/admin/platform/looking-for",
     label: "Looking-For reqs",
     icon: ListChecks,
+    match: "prefix",
+  },
+  {
+    href: "/admin/changelog",
+    label: "Changelog",
+    icon: ScrollText,
     match: "prefix",
   },
   {

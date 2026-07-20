@@ -16,8 +16,8 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **189** (189 with RLS) |
-| Functions | **175** (140 SECURITY DEFINER, 63 trigger fns) |
+| Tables | **190** (190 with RLS) |
+| Functions | **176** (140 SECURITY DEFINER, 64 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -251,6 +251,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `sync_looking_for_view_count` | **yes** | yes | trigger |
 | `sync_review_helpful_count` | **yes** | yes | trigger |
 | `tg_affiliate_clawback_on_refund` | **yes** | yes | trigger |
+| `tg_changelog_entries_touch` | — | — | trigger |
 | `tg_legal_documents_touch` | — | — | trigger |
 | `tg_notify_affiliate_commission_earned` | **yes** | yes | trigger |
 | `touch_addons_updated_at` | — | — | trigger |
@@ -359,7 +360,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text, 'changelog_entry'::text])))`
 
 **RLS policies:**
 - `admin_read_audit` (SELECT) — `USING is_super_admin()`
@@ -1287,6 +1288,42 @@ CASE
   WHERE (hosts.user_id = auth.uid()))) CHECK (host_id IN ( SELECT hosts.id
    FROM hosts
   WHERE (hosts.user_id = auth.uid())))`
+
+### `changelog_entries`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `slug` | text | — | — |
+| `title` | text | — | — |
+| `body_html` | text | yes | — |
+| `credited_host_id` | uuid | yes | — |
+| `credited_name` | text | yes | — |
+| `feature_request_id` | uuid | yes | — |
+| `shipped_at` | timestamp with time zone | yes | — |
+| `is_published` | boolean | — | `false` |
+| `published_at` | timestamp with time zone | yes | — |
+| `updated_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (credited_host_id) REFERENCES hosts(id) ON DELETE SET NULL`
+- `FOREIGN KEY (feature_request_id) REFERENCES feature_requests(id) ON DELETE SET NULL`
+- `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (slug)`
+
+**Checks:**
+- `CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))`
+- `CHECK (((char_length(title) >= 2) AND (char_length(title) <= 160)))`
+
+**Triggers:**
+- `trg_changelog_entries_touch` → `tg_changelog_entries_touch()`
+
+**RLS policies:**
+- `public reads published changelog` (SELECT) — `USING (is_published = true)`
 
 ### `conversation_notes`
 
