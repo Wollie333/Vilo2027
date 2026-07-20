@@ -57,6 +57,17 @@ cloud project; types + `docs/SCHEMA.md` regenerated. Push still blocked (see sav
   had stripped `authenticated` too, so the RPC failed 42501. Granted EXECUTE to `authenticated` (the
   fn is SECURITY DEFINER returning only a `Q-NNNN` string; anon stays out — the public enquiry path
   uses service_role). Migration `20260720160000`; verified the RPC now returns a number for that role.
+- **Founder testing fixes (Paystack signup round).** (1) **Seasonal pricing was gated off in
+  onboarding** — `check_feature_permission("seasonal_pricing")` had no row anywhere so it defaulted to
+  disabled, and the feature wasn't in the product catalog so admins couldn't enable it. Added it to
+  `CANONICAL_PRODUCT_FEATURES` as a `"total"` (quantity) feature (enable toggle + qty in Admin →
+  Products → Feature permissions), enforced the qty limit in both create paths, and seeded it enabled
+  (limit 50) on every product + plan (migration `20260720180000`). Verified: product editor shows it;
+  the host on Starter now loads the seasonal manager unblocked. (2) **Admin "Confirm email"** control
+  on the user record's Verified row — stamps `email_verified_at` (+ best-effort auth confirm) for a
+  guest the founder has vouched for (`confirmUserEmailAction`, audited). Verified on a real guest. (3)
+  Confirmed the Paystack test subscription (Gerku Steenkamp / melanie@gmail.com) is a correct active
+  Starter membership.
 - **WS-6a — generic legal document store**: a slug-addressable store so the attorney can paste final
   copy for ANY instrument and have it go live at `/legal/<slug>`, version-retained. Migration
   `20260720170000` adds `legal_documents` (slug/title/body_html/version/is_published/published_at)
