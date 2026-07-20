@@ -36,6 +36,7 @@ This file documents every environment variable used across the platform, what it
 | `VERCEL_TOKEN` | Server only | — | ✅ | Custom domains |
 | `VERCEL_PROJECT_ID` | Server only | — | ✅ | Custom domains |
 | `VERCEL_TEAM_ID` | Server only | — | ✅ | Custom domains |
+| `NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE` | ✅ | — | — | Website CMS (set to `true` at launch to enforce one website per business — bounces the setup wizard to the existing site's editor. Default/unset = OFF so the wizard can be re-run during testing) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | ✅ | — | — | Website CMS (bot-hardening) |
 | `TURNSTILE_SECRET_KEY` | Server only | — | — | Website CMS (bot-hardening) |
 | `GOOGLE_MAPS_API_KEY` | Server only | — | ✅ | Address picker (`/api/geo` → Google Places + Geocoding). Enable **Places API (New)** + **Geocoding API** on the key. Without it the picker still loads but returns no suggestions. |

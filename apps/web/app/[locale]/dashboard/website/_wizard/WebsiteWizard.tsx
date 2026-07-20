@@ -119,17 +119,18 @@ export function WebsiteWizard(props: WizardProps) {
   // action triggers right after THIS wizard creates a site (which repopulates
   // existingWebsiteId) can't fire it again and skip the success screen.
   //
-  // TEMPORARILY DISABLED (testing/wizard refinement): with a finalized site on
-  // file this bounce sent the host straight to the editor on every wizard entry,
-  // so the wizard couldn't be re-run to test the flow. Paired with the landing
-  // page's disabled auto-redirect + the prominent "Delete & start over" card.
-  // Re-enable before launch (one site per business → send them to edit it).
+  // Gated behind NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE (default OFF). Pre-launch the
+  // bounce stays off so the wizard can be re-run to test the flow (paired with the
+  // landing page's disabled auto-redirect + the "Delete & start over" card); flip
+  // the flag ON at launch to enforce one site per business (existing site → edit it).
   const bounceId = useRef(props.existingWebsiteId ?? null);
   useEffect(() => {
-    // if (bounceId.current) {
-    //   router.replace(`/dashboard/website/${bounceId.current}`);
-    // }
-    void bounceId; // keep the ref wired for the re-enable above
+    if (
+      process.env.NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE === "true" &&
+      bounceId.current
+    ) {
+      router.replace(`/dashboard/website/${bounceId.current}`);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

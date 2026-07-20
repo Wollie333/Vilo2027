@@ -954,6 +954,19 @@ export async function createWebsiteWithWizardAction(
     derived,
   });
 
+  // Guarantee an active DEFAULT cancellation policy so the go-live readiness
+  // gate's `policy` requirement is met the moment the wizard finishes — lowering
+  // the wall to (realistically) just "add a priced room" for a fresh host. The
+  // host-create trigger (seed_host_policies) already seeds these, so this is an
+  // idempotent safety net that also covers a host whose sole preset was deleted;
+  // it reuses the platform's own tested seeder (Moderate: full refund up to 5
+  // days before check-in) rather than fabricating a bespoke policy. Best-effort:
+  // rpc errors return in-band, never throw — the site is already created.
+  await supabase.rpc("ensure_host_policy_presets", { p_host_id: host.hostId });
+  await supabase.rpc("ensure_host_default_policies", {
+    p_host_id: host.hostId,
+  });
+
   // Auto-publish — copy draft→published per page + freeze the snapshot + set
   // status=published. Best-effort: the site is already created, so this never
   // fails the wizard. It legitimately WON'T publish when the go-live readiness
