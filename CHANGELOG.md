@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-20 — Wizard→website Phase 2: go-live UX — publish from the wizard + lower the wall (`51d8e78`).
+
+**WIZARD_TO_WEBSITE_PLAN Phase 2 — make "finish wizard → live site" reliable.** When the go-live
+readiness gate holds a new site as a draft, the wizard's final step now guides the host all the way to
+published without leaving the flow.
+
+- **Publish from the final step** (`StepDone`, `78691c8`). The draft outcome already deep-linked each
+  missing readiness item to its editor (`ReadinessChecklist` → `readiness.ts` `fixHref`). Added the
+  missing piece: a **"Re-check & publish"** button that calls `publishWebsiteAction` (which enforces the
+  same readiness gate server-side, so one call re-checks AND goes live). Success → flips to the live
+  state showing the URL + connect-domain CTA; `not_ready` → refreshes the checklist via
+  `checkWebsiteReadinessAction` (fixed items drop off) with a gentle note. New `en.json` keys.
+- **Lower the wall — guaranteed default cancellation policy** (`51d8e78`, founder decision). On wizard
+  finish, call `ensure_host_policy_presets` + `ensure_host_default_policies` so an active DEFAULT
+  cancellation policy exists → the `policy` requirement is met, leaving (realistically) just "add a
+  priced room". Idempotent, reuses the platform seeder (Moderate: full refund up to 5 days). **Finding:**
+  the `seed_host_policies` AFTER-INSERT trigger already seeds these on host create, so a normal new host
+  already satisfies `policy` — this wizard call is a safety net (covers a deleted preset) that also
+  guarantees it at publish time.
+- **Re-enable one-per-business bounce behind a flag** (`51d8e78`, founder decision).
+  `NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE` (default OFF so the wizard stays re-runnable for testing; flip
+  ON at launch → existing site bounces to its editor). Documented in `ENV_VARS.md`.
+- tsc + lint green. Dashboard StepDone publish UI not driven live (would require completing the full
+  authenticated wizard); wiring reuses already-verified server actions.
+
 ## 2026-07-20 — Wizard→website Phase 1: real host content (no demo copy) on wizard-seeded + bespoke themes (`3c2acfc`).
 
 **WIZARD_TO_WEBSITE_PLAN Phase 1 — a completed wizard now yields the host's REAL content on every

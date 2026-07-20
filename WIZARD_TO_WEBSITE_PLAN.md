@@ -99,7 +99,7 @@ with zero demo copy. Contained + high-impact.
    site shows the host's real name/photo/story/rooms/FAQ on the chosen theme, **no demo copy**, on
    every bespoke theme. Verify live (see Verification).
 
-### PHASE 2 — "Complete wizard → live site" go-live UX
+### PHASE 2 — "Complete wizard → live site" go-live UX ← **✅ DONE (`51d8e78`)**
 Make the readiness wall smooth so a host reliably reaches a published URL.
 
 1. **StepDone → guided completion.** When readiness fails, `StepDone` already lists what's left
@@ -226,5 +226,31 @@ Keep `CHANGELOG.md` + `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` current each phase;
   name/photo/story/hero/FAQ show the real business data (no theme demo strings). NB derived fallbacks
   need the business to actually HAVE a property description / photo / policy — an empty account still
   shows demo copy by design.
+
+## 🗒️ DONE — Phase 2 (2026-07-20, HEAD `51d8e78`)
+- **Publish from the wizard's final step** (`StepDone`, `78691c8`). Draft outcome already deep-linked
+  each missing item (checklist → `readiness.ts` `fixHref`); added a **"Re-check & publish"** button →
+  `publishWebsiteAction` (server-side readiness gate = one call re-checks AND publishes). Success flips
+  to the live state (URL + connect-domain); `not_ready` refreshes the checklist via
+  `checkWebsiteReadinessAction`. New en.json keys (`wizardPublishNow`/`…Publishing`/`…StillMissing`/`…Error`).
+- **Founder decision — auto-seed default policy** (`51d8e78`): wizard finish calls
+  `ensure_host_policy_presets` + `ensure_host_default_policies` (idempotent) → active default cancellation
+  policy → `policy` requirement met. **KEY FINDING:** the `seed_host_policies` AFTER-INSERT trigger on
+  `hosts` ALREADY seeds these on host create — so a normal new host already satisfies `policy`; the plan's
+  gap #1 ("brand-new host has …no cancellation policy") was inaccurate on that point. This wizard call is a
+  safety net (deleted-preset case) + guarantees it at publish time. Net: the realistic remaining wall for a
+  fresh host is just **a priced room** (payment EFT still needs banking details; a room needs a real price —
+  neither can be safely fabricated).
+- **Founder decision — one-per-business bounce re-enabled behind a flag** (`51d8e78`):
+  `NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE` (default OFF for testing; ON at launch). In `ENV_VARS.md`.
+- **NOT live-driven:** the StepDone publish UI wasn't exercised via the full authenticated wizard (heavy);
+  it reuses already-verified server actions + is tsc/lint green.
+
+## ▶▶ NEXT SESSION — resume at PHASE 4 (Google Places nearby) or PHASE 5 (per-theme mobile pass)
+Phases 1–3 done (3 = booking, already wired + Phase-1 no-regression confirmed live). Remaining: **Phase 4**
+(nearby-experiences → real data; founder: use the LISTING/property address, not business/settings), **Phase 5**
+(per-theme differentiation polish + explicit mobile QA per theme×page). See those phase sections above.
+Pre-existing hydration errors (#418/#423/#425) on the site preview render were found this session (NOT ours —
+identical on the pre-change control deploy) and flagged as a separate background task.
 
 **This file is COMMITTED. Update + commit it before ending any session.**
