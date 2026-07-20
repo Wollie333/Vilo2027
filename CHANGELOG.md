@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-20 (pt44b) — WS-5 follow-up: PayPal + upgrade paths are now Founding-lock-aware.
+
+Closes the last money gap from pt44: the recurring rails other than Paystack now honour the
+Founding lock. All green (type-check + lint + `pnpm build` + 29 billing tests). No schema change.
+
+- **PayPal recurring** (`paypal-subscription.ts`): `ensurePayPalPlan` gains an `amountOverride`;
+  `startPayPalSubscriptionCheckout` computes the lock-aware amount (Founding lock + per-listing via
+  `resolveMembershipAmount`) and mints/reuses the Billing Plan at THAT ZAR amount. Because plans are
+  keyed by amount, a 599 Founding host gets a distinct plan from a 999 list host — the existing
+  ZAR-keyed versioning handles it. So a Founding host on PayPal recurs at 599, not the list 999.
+- **Upgrade proration** (`upgrade.ts`): `getUpgradeQuote` + `runProratedPaystackUpgrade` now use the
+  host's **frozen locked base** as `oldPrice` (not the live list price), so a Founding host's upgrade
+  delta is computed against what they actually pay. This also corrects the PayPal upgrade delta
+  (shared quote).
+- **Still deferred (documented):** the legacy plan-based checkout (`platform-billing.ts`) uses
+  `plan_prices` and has no Founding config — N/A (Founding is a product-level concept). Mid-cycle
+  per-listing changes on an ACTIVE PayPal subscription reflect only on re-subscribe (PayPal's
+  fixed-plan model). The beta→Founding AUTO-conversion flow is still unbuilt (admin applies the lock
+  manually via the user record).
+
 ## 2026-07-20 (pt44) — WS-5 (5a/5c): Founding price-lock + per-listing add-on (money; tested hard, verified live).
 
 Continued from the Build Board admin work. Built the WS-5 pricing mechanism — a real

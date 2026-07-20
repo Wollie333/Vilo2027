@@ -99,12 +99,13 @@ export async function getUpgradeQuote(input: {
     billing_cycle: string | null;
     current_period_start: string | null;
     current_period_end: string | null;
+    locked_base_amount: number | null;
   } | null = null;
   if (input.subId) {
     const { data } = await admin
       .from("subscriptions")
       .select(
-        "product_id, billing_cycle, current_period_start, current_period_end",
+        "product_id, billing_cycle, current_period_start, current_period_end, locked_base_amount",
       )
       .eq("id", input.subId)
       .maybeSingle();
@@ -115,9 +116,13 @@ export async function getUpgradeQuote(input: {
   const currency = newProduct.currency ?? "ZAR";
   const fullPrice = priceForCycle(newProduct, cycle);
 
-  // Old price at the SAME cycle so the delta is a like-for-like difference.
+  // Old price at the SAME cycle so the delta is a like-for-like difference. WS-5:
+  // a Founding host's current price is their FROZEN locked base, not the live list
+  // price — so the upgrade delta is computed against what they actually pay.
   let oldPrice = 0;
-  if (sub?.product_id) {
+  if (sub?.locked_base_amount != null && Number(sub.locked_base_amount) > 0) {
+    oldPrice = Number(sub.locked_base_amount);
+  } else if (sub?.product_id) {
     const { data: oldProduct } = await admin
       .from("products")
       .select("price, annual_price")
@@ -199,7 +204,7 @@ export async function runProratedPaystackUpgrade(input: {
   const { data: sub } = await admin
     .from("subscriptions")
     .select(
-      "id, product_id, billing_cycle, current_period_start, current_period_end",
+      "id, product_id, billing_cycle, current_period_start, current_period_end, locked_base_amount",
     )
     .eq("id", input.subId)
     .maybeSingle();
@@ -219,8 +224,11 @@ export async function runProratedPaystackUpgrade(input: {
   const cycle = resolveCycle(sub.billing_cycle, newProduct.billing_cycle);
   const newPrice = priceForCycle(newProduct, cycle);
 
+  // WS-5: a Founding host's baseline is their frozen locked base, not list price.
   let oldPrice = 0;
-  if (sub.product_id) {
+  if (sub.locked_base_amount != null && Number(sub.locked_base_amount) > 0) {
+    oldPrice = Number(sub.locked_base_amount);
+  } else if (sub.product_id) {
     const { data: oldProduct } = await admin
       .from("products")
       .select("price, annual_price")

@@ -2,6 +2,10 @@ import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import {
+  countHostListings,
+  resolveMembershipAmount,
+} from "@/lib/billing/membershipAmount";
+import {
   membershipSwitchAmount,
   unusedFraction,
 } from "@/lib/billing/proration";
@@ -105,13 +109,20 @@ export async function ensurePayPalPlan(
     };
     cycle: "monthly" | "annual";
     creds: PayPalCreds;
+    // WS-5: the effective ZAR amount to bill (Founding lock + per-listing). When
+    // omitted we fall back to the product's live list price. Plans are keyed by
+    // amount, so a 599 Founding host gets a distinct plan from a 999 list host —
+    // the existing ZAR-keyed versioning handles this transparently.
+    amountOverride?: number | null;
   },
 ): Promise<string | null> {
   const environment = input.creds.env;
   const zarAmount =
-    input.cycle === "annual"
-      ? Number(input.product.annual_price ?? input.product.price)
-      : Number(input.product.price);
+    input.amountOverride != null && input.amountOverride > 0
+      ? Number(input.amountOverride)
+      : input.cycle === "annual"
+        ? Number(input.product.annual_price ?? input.product.price)
+        : Number(input.product.price);
   if (!(zarAmount > 0)) return null;
 
   // Reuse an active plan at this exact ZAR amount.
@@ -209,17 +220,37 @@ export async function startPayPalSubscriptionCheckout(input: {
 
   const { data: product } = await admin
     .from("products")
-    .select("id, name, price, annual_price, currency, product_type, is_active")
+    .select(
+      "id, name, price, annual_price, per_listing_amount, currency, product_type, is_active",
+    )
     .eq("id", input.productId)
     .maybeSingle();
   if (!product || !product.is_active || product.product_type === "product") {
     return { ok: false, error: "That plan isn't available." };
   }
 
+  // WS-5: bill the lock-aware amount (Founding lock + per-additional-listing) so a
+  // Founding host on PayPal recurs at their frozen price, not the live list price.
+  // Reads the host's existing membership sub for this product (if any) for the lock.
+  const { data: lockSub } = await admin
+    .from("subscriptions")
+    .select("is_founding, locked_base_amount, locked_per_listing_amount")
+    .eq("host_id", input.hostId)
+    .eq("product_id", product.id)
+    .maybeSingle();
+  const listingCount = await countHostListings(admin, input.hostId);
+  const effectiveAmount = resolveMembershipAmount({
+    cycle: input.cycle,
+    listingCount,
+    product,
+    lock: lockSub ?? null,
+  });
+
   const planId = await ensurePayPalPlan(admin, {
     product,
     cycle: input.cycle,
     creds,
+    amountOverride: effectiveAmount,
   });
   if (!planId) {
     return { ok: false, error: "Couldn't prepare the PayPal plan." };
