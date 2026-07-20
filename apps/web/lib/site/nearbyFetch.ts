@@ -214,9 +214,40 @@ export async function fetchNearbyPlaces(opts: {
     });
   }
 
-  return out
+  // Diversify the default selection. OSM is density-weighted — a town centre is
+  // thick with restaurants — so a pure nearest-first slice reads as "9 places to
+  // eat". Round-robin across the four groups (each pass takes the nearest
+  // not-yet-picked place from every group), so the capped set spans
+  // eat/see/nature/shop while still favouring the closest places; empty groups
+  // are skipped, so a sparse area just takes more from what's there. Final
+  // display stays nearest-first (the card also offers a category filter).
+  type Ranked = NearbyPlace & { _km: number };
+  const byGroup = new Map<NearbyPlace["group"], Ranked[]>();
+  for (const p of out.sort((a, b) => a._km - b._km)) {
+    const arr = byGroup.get(p.group);
+    if (arr) arr.push(p);
+    else byGroup.set(p.group, [p]);
+  }
+  const order: NearbyPlace["group"][] = ["eat", "see", "nature", "shop"];
+  const cursors = new Map<NearbyPlace["group"], number>();
+  const picked: Ranked[] = [];
+  let progressed = true;
+  while (picked.length < limit && progressed) {
+    progressed = false;
+    for (const g of order) {
+      if (picked.length >= limit) break;
+      const arr = byGroup.get(g);
+      const i = cursors.get(g) ?? 0;
+      if (arr && i < arr.length) {
+        picked.push(arr[i]);
+        cursors.set(g, i + 1);
+        progressed = true;
+      }
+    }
+  }
+
+  return picked
     .sort((a, b) => a._km - b._km)
-    .slice(0, limit)
     .map(({ _km, ...place }) => {
       void _km;
       return place;

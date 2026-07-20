@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-20 — Phase 4 nearby: data source PROVEN + category-diversity fix.
+
+**Verified the OSM nearby-experiences pipeline end-to-end where it's reachable, and fixed a
+default-ranking quality issue.**
+
+- **Data source proven with real output.** Reproduced the exact `nearbyFetch.ts` pipeline
+  (Nominatim geocode → Overpass POI query with the same value-filters → classify → Haversine
+  distance) against a real SA tourism town (Franschhoek). Returned 60 real POIs, correctly
+  distanced and categorised — all recognisable actual places (Huguenot Monument 0.8 km, La Motte
+  & Môreson wine estates, Drakensteinpiek, etc.). **Conclusion: free OSM is good enough** for the
+  "worth the short drive" section; the founder's OSM-vs-Google-Places call can lean OSM (no key,
+  no cost), accepting no photos/ratings — the card already degrades gracefully (monogram, hidden
+  rating row).
+- **Fix — diversify the default 9 (`lib/site/nearbyFetch.ts`).** OSM is density-weighted, so a
+  pure nearest-first slice read as "9 places to eat" (Franschhoek: 6 of 9 = restaurants). Replaced
+  the final slice with a distance-favouring round-robin across the four groups (eat/see/nature/shop),
+  then re-sorted nearest-first for display. Same real data, balanced default: Franschhoek now
+  `eat 3 / see 3 / nature 3`. Empty groups are skipped (sparse areas just take more from what's
+  there). The card's category filter is unchanged.
+- **Render path verified** on the preview Experiences page (mana/Safari): the `preview + no data`
+  branch correctly shows the 6-card placeholder + "Sample selection" note. mana still has no saved
+  `experiences.nearby` (placeholder = empty).
+- **Not done (blocked, not a code gap):** clicking **"Find nearby places"** in the website editor
+  to save real data for mana + see real cards render *live* is gated behind a Wielo dashboard login
+  (the authenticated browser has Vercel SSO but no app session; entering credentials is out of
+  bounds). Needs the founder to click it, or to hand over a logged-in session. Also confirm mana's
+  primary property actually has a geocodable address / lat-lng, or the action returns `none_found`.
+- tsc + lint clean. Doc comment in `SiteNearbyExperiences.tsx` refreshed (no longer says "until
+  Google Places is wired").
+
 ## 2026-07-20 — Fix: Safari room-detail gallery + full Safari page sweep (`317992f`).
 
 - **Room-detail gallery was broken on Safari** (photos stacked full-size down the page, "View all

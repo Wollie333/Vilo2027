@@ -20,15 +20,21 @@
 > fixed+verified, full Safari page sweep ✅ (only the gallery was broken).
 >
 > **▼ OPEN — pick up here next session (priority order):**
-> 1. **Verify Phase 4 (nearby) end-to-end + decide data source.** The whole pipeline is BUILT + deployed
->    but NOT yet E2E-verified: open mana's website editor Overview → click **"Find nearby places"** →
->    confirm it fetches real OSM places, saves, and they render on the Safari/any-theme **Experiences**
->    page (live = shown; live+none-curated = hidden; preview+none = placeholder). Files:
->    `lib/site/nearbyFetch.ts` (Overpass+Nominatim, no key), `refreshNearbyExperiencesAction` in
->    `dashboard/website/actions.ts`, `NearbyExperiencesCard.tsx`, `content_profile.experiences.nearby`
->    slot, `SiteNearbyExperiences` + the 5 `*Experiences.tsx`. **DATA CAVEAT:** OSM has NO photos/ratings/
->    reviews (card degrades gracefully — monogram instead of photo, rating row hidden). If the founder
->    wants rich cards → swap to **Google Places** (needs an API key; `NearbyPlace` is already Places-shaped).
+> 1. **Phase 4 (nearby): data source PROVEN ✅ + render path verified ✅ — ONE step left, and it needs
+>    the founder.** This session reproduced the exact `nearbyFetch.ts` pipeline live (Nominatim geocode
+>    → Overpass → classify → distance) against a real SA town (Franschhoek): 60 real, correctly-distanced,
+>    recognisable POIs → **free OSM is good enough; recommend keeping OSM** (no key/cost; card degrades
+>    gracefully — monogram, hidden rating row — since OSM has no photos/ratings). Also fixed a quality
+>    issue: the default 9 was restaurant-heavy (density-weighted OSM) → now a distance-favouring
+>    round-robin across eat/see/nature/shop (Franschhoek default = 3/3/3). Render path verified: preview
+>    Experiences page shows the placeholder correctly; mana has NO saved `experiences.nearby` yet.
+>    **THE ONE REMAINING STEP (founder action):** the website editor is behind a Wielo dashboard login
+>    that the authenticated browser doesn't hold (Vercel SSO ≠ app session; can't enter creds) → the
+>    founder must open mana's editor Overview → click **"Find nearby places"** → then confirm real cards
+>    render live on the Experiences page (no "Sample" note). ⚠️ First confirm mana's primary property has
+>    a geocodable address / lat-lng, else `refreshNearbyExperiencesAction` returns `none_found`. Files:
+>    `lib/site/nearbyFetch.ts`, `refreshNearbyExperiencesAction` in `dashboard/website/actions.ts`,
+>    `NearbyExperiencesCard.tsx`, `content_profile.experiences.nearby`, `SiteNearbyExperiences` + 5 `*Experiences.tsx`.
 > 2. **Hydration errors on the site preview render — NOT fixed** (recoverable/non-functional). Narrowed
 >    this session to a client component inside `SiteChrome` (dev-repro proved SiteThemeRoot/fonts are
 >    clean). Needs a dev build to name the exact node → needs `SUPABASE_SERVICE_ROLE_KEY` in

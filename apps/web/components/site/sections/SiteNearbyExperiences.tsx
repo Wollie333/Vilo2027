@@ -17,9 +17,10 @@ import {
  * responsive card grid with a category filter. SHARED + token-driven: every
  * colour/font/shape comes from the active theme's `--site-*` tokens (scoped
  * `.site-nearby`), so it reads on-brand on each theme without a bespoke copy —
- * like the shared contact form and gallery lightbox. Placeholder-first: renders
- * NEARBY_PLACEHOLDER until the Google Places fetch is wired (see lib/site/nearby),
- * and flags itself as a sample so nothing reads as a verified claim.
+ * like the shared contact form and gallery lightbox. Real places come from
+ * lib/site/nearbyFetch.ts (OSM), cached into content_profile.experiences.nearby
+ * by a host-triggered action; absent that, it renders NEARBY_PLACEHOLDER and
+ * flags itself as a sample so nothing reads as a verified claim.
  * Mobile-first: 3 → 2 → 1 columns; the filter row scrolls horizontally on phones.
  */
 export function SiteNearbyExperiences({
