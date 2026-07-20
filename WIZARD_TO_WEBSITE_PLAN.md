@@ -296,6 +296,15 @@ render needs `SUPABASE_SERVICE_ROLE_KEY` (admin client) so a local dev build can
 **▶ To finish (30s with env):** `cd apps/web && pnpm dev`, open
 `/en/site/home?site=mana&preview=1&theme=safari` with the console open → React DEV prints
 `Text content did not match. Server: "…" Client: "…"` + the component stack, naming the exact node.
-Likely a client component in the shared render tree emitting a position/whitespace difference.
+
+**Dev-repro narrowing (2026-07-20):** built a local `pnpm dev` + minimal repro page (localhost, no
+SSO, non-minified React, `.env.local` with public URL + placeholder keys; loadAllCategories tolerates
+a bad key). Findings: `<SiteThemeRoot>` + `<SiteFontLinks>` + content hydrates CLEAN (no error) →
+confirms fonts/theme wrapper are NOT the cause. Adding the real `<SiteChrome>` (preview mode) →
+hydration error fires inside `SiteChrome` (stack: `at Lazy at div at SiteChrome`). So the culprit is
+one of SiteChrome's CLIENT components (StickyHeader / SiteMobileMenu / SiteSocialRail / WhatsAppButton /
+AnnouncementBar / SitePopup / SiteMarketing) or how the header/nav is composed. A faithful repro needs
+valid chrome data (or the REAL `SUPABASE_SERVICE_ROLE_KEY` in `apps/web/.env.local` to render the
+actual page in dev — the fastest finish). Repro page + temp `.env.local` were removed after.
 
 **This file is COMMITTED. Update + commit it before ending any session.**
