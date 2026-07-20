@@ -89,7 +89,13 @@ campaign tag is ignored — identical to today's first/last-click attribution ru
   - eligibility: `eligible_partners` (`all|tagged|invite`), `eligible_referrals`
     (`all_time|referred_in_window|activated_in_window` — default `activated_in_window`)
   - **commission_structure jsonb** — `{ model: 'ladder'|'flat'|'inherit', bands:[{max, rate}], flat_rate,
-    scope:'subscription' }`
+    scope:'subscription', duration:'once'|'recurring'|'lifetime', recurring_periods:N }`
+    - **`duration`** (founder requirement 2026-07-20): configurable per campaign — `once` (single payment),
+      `recurring` with `recurring_periods:N` (earn on the next N host payments), or `lifetime` (earn every
+      period the host keeps paying = the Founding Race default). Maps to the existing `affiliate_duration`
+      enum (`once` / `months=N` / `forever`) so the default-program duration cap is reused verbatim; the
+      campaign just supplies its own value. Cadence (monthly/annual) follows the host's subscription
+      billing_cycle — Wielo bills monthly+annual today (no bi-weekly cycle).
   - **competition jsonb** (nullable) — `{ events:{listing_published:1, subscription_started_monthly:0,
     subscription_started_annual:0}, scoring_mode:'total'|'net_change', count_active_only:true,
     each_listing_counts:true, prizes:[…], tie_breaker:'earliest_to_final_score',
@@ -260,6 +266,10 @@ referrals keep earning the default commission. All three coexist without interac
 6. Campaign earnings **count toward the affiliate's lifetime totals** (which drive the default-program tier).
 7. Floors are **campaign-scoped** (lift that campaign's ladder only).
 8. Ladder band scope = **subscription revenue only** (membership + per-listing); conversion bonus separate.
+9. **Commission duration is configurable per campaign** — `once` / `recurring(N)` / `lifetime` (Founding Race
+   = lifetime). Reuses the existing `affiliate_duration` enum. Cadence = host billing_cycle (monthly/annual).
+10. **All prices are admin-editable config** (plan + per-listing, list + Founding) — never hardcoded, so the
+    founder can adjust later without a code change. (Applies to WS-5.)
 
 **Seed: the Founding Race campaign**
 ```
