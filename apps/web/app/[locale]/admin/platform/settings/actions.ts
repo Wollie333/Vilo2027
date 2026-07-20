@@ -13,6 +13,7 @@ import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 // uuid column; platform_settings is keyed by text, so we use a stable uuid).
 const BRANDING_SETTING_ID = "00000000-0000-0000-0000-0000000b5a4d";
 const LEGAL_SETTING_ID = "00000000-0000-0000-0000-0000001e6a1f";
+const LEGAL_DOCS_SETTING_ID = "00000000-0000-0000-0000-0000001e6d0c";
 const WIELO_BUSINESS_SETTING_ID = "00000000-0000-0000-0000-0000005b1d00";
 const META_INTEGRATION_ID = "00000000-0000-0000-0000-0000000fb1d0";
 
@@ -142,6 +143,94 @@ export const saveLegalDocAction = withAdminAudit<
     revalidatePath("/privacy");
 
     return { result: { ok: true, version }, after: { key, version } };
+  },
+);
+
+// ─── Generic legal documents (WS-6a: /legal/[slug]) ────────────────
+const legalDocumentSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(80)
+    .regex(
+      /^[a-z0-9]+(-[a-z0-9]+)*$/,
+      "Slug must be lowercase words separated by hyphens.",
+    ),
+  title: z.string().trim().min(2, "Enter a title.").max(200),
+  // Empty string is allowed (a stub with no body yet) — it just won't render.
+  html: z.string().max(200_000),
+  is_published: z.boolean().default(true),
+  reason: z.string().optional(),
+});
+
+// Create or update a slug-addressable legal document. Sanitises the HTML and bumps
+// `version` only when the body actually changes. `published_at` advances only on a
+// content change or a first publish, so the public page's "Last updated" stays
+// honest. Admin-only + audited (the acting admin is recorded in admin_audit_log).
+export const saveLegalDocumentAction = withAdminAudit<
+  z.infer<typeof legalDocumentSchema>,
+  { ok: true; version: number }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.legal_document",
+    targetType: "platform_setting",
+    getTargetId: () => LEGAL_DOCS_SETTING_ID,
+  },
+  async (args, service) => {
+    const parsed = legalDocumentSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const { slug, title, html, is_published } = parsed.data;
+    const cleaned = html.trim().length > 0 ? sanitiseListingHtml(html) : null;
+
+    const { data: existing } = await service
+      .from("legal_documents")
+      .select("body_html, version, is_published, published_at")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    const prevHtml = existing?.body_html ?? null;
+    const prevVersion =
+      typeof existing?.version === "number" ? existing.version : 0;
+    const bodyChanged = cleaned !== prevHtml;
+    const version = existing
+      ? bodyChanged
+        ? prevVersion + 1
+        : prevVersion
+      : 1;
+
+    const nowIso = new Date().toISOString();
+    // Advance published_at on a first publish, a content change, or when moving
+    // from unpublished → published; otherwise keep the prior stamp.
+    const becamePublished = is_published && !existing?.is_published;
+    const publishedAt = is_published
+      ? bodyChanged || becamePublished || !existing?.published_at
+        ? nowIso
+        : existing.published_at
+      : (existing?.published_at ?? null);
+
+    const { error } = await service.from("legal_documents").upsert(
+      {
+        slug,
+        title,
+        body_html: cleaned,
+        version,
+        is_published,
+        published_at: publishedAt,
+        updated_at: nowIso,
+      },
+      { onConflict: "slug" },
+    );
+    if (error) throw new Error(error.message);
+
+    // The public /legal/[slug] page reads this at runtime.
+    revalidatePath(`/legal/${slug}`);
+
+    return { result: { ok: true, version }, after: { slug, version } };
   },
 );
 

@@ -16,8 +16,8 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **186** (186 with RLS) |
-| Functions | **172** (138 SECURITY DEFINER, 61 trigger fns) |
+| Tables | **187** (187 with RLS) |
+| Functions | **173** (138 SECURITY DEFINER, 62 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -249,6 +249,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `sync_looking_for_view_count` | **yes** | yes | trigger |
 | `sync_review_helpful_count` | **yes** | yes | trigger |
 | `tg_affiliate_clawback_on_refund` | **yes** | yes | trigger |
+| `tg_legal_documents_touch` | — | — | trigger |
 | `tg_notify_affiliate_commission_earned` | **yes** | yes | trigger |
 | `touch_addons_updated_at` | — | — | trigger |
 | `touch_coupons_updated_at` | — | — | trigger |
@@ -2671,6 +2672,36 @@ CASE
 - `host_read_own_invoices` (SELECT) — `USING (host_id = get_my_host_id())`
 - `host_update_own_invoices` (UPDATE) — `USING (host_id = get_my_host_id()) CHECK (host_id = get_my_host_id())`
 - `staff_read_invoices` (SELECT) — `USING (host_id = get_my_host_id_as_staff())`
+
+### `legal_documents`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `slug` | text | — | — |
+| `title` | text | — | — |
+| `body_html` | text | yes | — |
+| `version` | integer | — | `1` |
+| `is_published` | boolean | — | `true` |
+| `published_at` | timestamp with time zone | yes | — |
+| `updated_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (slug)`
+
+**Checks:**
+- `CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))`
+
+**Triggers:**
+- `trg_legal_documents_touch` → `tg_legal_documents_touch()`
+
+**RLS policies:**
+- `public reads published legal docs` (SELECT) — `USING (is_published = true)`
 
 ### `listing_reports`
 

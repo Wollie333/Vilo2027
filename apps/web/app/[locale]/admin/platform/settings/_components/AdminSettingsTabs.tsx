@@ -20,6 +20,11 @@ const TABS: Tab[] = [
   },
   { href: "/admin/platform/settings/legal", label: "Legal", match: "prefix" },
   {
+    href: "/admin/platform/settings/legal-docs",
+    label: "Documents",
+    match: "prefix",
+  },
+  {
     href: "/admin/platform/settings/tracking",
     label: "Tracking",
     match: "prefix",
