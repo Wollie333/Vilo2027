@@ -40,6 +40,7 @@ import { RoyalHome } from "./royal/RoyalHome";
 import { RoyalRooms } from "./royal/RoyalRooms";
 import { SafariHome } from "./safari/SafariHome";
 import { SafariRooms } from "./safari/SafariRooms";
+import { SafariAbout } from "./safari/SafariAbout";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -633,6 +634,79 @@ export async function SitePageView({
   // content_profile; stats/imagery from live listing data; demo copy is fallback
   // only. Sections needing data we don't collect (multi-year timeline, full team)
   // are omitted, not fabricated. Same content-persistence contract as home.
+  // Safari (NenGama Lodge) — bespoke ABOUT (preset `safari`). Own component
+  // (`.sfabout`), the editorial lodge treatment (Fraunces, hairline rules,
+  // asymmetric story split, ruled stat numerals, editorial values roster). Above
+  // the shared branch so only Safari forks here. Phase B (subpages).
+  if (ctx.theme.preset === "safari" && result.page.kind === "about") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["rooms_preview", "reviews", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariAbout
+              brandName={ctx.brand.name}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              tagline={cp.brand?.tagline ?? null}
+              story={cp.about?.story ?? cp.home?.intro?.body ?? null}
+              hostBioBody={cp.about?.hostBio?.body ?? null}
+              hostPhotoUrl={
+                cp.about?.hostBio?.photoPath
+                  ? (websiteAssetUrl(cp.about.hostBio.photoPath) ?? null)
+                  : null
+              }
+              rooms={extras.rooms_preview?.rooms}
+              reviews={extras.reviews}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   if (usesOceansViewLayout(ctx.theme.preset) && result.page.kind === "about") {
     const sbx = createAdminClient();
     const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
