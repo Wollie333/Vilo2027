@@ -75,6 +75,28 @@ export const contentProfileSchema = z
           )
           .max(3)
           .optional(),
+        // Host-curated "nearby experiences" — real places fetched from OpenStreetMap
+        // (lib/site/nearbyFetch.ts) and cached here so they're not re-fetched per
+        // request. Shape mirrors NearbyPlace (lib/site/nearby.ts). Drafts the host
+        // reviews before publishing — never silent auto-populate.
+        nearby: z
+          .array(
+            z.object({
+              name: z.string().max(200),
+              category: z.string().max(80),
+              distance: z.string().max(60),
+              rating: z.number().nullable().optional(),
+              reviews: z.number().nullable().optional(),
+              price: z.string().max(12).nullable().optional(),
+              openNow: z.boolean().nullable().optional(),
+              blurb: z.string().max(600).nullable().optional(),
+              imageUrl: z.string().max(600).nullable().optional(),
+              mapsUri: z.string().max(600).nullable().optional(),
+              group: z.enum(["eat", "nature", "see", "shop"]),
+            }),
+          )
+          .max(24)
+          .optional(),
       })
       .partial()
       .optional(),

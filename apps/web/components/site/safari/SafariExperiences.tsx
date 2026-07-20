@@ -3,6 +3,7 @@ import "./safariExperiences.css";
 import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { NearbyPlace } from "@/lib/site/nearby";
 
 import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
 
@@ -38,6 +39,7 @@ export function SafariExperiences({
   heading,
   intro,
   experiences,
+  nearby,
   roomsHref = "/rooms",
   contactHref = "/contact",
   asset,
@@ -50,6 +52,9 @@ export function SafariExperiences({
     body: string | null;
     imageUrl: string | null;
   }[];
+  /** Curated nearby places: real array → shown; null → design placeholder
+   *  (preview); [] → hidden (live, none curated). */
+  nearby?: NearbyPlace[] | null;
   roomsHref?: string;
   contactHref?: string;
   asset: (p: string | null | undefined) => string | undefined;
@@ -172,10 +177,11 @@ export function SafariExperiences({
         </div>
       </section>
 
-      {/* NEARBY — "around the lodge" cards (placeholder → Google Places) */}
+      {/* NEARBY — "around the lodge" cards (real OSM data → placeholder in preview) */}
       <SiteNearbyExperiences
         eyebrow="Around the lodge"
         title="Worth the short drive"
+        places={nearby ?? undefined}
       />
 
       {/* CTA — full-bleed closing banner */}

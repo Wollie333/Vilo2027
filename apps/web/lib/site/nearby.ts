@@ -23,15 +23,17 @@ export type NearbyPlace = {
   category: string;
   /** Pre-formatted "3.4 km · 6 min" (distance + rough drive time). */
   distance: string;
-  rating: number;
-  reviews: number;
+  /** Star rating (Google Places). OSM has none → null/omitted; the card hides
+   *  the rating row when there's no rating. */
+  rating?: number | null;
+  reviews?: number | null;
   /** "$".."$$$$", "Free", or null when unknown. */
-  price: string | null;
-  openNow: boolean | null;
-  blurb: string | null;
-  imageUrl: string | null;
-  mapsUri: string | null;
-  /** Coarse type bucket for the filter row (maps from Google place types). */
+  price?: string | null;
+  openNow?: boolean | null;
+  blurb?: string | null;
+  imageUrl?: string | null;
+  mapsUri?: string | null;
+  /** Coarse type bucket for the filter row (maps from Google/OSM place types). */
   group: "eat" | "nature" | "see" | "shop";
 };
 

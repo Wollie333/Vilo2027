@@ -89,7 +89,8 @@ export function SiteNearbyExperiences({
 
         <ul className="site-nearby-grid">
           {shown.map((p, i) => {
-            const stars = nearbyStars(p.rating);
+            const hasRating = typeof p.rating === "number" && p.rating > 0;
+            const stars = hasRating ? nearbyStars(p.rating as number) : 0;
             const directions =
               p.mapsUri ||
               `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -121,16 +122,20 @@ export function SiteNearbyExperiences({
                       <span className="site-nearby-price">{p.price}</span>
                     ) : null}
                   </div>
-                  <div className="site-nearby-rating">
-                    <span className="site-nearby-stars" aria-hidden>
-                      {"★★★★★".slice(0, stars)}
-                      {"☆☆☆☆☆".slice(0, 5 - stars)}
-                    </span>
-                    <b>{p.rating.toFixed(1)}</b>
-                    <span className="site-nearby-count">
-                      ({p.reviews.toLocaleString()})
-                    </span>
-                  </div>
+                  {hasRating ? (
+                    <div className="site-nearby-rating">
+                      <span className="site-nearby-stars" aria-hidden>
+                        {"★★★★★".slice(0, stars)}
+                        {"☆☆☆☆☆".slice(0, 5 - stars)}
+                      </span>
+                      <b>{(p.rating as number).toFixed(1)}</b>
+                      {typeof p.reviews === "number" && p.reviews > 0 ? (
+                        <span className="site-nearby-count">
+                          ({p.reviews.toLocaleString("en-ZA")})
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {p.blurb ? (
                     <p className="site-nearby-blurb">{p.blurb}</p>
                   ) : null}

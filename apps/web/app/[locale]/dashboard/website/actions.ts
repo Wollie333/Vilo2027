@@ -60,10 +60,13 @@ import type { PageDoc } from "@/lib/website/pageDoc.schema";
 import { hydratePageDoc } from "@/lib/website/hydrateProfile";
 import { buildLegalSeed } from "@/lib/website/legalPages";
 import { buildDerivedContent } from "@/lib/website/deriveContent";
-import type {
-  ContentProfile,
-  DerivedContent,
+import {
+  parseContentProfileLoose,
+  type ContentProfile,
+  type DerivedContent,
 } from "@/lib/website/contentProfile.schema";
+import { fetchNearbyForProperty } from "@/lib/site/nearbyFetch";
+import type { NearbyPlace } from "@/lib/site/nearby";
 import type {
   FormField,
   FormSettings,
@@ -2490,6 +2493,89 @@ export async function resetWebsiteForTestingAction(
 
   revalidatePath("/dashboard/website");
   return { ok: true };
+}
+
+export type NearbyActionResult =
+  | { ok: true; places: NearbyPlace[] }
+  | { ok: false; error: string };
+
+/**
+ * Fetch REAL "nearby experiences" for a site's primary property from
+ * OpenStreetMap (free, no key — lib/site/nearbyFetch.ts) and cache them into
+ * `content_profile.experiences.nearby` as host-reviewable drafts. Uses the
+ * property's own lat/long, geocoding its address as a fallback (founder rule:
+ * the LISTING's address, not the business/settings address). Returns the fetched
+ * list so the caller can show it for curation. Never runs on public render.
+ */
+export async function refreshNearbyExperiencesAction(
+  websiteId: string,
+): Promise<NearbyActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: own.error };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("business_id, content_profile")
+    .eq("id", websiteId)
+    .maybeSingle<{ business_id: string; content_profile: unknown }>();
+  if (!site) return { ok: false, error: "not_found" };
+
+  // Primary property = the business's oldest live listing (matches the seed +
+  // derived-content picks). Use ITS address, per the founder's correction.
+  const { data: prop } = await supabase
+    .from("properties")
+    .select(
+      "latitude, longitude, address_line1, city, province, postal_code, country",
+    )
+    .eq("business_id", site.business_id)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{
+      latitude: number | null;
+      longitude: number | null;
+      address_line1: string | null;
+      city: string | null;
+      province: string | null;
+      postal_code: string | null;
+      country: string | null;
+    }>();
+  if (!prop) return { ok: false, error: "no_property" };
+
+  const address = [
+    prop.address_line1,
+    prop.city,
+    prop.province,
+    prop.postal_code,
+    prop.country,
+  ]
+    .filter((s) => s && s.trim())
+    .join(", ");
+
+  const places = await fetchNearbyForProperty({
+    lat: prop.latitude,
+    lng: prop.longitude,
+    address: address || null,
+  });
+  if (places.length === 0) return { ok: false, error: "none_found" };
+
+  // Merge into the canonical content profile (preserving every other slot).
+  const profile = parseContentProfileLoose(site.content_profile);
+  const next: ContentProfile = {
+    ...profile,
+    experiences: { ...profile.experiences, nearby: places },
+  };
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ content_profile: next })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
+  return { ok: true, places };
 }
 
 /**

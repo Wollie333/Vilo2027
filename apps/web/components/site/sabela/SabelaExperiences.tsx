@@ -3,6 +3,7 @@ import "./sabelaExperiences.css";
 import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { NearbyPlace } from "@/lib/site/nearby";
 
 import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
 
@@ -22,6 +23,7 @@ export function SabelaExperiences({
   heading,
   intro,
   experiences,
+  nearby,
   roomsHref = "/rooms",
   contactHref = "/contact",
   asset,
@@ -34,6 +36,7 @@ export function SabelaExperiences({
     body: string | null;
     imageUrl: string | null;
   }[];
+  nearby?: NearbyPlace[] | null;
   roomsHref?: string;
   contactHref?: string;
   asset: (p: string | null | undefined) => string | undefined;
@@ -158,6 +161,7 @@ export function SabelaExperiences({
       <SiteNearbyExperiences
         eyebrow="Beyond the lodge"
         title="Worth the short drive"
+        places={nearby ?? undefined}
       />
 
       {/* CTA band */}

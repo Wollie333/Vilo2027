@@ -3,6 +3,7 @@ import "./royalExperiences.css";
 import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { NearbyPlace } from "@/lib/site/nearby";
 
 import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
 
@@ -23,6 +24,7 @@ export function RoyalExperiences({
   heading,
   intro,
   experiences,
+  nearby,
   roomsHref = "/rooms",
   contactHref = "/contact",
   asset,
@@ -35,6 +37,7 @@ export function RoyalExperiences({
     body: string | null;
     imageUrl: string | null;
   }[];
+  nearby?: NearbyPlace[] | null;
   roomsHref?: string;
   contactHref?: string;
   asset: (p: string | null | undefined) => string | undefined;
@@ -143,6 +146,7 @@ export function RoyalExperiences({
       <SiteNearbyExperiences
         eyebrow="Around the hotel"
         title="In the neighbourhood"
+        places={nearby ?? undefined}
       />
 
       {/* CTA */}

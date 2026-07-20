@@ -3,6 +3,7 @@ import "./oceansExperiences.css";
 import type { CSSProperties } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { NearbyPlace } from "@/lib/site/nearby";
 
 import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
 
@@ -19,6 +20,7 @@ export function OceansViewExperiences({
   heading,
   intro,
   experiences,
+  nearby,
   roomsHref = "/rooms",
   contactHref = "/contact",
   asset,
@@ -31,6 +33,7 @@ export function OceansViewExperiences({
     body: string | null;
     imageUrl: string | null;
   }[];
+  nearby?: NearbyPlace[] | null;
   roomsHref?: string;
   contactHref?: string;
   asset: (p: string | null | undefined) => string | undefined;
@@ -133,6 +136,7 @@ export function OceansViewExperiences({
       <SiteNearbyExperiences
         eyebrow="Around the bay"
         title="Worth leaving the pool for"
+        places={nearby ?? undefined}
       />
 
       {/* CTA */}

@@ -1,6 +1,7 @@
 import "./marmaladeExperiences.css";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { NearbyPlace } from "@/lib/site/nearby";
 
 import { SiteNearbyExperiences } from "../sections/SiteNearbyExperiences";
 
@@ -18,6 +19,7 @@ export function MarmaladeExperiences({
   heading,
   intro,
   experiences,
+  nearby,
   roomsHref = "/rooms",
   contactHref = "/contact",
   asset,
@@ -30,6 +32,7 @@ export function MarmaladeExperiences({
     body: string | null;
     imageUrl: string | null;
   }[];
+  nearby?: NearbyPlace[] | null;
   roomsHref?: string;
   contactHref?: string;
   asset: (p: string | null | undefined) => string | undefined;
@@ -153,6 +156,7 @@ export function MarmaladeExperiences({
       <SiteNearbyExperiences
         eyebrow="Around the house"
         title="Just down the road"
+        places={nearby ?? undefined}
       />
 
       {/* CTA (banner) */}

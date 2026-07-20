@@ -1997,6 +1997,13 @@ export async function SitePageView({
               heading={null}
               intro={cp.experiences?.intro ?? null}
               experiences={experiences}
+              nearby={
+                cp.experiences?.nearby?.length
+                  ? cp.experiences.nearby
+                  : ctx.preview
+                    ? null
+                    : []
+              }
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
               asset={siteAsset}
@@ -2061,6 +2068,13 @@ export async function SitePageView({
               heading={null}
               intro={cp.experiences?.intro ?? null}
               experiences={experiences}
+              nearby={
+                cp.experiences?.nearby?.length
+                  ? cp.experiences.nearby
+                  : ctx.preview
+                    ? null
+                    : []
+              }
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
               asset={siteAsset}
@@ -2124,6 +2138,13 @@ export async function SitePageView({
               heading={null}
               intro={cp.experiences?.intro ?? null}
               experiences={experiences}
+              nearby={
+                cp.experiences?.nearby?.length
+                  ? cp.experiences.nearby
+                  : ctx.preview
+                    ? null
+                    : []
+              }
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
               asset={siteAsset}
@@ -2187,6 +2208,13 @@ export async function SitePageView({
               heading={null}
               intro={cp.experiences?.intro ?? null}
               experiences={experiences}
+              nearby={
+                cp.experiences?.nearby?.length
+                  ? cp.experiences.nearby
+                  : ctx.preview
+                    ? null
+                    : []
+              }
               roomsHref={roomsHrefRaw ?? "/rooms"}
               contactHref="/contact"
               asset={siteAsset}
