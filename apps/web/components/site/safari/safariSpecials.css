@@ -1,0 +1,419 @@
+/*
+ * Safari (NenGama Lodge) — bespoke OFFERS page (preset `safari`).
+ * An editorial "collection" grid: full-bleed left-aligned page head, then each
+ * live offer as a tall editorial card with an index numeral, a floating badge +
+ * scarcity pill and a floating rate. Scoped to `.sfspecials`; all colour/type/
+ * shape from the `--site-*` tokens (warm-lodge hard fallbacks), so it stays
+ * on-theme + host-editable. Deliberately distinct from the OceansView offers.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.sfspecials {
+  --sf-radius: 3px;
+  color: var(--site-ink, #221a11);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #f4ede0);
+  overflow-x: clip;
+}
+.sfspecials * {
+  box-sizing: border-box;
+}
+.sfspecials img {
+  display: block;
+  max-width: 100%;
+}
+.sfspecials p {
+  margin: 0;
+}
+.sfspecials h1,
+.sfspecials h2,
+.sfspecials h3 {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: var(--site-weight-heading, 560);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--site-ink, #221a11);
+  text-wrap: balance;
+}
+.sfspecials .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+.sfspecials .sf-sec {
+  padding: clamp(56px, 8vw, 110px) 0;
+}
+.sfspecials .sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfspecials .sf-eyebrow::before {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.sfspecials .sf-eyebrow.on-dark {
+  color: var(--site-accent, #d79a5c);
+}
+
+/* -- buttons + links ----------------------------------------------------- */
+.sfspecials .sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--sf-radius);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 14px 24px;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+.sfspecials .sf-btn-lg {
+  padding: 17px 32px;
+  font-size: 15px;
+}
+.sfspecials .sf-btn-block {
+  width: 100%;
+}
+.sfspecials .sf-btn-solid {
+  background: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+  border: 1px solid var(--site-accent, #b26c2e);
+}
+.sfspecials .sf-btn-solid:hover {
+  background: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent-deep, #8f5320);
+}
+.sfspecials .sf-btn-ghost {
+  background: transparent;
+  color: var(--site-accent-deep, #8f5320);
+  border: 1px solid var(--site-line, #dbcfb8);
+}
+.sfspecials .sf-btn-ghost:hover {
+  border-color: var(--site-accent, #b26c2e);
+  background: var(--site-tint, rgba(178, 108, 46, 0.1));
+}
+.sfspecials .sf-btn-line {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.sfspecials .sf-btn-line:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ======================================================================
+ * PAGE HEAD — full-bleed photo, left-aligned editorial
+ * ==================================================================== */
+.sfspecials .sf-phead {
+  position: relative;
+  min-height: clamp(380px, 56vh, 560px);
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: clamp(40px, 6vw, 76px);
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfspecials .sf-phead-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfspecials .sf-phead-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfspecials .sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 21, 14, 0.28) 0%,
+    rgba(28, 21, 14, 0.2) 40%,
+    rgba(28, 21, 14, 0.74) 100%
+  );
+}
+.sfspecials .sf-phead-in {
+  position: relative;
+}
+.sfspecials .sf-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 20px;
+}
+.sfspecials .sf-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.sfspecials .sf-crumbs a:hover {
+  color: var(--site-accent, #d79a5c);
+}
+.sfspecials .sf-phead h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  line-height: 1;
+}
+.sfspecials .sf-phead p {
+  margin-top: 20px;
+  max-width: 56ch;
+  font-size: clamp(1.02rem, 1.4vw, 1.24rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ======================================================================
+ * OFFERS — editorial collection grid
+ * ==================================================================== */
+.sfspecials .sf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(26px, 3.4vw, 56px);
+}
+.sfspecials .sf-card {
+  display: flex;
+  flex-direction: column;
+}
+.sfspecials .sf-card-fig {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+  background: var(--site-soft-2, #e7dcc4);
+}
+.sfspecials .sf-card-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.sfspecials .sf-card:hover .sf-card-fig img {
+  transform: scale(1.04);
+}
+.sfspecials .sf-card-idx {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 2;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: 1.9rem;
+  font-weight: 400;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+.sfspecials .sf-card-tags {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sfspecials .sf-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-accent-ink, #fff);
+  background: var(--site-accent, #b26c2e);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.sfspecials .sf-card-left {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--site-ink, #221a11);
+  background: var(--site-surface, #fbf6ec);
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px -14px rgba(34, 26, 17, 0.5);
+}
+.sfspecials .sf-card-price {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--site-ink, #221a11);
+  background: var(--site-surface, #fbf6ec);
+  padding: 8px 14px;
+  border-radius: var(--sf-radius);
+  box-shadow: 0 14px 30px -14px rgba(34, 26, 17, 0.5);
+}
+.sfspecials .sf-card-price em {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfspecials .sf-card-body {
+  padding-top: 24px;
+}
+.sfspecials .sf-card-body h3 {
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+}
+.sfspecials .sf-card-body p {
+  margin-top: 16px;
+  color: var(--site-mute, #6e6048);
+  font-size: 1rem;
+  line-height: 1.62;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sfspecials .sf-card-save {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.sfspecials .sf-card-save .sf-was {
+  font-size: 0.95rem;
+  color: var(--site-mute, #6e6048);
+  text-decoration: line-through;
+}
+.sfspecials .sf-card-save .sf-save {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+  background: var(--site-tint, rgba(178, 108, 46, 0.12));
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.sfspecials .sf-card-cta {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+
+/* -- empty state --------------------------------------------------------- */
+.sfspecials .sf-empty {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: clamp(30px, 5vw, 60px) 0;
+}
+.sfspecials .sf-empty h2 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+.sfspecials .sf-empty p {
+  margin: 18px auto 30px;
+  color: var(--site-mute, #6e6048);
+  line-height: 1.6;
+}
+.sfspecials .sf-empty-cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* ======================================================================
+ * CTA — full-bleed closing banner
+ * ==================================================================== */
+.sfspecials .sf-cta {
+  position: relative;
+  padding: clamp(72px, 11vw, 150px) 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfspecials .sf-cta-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfspecials .sf-cta-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfspecials .sf-cta-in {
+  max-width: 620px;
+}
+.sfspecials .sf-cta-in .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfspecials .sf-cta-in h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+}
+.sfspecials .sf-cta-in p {
+  margin-top: 18px;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sfspecials .sf-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 860px) {
+  .sfspecials .sf-grid {
+    grid-template-columns: 1fr;
+  }
+  .sfspecials .sf-card-fig {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 520px) {
+  .sfspecials .sf-empty-cta {
+    flex-direction: column;
+  }
+  .sfspecials .sf-empty-cta .sf-btn {
+    width: 100%;
+  }
+  .sfspecials .sf-cta-row {
+    flex-direction: column;
+  }
+  .sfspecials .sf-cta-row .sf-btn {
+    width: 100%;
+  }
+}

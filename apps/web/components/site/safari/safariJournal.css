@@ -1,0 +1,457 @@
+/*
+ * Safari (NenGama Lodge) — bespoke JOURNAL index (preset `safari`).
+ * Warm, airy, editorial lodge treatment (Fraunces display, full-bleed left-
+ * aligned page head, a large lead story, then a hairline-ruled editorial list of
+ * the rest). Scoped to `.sfjournal`; colour/type/shape from the `--site-*` tokens
+ * (with warm-lodge hard fallbacks). Reuses the `.sf-*` primitives from the Safari
+ * About/Home stylesheets, re-scoped here so the page stands on its own.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.sfjournal {
+  --sf-radius: 3px;
+  color: var(--site-ink, #221a11);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #f4ede0);
+  overflow-x: clip;
+}
+.sfjournal * {
+  box-sizing: border-box;
+}
+.sfjournal img {
+  display: block;
+  max-width: 100%;
+}
+.sfjournal p {
+  margin: 0;
+}
+.sfjournal h1,
+.sfjournal h2,
+.sfjournal h3 {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: var(--site-weight-heading, 560);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--site-ink, #221a11);
+  text-wrap: balance;
+}
+.sfjournal .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+.sfjournal .sf-sec {
+  padding: clamp(64px, 9vw, 128px) 0;
+}
+.sfjournal .sf-sand {
+  background: var(--site-soft, #efe6d4);
+}
+.sfjournal .sf-h2 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.04;
+}
+.sfjournal .sf-lead {
+  font-size: clamp(1.06rem, 1.4vw, 1.28rem);
+  line-height: 1.62;
+  color: var(--site-mute, #6e6048);
+  max-width: 56ch;
+  margin-top: 24px;
+}
+.sfjournal .sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfjournal .sf-eyebrow::before {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.sfjournal .sf-eyebrow.on-dark {
+  color: var(--site-accent, #d79a5c);
+}
+.sfjournal .sf-sechead {
+  max-width: 720px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.sfjournal .sf-sechead .sf-eyebrow {
+  margin-bottom: 20px;
+}
+
+/* buttons */
+.sfjournal .sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--sf-radius);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 14px 24px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease;
+}
+.sfjournal .sf-btn-lg {
+  padding: 17px 32px;
+  font-size: 15px;
+}
+.sfjournal .sf-btn-solid {
+  background: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+  border: 1px solid var(--site-accent, #b26c2e);
+}
+.sfjournal .sf-btn-solid:hover {
+  background: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent-deep, #8f5320);
+}
+.sfjournal .sf-btn-line {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.sfjournal .sf-btn-line:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* read-more text link */
+.sfjournal .sfj-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--site-accent-deep, #8f5320);
+  text-decoration: none;
+  transition: gap 0.25s ease;
+}
+.sfjournal a:hover .sfj-more {
+  gap: 12px;
+}
+
+/* ======================================================================
+ * PAGE HEAD — full-bleed photo, left-aligned editorial
+ * ==================================================================== */
+.sfjournal .sf-phead {
+  position: relative;
+  min-height: clamp(360px, 54vh, 540px);
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: clamp(40px, 6vw, 74px);
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfjournal .sf-phead-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfjournal .sf-phead-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfjournal .sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 21, 14, 0.26) 0%,
+    rgba(28, 21, 14, 0.2) 42%,
+    rgba(28, 21, 14, 0.74) 100%
+  );
+}
+.sfjournal .sf-phead-in {
+  position: relative;
+}
+.sfjournal .sf-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 20px;
+}
+.sfjournal .sf-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.sfjournal .sf-crumbs a:hover {
+  color: var(--site-accent, #d79a5c);
+}
+.sfjournal .sf-phead h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5.4vw, 4.4rem);
+  line-height: 1.02;
+  max-width: 18ch;
+}
+.sfjournal .sf-phead p {
+  margin-top: 18px;
+  max-width: 54ch;
+  font-size: clamp(1.02rem, 1.4vw, 1.24rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* cover-less monogram placeholder */
+.sfjournal .sfj-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-accent, #b26c2e),
+    var(--site-accent-deep, #8f5320)
+  );
+}
+.sfjournal .sfj-ph span {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: 2.6rem;
+  color: #fff;
+  opacity: 0.92;
+}
+
+/* ======================================================================
+ * FEATURED — large editorial lead story
+ * ==================================================================== */
+.sfjournal .sfj-feat {
+  display: grid;
+  grid-template-columns: 1.08fr 0.92fr;
+  gap: clamp(32px, 5vw, 84px);
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+.sfjournal .sf-frame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+  box-shadow: 0 40px 70px -40px rgba(34, 26, 17, 0.5);
+}
+.sfjournal .sf-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.sfjournal .sfj-feat:hover .sf-frame img {
+  transform: scale(1.03);
+}
+.sfjournal .sfj-feat-copy .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfjournal .sfj-feat-copy .sf-h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  transition: color 0.2s ease;
+}
+.sfjournal .sfj-feat:hover .sfj-feat-copy .sf-h2 {
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfjournal .sfj-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--site-mute, #6e6048);
+}
+.sfjournal .sfj-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.sfjournal .sfj-feat-copy .sfj-more {
+  margin-top: 26px;
+}
+
+/* ======================================================================
+ * THE REST — hairline-ruled editorial list
+ * ==================================================================== */
+.sfjournal .sfj-list {
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+.sfjournal .sfj-row {
+  display: grid;
+  grid-template-columns: 170px 1fr 200px;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+  padding: clamp(28px, 3.6vw, 46px) 0;
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+  text-decoration: none;
+  color: inherit;
+}
+.sfjournal .sfj-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+.sfjournal .sfj-row-date {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: 1.05rem;
+  color: var(--site-accent, #b26c2e);
+}
+.sfjournal .sfj-row-author {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfjournal .sfj-row-body h3 {
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  line-height: 1.1;
+  transition: color 0.2s ease;
+}
+.sfjournal .sfj-row:hover .sfj-row-body h3 {
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfjournal .sfj-row-body p {
+  margin-top: 12px;
+  color: var(--site-mute, #6e6048);
+  line-height: 1.62;
+  max-width: 58ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sfjournal .sfj-row-body .sfj-more {
+  margin-top: 16px;
+}
+.sfjournal .sfj-row-fig {
+  aspect-ratio: 3 / 2;
+}
+.sfjournal .sfj-thumb {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+}
+.sfjournal .sfj-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.sfjournal .sfj-row:hover .sfj-thumb img {
+  transform: scale(1.05);
+}
+
+/* empty state */
+.sfjournal .sfj-empty {
+  max-width: 620px;
+}
+.sfjournal .sfj-empty .sf-eyebrow {
+  margin-bottom: 20px;
+}
+
+/* ======================================================================
+ * CTA — full-bleed closing banner
+ * ==================================================================== */
+.sfjournal .sf-cta {
+  position: relative;
+  padding: clamp(72px, 11vw, 150px) 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfjournal .sf-cta-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfjournal .sf-cta-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfjournal .sf-cta-in {
+  max-width: 620px;
+}
+.sfjournal .sf-cta-in .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfjournal .sf-cta-in h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+}
+.sfjournal .sf-cta-in p {
+  margin-top: 18px;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sfjournal .sf-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 960px) {
+  .sfjournal .sfj-feat {
+    grid-template-columns: 1fr;
+    gap: clamp(24px, 6vw, 40px);
+  }
+  .sfjournal .sfj-feat-fig {
+    order: -1;
+  }
+  .sfjournal .sf-frame {
+    aspect-ratio: 16 / 10;
+  }
+  .sfjournal .sfj-row {
+    grid-template-columns: 140px 1fr;
+  }
+  .sfjournal .sfj-row-fig {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sfjournal .sfj-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .sfjournal .sfj-row-meta {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
+    padding-top: 0;
+  }
+  .sfjournal .sf-cta-row {
+    flex-direction: column;
+  }
+  .sfjournal .sf-cta-row .sf-btn {
+    width: 100%;
+  }
+}

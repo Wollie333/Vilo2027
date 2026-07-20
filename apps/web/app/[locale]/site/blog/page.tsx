@@ -6,6 +6,7 @@ import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { OceansViewJournal } from "@/components/site/oceansview/OceansViewJournal";
+import { SafariJournal } from "@/components/site/safari/SafariJournal";
 import { MarmaladeJournal } from "@/components/site/marmalade/MarmaladeJournal";
 import { SabelaJournal } from "@/components/site/sabela/SabelaJournal";
 import { siteAsset } from "@/components/site/SitePageView";
@@ -88,7 +89,15 @@ export default async function SiteBlogIndexPage({
         previewPages={previewPages}
         pageHasHero={usesOceansViewLayout(ctx.theme.preset)}
       >
-        {usesOceansViewLayout(ctx.theme.preset) ? (
+        {ctx.theme.preset === "safari" ? (
+          <SafariJournal
+            brandName={ctx.brand.name}
+            heading={ctx.blog.heading}
+            intro={ctx.blog.intro}
+            posts={posts}
+            asset={siteAsset}
+          />
+        ) : usesOceansViewLayout(ctx.theme.preset) ? (
           <OceansViewJournal
             brandName={ctx.brand.name}
             heading={ctx.blog.heading}

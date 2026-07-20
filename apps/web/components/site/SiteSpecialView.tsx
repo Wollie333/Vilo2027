@@ -12,6 +12,7 @@ import type { SpecialCard } from "@/lib/site/types";
 
 import { JsonLd } from "./JsonLd";
 import { OceansViewSpecialDetail } from "./oceansview/OceansViewSpecialDetail";
+import { SafariSpecialDetail } from "./safari/SafariSpecialDetail";
 import { MarmaladeSpecialDetail } from "./marmalade/MarmaladeSpecialDetail";
 import { SabelaSpecialDetail } from "./sabela/SabelaSpecialDetail";
 import { SiteChrome } from "./SiteChrome";
@@ -276,7 +277,14 @@ export async function SiteSpecialView({
           // the header solid so links stay legible (matches room detail).
           pageHasHero={false}
         >
-          {usesOceansViewLayout(ctx.theme.preset) ? (
+          {ctx.theme.preset === "safari" ? (
+            <SafariSpecialDetail
+              special={special}
+              otherSpecials={otherSpecials}
+              specialsHref={specialsHref}
+              asset={siteAsset}
+            />
+          ) : usesOceansViewLayout(ctx.theme.preset) ? (
             <OceansViewSpecialDetail
               special={special}
               otherSpecials={otherSpecials}

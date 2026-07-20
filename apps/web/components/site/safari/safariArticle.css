@@ -1,0 +1,565 @@
+/*
+ * Safari (NenGama Lodge) — bespoke JOURNAL article (preset `safari`).
+ * Warm, airy, editorial lodge treatment (Fraunces display, a centred reading
+ * column ~68ch, generous line-height, an optional wide hero, a hairline author/
+ * share footer and a "keep reading" strip). Scoped to `.sfarticle`; colour/type/
+ * shape from the `--site-*` tokens (with warm-lodge hard fallbacks). Reuses the
+ * `.sf-*` primitives re-scoped here, plus a `.sf-prose` reading-column style.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.sfarticle {
+  --sf-radius: 3px;
+  color: var(--site-ink, #221a11);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #f4ede0);
+  overflow-x: clip;
+}
+.sfarticle * {
+  box-sizing: border-box;
+}
+.sfarticle img {
+  display: block;
+  max-width: 100%;
+}
+.sfarticle p {
+  margin: 0;
+}
+.sfarticle h1,
+.sfarticle h2,
+.sfarticle h3 {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: var(--site-weight-heading, 560);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--site-ink, #221a11);
+  text-wrap: balance;
+}
+.sfarticle .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+.sfarticle .sf-sec {
+  padding: clamp(64px, 9vw, 128px) 0;
+}
+.sfarticle .sf-sand {
+  background: var(--site-soft, #efe6d4);
+}
+.sfarticle .sf-h2 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.04;
+}
+.sfarticle .sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfarticle .sf-eyebrow::before {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.sfarticle .sf-eyebrow.on-dark {
+  color: var(--site-accent, #d79a5c);
+}
+.sfarticle .sf-sechead {
+  max-width: 720px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.sfarticle .sf-sechead .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfarticle .sf-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+  margin-bottom: 22px;
+}
+.sfarticle .sf-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.sfarticle .sf-crumbs a:hover {
+  color: var(--site-accent-deep, #8f5320);
+}
+
+/* text link */
+.sfarticle .sf-alink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--site-accent-deep, #8f5320);
+  text-decoration: none;
+  transition: gap 0.25s ease;
+  white-space: nowrap;
+}
+.sfarticle .sf-alink:hover {
+  gap: 12px;
+}
+
+/* buttons */
+.sfarticle .sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--sf-radius);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 14px 24px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease;
+}
+.sfarticle .sf-btn-lg {
+  padding: 17px 32px;
+  font-size: 15px;
+}
+.sfarticle .sf-btn-solid {
+  background: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+  border: 1px solid var(--site-accent, #b26c2e);
+}
+.sfarticle .sf-btn-solid:hover {
+  background: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent-deep, #8f5320);
+}
+.sfarticle .sf-btn-line {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.sfarticle .sf-btn-line:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ======================================================================
+ * HEADER — centred editorial title block
+ * ==================================================================== */
+.sfarticle .sf-art-head {
+  padding: clamp(48px, 8vw, 104px) 0 clamp(32px, 4vw, 52px);
+  text-align: center;
+}
+.sfarticle .sf-art-head .wrap {
+  max-width: 860px;
+}
+.sfarticle .sf-art-head .sf-crumbs {
+  justify-content: center;
+}
+.sfarticle .sf-art-head h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  line-height: 1.04;
+  max-width: 20ch;
+  margin: 0 auto;
+}
+.sfarticle .sf-art-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--site-mute, #6e6048);
+}
+.sfarticle .sf-art-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* ======================================================================
+ * HERO — optional wide image
+ * ==================================================================== */
+.sfarticle .sf-art-hero {
+  margin: 0;
+  aspect-ratio: 16 / 8;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+  box-shadow: 0 40px 70px -46px rgba(34, 26, 17, 0.5);
+}
+.sfarticle .sf-art-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ======================================================================
+ * BODY — centred reading column
+ * ==================================================================== */
+.sfarticle .sf-art-body {
+  padding: clamp(48px, 7vw, 92px) 0 clamp(64px, 9vw, 120px);
+}
+.sfarticle .sf-prose {
+  max-width: 68ch;
+  margin: 0 auto;
+}
+
+/* -- prose reading column ------------------------------------------------ */
+.sfarticle .sf-prose-lead {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  line-height: 1.4;
+  color: var(--site-ink, #221a11);
+  margin-bottom: 32px;
+}
+.sfarticle .sf-prose p {
+  font-size: 1.12rem;
+  line-height: 1.85;
+  margin-top: 26px;
+  color: var(--site-ink, #221a11);
+}
+.sfarticle .sf-prose h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.1;
+  margin-top: 52px;
+}
+.sfarticle .sf-prose h3 {
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+  line-height: 1.16;
+  margin-top: 38px;
+}
+.sfarticle .sf-prose strong {
+  font-weight: 700;
+}
+.sfarticle .sf-prose a:not(.sf-btn):not(.sf-alink):not(.sf-back) {
+  color: var(--site-accent-deep, #8f5320);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.sfarticle .sf-prose blockquote {
+  margin: 44px 0;
+  padding: 4px 0 4px 26px;
+  border-left: 2px solid var(--site-accent, #b26c2e);
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+  line-height: 1.36;
+  color: var(--site-ink, #221a11);
+}
+.sfarticle .sf-prose blockquote cite {
+  display: block;
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--site-mute, #6e6048);
+  margin-top: 14px;
+}
+.sfarticle .sf-prose figure {
+  margin: 44px 0;
+}
+.sfarticle .sf-prose figure img {
+  width: 100%;
+  border-radius: var(--sf-radius);
+}
+.sfarticle .sf-prose img {
+  border-radius: var(--sf-radius);
+}
+.sfarticle .sf-prose figcaption {
+  font-size: 13px;
+  color: var(--site-mute, #6e6048);
+  margin-top: 12px;
+  text-align: center;
+}
+.sfarticle .sf-prose ul,
+.sfarticle .sf-prose ol {
+  padding-left: 0;
+  list-style: none;
+  margin-top: 24px;
+}
+.sfarticle .sf-prose li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  margin-top: 10px;
+  color: var(--site-ink, #221a11);
+}
+.sfarticle .sf-prose li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--site-accent, #b26c2e);
+}
+.sfarticle .sf-prose hr {
+  margin: 44px 0;
+}
+.sfarticle .sf-rule {
+  height: 1px;
+  background: var(--site-line, #dbcfb8);
+  border: none;
+  margin: 0;
+}
+
+/* ======================================================================
+ * FOOTER — author + share + back link
+ * ==================================================================== */
+.sfarticle .sf-art-foot {
+  margin-top: 56px;
+}
+.sfarticle .sf-art-footrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+.sfarticle .sf-auth {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sfarticle .sf-auth-av {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--site-accent, #b26c2e);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 600;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.sfarticle .sf-auth-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfarticle .sf-auth-name {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 560;
+  font-size: 1.3rem;
+  color: var(--site-ink, #221a11);
+}
+.sfarticle .sf-auth-bio {
+  color: var(--site-mute, #6e6048);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.sfarticle .sf-share {
+  display: flex;
+  gap: 10px;
+}
+.sfarticle .sf-share a {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--site-line, #dbcfb8);
+  color: var(--site-mute, #6e6048);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.sfarticle .sf-share a:hover {
+  color: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent, #b26c2e);
+}
+.sfarticle .sf-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 34px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--site-accent-deep, #8f5320);
+  text-decoration: none;
+  transition: gap 0.25s ease;
+}
+.sfarticle .sf-back:hover {
+  gap: 12px;
+}
+
+/* ======================================================================
+ * KEEP READING — 3-up editorial cards
+ * ==================================================================== */
+.sfarticle .sf-rel-head {
+  max-width: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.sfarticle .sf-rel-head .sf-eyebrow {
+  margin-bottom: 16px;
+}
+.sfarticle .sf-rel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 2.6vw, 40px);
+}
+.sfarticle .sf-rel-card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+.sfarticle .sf-rel-fig {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+}
+.sfarticle .sf-rel-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.sfarticle .sf-rel-card:hover .sf-rel-fig img {
+  transform: scale(1.05);
+}
+.sfarticle .sf-rel-card h3 {
+  font-size: 1.35rem;
+  line-height: 1.16;
+  margin-top: 16px;
+  transition: color 0.2s ease;
+}
+.sfarticle .sf-rel-card:hover h3 {
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfarticle .sfj-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--site-accent, #b26c2e),
+    var(--site-accent-deep, #8f5320)
+  );
+}
+.sfarticle .sfj-ph span {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: 2.4rem;
+  color: #fff;
+  opacity: 0.92;
+}
+
+/* ======================================================================
+ * CTA — full-bleed closing banner
+ * ==================================================================== */
+.sfarticle .sf-cta {
+  position: relative;
+  padding: clamp(72px, 11vw, 150px) 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfarticle .sf-cta-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfarticle .sf-cta-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfarticle .sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 21, 14, 0.26) 0%,
+    rgba(28, 21, 14, 0.2) 42%,
+    rgba(28, 21, 14, 0.74) 100%
+  );
+}
+.sfarticle .sf-cta-in {
+  max-width: 620px;
+}
+.sfarticle .sf-cta-in .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfarticle .sf-cta-in h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+}
+.sfarticle .sf-cta-in p {
+  margin-top: 18px;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sfarticle .sf-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 860px) {
+  .sfarticle .sf-art-hero {
+    aspect-ratio: 16 / 10;
+  }
+  .sfarticle .sf-rel {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sfarticle .sf-rel-card:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sfarticle .sf-rel {
+    grid-template-columns: 1fr;
+  }
+  .sfarticle .sf-rel-card:nth-child(3) {
+    display: flex;
+  }
+  .sfarticle .sf-art-footrow {
+    justify-content: flex-start;
+  }
+  .sfarticle .sf-cta-row {
+    flex-direction: column;
+  }
+  .sfarticle .sf-cta-row .sf-btn {
+    width: 100%;
+  }
+}

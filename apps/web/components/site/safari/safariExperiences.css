@@ -1,0 +1,367 @@
+/*
+ * Safari (NenGama Lodge) — bespoke EXPERIENCES page (preset `safari`).
+ * Warm, airy, editorial lodge treatment (Fraunces display, hairline rules,
+ * a full-bleed page head, and an editorial RULED LIST of numbered rows) —
+ * deliberately unlike the OceansView resort's overlay-tile grid. Scoped to
+ * `.sfexp`; colour/type/shape from the `--site-*` tokens (warm-lodge hard
+ * fallbacks), so it stays on-theme + host-editable.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.sfexp {
+  --sf-radius: 3px;
+  color: var(--site-ink, #221a11);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #f4ede0);
+  overflow-x: clip;
+}
+.sfexp * {
+  box-sizing: border-box;
+}
+.sfexp img {
+  display: block;
+  max-width: 100%;
+}
+.sfexp p {
+  margin: 0;
+}
+.sfexp h1,
+.sfexp h2,
+.sfexp h3 {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: var(--site-weight-heading, 560);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--site-ink, #221a11);
+  text-wrap: balance;
+}
+.sfexp .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+.sfexp .sf-sec {
+  padding: clamp(64px, 9vw, 128px) 0;
+}
+.sfexp .sf-sand {
+  background: var(--site-soft, #efe6d4);
+}
+.sfexp .sf-h2 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.04;
+}
+.sfexp .sf-lead {
+  font-size: clamp(1.06rem, 1.4vw, 1.28rem);
+  line-height: 1.62;
+  color: var(--site-mute, #6e6048);
+  max-width: 56ch;
+  margin-top: 24px;
+}
+.sfexp .sf-muted {
+  color: var(--site-mute, #6e6048);
+  line-height: 1.68;
+  max-width: 58ch;
+  margin-top: 18px;
+}
+.sfexp .sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfexp .sf-eyebrow::before {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.sfexp .sf-eyebrow.on-dark {
+  color: var(--site-accent, #d79a5c);
+}
+.sfexp .sf-sechead {
+  max-width: 720px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.sfexp .sf-sechead .sf-eyebrow {
+  margin-bottom: 20px;
+}
+
+/* buttons */
+.sfexp .sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--sf-radius);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 14px 24px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+.sfexp .sf-btn-lg {
+  padding: 17px 32px;
+  font-size: 15px;
+}
+.sfexp .sf-btn-solid {
+  background: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+  border: 1px solid var(--site-accent, #b26c2e);
+}
+.sfexp .sf-btn-solid:hover {
+  background: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent-deep, #8f5320);
+}
+/* Line button: dark ink for light contexts (empty state); white over photo (CTA). */
+.sfexp .sf-btn-line {
+  background: transparent;
+  color: var(--site-ink, #221a11);
+  border: 1px solid var(--site-line, #dbcfb8);
+}
+.sfexp .sf-btn-line:hover {
+  border-color: var(--site-ink, #221a11);
+}
+.sfexp .sf-cta .sf-btn-line {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.sfexp .sf-cta .sf-btn-line:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ======================================================================
+ * PAGE HEAD — full-bleed photo, left-aligned editorial
+ * ==================================================================== */
+.sfexp .sf-phead {
+  position: relative;
+  min-height: clamp(360px, 54vh, 540px);
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: clamp(40px, 6vw, 74px);
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfexp .sf-phead-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfexp .sf-phead-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfexp .sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 21, 14, 0.26) 0%,
+    rgba(28, 21, 14, 0.2) 42%,
+    rgba(28, 21, 14, 0.74) 100%
+  );
+}
+.sfexp .sf-phead-in {
+  position: relative;
+}
+.sfexp .sf-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 20px;
+}
+.sfexp .sf-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.sfexp .sf-crumbs a:hover {
+  color: var(--site-accent, #d79a5c);
+}
+.sfexp .sf-phead h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5.4vw, 4.4rem);
+  line-height: 1.02;
+  max-width: 18ch;
+}
+.sfexp .sf-phead p {
+  margin-top: 18px;
+  max-width: 54ch;
+  font-size: clamp(1.02rem, 1.4vw, 1.24rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ======================================================================
+ * EXPERIENCES — editorial ruled list (numbered rows, hairline dividers)
+ * ==================================================================== */
+.sfexp .sf-exps {
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+.sfexp .sf-exp {
+  display: grid;
+  grid-template-columns: auto 260px 1fr;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(26px, 3.4vw, 44px) 0;
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+}
+.sfexp .sf-exp-idx {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--site-accent, #b26c2e);
+  opacity: 0.5;
+}
+.sfexp .sf-exp-fig {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+  background: var(--site-soft-2, #e7dcc4);
+}
+.sfexp .sf-exp-fig img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.sfexp .sf-exp:hover .sf-exp-fig img {
+  transform: scale(1.05);
+}
+.sfexp .sf-exp-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(
+      120% 120% at 30% 20%,
+      var(--site-tint, rgba(178, 108, 46, 0.14)),
+      transparent 70%
+    ),
+    var(--site-soft, #efe6d4);
+}
+.sfexp .sf-exp-ph span {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 500;
+  color: var(--site-accent, #b26c2e);
+  opacity: 0.65;
+  line-height: 1;
+}
+.sfexp .sf-exp-body h3 {
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+}
+.sfexp .sf-exp-body p {
+  margin-top: 12px;
+  color: var(--site-mute, #6e6048);
+  line-height: 1.62;
+  max-width: 62ch;
+}
+
+/* ======================================================================
+ * EMPTY STATE — honest "on the way" placeholder
+ * ==================================================================== */
+.sfexp .sf-empty {
+  max-width: 640px;
+}
+.sfexp .sf-empty .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfexp .sf-empty .sf-cta-row {
+  margin-top: 34px;
+}
+
+/* ======================================================================
+ * CTA — full-bleed closing banner
+ * ==================================================================== */
+.sfexp .sf-cta {
+  position: relative;
+  padding: clamp(72px, 11vw, 150px) 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfexp .sf-cta-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfexp .sf-cta-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfexp .sf-cta-in {
+  max-width: 620px;
+}
+.sfexp .sf-cta-in .sf-eyebrow {
+  margin-bottom: 20px;
+}
+.sfexp .sf-cta-in h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+}
+.sfexp .sf-cta-in p {
+  margin-top: 18px;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sfexp .sf-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 960px) {
+  .sfexp .sf-exp {
+    grid-template-columns: 160px 1fr;
+    gap: 24px;
+    row-gap: 18px;
+  }
+  .sfexp .sf-exp-idx {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .sfexp .sf-exp {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .sfexp .sf-exp-fig {
+    aspect-ratio: 16 / 9;
+  }
+  .sfexp .sf-cta-row {
+    flex-direction: column;
+  }
+  .sfexp .sf-cta-row .sf-btn {
+    width: 100%;
+  }
+}

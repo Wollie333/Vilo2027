@@ -1,0 +1,533 @@
+/*
+ * Safari (NenGama Lodge) — bespoke CONTACT page (preset `safari`).
+ * Warm, airy, editorial lodge treatment (Fraunces display, hairline rules, an
+ * asymmetric details/form split, a framed enquiry card). Scoped to `.sfcontact`;
+ * colour/type/shape from the `--site-*` tokens (with warm-lodge hard fallbacks),
+ * so it stays on-theme + host-editable. The enquiry form is the shared
+ * `OceansContactForm`, so its inner classes (`.frow` / `.field` / `.btn` /
+ * `.sent` / `.muted`) are re-styled here into the Safari idiom.
+ */
+
+/* -- root + primitives --------------------------------------------------- */
+.sfcontact {
+  --sf-radius: 3px;
+  color: var(--site-ink, #221a11);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  background: var(--site-bg, #f4ede0);
+  overflow-x: clip;
+}
+.sfcontact * {
+  box-sizing: border-box;
+}
+.sfcontact img {
+  display: block;
+  max-width: 100%;
+}
+.sfcontact p {
+  margin: 0;
+}
+.sfcontact h1,
+.sfcontact h2,
+.sfcontact h3 {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: var(--site-weight-heading, 560);
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--site-ink, #221a11);
+  text-wrap: balance;
+}
+.sfcontact .wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 46px);
+}
+.sfcontact .sf-sec {
+  padding: clamp(64px, 9vw, 128px) 0;
+}
+.sfcontact .sf-sec-sm {
+  padding: 0 0 clamp(48px, 7vw, 96px);
+}
+.sfcontact .sf-sand {
+  background: var(--site-soft, #efe6d4);
+}
+.sfcontact .sf-h2 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.04;
+}
+.sfcontact .sf-h3 {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.08;
+}
+.sfcontact .sf-lead {
+  font-size: clamp(1.06rem, 1.4vw, 1.28rem);
+  line-height: 1.62;
+  color: var(--site-mute, #6e6048);
+  max-width: 56ch;
+  margin-top: 24px;
+}
+.sfcontact .sf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfcontact .sf-eyebrow::before {
+  content: "";
+  width: 30px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.sfcontact .sf-sechead {
+  max-width: 720px;
+  margin-bottom: clamp(38px, 5vw, 60px);
+}
+.sfcontact .sf-sechead .sf-eyebrow {
+  margin-bottom: 20px;
+}
+
+/* ======================================================================
+ * PAGE HEAD — full-bleed photo, left-aligned editorial
+ * ==================================================================== */
+.sfcontact .sf-phead {
+  position: relative;
+  min-height: clamp(340px, 48vh, 500px);
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: clamp(40px, 6vw, 74px);
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+}
+.sfcontact .sf-phead-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.sfcontact .sf-phead-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfcontact .sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 21, 14, 0.26) 0%,
+    rgba(28, 21, 14, 0.2) 42%,
+    rgba(28, 21, 14, 0.74) 100%
+  );
+}
+.sfcontact .sf-phead-in {
+  position: relative;
+}
+.sfcontact .sf-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 20px;
+}
+.sfcontact .sf-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.sfcontact .sf-crumbs a:hover {
+  color: var(--site-accent, #d79a5c);
+}
+.sfcontact .sf-phead h1 {
+  color: #fff;
+  font-size: clamp(2.4rem, 5.4vw, 4.4rem);
+  line-height: 1.02;
+  max-width: 18ch;
+}
+.sfcontact .sf-phead p {
+  margin-top: 18px;
+  max-width: 54ch;
+  font-size: clamp(1.02rem, 1.4vw, 1.24rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ======================================================================
+ * DETAILS + FORM — asymmetric editorial split
+ * ==================================================================== */
+.sfcontact .sf-cgrid {
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: clamp(36px, 6vw, 88px);
+  align-items: start;
+}
+.sfcontact .sf-cinfo .sf-eyebrow {
+  margin-bottom: 22px;
+}
+.sfcontact .sf-cinfo .sf-h2 {
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+}
+
+/* details — editorial hairline-ruled list */
+.sfcontact .sf-details {
+  margin-top: clamp(28px, 4vw, 44px);
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+.sfcontact .sf-drow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+  padding: clamp(18px, 2.4vw, 26px) 0;
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+}
+.sfcontact .sf-dic {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--sf-radius);
+  border: 1px solid var(--site-line, #dbcfb8);
+  background: var(--site-surface, #fffaf1);
+  color: var(--site-accent-deep, #8f5320);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sfcontact .sf-dbody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.sfcontact .sf-dlabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfcontact .sf-dval {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(1.14rem, 1.8vw, 1.42rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #221a11);
+  word-break: break-word;
+}
+.sfcontact .sf-dsub {
+  font-size: 13.5px;
+  color: var(--site-mute, #6e6048);
+}
+
+/* guest voice — editorial pull-quote */
+.sfcontact .sf-quote {
+  margin: clamp(30px, 4vw, 48px) 0 0;
+  padding-top: clamp(28px, 3.5vw, 40px);
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+.sfcontact .sf-qstars {
+  display: flex;
+  gap: 3px;
+  color: var(--site-accent, #b26c2e);
+  margin-bottom: 16px;
+}
+.sfcontact .sf-quote blockquote {
+  margin: 0;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  color: var(--site-ink, #221a11);
+  text-wrap: pretty;
+}
+.sfcontact .sf-quote figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+.sfcontact .sf-qav {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--site-soft, #efe6d4);
+  border: 1px solid var(--site-line, #dbcfb8);
+  color: var(--site-accent-deep, #8f5320);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.sfcontact .sf-qnm {
+  display: block;
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--site-ink, #221a11);
+}
+.sfcontact .sf-qdt {
+  display: block;
+  font-size: 13px;
+  color: var(--site-mute, #6e6048);
+  margin-top: 2px;
+}
+
+/* ======================================================================
+ * ENQUIRY FORM — framed card wrapping the shared OceansContactForm
+ * ==================================================================== */
+.sfcontact .sf-formcard {
+  background: var(--site-surface, #fffaf1);
+  border: 1px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  padding: clamp(26px, 3.4vw, 44px);
+  box-shadow: 0 40px 70px -48px rgba(34, 26, 17, 0.5);
+}
+.sfcontact .sf-formcard .sf-eyebrow {
+  margin-bottom: 16px;
+}
+
+/* shared form internals, re-dressed in the Safari idiom */
+.sfcontact .frow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.sfcontact .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.sfcontact .field label {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfcontact .field input,
+.sfcontact .field select,
+.sfcontact .field textarea {
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-size: 15px;
+  color: var(--site-ink, #221a11);
+  background: var(--site-bg, #f4ede0);
+  border: 1px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  padding: 13px 14px;
+  width: 100%;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.sfcontact .field input:focus,
+.sfcontact .field select:focus,
+.sfcontact .field textarea:focus {
+  outline: none;
+  border-color: var(--site-accent, #b26c2e);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--site-accent, #b26c2e) 16%, transparent);
+}
+.sfcontact .field textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+/* submit button — Safari solid */
+.sfcontact .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--sf-radius);
+  font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  height: auto;
+  padding: 16px 30px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease;
+}
+.sfcontact .btn-coral {
+  background: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+  border-color: var(--site-accent, #b26c2e);
+}
+.sfcontact .btn-coral:not(:disabled):hover {
+  background: var(--site-accent-deep, #8f5320);
+  border-color: var(--site-accent-deep, #8f5320);
+}
+.sfcontact .btn-lg {
+  padding: 17px 34px;
+}
+
+/* muted helper text + sent confirmation state */
+.sfcontact .muted {
+  color: var(--site-mute, #6e6048);
+  line-height: 1.55;
+}
+.sfcontact .sent {
+  padding: clamp(28px, 4vw, 40px);
+  background: var(--site-soft, #efe6d4);
+  border: 1px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  text-align: center;
+  margin-top: 4px;
+}
+.sfcontact .sent svg {
+  color: var(--site-accent, #b26c2e);
+}
+
+/* ======================================================================
+ * MAP
+ * ==================================================================== */
+.sfcontact .sf-mapframe {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--sf-radius);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #dbcfb8);
+}
+.sfcontact .sf-mapframe iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.sfcontact .sf-mapph {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--sf-radius);
+  overflow: hidden;
+  border: 1px solid var(--site-line, #dbcfb8);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--site-soft, #efe6d4),
+    var(--site-soft, #efe6d4) 14px,
+    var(--site-bg, #f4ede0) 14px,
+    var(--site-bg, #f4ede0) 28px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sfcontact .sf-mappin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--site-accent, #b26c2e);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--site-accent, #b26c2e) 22%, transparent),
+    0 0 0 18px color-mix(in srgb, var(--site-accent, #b26c2e) 10%, transparent);
+}
+.sfcontact .sf-maptag {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background: var(--site-surface, #fffaf1);
+  border: 1px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-mute, #6e6048);
+}
+
+/* ======================================================================
+ * FAQ — hairline-ruled editorial accordion
+ * ==================================================================== */
+.sfcontact .sf-faqs {
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+}
+.sfcontact .sf-faq {
+  border-top: 1px solid var(--site-line, #dbcfb8);
+  padding: clamp(20px, 2.6vw, 26px) 0;
+}
+.sfcontact .sf-faq summary {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 500;
+  font-size: clamp(1.16rem, 1.8vw, 1.4rem);
+  line-height: 1.2;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  color: var(--site-ink, #221a11);
+}
+.sfcontact .sf-faq summary::-webkit-details-marker {
+  display: none;
+}
+.sfcontact .sf-pm {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--site-line, #dbcfb8);
+  background: var(--site-surface, #fffaf1);
+  color: var(--site-ink, #221a11);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    color 0.3s,
+    border-color 0.3s;
+}
+.sfcontact .sf-faq[open] .sf-pm {
+  transform: rotate(45deg);
+  background: var(--site-accent, #b26c2e);
+  border-color: var(--site-accent, #b26c2e);
+  color: var(--site-accent-ink, #fff);
+}
+.sfcontact .sf-faq p {
+  margin-top: 14px;
+  color: var(--site-mute, #6e6048);
+  line-height: 1.68;
+  max-width: 64ch;
+}
+
+/* ======================================================================
+ * RESPONSIVE
+ * ==================================================================== */
+@media (max-width: 960px) {
+  .sfcontact .sf-cgrid {
+    grid-template-columns: 1fr;
+    gap: clamp(32px, 6vw, 52px);
+  }
+  .sfcontact .sf-cform {
+    order: -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .sfcontact .frow {
+    grid-template-columns: 1fr;
+  }
+  .sfcontact .sf-formcard {
+    padding: 22px 18px;
+  }
+  .sfcontact .btn {
+    width: 100%;
+  }
+}

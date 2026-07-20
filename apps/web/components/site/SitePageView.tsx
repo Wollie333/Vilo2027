@@ -41,6 +41,10 @@ import { RoyalRooms } from "./royal/RoyalRooms";
 import { SafariHome } from "./safari/SafariHome";
 import { SafariRooms } from "./safari/SafariRooms";
 import { SafariAbout } from "./safari/SafariAbout";
+import { SafariExperiences } from "./safari/SafariExperiences";
+import { SafariContact } from "./safari/SafariContact";
+import { SafariGallery } from "./safari/SafariGallery";
+import { SafariSpecials } from "./safari/SafariSpecials";
 import { MarmaladeHome } from "./marmalade/MarmaladeHome";
 import { MarmaladeRooms } from "./marmalade/MarmaladeRooms";
 import { MarmaladeSpecials } from "./marmalade/MarmaladeSpecials";
@@ -1176,6 +1180,68 @@ export async function SitePageView({
   // live now/was price + savings, and a real booking deep-link. Empty → the
   // design's "no offers yet" placeholder (never demo cards). Gallery feeds the
   // page-head + CTA imagery. Same content-persistence contract as home.
+  // Safari — bespoke SPECIALS (preset `safari`). Own component (`.sfspecials`),
+  // editorial offer-card collection. Above the shared branch. Phase B (subpages).
+  if (ctx.theme.preset === "safari" && result.page.kind === "specials") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["specials_preview", "gallery"] as const),
+      ),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariSpecials
+              brandName={ctx.brand.name}
+              contactHref="/contact"
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              specials={extras.specials_preview?.specials}
+              gallery={extras.gallery?.images}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   if (
     usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "specials"
@@ -1367,6 +1433,88 @@ export async function SitePageView({
   // card + map (right) are wired to LIVE establishment data; the FAQ comes from
   // content_profile (brand-agnostic direct-booking answers as fallback). Rooms
   // feed the form's room selector. Same content-persistence contract as home.
+  // Safari — bespoke CONTACT (preset `safari`). Own component (`.sfcontact`),
+  // editorial details list + framed shared form. Above the shared branch. Phase B.
+  if (ctx.theme.preset === "safari" && result.page.kind === "contact") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, extras] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      assembleSiteDataByType(
+        sbx,
+        ctx,
+        new Set(["location", "rooms_preview", "policies", "reviews"] as const),
+      ),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const loc = extras.location;
+    const roomNames = (extras.rooms_preview?.rooms ?? [])
+      .map((r) => r.name)
+      .filter(Boolean);
+    const topReview =
+      (extras.reviews?.items ?? [])
+        .filter((r) => r.body?.trim())
+        .slice()
+        .sort((a, b) => b.rating - a.rating)[0] ?? null;
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariContact
+              brandName={ctx.brand.name}
+              websiteId={ctx.websiteId}
+              interactive={!ctx.preview}
+              heroImageUrl={
+                cp.home?.hero?.imagePath
+                  ? (websiteAssetUrl(cp.home.hero.imagePath) ?? null)
+                  : null
+              }
+              phone={loc?.phone ?? ctx.brand.contactPhone ?? null}
+              email={loc?.email ?? ctx.brand.contactEmail ?? null}
+              address={loc?.fullAddress ?? loc?.address ?? null}
+              mapEmbedUrl={
+                loc?.fullAddress
+                  ? `https://maps.google.com/maps?q=${encodeURIComponent(
+                      loc.fullAddress,
+                    )}&z=15&output=embed`
+                  : (loc?.mapEmbedUrl ?? null)
+              }
+              faq={cp.contact?.faq ?? null}
+              policies={extras.policies ?? null}
+              rooms={roomNames}
+              review={topReview}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   if (
     usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "contact"
@@ -1681,6 +1829,65 @@ export async function SitePageView({
   // host's wizard `content_profile.experiences` (title/body/image); empty → a
   // tasteful "on the way" state (never fabricated). Same chrome + CTA as the
   // other bespoke pages.
+  // Safari — bespoke EXPERIENCES (preset `safari`). Own component (`.sfexp`),
+  // editorial ruled list. Above the shared branch. Phase B (subpages).
+  if (ctx.theme.preset === "safari" && result.page.kind === "experiences") {
+    const sbx = createAdminClient();
+    const [{ data: cpRow }, roomsHrefRaw] = await Promise.all([
+      sbx
+        .from("host_websites")
+        .select("content_profile")
+        .eq("id", ctx.websiteId)
+        .maybeSingle<{ content_profile: unknown }>(),
+      findRoomsIndexHref(ctx),
+    ]);
+    const cp = parseContentProfileLoose(cpRow?.content_profile);
+    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+      title: e.title,
+      body: e.body ?? null,
+      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+    }));
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariExperiences
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={cp.experiences?.intro ?? null}
+              experiences={experiences}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   if (
     usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "experiences"
@@ -1862,6 +2069,56 @@ export async function SitePageView({
   // Oceans View — bespoke GALLERY design. A mosaic of the property's LIVE photos
   // (assembleSiteDataByType "gallery") with a lightbox; empty → "photos coming
   // soon" (never fabricated). Same chrome + CTA as the other bespoke pages.
+  // Safari — bespoke GALLERY (preset `safari`). Own component (`.sfgallery`),
+  // warm daylight editorial mosaic (reuses the shared lightbox). Above the shared
+  // branch. Phase B (subpages).
+  if (ctx.theme.preset === "safari" && result.page.kind === "gallery") {
+    const sbx = createAdminClient();
+    const [extras, roomsHrefRaw] = await Promise.all([
+      assembleSiteDataByType(sbx, ctx, new Set(["gallery"] as const)),
+      findRoomsIndexHref(ctx),
+    ]);
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            preset={ctx.theme.preset}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+            pageHasHero
+          >
+            <SafariGallery
+              brandName={ctx.brand.name}
+              heading={null}
+              intro={null}
+              images={extras.gallery?.images ?? []}
+              roomsHref={roomsHrefRaw ?? "/rooms"}
+              contactHref="/contact"
+              asset={siteAsset}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
   if (
     usesOceansViewLayout(ctx.theme.preset) &&
     result.page.kind === "gallery"
