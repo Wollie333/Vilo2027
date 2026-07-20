@@ -639,6 +639,31 @@ async function processProductEvent(
           if (planRow) plan = planRow.key;
         }
 
+        // Capture the reusable card authorization so the renewal cron can
+        // re-charge it each cycle (hybrid Paystack rail). The self-serve PRODUCT
+        // purchase (PlanPicker → startProductCheckoutDirect, purpose:"product") is
+        // the FIRST charge for a membership/service, so — like processSubscription
+        // Event — grab the token here or a product-bought sub would never renew.
+        const auth = event.data.authorization;
+        const savedAuth: Record<string, unknown> = {};
+        if (auth?.reusable && auth.authorization_code) {
+          const cipher = await encryptSecret(auth.authorization_code);
+          if (cipher) {
+            savedAuth.paystack_authorization_code_cipher = cipher;
+            savedAuth.paystack_card_last4 = auth.last4 ?? null;
+            savedAuth.paystack_card_brand =
+              auth.card_type ?? auth.brand ?? null;
+            savedAuth.paystack_card_exp =
+              auth.exp_month && auth.exp_year
+                ? `${String(auth.exp_month).padStart(2, "0")}/${String(
+                    auth.exp_year,
+                  ).slice(-2)}`
+                : null;
+          }
+        }
+        const custCode = event.data.customer?.customer_code;
+        if (custCode) savedAuth.paystack_customer_code = custCode;
+
         const patch = {
           product_id: order.product_id,
           plan,
@@ -646,6 +671,7 @@ async function processProductEvent(
           status: "active",
           current_period_start: now,
           current_period_end: periodEnd,
+          ...savedAuth,
         };
         if (sub) {
           await supabase.from("subscriptions").update(patch).eq("id", sub.id);
