@@ -34,7 +34,9 @@
 - **R4** — PayPal `ACTIVATED` + `SALE.COMPLETED` arrive in any order; both are
   idempotent (keyed by `paypal_subscription_id` / the PayPal sale id).
 - **R5** — an upgrade charges the prorated **delta** + rebuilds the sub; never PayPal
-  `revise`. (Paystack rail shipped; PayPal proration is a scoped follow-up.)
+  `revise`. Paystack = a saved-card top-up (in-place rewrite, period preserved). PayPal
+  = a single-approval per-upgrade plan whose **setup_fee is the delta** + recurring
+  deferred to period end. Both rails shipped.
 - **R6** — Wielo owns trials: a trial is state-only (`status='trialing'` +
   `trial_ends_at`, no provider sub / no saved auth). The provider handle is created
   at the **first real charge**, so "no real charge until X" holds.
@@ -159,8 +161,24 @@
   `product_orders`(amountOverride=delta, `activate_on_pay:false`) · `platform_ledger`(pending) ·
   `subscription_history`.
 - Next: delta settles via the normal product-order settle (collect only). ⚠️ not verified live.
-- PayPal rail: routes to a fresh native sub (full charge) — **PayPal proration is a
-  scoped follow-up**; `cancelHostPayPalSubscription` is built but dormant until then.
+
+### Step E3 — PayPal upgrade (single approval, setup-fee proration)
+- Trigger: host confirms an upgrade with the PayPal rail · Actor: host → system
+- Functions/files: `paypal-subscription.ts:startPayPalUpgradeCheckout` →
+  `lib/paypal.ts:createPayPalBillingPlan({setupFeeUsd})` +
+  `createPayPalSubscription({startTime})`
+- Logic: mint a PER-UPGRADE plan whose one-time `setup_fee` = the prorated delta (USD)
+  and whose recurring amount = the go-forward full price, then create the sub with
+  `start_time = current_period_end`. One approval → the host pays only the delta now;
+  recurring begins at period end. On activation (`activatePayPalSubscription`) the old
+  membership is retired AND its old PayPal sub is cancelled at PayPal
+  (`retireOtherMemberships` → `cancelHostPayPalSubscription`).
+- Key correctness: the setup-fee sale's SALE.COMPLETED is settled by
+  `recordPayPalSaleCompleted`, which reads PayPal's `next_billing_time` (still the
+  deferred start) for the period end — so the delta does NOT grant a free extra cycle.
+- Falls back to a full-price native sub when there's no unused period to prorate.
+- ⚠️ not verified live — sandbox-verify at go-live (setup_fee behaviour, `start_time`
+  min-lead, deferred-sub SALE ordering).
 
 ---
 

@@ -8,7 +8,10 @@ import {
   isPlatformBillingConfigured,
   startSubscriptionCheckout,
 } from "@/lib/billing/platform-billing";
-import { startPayPalSubscriptionCheckout } from "@/lib/billing/paypal-subscription";
+import {
+  startPayPalSubscriptionCheckout,
+  startPayPalUpgradeCheckout,
+} from "@/lib/billing/paypal-subscription";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { getRecurringConfig } from "@/lib/billing/recurring";
 import {
@@ -367,18 +370,28 @@ export async function switchToProductAction(input: {
   const recurring = await getRecurringConfig();
 
   // PayPal rail (native recurring subscription). Offered only when the PayPal
-  // recurring flag is armed. Charges the full new plan on approval — PayPal
-  // proration is a scoped follow-up (founder decision); the unused-period credit
-  // isn't applied on this rail yet.
+  // recurring flag is armed. A mid-cycle UPGRADE (host already on a paid plan)
+  // prorates in a single approval — the delta is the plan's setup_fee and recurring
+  // is deferred to period end; a first-time paid switch bills the full plan now.
   if (paid && method === "paypal" && recurring.paypal) {
     const base = `${origin ?? ""}/dashboard/settings/subscription`;
-    const r = await startPayPalSubscriptionCheckout({
-      hostId: host.hostId,
-      productId: product.id,
-      cycle,
-      returnUrl: `${base}/billing/return`,
-      cancelUrl: base,
-    });
+    const returnUrl = `${base}/billing/return`;
+    const r = existing?.product_id
+      ? await startPayPalUpgradeCheckout({
+          hostId: host.hostId,
+          subId: existing.id,
+          newProductId: product.id,
+          cycle,
+          returnUrl,
+          cancelUrl: base,
+        })
+      : await startPayPalSubscriptionCheckout({
+          hostId: host.hostId,
+          productId: product.id,
+          cycle,
+          returnUrl,
+          cancelUrl: base,
+        });
     if (!r.ok) return { ok: false, error: r.error };
     return { ok: true, redirectUrl: r.approveUrl };
   }

@@ -132,10 +132,14 @@ export async function getUpgradeQuote(input: {
     sub?.current_period_end,
     now,
   );
-  // Prorate only when: Paystack recurring is armed, the host is on a paid plan
-  // with unused period, and the delta is meaningful.
+  // Prorate only when: a recurring rail is armed, the host is on a paid plan with
+  // unused period, and the delta is meaningful. Both rails prorate the same delta —
+  // Paystack via a saved-card top-up, PayPal via a single-approval setup-fee sub.
   const prorated =
-    recurring.paystack && !!sub?.product_id && frac > 0 && fullPrice > oldPrice;
+    (recurring.paystack || recurring.paypal) &&
+    !!sub?.product_id &&
+    frac > 0 &&
+    fullPrice > oldPrice;
   const delta = membershipSwitchAmount(
     fullPrice,
     oldPrice,

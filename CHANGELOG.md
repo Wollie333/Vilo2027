@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-20 (pt34) — Recurring billing: PayPal upgrade proration (single-approval setup-fee).
+
+Completes the deferred "PayPal follows" piece from Phase 3 — mid-cycle upgrades now
+prorate on the PayPal rail too, in a single approval. Gated behind
+`paypal_recurring_enabled`; ⚠️ sandbox-verified at go-live like the rest of the rail.
+
+- **`lib/paypal.ts`** — `createPayPalBillingPlan` takes an optional `setupFeeUsd`
+  (a one-time fee charged at approval); `createPayPalSubscription` takes an optional
+  `startTime` (defers the first recurring charge).
+- **`lib/billing/paypal-subscription.ts:startPayPalUpgradeCheckout`** — mints a
+  per-upgrade plan whose `setup_fee` is the prorated delta (USD) and whose recurring
+  amount is the go-forward full price, then creates the sub with
+  `start_time = current_period_end`. One approval: the host pays only the delta now,
+  recurring resumes at the new tier from period end. Falls back to a full-price native
+  sub when there's nothing to prorate.
+- **`recordPayPalSaleCompleted`** now sets the period end from PayPal's live
+  `next_billing_time` (not a blind `now + cycle`) — so the setup-fee sale on a deferred
+  upgrade can't wrongly grant a free cycle, and normal renewals track the provider
+  schedule exactly (R4).
+- **`retireOtherMemberships`** now cancels a retired membership's PayPal sub AT PayPal
+  (`cancelHostPayPalSubscription`), so the old native sub stops billing after a swap —
+  wires the last dormant export from Phase 2.
+- **`getUpgradeQuote`** prorates when EITHER rail is armed; `switchToProductAction`
+  routes a PayPal upgrade (host already on a paid plan) to `startPayPalUpgradeCheckout`,
+  a first-time paid switch to the full-price native checkout.
+- Build + lint + tsc green; 18 unit tests pass; wiring audit shows both new PayPal
+  entry points invoked.
+
 ## 2026-07-20 (pt33) — Recurring billing Phase 4: time-driven reconcile worker + trials confirmed Wielo-owned.
 
 Repairs drift on both recurring rails after a missed webhook or a worker crash

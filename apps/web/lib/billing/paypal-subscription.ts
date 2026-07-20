@@ -1,6 +1,10 @@
 import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
+import {
+  membershipSwitchAmount,
+  unusedFraction,
+} from "@/lib/billing/proration";
 import { isPayPalRecurringEnabled } from "@/lib/billing/recurring";
 import { convertCurrency, convertZarToUsd } from "@/lib/fx";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
@@ -254,6 +258,163 @@ export async function startPayPalSubscriptionCheckout(input: {
 }
 
 /**
+ * Mid-cycle UPGRADE on the PayPal rail — single approval, prorated (R5).
+ *
+ * PayPal native subs bill the full plan immediately, so a plain new subscription
+ * would overcharge a host who still holds unused paid time. Instead we mint a
+ * PER-UPGRADE billing plan whose one-time **setup_fee is the prorated delta**
+ * (charged at approval) and whose recurring amount is the go-forward full price,
+ * then create the subscription with **start_time = the current period end** so the
+ * first recurring charge is deferred to renewal. Net effect in ONE approval: the
+ * host pays only the delta now and recurs at the new tier from period end. The
+ * setup-fee sale's SALE.COMPLETED is settled by recordPayPalSaleCompleted, which
+ * reads PayPal's next_billing_time (still the deferred start) so it does NOT grant
+ * a free cycle. The old sub is cancelled when the new one activates
+ * (retireOtherMemberships). Falls back to a normal full-price sub when there is no
+ * unused period to prorate.
+ */
+export async function startPayPalUpgradeCheckout(input: {
+  hostId: string;
+  subId: string;
+  newProductId: string;
+  cycle: "monthly" | "annual";
+  returnUrl: string;
+  cancelUrl: string;
+}): Promise<StartPayPalSubResult> {
+  const admin = createAdminClient();
+  if (!(await isPayPalRecurringEnabled())) {
+    return { ok: false, error: "PayPal recurring isn't enabled." };
+  }
+  const creds = await getPlatformPayPal();
+  if (!creds) return { ok: false, error: "PayPal isn't configured." };
+
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("id, product_id, current_period_start, current_period_end")
+    .eq("id", input.subId)
+    .maybeSingle();
+  if (!sub) return { ok: false, error: "Subscription not found." };
+
+  const { data: product } = await admin
+    .from("products")
+    .select("id, name, price, annual_price, currency, product_type, is_active")
+    .eq("id", input.newProductId)
+    .maybeSingle();
+  if (!product || !product.is_active || product.product_type === "product") {
+    return { ok: false, error: "That plan isn't available." };
+  }
+
+  const newPrice =
+    input.cycle === "annual"
+      ? Number(product.annual_price ?? product.price)
+      : Number(product.price);
+  let oldPrice = 0;
+  if (sub.product_id) {
+    const { data: old } = await admin
+      .from("products")
+      .select("price, annual_price")
+      .eq("id", sub.product_id)
+      .maybeSingle();
+    if (old) {
+      oldPrice =
+        input.cycle === "annual"
+          ? Number(old.annual_price ?? old.price)
+          : Number(old.price);
+    }
+  }
+
+  const now = new Date();
+  const frac = unusedFraction(
+    sub.current_period_start,
+    sub.current_period_end,
+    now,
+  );
+  // No unused period to prorate → a plain full-price native sub is correct.
+  if (!(frac > 0) || !sub.current_period_end) {
+    return startPayPalSubscriptionCheckout({
+      hostId: input.hostId,
+      productId: input.newProductId,
+      cycle: input.cycle,
+      returnUrl: input.returnUrl,
+      cancelUrl: input.cancelUrl,
+    });
+  }
+
+  const deltaZar = membershipSwitchAmount(
+    newPrice,
+    oldPrice,
+    sub.current_period_start,
+    sub.current_period_end,
+    now,
+  );
+
+  // Ensure the base (catalog product + plan) exists, then read the catalog id to
+  // hang a per-upgrade plan (setup_fee = delta) off it.
+  await ensurePayPalPlan(admin, { product, cycle: input.cycle, creds });
+  const { data: planRow } = await admin
+    .from("product_billing_plans")
+    .select("provider_product_id")
+    .eq("product_id", product.id)
+    .eq("provider", "paypal")
+    .eq("cycle", input.cycle)
+    .eq("environment", creds.env)
+    .eq("status", "active")
+    .maybeSingle();
+  const catalogId = planRow?.provider_product_id;
+  if (!catalogId) {
+    return { ok: false, error: "Couldn't prepare the PayPal plan." };
+  }
+
+  const fullUsd = await convertZarToUsd(newPrice);
+  if (!(fullUsd > 0)) return { ok: false, error: "Couldn't price the plan." };
+  const deltaUsd = deltaZar > 0 ? await convertZarToUsd(deltaZar) : 0;
+
+  const upgradePlanId = await createPayPalBillingPlan({
+    productId: catalogId,
+    name: `${product.name} (${input.cycle}) upgrade`,
+    cycle: input.cycle,
+    amount: fullUsd,
+    setupFeeUsd: deltaUsd > 0 ? deltaUsd : undefined,
+    creds,
+  });
+  if (!upgradePlanId) {
+    return { ok: false, error: "Couldn't prepare the upgrade." };
+  }
+
+  const { data: host } = await admin
+    .from("hosts")
+    .select("user_id")
+    .eq("id", input.hostId)
+    .maybeSingle();
+  let email: string | undefined;
+  if (host?.user_id) {
+    const { data: profile } = await admin
+      .from("user_profiles")
+      .select("email")
+      .eq("id", host.user_id)
+      .maybeSingle();
+    email = profile?.email ?? undefined;
+  }
+
+  const created = await createPayPalSubscription({
+    planId: upgradePlanId,
+    startTime: sub.current_period_end, // defer recurring to period end
+    returnUrl: input.returnUrl,
+    cancelUrl: input.cancelUrl,
+    customId: encodeCustomId(input.hostId, product.id, input.cycle),
+    subscriberEmail: email,
+    brandName: "Wielo",
+    creds,
+  });
+  if (!created) return { ok: false, error: "Couldn't start PayPal checkout." };
+  return {
+    ok: true,
+    approveUrl: created.approveUrl,
+    subscriptionId: created.subscriptionId,
+  };
+}
+
+/**
  * Activate (or refresh) the host's subscription row for a PayPal subscription —
  * idempotent, called from the return page AND the ACTIVATED webhook (R4, either
  * order). Reads the live PayPal subscription to confirm it is ACTIVE and to
@@ -352,10 +513,30 @@ async function retireOtherMemberships(
     .filter((s) => !s.product_id || memIds.has(s.product_id))
     .map((s) => s.id);
   if (retire.length) {
+    // Grab their PayPal handles BEFORE we mark them cancelled — a retired
+    // membership's native sub must also be cancelled at PayPal, or it keeps
+    // auto-charging the host after they've moved to a new plan.
+    const { data: retiring } = await admin
+      .from("subscriptions")
+      .select("id, paypal_subscription_id")
+      .in("id", retire);
     await admin
       .from("subscriptions")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .in("id", retire);
+    for (const r of retiring ?? []) {
+      if (r.paypal_subscription_id) {
+        try {
+          await cancelHostPayPalSubscription(
+            r.paypal_subscription_id,
+            "Superseded by a plan change",
+          );
+        } catch {
+          // Best-effort — the local row is already retired; a failed remote
+          // cancel is caught by the reconcile cron (CANCELLED/EXPIRED sweep).
+        }
+      }
+    }
   }
 }
 
@@ -399,7 +580,27 @@ export async function recordPayPalSaleCompleted(
   const cycle = sub?.billing_cycle === "annual" ? "annual" : "monthly";
   const now = new Date();
   const periodStart = now.toISOString();
-  const periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
+  // Period end = PayPal's OWN next_billing_time (the end of the period this charge
+  // paid for), falling back to a computed cycle if unavailable. This trusts the
+  // provider's schedule (R4) and is essential for a deferred UPGRADE sub: the
+  // one-time setup-fee (proration delta) fires a SALE.COMPLETED too, but PayPal's
+  // next_billing_time still points at the deferred start (the current period end),
+  // so we DON'T wrongly grant a free extra cycle for the delta.
+  let periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
+  try {
+    const creds = await getPlatformPayPal();
+    if (creds) {
+      const remote = await getPayPalSubscription(input.subscriptionId, creds);
+      if (
+        remote?.nextBillingTime &&
+        new Date(remote.nextBillingTime).getTime() > now.getTime()
+      ) {
+        periodEnd = remote.nextBillingTime;
+      }
+    }
+  } catch {
+    // Fall back to the computed cycle — never break settlement over a read.
+  }
 
   // R2: ZAR of record = the USD charged, converted at today's fx.
   const amountZar = await convertCurrency(input.amountUsd, "USD", "ZAR");

@@ -190,12 +190,19 @@ export async function createPayPalBillingPlan(input: {
   cycle: "monthly" | "annual";
   amount: number; // USD
   currency?: string; // "USD"
+  // One-time setup fee charged at approval — used for a mid-cycle UPGRADE's
+  // prorated DELTA (the recurring `amount` is the go-forward full price). When set,
+  // pair with a future `startTime` on the subscription so the delta is the only
+  // immediate charge and full billing begins at the current period end.
+  setupFeeUsd?: number;
   creds: PayPalCreds;
   requestId?: string;
 }): Promise<string | null> {
   const token = await getPayPalAccessToken(input.creds);
   if (!token) return null;
   const currency = input.currency ?? "USD";
+  const hasSetup =
+    typeof input.setupFeeUsd === "number" && input.setupFeeUsd > 0;
   const res = await fetch(`${BASE_URL[input.creds.env]}/v1/billing/plans`, {
     method: "POST",
     headers: {
@@ -226,6 +233,15 @@ export async function createPayPalBillingPlan(input: {
       ],
       payment_preferences: {
         auto_bill_outstanding: true,
+        ...(hasSetup
+          ? {
+              setup_fee: {
+                value: (input.setupFeeUsd as number).toFixed(2),
+                currency_code: currency,
+              },
+            }
+          : {}),
+        // A failed setup fee cancels the upgrade rather than granting it unpaid.
         setup_fee_failure_action: "CANCEL",
         payment_failure_threshold: 1,
       },
@@ -250,6 +266,10 @@ export async function createPayPalSubscription(input: {
   customId?: string;
   subscriberEmail?: string;
   brandName?: string;
+  // Defer the first RECURRING charge to this ISO time (e.g. the current period
+  // end on an upgrade), so only the plan's setup_fee is taken at approval. Must be
+  // in the future; omit for a sub that bills immediately.
+  startTime?: string;
   creds: PayPalCreds;
   requestId?: string;
 }): Promise<{ subscriptionId: string; approveUrl: string } | null> {
@@ -267,6 +287,7 @@ export async function createPayPalSubscription(input: {
       body: JSON.stringify({
         plan_id: input.planId,
         custom_id: input.customId,
+        ...(input.startTime ? { start_time: input.startTime } : {}),
         subscriber: input.subscriberEmail
           ? { email_address: input.subscriberEmail }
           : undefined,
