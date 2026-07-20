@@ -16,8 +16,13 @@ import {
  * text visible while the font loads. Only the three keys with actual web fonts
  * need loading; `sans`/`serif`/`editorial` use system fonts (no request).
  *
- * `<link rel="stylesheet">` hoists to <head> in the App Router, so this can render
- * anywhere in the themed subtree (it lives in `SiteThemeRoot`).
+ * The stylesheet links carry a `precedence` so React (18.3) manages them as
+ * proper stylesheet RESOURCES: hoisted to <head> IDENTICALLY on the server and
+ * during client hydration, with no leftover node in the body tree. Without it,
+ * the bare `<link rel="stylesheet">` hoisted on the server but the client tree
+ * still held it as the first child of `.wielo-site-root`, shifting every sibling
+ * by one → a hydration structural mismatch (#418) that cascaded into the page's
+ * text nodes (#425) on every themed site page.
  */
 const WEBFONT_HREFS: Partial<Record<SiteFont, string>> = {
   elegant:
@@ -49,7 +54,7 @@ export function SiteFontLinks({
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       {hrefs.map((href) => (
-        <link key={href} rel="stylesheet" href={href} />
+        <link key={href} rel="stylesheet" href={href} precedence="default" />
       ))}
     </>
   );
