@@ -23,6 +23,7 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { AffiliateBaseLink } from "./_components/AffiliateBaseLink";
 import { AffiliateLinkBuilder } from "./_components/AffiliateLinkBuilder";
+import { PartnerProfileCard } from "./_components/PartnerProfileCard";
 import { ReferralLinkCard } from "./_components/ReferralLinkCard";
 
 export const metadata: Metadata = { title: "Affiliates" };
@@ -71,6 +72,7 @@ export default async function AffiliateOverviewPage() {
     { data: referrals },
     { data: settings },
     { data: productRows },
+    { data: presentation },
   ] = await Promise.all([
     getAffiliateBalance(admin, account.id),
     admin
@@ -92,6 +94,11 @@ export default async function AffiliateOverviewPage() {
       .select("id, name, slug, currency, affiliate_type, affiliate_value")
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
+    admin
+      .from("affiliate_accounts")
+      .select("display_headline, bio, photo_url")
+      .eq("id", account.id)
+      .maybeSingle(),
   ]);
 
   // Products the affiliate can build a link for (any active product; the label
@@ -249,6 +256,17 @@ export default async function AffiliateOverviewPage() {
     <div>
       {/* Affiliate link hero */}
       <ReferralLinkCard baseUrl={baseUrl} slug={account.slug} />
+
+      {/* Co-branded partner page editor */}
+      <div className="mt-5">
+        <PartnerProfileCard
+          baseUrl={baseUrl}
+          slug={account.slug}
+          headline={presentation?.display_headline ?? null}
+          bio={presentation?.bio ?? null}
+          photoUrl={presentation?.photo_url ?? null}
+        />
+      </div>
 
       {/* Tier card */}
       {tier.current ? (

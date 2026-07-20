@@ -119,6 +119,55 @@ export async function updateAffiliateSlugAction(
   return { ok: true, data: { slug } };
 }
 
+// ─── Partner profile (co-branded /partners/[slug] presentation) ────────────────
+
+const partnerProfileSchema = z.object({
+  display_headline: z.string().trim().max(80).optional().or(z.literal("")),
+  bio: z.string().trim().max(400).optional().or(z.literal("")),
+  photo_url: z.string().trim().url().max(500).optional().or(z.literal("")),
+});
+
+// Save the affiliate's public presentation fields for their co-branded
+// /partners/<slug> landing page. No money — presentation only. Empty strings
+// clear the field (stored as NULL).
+export async function updatePartnerProfileAction(
+  raw: z.infer<typeof partnerProfileSchema>,
+): Promise<ActionResult> {
+  const parsed = partnerProfileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Check your profile details.",
+    };
+  }
+  const d = parsed.data;
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in." };
+
+  const admin = createAdminClient();
+  const acct = await getAffiliateForUser(admin, user.id);
+  if (!acct) return { ok: false, error: "Accept the affiliate terms first." };
+
+  const { error } = await admin
+    .from("affiliate_accounts")
+    .update({
+      display_headline: d.display_headline?.trim() || null,
+      bio: d.bio?.trim() || null,
+      photo_url: d.photo_url?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", acct.id);
+  if (error) return { ok: false, error: "Could not save your profile." };
+
+  revalidatePath("/portal/affiliates");
+  revalidatePath("/dashboard/affiliates");
+  return { ok: true };
+}
+
 // ─── Payouts ─────────────────────────────────────────────────────────────────
 
 // Request a payout: hands off to the atomic create_affiliate_payout RPC, which
