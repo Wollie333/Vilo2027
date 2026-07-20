@@ -560,3 +560,87 @@
     gap: 20px 28px;
   }
 }
+
+/* ── gallery mosaic (shared OceansRoomGallery, scoped to the Safari room) ──
+   The gallery grid/count-pill CSS lives per-theme scoped to the room wrapper
+   (oceansview → .ovroom, royal → .rroom). Safari was missing its copy, so the
+   reused .rgal/.g/.gcount fell back to display:block and stacked full-size
+   photos. This mirrors the reference mosaic, scoped to .sfroom; the lightbox
+   (.ovroom-lightbox/.ovlb-*) is theme-agnostic and already works. */
+.sfroom .rgal {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+  height: clamp(420px, 60vh, 600px);
+  padding-top: 16px;
+}
+.sfroom .rgal .g {
+  overflow: hidden;
+  border-radius: var(--site-radius-img, 4px);
+  position: relative;
+}
+.sfroom .rgal .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+  cursor: zoom-in;
+}
+.sfroom .rgal .g:hover img {
+  transform: scale(1.05);
+}
+.sfroom .rgal .g.main {
+  grid-row: span 2;
+}
+.sfroom .rgal .g.main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(30, 20, 12, 0) 60%,
+    rgba(30, 20, 12, 0.36)
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.sfroom .rgal .g.main:hover::after {
+  opacity: 1;
+}
+.sfroom .gcount {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  color: var(--site-ink, #2a1c12);
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px -14px rgba(30, 20, 12, 0.5);
+  cursor: zoom-in;
+  transition: transform 0.25s;
+}
+.sfroom .gcount:hover {
+  transform: translateY(-2px);
+}
+@media (max-width: 860px) {
+  .sfroom .rgal {
+    grid-template-columns: 1fr 1fr;
+    height: auto;
+    grid-auto-rows: 170px;
+  }
+  .sfroom .rgal .g.main {
+    grid-column: span 2;
+    grid-row: span 1;
+    height: 230px;
+  }
+}
