@@ -5,27 +5,32 @@
 
 ---
 
-## 2026-07-20 — Fix: site-render hydration errors root-caused to in-body font-stylesheet hoisting (`d07a544`).
+## 2026-07-20 — Site-render hydration errors: partially narrowed, NOT yet fixed (`d07a544`, `177ef78`).
 
-**Fixed the pre-existing React hydration errors (#418/#423/#425) on the public site render** (reported
-across every theme's preview pages).
+**Status: real bug isolated to the site render, two contributing issues fixed, but the errors are NOT
+gone — root cause not yet pinpointed.** Honest record of what was tried + verified live.
 
-- **Root cause (evidence-based, via live-DOM inspection):** `SiteFontLinks` renders the Google-Fonts
-  `<link rel="stylesheet">` INSIDE `<body>` (within `.wielo-site-root`). React 18.3 Float hoists it to
-  `<head>` on the server, but the client component tree kept it as the FIRST child of
-  `.wielo-site-root` — the live DOM showed the font `<link>` in BOTH `<head>` (server-hoisted) AND as
-  the first in-body child (client). That one-node shift makes every sibling mismatch → structural
-  hydration failure (#418) cascading into ~20 page text nodes (#425), on every themed page.
-- **Fix (`d07a544`):** `precedence="default"` on the stylesheet links → React manages them as proper
-  stylesheet resources, hoisted to `<head>` IDENTICALLY on server and client with no body footprint,
-  so `.wielo-site-root`'s children match on both sides.
-- **Secondary (`177ef78`):** `suppressHydrationWarning` on `<body>` in the root layout silences the
-  separate, benign body-ATTRIBUTE noise from browser extensions (Grammarly `data-gr-*`, ColorZilla
-  `cz-shortcut-listen`) that also mutate `<body>` before hydration. This did NOT fix the structural
-  cascade above (verified: ~23 errors persisted) — the font fix does; the body suppress is kept as
-  correct hardening for real Grammarly users.
-- tsc + lint green. **Live before/after error-count verification pending** a Claude-in-Chrome
-  reconnect (the SSO deploy is only reachable via the authenticated browser).
+- **Verified it's a REAL site-render bug, not browser extensions.** Definitive live test on the fixed
+  deploy, same authenticated browser: a themed **site** page shows **11** React #425 errors on load;
+  the plain **/login** app page shows **0** — same extensions (Grammarly/ColorZilla), same Vercel Live,
+  same method. So it is specific to the site render (SitePageView tree), and reproduces on the shared
+  chrome across `home` AND `about` (both 11), in preview mode. (This DISPROVES the earlier
+  browser-extension hypothesis.)
+- **`d07a544` — real DOM fix, but did NOT clear the errors.** `SiteFontLinks` rendered the Google-Fonts
+  `<link rel="stylesheet">` in-body; React 18.3 hoisted it to `<head>` on the server while the client
+  tree kept it as the first child of `.wielo-site-root` (confirmed on live DOM: link in BOTH head and
+  body). Added `precedence="default"` → link now hoisted consistently (verified: `bodyFontCount` 1→0,
+  `.wielo-site-root` first-children `["link","style","div"]`→`["style","div"]`). A correct fix, but the
+  11-error count was unchanged → this was NOT the (only) cause.
+- **`177ef78` — `suppressHydrationWarning` on `<body>`.** Added on the (now-disproven) theory that the
+  extension body-attribute mutation was the cause; verified it did NOT reduce the count. Kept anyway as
+  standard, harmless Next.js hardening (Grammarly does mutate `<body>` for real visitors).
+- **Remaining:** one structural mismatch (#418) in the preview-mode shared chrome cascades ~11 text
+  errors (#425). Could not pinpoint the exact node: minified prod gives no component/values, the
+  SSR-diff fetch is blocked by the browser tool's safety guard, and this worktree has no `.env.local`
+  for a dev build. **Next step:** run `pnpm dev` locally (env available there) + load a preview site
+  page — React dev prints `Text content did not match. Server: X Client: Y` with the component stack,
+  which names it in one shot. tsc + lint green on all commits.
 
 ## 2026-07-20 — Wizard→website Phase 2: go-live UX — publish from the wizard + lower the wall (`51d8e78`).
 
