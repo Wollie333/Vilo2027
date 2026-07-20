@@ -305,6 +305,55 @@ export async function deletePayoutMethodAction(
   return { ok: true };
 }
 
+// ─── Campaigns ─────────────────────────────────────────────────────────────
+
+// Join a campaign (opt-in). No money — records an enrollment so the campaign
+// appears as "joined" and (for 'tagged'/'invite' campaigns) unlocks the campaign
+// link. Idempotent: a repeat is a no-op. Only ACTIVE campaigns are joinable, and
+// only if the campaign's eligibility allows self-enrollment ('all' or 'tagged';
+// 'invite'-only campaigns are admin-added).
+export async function enrollInCampaignAction(
+  campaignId: string,
+): Promise<ActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in." };
+
+  const admin = createAdminClient();
+  const acct = await getAffiliateForUser(admin, user.id);
+  if (!acct) return { ok: false, error: "Accept the affiliate terms first." };
+  if (acct.status !== "active") {
+    return { ok: false, error: "Your affiliate account is suspended." };
+  }
+
+  const { data: campaign } = await admin
+    .from("affiliate_campaigns")
+    .select("id, status, eligible_partners")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (!campaign || campaign.status !== "active") {
+    return { ok: false, error: "That competition isn't open to join." };
+  }
+  if (campaign.eligible_partners === "invite") {
+    return { ok: false, error: "This competition is invite-only." };
+  }
+
+  // Idempotent: unique (affiliate_id, campaign_id) makes a repeat a no-op.
+  const { error } = await admin
+    .from("affiliate_campaign_enrollments")
+    .upsert(
+      { affiliate_id: acct.id, campaign_id: campaign.id, status: "active" },
+      { onConflict: "affiliate_id,campaign_id", ignoreDuplicates: true },
+    );
+  if (error) return { ok: false, error: "Could not join the competition." };
+
+  revalidatePath("/portal/affiliates/competitions");
+  revalidatePath("/dashboard/affiliates/competitions");
+  return { ok: true };
+}
+
 // Set the affiliate's personal payout threshold (must be >= the platform floor).
 export async function setPayoutThresholdAction(
   amount: number,

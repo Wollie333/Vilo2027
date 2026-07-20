@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Flag,
   LayoutDashboard,
   Megaphone,
   Package,
@@ -25,6 +26,7 @@ const TAB_DEFS: {
   { suffix: "/products", label: "Products", icon: Package, countable: true },
   { suffix: "/marketing", label: "Marketing", icon: Megaphone },
   { suffix: "/payouts", label: "Payouts", icon: Wallet },
+  { suffix: "/competitions", label: "Competitions", icon: Flag },
   { suffix: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
