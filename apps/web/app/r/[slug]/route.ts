@@ -5,10 +5,17 @@ import { type NextRequest, NextResponse } from "next/server";
 import { REF_COOKIE } from "@/lib/affiliate/attribution";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Affiliate referral link: /r/<slug>[?next=/some/path].
+// Affiliate referral link: /r/<slug>[?next=/some/path][?c=<campaignSlug>].
 // Logs the click, drops a first-party 30-day `vilo_ref` cookie, then redirects.
 // Locale-free (registered in middleware's FUNCTIONAL set). Unknown or suspended
 // slugs simply redirect with no cookie.
+//
+// CAMPAIGN LAYER (WS-1.2): an optional `?c=<campaignSlug>` tags the referral to a
+// campaign. Resolved here to the campaign id and carried in the cookie as `camp`;
+// binding writes affiliate_referrals.campaign_id from it. Only an ACTIVE campaign
+// (partner-eligible) tags — anything else drops `camp` and the referral stays on
+// the default program (campaign_id NULL). The pretty co-branded /partners/<slug>
+// route (WS-1.7) drops the same cookie later.
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +48,40 @@ export async function GET(
     .maybeSingle();
   const cookieDays = settings?.cookie_days ?? 30;
   const model = settings?.attribution_model ?? "last_click";
+
+  // Optional campaign tag. Resolve the slug to an ACTIVE, in-window campaign that
+  // this partner is eligible for; otherwise leave it null (→ default program).
+  let campaignId: string | null = null;
+  let campaignSlug: string | null = null;
+  const campParam = url.searchParams.get("c")?.trim();
+  if (campParam) {
+    const { data: camp } = await admin
+      .from("affiliate_campaigns")
+      .select("id, slug, status, starts_at, ends_at, eligible_partners")
+      .ilike("slug", campParam)
+      .maybeSingle();
+    if (camp && camp.status === "active") {
+      const now = Date.now();
+      const started = !camp.starts_at || Date.parse(camp.starts_at) <= now;
+      const notEnded = !camp.ends_at || Date.parse(camp.ends_at) > now;
+      let eligible = camp.eligible_partners === "all";
+      if (!eligible) {
+        // 'tagged'/'invite' campaigns require an active enrollment.
+        const { data: enrolled } = await admin
+          .from("affiliate_campaign_enrollments")
+          .select("id")
+          .eq("affiliate_id", aff.id)
+          .eq("campaign_id", camp.id)
+          .eq("status", "active")
+          .maybeSingle();
+        eligible = Boolean(enrolled);
+      }
+      if (started && notEnded && eligible) {
+        campaignId = camp.id;
+        campaignSlug = camp.slug;
+      }
+    }
+  }
 
   // First-click attribution: keep an existing, still-valid cookie.
   if (model === "first_click") {
@@ -96,6 +137,7 @@ export async function GET(
       slug: aff.slug,
       ts: Date.now(),
       click: clickId,
+      ...(campaignId ? { camp: campaignId, campSlug: campaignSlug } : {}),
     }),
     {
       httpOnly: true,

@@ -11715,6 +11715,13 @@ export type Database = {
         Args: { p_booking_id: string; p_cancelled_at?: string }
         Returns: Json
       }
+      campaign_active_listings: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          active_listings: number
+          affiliate_id: string
+        }[]
+      }
       can_send_broadcast: { Args: { p_host_id: string }; Returns: Json }
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
@@ -12360,6 +12367,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      snapshot_campaign_scores: { Args: never; Returns: number }
       special_dates_available: {
         Args: {
           p_check_in: string

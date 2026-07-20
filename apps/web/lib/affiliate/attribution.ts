@@ -28,6 +28,8 @@ type RefPayload = {
   slug?: string;
   ts?: number;
   click?: string | null;
+  camp?: string; // campaign id (WS-1.2) — tags the referral to a campaign
+  campSlug?: string;
 };
 
 function readRefPayload(): RefPayload | null {
@@ -98,6 +100,21 @@ export async function bindAffiliateReferral(
       return;
     }
 
+    // Campaign tag (WS-1.2). Only stamp campaign_id if the cookie carries one AND
+    // the campaign is still 'active' at bind time; otherwise NULL → the referral
+    // stays on the default program (the safe default). Original binding always
+    // wins: UNIQUE(referred_user_id) makes a repeat a no-op, so a campaign link
+    // for an already-bound user never overwrites the first tag.
+    let campaignId: string | null = null;
+    if (payload?.camp) {
+      const { data: camp } = await admin
+        .from("affiliate_campaigns")
+        .select("id, status")
+        .eq("id", payload.camp)
+        .maybeSingle();
+      if (camp?.status === "active") campaignId = camp.id;
+    }
+
     // Bind once. UNIQUE(referred_user_id) makes a repeat a no-op (error 23505);
     // we ignore the error rather than surface it.
     await admin.from("affiliate_referrals").insert({
@@ -105,6 +122,7 @@ export async function bindAffiliateReferral(
       referred_user_id: referredUserId,
       referred_host_id: referredHostId ?? null,
       click_id: payload?.click ?? null,
+      campaign_id: campaignId,
       source: "signup",
     });
 

@@ -17,8 +17,8 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **186** (186 with RLS) |
-| Functions | **167** (134 SECURITY DEFINER, 61 trigger fns) |
-| Cron jobs | **39** (14 Vault-gated, 0 inactive) |
+| Functions | **169** (136 SECURITY DEFINER, 61 trigger fns) |
+| Cron jobs | **40** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
 ## 🚩 Automated red flags
@@ -74,6 +74,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `restrict-overdue-subscriptions` | `0 * * * *` | yes | — |
 | `scheduled-reports-hourly` | `0 * * * *` | yes | — |
 | `send-access-cards` | `*/15 * * * *` | yes | — |
+| `snapshot-campaign-scores` | `15 1 * * *` | yes | — |
 | `subscription-expiry-warnings` | `0 8 * * *` | yes | — |
 | `sync-external-reviews` | `0 3 * * *` | yes | yes |
 | `sync-ical-feeds` | `*/15 * * * *` | yes | yes |
@@ -107,6 +108,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `calculate_booking_price` | **yes** | yes | callable |
 | `calculate_looking_for_match_score` | **yes** | yes | callable |
 | `calculate_policy_refund_amount` | **yes** | yes | callable |
+| `campaign_active_listings` | **yes** | yes | callable |
 | `can_send_broadcast` | **yes** | yes | callable |
 | `check_feature_permission` | **yes** | yes | callable |
 | `check_host_availability_for_dates` | **yes** | yes | callable |
@@ -233,6 +235,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `set_updated_at` | — | — | trigger |
 | `settle_affiliate_payout` | **yes** | yes | callable |
 | `snapshot_booking_policies` | **yes** | yes | callable |
+| `snapshot_campaign_scores` | **yes** | yes | callable |
 | `special_dates_available` | — | — | callable |
 | `sync_booking_refund_flag` | **yes** | yes | trigger |
 | `sync_help_article_feedback_counters` | — | — | trigger |
