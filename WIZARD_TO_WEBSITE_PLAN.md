@@ -11,6 +11,20 @@
 >
 > **▶▶ NEW SESSION: read this top-to-bottom, then `WEBSITE_CMS_SAVEPOINT_Resume_Here.md` for the
 > surrounding CMS/theme context. Start at Phase 1.**
+>
+> **📌 STATUS 2026-07-20 (HEAD `065cb94`):** Phase 1 ✅ (amended — see below), Phase 2 ✅, Phase 3 ✅
+> (booking, no-regression confirmed). **Two open items:** (1) **Phase 4** Google Places nearby +
+> **Phase 5** per-theme mobile pass — not started. (2) **Hydration errors on the site preview render —
+> NOT fixed** (recoverable/non-functional; needs a dev build to pinpoint — see the dedicated section
+> at the very bottom).
+>
+> **⚠️ Phase-1 AMENDMENT (`b6be166`):** the render-path derived-content merge (`mergeDerivedProfile`)
+> originally filled `about.story`/`home.intro.body` from the account `propertyDescription`. Bespoke
+> themes render the `story` slot as a big DISPLAY HEADING, so a long description became a giant broken
+> heading (caught live on mana's home). FIXED by deriving only the SAFE slots on the render path — hero
+> image, host photo, contact FAQ. So Phase-1's "no demo copy on bespoke" now covers images + FAQ, but
+> the story/intro headings keep the theme's short curated fallback when the host hasn't written one
+> (the SEED path still derives them for GENERIC themes, which render them as body copy). Live-verified.
 
 ---
 
@@ -252,5 +266,36 @@ Phases 1–3 done (3 = booking, already wired + Phase-1 no-regression confirmed 
 (per-theme differentiation polish + explicit mobile QA per theme×page). See those phase sections above.
 Pre-existing hydration errors (#418/#423/#425) on the site preview render were found this session (NOT ours —
 identical on the pre-change control deploy) and flagged as a separate background task.
+
+## 🐛 OPEN — Site-render hydration errors (needs a DEV BUILD to finish)
+React #418/#423/#425 fire on load of every themed site page in preview (`?preview=1`). Page renders
+CORRECTLY (recoverable mismatch) — this is a correctness/perf smell, not a functional break.
+
+**Established this session (2026-07-20):**
+- **It's a REAL site-render bug, NOT browser extensions.** Live, same authenticated browser: a themed
+  **site** page = **11** #425 on load; the plain **/login** page = **0**. Same Grammarly/ColorZilla,
+  same Vercel Live → ruled them out. (Earlier extension theory DISPROVEN.)
+- Hits `home` AND `about` (both 11) → in the **shared render**, not a page-specific component.
+- **NOT a text-value mismatch:** diffing every DOM text node against the RSC flight (`self.__next_f`)
+  server payload → **0 missing** (chrome AND full content). So it's **structural/positional** (an
+  element shifts the tree; React logs #425 for the displaced-but-identical text).
+- **Fixed one contributor** (`d07a544`): `SiteFontLinks` `<link rel=stylesheet>` was in-body, React
+  hoisted it to `<head>` on the server but kept it first-child of `.wielo-site-root` on the client →
+  added `precedence="default"` (verified: `bodyFontCount` 1→0). Did NOT drop the 11 → not the only cause.
+- `177ef78` `suppressHydrationWarning` on `<body>` — added on the (disproven) extension theory; kept as
+  harmless standard hardening but it is NOT the fix.
+- After the font fix the only in-body resource tag left in `.wielo-site-root` is ONE bare `<style>`
+  (`:root{--wielo-toploader}` from `SiteThemeRoot`), NOT duplicated in head → not an obvious hoist
+  mismatch. Remaining cause is subtler (whitespace/position or a client component's child-count),
+  invisible in minified prod.
+
+**Why not finished here:** minified prod gives no component/values; the browser tool's safety guard
+blocks the SSR-diff fetch (query-string param); this worktree has **no `.env.local`** and the site
+render needs `SUPABASE_SERVICE_ROLE_KEY` (admin client) so a local dev build can't render a site page.
+
+**▶ To finish (30s with env):** `cd apps/web && pnpm dev`, open
+`/en/site/home?site=mana&preview=1&theme=safari` with the console open → React DEV prints
+`Text content did not match. Server: "…" Client: "…"` + the component stack, naming the exact node.
+Likely a client component in the shared render tree emitting a position/whitespace difference.
 
 **This file is COMMITTED. Update + commit it before ending any session.**
