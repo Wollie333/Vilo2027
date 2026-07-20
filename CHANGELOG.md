@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-07-20 (pt42) — WS-3a Build Board: public feature-request voting + moderation (seeded, verified live).
+
+Resumed from pt41. Built the WS-3a Build Board — Wielo's public roadmap where signed-in
+users vote on and submit features, with an admin moderation queue. All green (type-check +
+lint + `pnpm build`). Migrations applied to the linked cloud project; types + `docs/SCHEMA.md`
+regenerated. Every path verified live end-to-end. (WS-3b changelog → data-backed is next.)
+
+- **Schema (`20260720200000`).** `feature_request_status` enum (5 honest statuses:
+  under_review · planned · in_progress · shipped · not_doing). `feature_requests`
+  (title/body/status/`is_public` moderation gate/`submitter_role`/denormalised vote tallies/
+  `merged_into_id`/`shipped_at`) + `feature_request_votes` (one **role-tagged** vote per user,
+  PK-deduped) cloning the proven `review_helpful_votes` trigger pattern (the plan's
+  `article_votes` never existed). RLS: public reads published+non-merged; submitter reads own;
+  signed-in insert (can't self-publish/merge); admin ALL. Trigger keeps `vote_count` +
+  host/guest split in sync. Seeded 23 realistic items across every status.
+- **Hardening (`20260720201000`).** Red-flag detector caught the new fns: pinned
+  `search_path = public, pg_temp` on both, and closed anon EXECUTE on `merge_feature_requests`
+  — Supabase's default privileges grant EXECUTE to `anon` BY NAME, so `REVOKE … FROM PUBLIC`
+  wasn't enough; had to revoke from `anon` too. Verified: anon can no longer call either fn.
+- **Public board (`/build`).** Marketing-shell page: status filter tabs with counts, items
+  sorted by votes, per-item status pill + host/guest split, optimistic vote toggle (auth-gated
+  → `/login?next=/build`), and a "Suggest a feature" modal. Submissions land unpublished for
+  moderation and fire a `notifyAdmins` (`feature_request` kind). Linked from the site footer.
+- **Admin moderation (`/admin/build-board`, new sidebar item).** Pending-review queue
+  (approve → publish / delete), on-board list with per-item status dropdown, unpublish, delete,
+  and **merge-duplicate**. Actions run through `withAdminAudit` (`feature_request` audit target
+  added — `20260720202000` extends the CHECK constraint). Merge calls an `is_super_admin()`-guarded
+  SECURITY DEFINER RPC on the admin's own session (auth.uid()), not service-role.
+- **Merge bug found + fixed (`20260720203000`).** First merge collapsed a target from 59 → 1:
+  it recomputed the target from vote ROWS, but seeded items have denormalised counts with no
+  backing rows. Made merge **additive** — carry the source's tallies onto the target minus
+  colliding voters — correct for both seeded (no rows → target += source) and real data
+  (target += net-new voters). Proven with a rollback probe: 58+19 → 77, 52+18 → 70, 6+1 → 7.
+- **Verified live (super-admin session):** anon board render + login-gated vote; authenticated
+  vote persists and tags by role (counted as host); submit → pending → admin approve → appears
+  on the public board; merge math correct.
+- **Gotcha fixed — `/build` was gitignored.** The repo's `build/` ignore rule (Next.js build
+  output) silently swallowed the `app/[locale]/build/` route — it worked locally but would 404
+  in production (classic "wired to nothing"). Added an escaped negation to `.gitignore`
+  (`[locale]` is a gitignore character class — the brackets must be escaped).
+
 ## 2026-07-20 (pt41) — WS-4 deferred pieces: user-facing "guest"→"Wielo account" rename + magic-link signup default.
 
 Resumed from pt40. Shipped the two deferred WS-4 items the founder asked to start with. All green

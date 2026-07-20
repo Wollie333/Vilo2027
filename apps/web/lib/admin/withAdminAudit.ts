@@ -79,6 +79,7 @@ export const AUDIT_TARGET_TYPES = [
   "special_category",
   "looking_for_requirement_group",
   "looking_for_requirement_option",
+  "feature_request",
   "permission_denied",
 ] as const;
 

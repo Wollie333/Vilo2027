@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -2876,6 +2876,97 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "external_review_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_request_votes: {
+        Row: {
+          created_at: string
+          request_id: string
+          user_id: string
+          voter_role: string
+        }
+        Insert: {
+          created_at?: string
+          request_id: string
+          user_id: string
+          voter_role: string
+        }
+        Update: {
+          created_at?: string
+          request_id?: string
+          user_id?: string
+          voter_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_request_votes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_requests: {
+        Row: {
+          admin_note: string | null
+          body: string | null
+          created_at: string
+          guest_vote_count: number
+          host_vote_count: number
+          id: string
+          is_public: boolean
+          merged_into_id: string | null
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["feature_request_status"]
+          submitted_by: string | null
+          submitter_role: string | null
+          title: string
+          updated_at: string
+          vote_count: number
+        }
+        Insert: {
+          admin_note?: string | null
+          body?: string | null
+          created_at?: string
+          guest_vote_count?: number
+          host_vote_count?: number
+          id?: string
+          is_public?: boolean
+          merged_into_id?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["feature_request_status"]
+          submitted_by?: string | null
+          submitter_role?: string | null
+          title: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Update: {
+          admin_note?: string | null
+          body?: string | null
+          created_at?: string
+          guest_vote_count?: number
+          host_vote_count?: number
+          id?: string
+          is_public?: boolean
+          merged_into_id?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["feature_request_status"]
+          submitted_by?: string | null
+          submitter_role?: string | null
+          title?: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_requests_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -12263,6 +12354,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: undefined
       }
+      merge_feature_requests: {
+        Args: { p_source: string; p_target: string }
+        Returns: undefined
+      }
       next_credit_note_number: {
         Args: { p_business_id: string }
         Returns: string
@@ -13039,7 +13134,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      feature_request_status:
+        | "under_review"
+        | "planned"
+        | "in_progress"
+        | "shipped"
+        | "not_doing"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -13177,6 +13277,14 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      feature_request_status: [
+        "under_review",
+        "planned",
+        "in_progress",
+        "shipped",
+        "not_doing",
+      ],
+    },
   },
 } as const

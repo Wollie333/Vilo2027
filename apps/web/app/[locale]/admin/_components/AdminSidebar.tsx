@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Inbox,
   Layers,
+  Lightbulb,
   ListChecks,
   Mail,
   Megaphone,
@@ -97,6 +98,12 @@ const FINANCE: GmailNavItem[] = [
 
 const MODERATION: GmailNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
+  {
+    href: "/admin/build-board",
+    label: "Build Board",
+    icon: Lightbulb,
+    match: "prefix",
+  },
   {
     href: "/admin/flagged-listings",
     label: "Flagged listings",

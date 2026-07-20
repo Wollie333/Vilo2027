@@ -11,6 +11,13 @@ build/
 dist/
 .vercel/
 
+# The public Build Board route dir is app SOURCE, not a build output — the
+# generic `build/` rule above would silently drop it (and it would 404 in prod).
+# NOTE: the brackets in `[locale]` are a gitignore character class, so they must
+# be escaped to match the literal Next.js dynamic-segment directory name.
+!apps/web/app/\[locale\]/build/
+!apps/web/app/\[locale\]/build/**
+
 # ─── Expo ────────────────────────────────────────────
 .expo/
 .expo-shared/

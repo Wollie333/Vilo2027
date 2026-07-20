@@ -35,6 +35,7 @@ const HOSTS = [
 
 const COMPANY = [
   { href: "/about", key: "companyAbout" },
+  { href: "/build", key: "companyBuildBoard" },
   { href: "/change-log", key: "companyChangelog" },
   { href: "/contact", key: "companyContact" },
   { href: "/privacy", key: "companyPrivacy" },

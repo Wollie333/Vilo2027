@@ -16,8 +16,8 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **187** (187 with RLS) |
-| Functions | **173** (138 SECURITY DEFINER, 62 trigger fns) |
+| Tables | **189** (189 with RLS) |
+| Functions | **175** (140 SECURITY DEFINER, 63 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -188,6 +188,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `log_subscription_event` | **yes** | yes | callable |
 | `mark_delivery_read` | **yes** | yes | callable |
 | `materialize_booking_party` | **yes** | yes | callable |
+| `merge_feature_requests` | **yes** | yes | callable |
 | `mint_wielo_credit_note_on_ledger_complete` | **yes** | yes | trigger |
 | `mint_wielo_invoice_on_ledger_complete` | **yes** | yes | trigger |
 | `next_credit_note_number` | **yes** | yes | callable |
@@ -242,6 +243,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `snapshot_campaign_scores` | **yes** | yes | callable |
 | `special_dates_available` | — | — | callable |
 | `sync_booking_refund_flag` | **yes** | yes | trigger |
+| `sync_feature_request_votes` | **yes** | yes | trigger |
 | `sync_help_article_feedback_counters` | — | — | trigger |
 | `sync_listing_location` | — | — | trigger |
 | `sync_listing_policy_label` | **yes** | yes | trigger |
@@ -357,7 +359,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text])))`
 
 **RLS policies:**
 - `admin_read_audit` (SELECT) — `USING is_super_admin()`
@@ -1702,6 +1704,66 @@ CASE
 - `admin_full_external_reviews` (ALL) — `USING is_super_admin()`
 - `host_manage_external_reviews` (ALL) — `USING (host_id = get_my_host_id())`
 - `public_read_visible_external_reviews` (SELECT) — `USING ((is_visible = true) AND (deleted_at IS NULL))`
+
+### `feature_request_votes`
+
+| column | type | null | default |
+|---|---|---|---|
+| `request_id` | uuid | — | — |
+| `user_id` | uuid | — | — |
+| `voter_role` | text | — | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (request_id) REFERENCES feature_requests(id) ON DELETE CASCADE`
+- `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((voter_role = ANY (ARRAY['host'::text, 'guest'::text])))`
+
+**Triggers:**
+- `trigger_feature_request_votes` → `sync_feature_request_votes()` *(SECURITY DEFINER)*
+
+**RLS policies:**
+- `admin_full_feature_votes` (ALL) — `USING is_super_admin()`
+- `user_deletes_own_feature_vote` (DELETE) — `USING (user_id = auth.uid())`
+- `user_inserts_own_feature_vote` (INSERT) — `CHECK (user_id = auth.uid())`
+- `user_reads_own_feature_vote` (SELECT) — `USING (user_id = auth.uid())`
+
+### `feature_requests`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `title` | text | — | — |
+| `body` | text | yes | — |
+| `status` | feature_request_status | — | `'under_review'::feature_request_status` |
+| `is_public` | boolean | — | `false` |
+| `submitted_by` | uuid | yes | — |
+| `submitter_role` | text | yes | — |
+| `vote_count` | integer | — | `0` |
+| `host_vote_count` | integer | — | `0` |
+| `guest_vote_count` | integer | — | `0` |
+| `merged_into_id` | uuid | yes | — |
+| `admin_note` | text | yes | — |
+| `shipped_at` | timestamp with time zone | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (merged_into_id) REFERENCES feature_requests(id) ON DELETE SET NULL`
+- `FOREIGN KEY (submitted_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK (((body IS NULL) OR (char_length(body) <= 2000)))`
+- `CHECK (((submitter_role IS NULL) OR (submitter_role = ANY (ARRAY['host'::text, 'guest'::text]))))`
+- `CHECK (((char_length(title) >= 3) AND (char_length(title) <= 140)))`
+
+**RLS policies:**
+- `admin_full_feature_requests` (ALL) — `USING is_super_admin()`
+- `public_read_published_requests` (SELECT) — `USING ((is_public = true) AND (merged_into_id IS NULL))`
+- `submitter_reads_own_request` (SELECT) — `USING (submitted_by = auth.uid())`
+- `user_submits_request` (INSERT) — `CHECK ((submitted_by = auth.uid()) AND (is_public = false) AND (merged_into_id IS NULL))`
 
 ### `featured_listings`
 
@@ -5759,6 +5821,7 @@ CASE
 | `terms_version` | text | yes | — |
 | `email_verified_at` | timestamp with time zone | yes | — |
 | `first_booking_celebrated_at` | timestamp with time zone | yes | — |
+| `owns_accommodation` | boolean | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE`
