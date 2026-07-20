@@ -75,7 +75,7 @@ export default async function AdminUserDetailPage({
       ? service
           .from("subscriptions")
           .select(
-            "id, plan, status, billing_cycle, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, product_id, created_at, product:products ( name, product_type, price, currency )",
+            "id, plan, status, billing_cycle, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, product_id, created_at, is_founding, locked_base_amount, product:products ( name, product_type, price, currency )",
           )
           .eq("host_id", host.id)
           .order("created_at", { ascending: true })
@@ -502,6 +502,8 @@ export default async function AdminUserDetailPage({
     current_period_end: string | null;
     cancel_at_period_end: boolean | null;
     product_id: string | null;
+    is_founding: boolean | null;
+    locked_base_amount: number | null;
     product:
       | {
           name: string | null;
@@ -565,6 +567,9 @@ export default async function AdminUserDetailPage({
         price: prod?.price != null ? Number(prod.price) : null,
         currency: prod?.currency ?? null,
         scheduledChange: scheduledBySub[r.id] ?? null,
+        isFounding: r.is_founding ?? false,
+        lockedBaseAmount:
+          r.locked_base_amount != null ? Number(r.locked_base_amount) : null,
       };
     },
   );

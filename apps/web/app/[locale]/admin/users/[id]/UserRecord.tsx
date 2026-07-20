@@ -120,6 +120,7 @@ import {
   enableAffiliate,
   sellProduct,
   sendWieloDocToInbox,
+  setSubscriptionFounding,
   setUserProduct,
   changeUserRole,
   purgeUser,
@@ -234,6 +235,9 @@ export type UserRecordData = {
       effectiveAt: string;
       targetName: string | null;
     } | null;
+    // WS-5 Founding price-lock state.
+    isFounding: boolean;
+    lockedBaseAmount: number | null;
   }[];
   // Wielo Credits wallet balance (host-scoped, purpose 'quote').
   creditBalance: number;
@@ -1110,6 +1114,56 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               ))}
             </select>
           </Lbl>
+          {(() => {
+            // WS-5 — Founding price-lock (membership subs only). Freezes the
+            // plan's Founding price onto the sub so list-price edits never touch
+            // this host. Independent of the status/cancel save below.
+            const sub = data.subscriptions.find(
+              (r) => r.productId === subProductId,
+            );
+            if (!sub || sub.productType !== "membership") return null;
+            return (
+              <Lbl label="Founding price-lock">
+                <div className="flex items-center justify-between gap-3 rounded-md border border-brand-line bg-brand-light/40 px-3 py-2">
+                  <div className="text-[13px]">
+                    {sub.isFounding && sub.lockedBaseAmount != null ? (
+                      <span className="font-medium text-brand-ink">
+                        Locked at {formatMoney(sub.lockedBaseAmount, "ZAR")}/
+                        {sub.billingCycle === "annual" ? "yr" : "mo"}
+                      </span>
+                    ) : (
+                      <span className="text-brand-mute">
+                        Not locked — bills the live list price.
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    disabled={pending || !host}
+                    onClick={() =>
+                      host
+                        ? run(
+                            setSubscriptionFounding({
+                              hostId: host.id,
+                              productId: subProductId || null,
+                              founding: !sub.isFounding,
+                            }),
+                            sub.isFounding
+                              ? "Founding lock removed."
+                              : "Founding price locked in.",
+                          )
+                        : undefined
+                    }
+                  >
+                    {sub.isFounding ? "Remove lock" : "Lock Founding price"}
+                  </Button>
+                </div>
+                <p className="mt-1 text-[11px] text-brand-mute">
+                  Freezes this plan&apos;s Founding price onto the host, so
+                  later list-price edits never change their charge.
+                </p>
+              </Lbl>
+            );
+          })()}
           {subStatus === "cancelled"
             ? (() => {
                 const sub = data.subscriptions.find(

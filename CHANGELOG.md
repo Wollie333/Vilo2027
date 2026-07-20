@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-07-20 (pt44) — WS-5 (5a/5c): Founding price-lock + per-listing add-on (money; tested hard, verified live).
+
+Continued from the Build Board admin work. Built the WS-5 pricing mechanism — a real
+Founding price-lock and per-additional-listing billing. MONEY change, so the pure price
+math is unit-tested (11 cases incl. the lock-wins property) and the DB flow proven with
+rollback probes + a live admin round-trip. All green (type-check + lint + `pnpm build` +
+29 billing tests). Migration applied to the linked cloud project; types + `docs/SCHEMA.md`
+regenerated. Founder decision captured: mid-cycle listing adds **re-price at next renewal**.
+
+- **Schema (`20260720220000`, additive).** `subscriptions`: `is_founding`, `locked_base_amount`,
+  `locked_per_listing_amount`, `locked_currency` (ZAR-checked), `price_locked_at`. `products`:
+  `per_listing_amount` (list), `founding_price`, `founding_annual_price`, `founding_per_listing_amount`.
+  Seeded the one plan (slug `pro`, "Starter") with the v4 DECIDED numbers — **list R999/mo,
+  R9990/yr, +R299/listing; Founding R599/mo, R5988/yr, +R179/listing** — all editable in
+  Admin → Products (prices are config, never hardcoded).
+- **One lock-aware reader** (`lib/billing/membershipPricing.ts`, pure + unit-tested;
+  `membershipAmount.ts` = server helpers). `amount = base + max(0, listings−1) × perListing`;
+  base/perListing come from the LOCK when set, else the live product price (per-listing is a
+  monthly figure, ×12 for annual). Routed **both** billing sites through it: Paystack renewal
+  (`subscription-renewal.ts`) and checkout (`product-checkout.ts`). PayPal + upgrade paths are a
+  documented follow-up.
+- **Founding provisioning** (`applyFoundingLock`/`clearFoundingLock`): snapshots the plan's
+  founding_* config onto the sub's locked_* columns, so later list-price edits never touch a
+  Founding host (strategy §5a/§5c). Exposed via an admin action + a **"Lock Founding price" /
+  "Remove lock" control** in the user record's Manage-subscription modal (membership subs only,
+  audited).
+- **Tested hard.** 11 unit tests: list + Founding, monthly + annual, per-listing math, and the
+  headline — a locked host is **unaffected when the list price is hiked** while a non-locked host
+  follows it. Rollback probe confirmed the founding snapshot reads 599/179 → locked columns. Live:
+  locked melanie@gmail.com's sub via the admin button (is_founding + 599/179 persisted), then
+  removed it (back to unlocked) — both directions proven; no test data left behind.
+- **Heads-up for the founder:** the `pro`/Starter product's LIST price is now **R999/mo** (was
+  R599). New non-Founding signups pay R999; Founding hosts pay R599 via the lock. Per-listing
+  R299/R179 were "proposed" in Phase-0 — seeded as editable config, confirm when ready.
+
 ## 2026-07-20 (pt42b) — WS-3b: data-backed changelog with host credit (verified live).
 
 Continued from pt42. Completed WS-3 with the data-backed changelog. All green (type-check +

@@ -2,6 +2,10 @@ import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { isBreachedPassword, passwordSchema } from "@/lib/auth/password";
+import {
+  countHostListings,
+  resolveMembershipAmount,
+} from "@/lib/billing/membershipAmount";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import {
@@ -88,7 +92,7 @@ export async function createProductOrder(
   const { data: product } = await admin
     .from("products")
     .select(
-      "id, name, price, annual_price, currency, is_active, product_type, setup_fee, billing_cycle",
+      "id, name, price, annual_price, per_listing_amount, currency, is_active, product_type, setup_fee, billing_cycle",
     )
     .eq("id", input.productId)
     .maybeSingle();
@@ -134,6 +138,33 @@ export async function createProductOrder(
   });
   const payerUserId = lead?.guestId ?? null;
 
+  // Resolve the buyer's host once (if any) — used by BOTH the setup-fee
+  // first-purchase check and the WS-5 per-additional-listing calc.
+  let hostId: string | null = null;
+  if (payerUserId) {
+    const { data: host } = await admin
+      .from("hosts")
+      .select("id")
+      .eq("user_id", payerUserId)
+      .maybeSingle();
+    hostId = host?.id ?? null;
+  }
+
+  // WS-5 per-listing: a membership charges base + per-ADDITIONAL-listing at the
+  // LIST rate (a fresh checkout has no Founding lock yet — the lock is applied at
+  // Founding provisioning and honoured on renewal). The first listing is included
+  // in the base. Custom-amount top-ups and non-membership products are unaffected.
+  let membershipBase = base;
+  if (product.product_type === "membership" && !isOverride && hostId) {
+    const listingCount = await countHostListings(admin, hostId);
+    membershipBase = resolveMembershipAmount({
+      cycle: wantsAnnual ? "annual" : "monthly",
+      listingCount,
+      product,
+      lock: null,
+    });
+  }
+
   // Once-off setup fee: charged with the FIRST payment of a subscription-like
   // product (membership | service) only — never on a once-off product, never on
   // a custom-amount top-up (upgrade delta), and never on a renewal/re-purchase
@@ -147,25 +178,18 @@ export async function createProductOrder(
     Number(product.setup_fee ?? 0) > 0
   ) {
     let firstPurchase = true;
-    if (payerUserId) {
-      const { data: host } = await admin
-        .from("hosts")
-        .select("id")
-        .eq("user_id", payerUserId)
-        .maybeSingle();
-      if (host) {
-        const { count } = await admin
-          .from("subscriptions")
-          .select("id", { count: "exact", head: true })
-          .eq("host_id", host.id)
-          .eq("product_id", product.id)
-          .in("status", ["trialing", "active", "past_due"]);
-        firstPurchase = (count ?? 0) === 0;
-      }
+    if (hostId) {
+      const { count } = await admin
+        .from("subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", hostId)
+        .eq("product_id", product.id)
+        .in("status", ["trialing", "active", "past_due"]);
+      firstPurchase = (count ?? 0) === 0;
     }
     if (firstPurchase) setupFee = Number(product.setup_fee);
   }
-  const subtotal = base + setupFee;
+  const subtotal = membershipBase + setupFee;
 
   // Promo code — the discount comes off the whole order (price + setup fee), so
   // there is one rule to explain and it matches how min_spend reads.

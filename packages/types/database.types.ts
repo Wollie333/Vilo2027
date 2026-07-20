@@ -7424,6 +7424,9 @@ export type Database = {
           credit_quantity: number | null
           currency: string
           description: string | null
+          founding_annual_price: number | null
+          founding_per_listing_amount: number | null
+          founding_price: number | null
           id: string
           is_active: boolean
           is_recommended: boolean
@@ -7431,6 +7434,7 @@ export type Database = {
           max_quantity: number | null
           name: string
           payment_methods: string[]
+          per_listing_amount: number
           plan_key: string | null
           price: number
           product_type: string
@@ -7458,6 +7462,9 @@ export type Database = {
           credit_quantity?: number | null
           currency?: string
           description?: string | null
+          founding_annual_price?: number | null
+          founding_per_listing_amount?: number | null
+          founding_price?: number | null
           id?: string
           is_active?: boolean
           is_recommended?: boolean
@@ -7465,6 +7472,7 @@ export type Database = {
           max_quantity?: number | null
           name: string
           payment_methods?: string[]
+          per_listing_amount?: number
           plan_key?: string | null
           price?: number
           product_type: string
@@ -7492,6 +7500,9 @@ export type Database = {
           credit_quantity?: number | null
           currency?: string
           description?: string | null
+          founding_annual_price?: number | null
+          founding_per_listing_amount?: number | null
+          founding_price?: number | null
           id?: string
           is_active?: boolean
           is_recommended?: boolean
@@ -7499,6 +7510,7 @@ export type Database = {
           max_quantity?: number | null
           name?: string
           payment_methods?: string[]
+          per_listing_amount?: number
           plan_key?: string | null
           price?: number
           product_type?: string
@@ -10449,6 +10461,10 @@ export type Database = {
           grace_period_ends_at: string | null
           host_id: string
           id: string
+          is_founding: boolean
+          locked_base_amount: number | null
+          locked_currency: string | null
+          locked_per_listing_amount: number | null
           paypal_plan_id: string | null
           paypal_subscription_id: string | null
           paystack_authorization_code_cipher: string | null
@@ -10458,6 +10474,7 @@ export type Database = {
           paystack_customer_code: string | null
           paystack_subscription_code: string | null
           plan: string
+          price_locked_at: string | null
           product_id: string | null
           status: string
           trial_ends_at: string | null
@@ -10475,6 +10492,10 @@ export type Database = {
           grace_period_ends_at?: string | null
           host_id: string
           id?: string
+          is_founding?: boolean
+          locked_base_amount?: number | null
+          locked_currency?: string | null
+          locked_per_listing_amount?: number | null
           paypal_plan_id?: string | null
           paypal_subscription_id?: string | null
           paystack_authorization_code_cipher?: string | null
@@ -10484,6 +10505,7 @@ export type Database = {
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
+          price_locked_at?: string | null
           product_id?: string | null
           status?: string
           trial_ends_at?: string | null
@@ -10501,6 +10523,10 @@ export type Database = {
           grace_period_ends_at?: string | null
           host_id?: string
           id?: string
+          is_founding?: boolean
+          locked_base_amount?: number | null
+          locked_currency?: string | null
+          locked_per_listing_amount?: number | null
           paypal_plan_id?: string | null
           paypal_subscription_id?: string | null
           paystack_authorization_code_cipher?: string | null
@@ -10510,6 +10536,7 @@ export type Database = {
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
+          price_locked_at?: string | null
           product_id?: string | null
           status?: string
           trial_ends_at?: string | null

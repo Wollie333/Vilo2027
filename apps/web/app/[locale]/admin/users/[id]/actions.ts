@@ -7,6 +7,10 @@ import { z } from "zod";
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import {
+  applyFoundingLock,
+  clearFoundingLock,
+} from "@/lib/billing/membershipAmount";
+import {
   fmtOfferMoney,
   sendProductOfferEmail,
 } from "@/lib/billing/offer-email";
@@ -1133,6 +1137,69 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     revalidatePath(`/admin/users`);
     revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: { hostId: d.hostId, ...patch } };
+  },
+);
+
+// ─── WS-5: Founding price-lock on a subscription ──────────────────────
+// Freezes the plan's Founding price onto the host's membership subscription
+// (or clears it). Once locked, later list-price edits never change this host's
+// charge — the sub row is the source of truth (see lib/billing/membershipAmount).
+const foundingSchema = z.object({
+  hostId: z.string().uuid(),
+  productId: z.string().uuid().nullable().optional(),
+  founding: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const setSubscriptionFoundingAction = withAdminAudit<
+  z.infer<typeof foundingSchema>,
+  { ok: true; lockedBase?: number }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.set_subscription_founding",
+    targetType: "subscription",
+    getTargetId: (a) => a.hostId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
+  },
+  async (args, service) => {
+    const parsed = foundingSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const d = parsed.data;
+
+    // Resolve the membership subscription for this host (+ product if given).
+    let query = service
+      .from("subscriptions")
+      .select("id, product:products ( product_type )")
+      .eq("host_id", d.hostId);
+    if (d.productId) query = query.eq("product_id", d.productId);
+    const { data: rows } = await query;
+    const membership = (rows ?? []).find(
+      (r) =>
+        (r.product as { product_type?: string } | null)?.product_type ===
+        "membership",
+    );
+    const subId = (membership ?? (rows ?? [])[0])?.id as string | undefined;
+    if (!subId)
+      throw new Error("No membership subscription found for this host.");
+
+    const res = d.founding
+      ? await applyFoundingLock(service, subId)
+      : await clearFoundingLock(service, subId);
+    if (!res.ok)
+      throw new Error(res.error ?? "Could not update Founding lock.");
+
+    revalidatePath(`/admin/users`);
+    revalidatePath("/admin/subscriptions/revenue");
+    return {
+      result: {
+        ok: true,
+        ...(d.founding && "lockedBase" in res
+          ? { lockedBase: res.lockedBase }
+          : {}),
+      },
+      after: { hostId: d.hostId, founding: d.founding },
+    };
   },
 );
 
@@ -2655,6 +2722,14 @@ export async function cancelScheduledChange(input: {
   changeId: string;
 }) {
   return wrap(() => cancelScheduledChangeAction(input));
+}
+
+export async function setSubscriptionFounding(input: {
+  hostId: string;
+  productId?: string | null;
+  founding: boolean;
+}) {
+  return wrap(() => setSubscriptionFoundingAction(input));
 }
 
 export async function sellProduct(input: {

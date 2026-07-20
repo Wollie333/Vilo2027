@@ -5,6 +5,10 @@ import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { isPaystackRecurringEnabled } from "@/lib/billing/recurring";
 import { nextPeriod, renewalReference } from "@/lib/billing/renewal-schedule";
 import { grantSubscriptionCredits } from "@/lib/credits/wallet";
+import {
+  countHostListings,
+  resolveMembershipAmount,
+} from "@/lib/billing/membershipAmount";
 import { decryptSecret } from "@/lib/crypto/payments";
 import { chargeAuthorization, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -60,6 +64,11 @@ type DueSub = {
   current_period_end: string | null;
   failed_payment_count: number | null;
   paystack_authorization_code_cipher: string | null;
+  // WS-5 Founding lock — when locked_base_amount is set, bill it (+ per-listing)
+  // instead of the live product price.
+  is_founding: boolean | null;
+  locked_base_amount: number | null;
+  locked_per_listing_amount: number | null;
 };
 
 export async function runPaystackRenewals(
@@ -90,7 +99,7 @@ export async function runPaystackRenewals(
   const { data: rows, error } = await admin
     .from("subscriptions")
     .select(
-      "id, host_id, plan, billing_cycle, product_id, status, current_period_end, failed_payment_count, paystack_authorization_code_cipher",
+      "id, host_id, plan, billing_cycle, product_id, status, current_period_end, failed_payment_count, paystack_authorization_code_cipher, is_founding, locked_base_amount, locked_per_listing_amount",
     )
     .in("status", ["active", "past_due"])
     .eq("cancel_at_period_end", false)
@@ -128,18 +137,28 @@ async function renewOne(
   const attempt = Number(sub.failed_payment_count ?? 0);
   if (attempt >= MAX_ATTEMPTS) return "skipped"; // dunning exhausted for now
 
-  // Resolve the billing amount from the CURRENT product price + the sub's cycle.
+  // Resolve the billing amount. WS-5: the Founding LOCK wins when set (the sub
+  // row is the source of truth); otherwise the live product price. Either way we
+  // add the per-additional-listing amount from the host's current listing count
+  // (mid-cycle adds re-price here, at renewal — founder decision).
   const cycle = sub.billing_cycle === "annual" ? "annual" : "monthly";
   const { data: product } = await admin
     .from("products")
-    .select("price, annual_price, currency, product_type")
+    .select("price, annual_price, per_listing_amount, currency, product_type")
     .eq("id", sub.product_id as string)
     .maybeSingle();
   if (!product || product.product_type === "product") return "skipped";
-  const amount =
-    cycle === "annual"
-      ? Number(product.annual_price ?? product.price)
-      : Number(product.price);
+  const listingCount = await countHostListings(admin, sub.host_id);
+  const amount = resolveMembershipAmount({
+    cycle,
+    listingCount,
+    product,
+    lock: {
+      is_founding: sub.is_founding,
+      locked_base_amount: sub.locked_base_amount,
+      locked_per_listing_amount: sub.locked_per_listing_amount,
+    },
+  });
   if (!(amount > 0)) return "skipped"; // free / unpriced → nothing to charge
   // H1.1 — Wielo subscription revenue is ALWAYS ZAR (MODEL-2): the platform
   // Paystack account is ZAR and no Plane-B row may carry a host currency. A
