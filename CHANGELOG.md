@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-21 — Fix: booking-field polish — date card + guests select + sabela footer CTA.
+
+- **Guests `<select>` now matches the themed date-picker card on every theme**
+  (`bedb77a`, founder-requested, design-only). The booking card's date field is
+  `<ThemedDateRange>` (a bordered "card"); the guests select rendered as a
+  shorter, sharper generic field. Added a global
+  `.wielo-site-root .bkcard .field select` rule pinning it to the theme surface,
+  hairline border, `--site-radius-sm` and the date card's ~66px height.
+  **Live-verified matching on all 5 themes** (safari/oceansview/royal/marmalade =
+  white/cream, hotel-sabela = ebony; all radius 11px, height 66px).
+- **`ThemedDateRange` date card now uses the theme `surface`** instead of a
+  hardcoded `#fff` (same commit). Every caller already passes a `surface` prop,
+  but the trigger + calendar nav buttons ignored it — so on the dark theme the
+  date "card" was a white box with light `ink` text (and a light arrow on white
+  nav buttons), barely legible. Now theme-appropriate (dark on sabela → guests
+  text 14.6:1; unchanged-looking on the light themes). Affects the booking card,
+  dock, form, hero + results search date pickers.
+- **Sabela footer "Get in touch" CTA** (`9e29b7f`): the muted `.footer a` link
+  colour (cream @0.56) was overriding the button's ink, leaving the label at
+  ~2:1 on the gold fill. Footer-scoped `a.btn-primary` rule restores dark-on-gold
+  — **live-verified 7.79:1** (was 2.0). Found by a live WCAG contrast sweep of the
+  dark theme's pages; the only solid-background failure (page content clean; the
+  light-theme flags were over-hero false positives).
+- tsc + lint clean.
+
 ## 2026-07-21 — Fix: legible form-field placeholders on every theme (`44565d9`).
 
 Founder-reported: on the dark **Sabela/hotel** theme the field placeholders were
