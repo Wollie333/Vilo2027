@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { TwoFactorCard } from "@/components/auth/TwoFactorCard";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { SecurityForm } from "../SecurityForm";
@@ -17,5 +18,10 @@ export default async function PortalSecuritySettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  return <SecurityForm email={user.email ?? ""} />;
+  return (
+    <div className="space-y-8">
+      <SecurityForm email={user.email ?? ""} />
+      <TwoFactorCard />
+    </div>
+  );
 }

@@ -5,6 +5,8 @@ import { routing } from "@/i18n/routing";
 
 const AUTH_ROUTES = ["/login", "/register", "/forgot-password"];
 const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/portal"];
+// The second step of signing in — deliberately NOT an auth route (see below).
+const MFA_ROUTE = "/login/2fa";
 
 // Non-default locales carry a URL prefix (/af, /fr, …); the default locale (en)
 // has none. Strip any such prefix before matching auth/protected routes so
@@ -68,9 +70,18 @@ export async function updateSession(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = AUTH_ROUTES.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
+  // /login/2fa is the SECOND step of signing in, so it must not count as an
+  // "auth route" — those bounce a signed-in user to /dashboard, and /dashboard
+  // sends anyone with an outstanding 2FA step straight back here. That is an
+  // infinite redirect, and it takes the challenge page down for exactly the
+  // people who need it.
+  const isMfaRoute =
+    pathname === MFA_ROUTE || pathname.startsWith(`${MFA_ROUTE}/`);
+  const isAuthRoute =
+    !isMfaRoute &&
+    AUTH_ROUTES.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
   const isProtectedRoute = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -91,9 +102,62 @@ export async function updateSession(
     return NextResponse.redirect(url);
   }
 
-  // Admin gate: deeper checks (platform_staff membership, AAL2) happen in the
-  // admin layout via requireAdmin(). Middleware only handles auth presence so
-  // every request doesn't pay for an extra DB roundtrip.
+  // Two-factor gate. A user who has switched 2FA on must finish the second step
+  // before any protected page renders — after a magic link just as much as after
+  // a password, since an attacker holding the inbox is exactly who this stops.
+  //
+  // Costs no extra roundtrip: getUser() above already returned the factor list,
+  // and the current level is a claim inside the access token we already hold.
+  if (user && isProtectedRoute && !isMfaRoute) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session && mfaStepOutstanding(user, session.access_token)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login/2fa";
+      url.search = "";
+      url.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Admin gate: deeper checks (platform_staff membership) happen in the admin
+  // layout via requireAdmin(). Middleware only handles auth presence so every
+  // request doesn't pay for an extra DB roundtrip.
 
   return supabaseResponse;
+}
+
+/**
+ * Is there a second step still owed on this session?
+ *
+ * True when the account has a VERIFIED factor but the session is still aal1.
+ * Unverified factors are ignored deliberately — an abandoned enrolment must
+ * never start challenging anyone, which would lock a user out of an account they
+ * never finished securing.
+ *
+ * Fails OPEN on an unreadable token: this gate runs on every protected request,
+ * and a malformed claim should not lock the whole app out. The account is still
+ * password/link protected, and every sensitive action re-authenticates anyway.
+ */
+function mfaStepOutstanding(
+  user: { factors?: { status?: string }[] | null },
+  accessToken: string,
+): boolean {
+  const verified = (user.factors ?? []).some((f) => f?.status === "verified");
+  if (!verified) return false;
+
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload) return false;
+    const claims = JSON.parse(
+      Buffer.from(
+        payload.replace(/-/g, "+").replace(/_/g, "/"),
+        "base64",
+      ).toString("utf8"),
+    ) as { aal?: string };
+    return claims.aal !== "aal2";
+  } catch {
+    return false;
+  }
 }

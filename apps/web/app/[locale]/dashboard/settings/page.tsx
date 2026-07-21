@@ -5,6 +5,8 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { HostProfileForm } from "@/components/host/HostProfileForm";
 
+import { TwoFactorCard } from "@/components/auth/TwoFactorCard";
+
 import { PasswordCard } from "./PasswordCard";
 
 export const metadata: Metadata = {
@@ -88,6 +90,7 @@ export default async function SettingsProfilePage() {
       </div>
 
       <PasswordCard />
+      <TwoFactorCard />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { TwoFactorNudge } from "@/components/auth/TwoFactorNudge";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { getCreditBalance, getCreditLedger } from "@/lib/credits/wallet";
 import { resolveAccountScope } from "@/lib/host/accountScope";
@@ -229,6 +230,7 @@ export default async function DashboardLayout({
               ?.email_verified_at ? (
               <VerifyEmailBanner email={user.email ?? ""} />
             ) : null}
+            <TwoFactorNudge />
             <BroadcastBanner />
           </>
         }
