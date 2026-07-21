@@ -19,6 +19,7 @@ import {
 } from "@/lib/affiliate/campaignConfig";
 
 import { setCampaignStatusAction, updateCampaignAction } from "../actions";
+import { CAMPAIGN_HELP, FieldHelp, type HelpEntry } from "./FieldHelp";
 
 // WS-1i — the campaign builder form. Rates are entered as PERCENT here and
 // stored as fractions; the server re-validates everything with the shared zod
@@ -206,6 +207,7 @@ export function CampaignBuilder({
           {isLive
             ? "Enrolled partners are earning this campaign's rates."
             : "Nothing is paid at campaign rates while it is not live."}
+          <FieldHelp help={CAMPAIGN_HELP.status} />
         </span>
         <div className="ml-auto flex gap-2">
           {isLive ? (
@@ -257,7 +259,10 @@ export function CampaignBuilder({
       <Panel title="Basics">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className={LABEL}>Name</span>
+            <span className={LABEL}>
+              Name
+              <FieldHelp help={CAMPAIGN_HELP.name} />
+            </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -265,7 +270,10 @@ export function CampaignBuilder({
             />
           </label>
           <label className="block">
-            <span className={LABEL}>Public link</span>
+            <span className={LABEL}>
+              Public link
+              <FieldHelp help={CAMPAIGN_HELP.slug} />
+            </span>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
@@ -276,7 +284,10 @@ export function CampaignBuilder({
             </span>
           </label>
           <label className="block">
-            <span className={LABEL}>Starts</span>
+            <span className={LABEL}>
+              Starts
+              <FieldHelp help={CAMPAIGN_HELP.starts} />
+            </span>
             <input
               type="datetime-local"
               value={startsAt}
@@ -285,7 +296,10 @@ export function CampaignBuilder({
             />
           </label>
           <label className="block">
-            <span className={LABEL}>Ends</span>
+            <span className={LABEL}>
+              Ends
+              <FieldHelp help={CAMPAIGN_HELP.ends} />
+            </span>
             <input
               type="datetime-local"
               value={endsAt}
@@ -294,7 +308,10 @@ export function CampaignBuilder({
             />
           </label>
           <label className="block">
-            <span className={LABEL}>Who can join</span>
+            <span className={LABEL}>
+              Who can join
+              <FieldHelp help={CAMPAIGN_HELP.eligiblePartners} />
+            </span>
             <select
               value={eligiblePartners}
               onChange={(e) =>
@@ -314,7 +331,10 @@ export function CampaignBuilder({
             </select>
           </label>
           <label className="block">
-            <span className={LABEL}>Which referrals count</span>
+            <span className={LABEL}>
+              Which referrals count
+              <FieldHelp help={CAMPAIGN_HELP.eligibleReferrals} />
+            </span>
             <select
               value={eligibleReferrals}
               onChange={(e) =>
@@ -334,7 +354,10 @@ export function CampaignBuilder({
             </select>
           </label>
           <label className="block sm:col-span-2">
-            <span className={LABEL}>Rules document</span>
+            <span className={LABEL}>
+              Rules document
+              <FieldHelp help={CAMPAIGN_HELP.rulesDoc} />
+            </span>
             <select
               value={rulesDoc}
               onChange={(e) => setRulesDoc(e.target.value)}
@@ -362,7 +385,10 @@ export function CampaignBuilder({
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className={LABEL}>Model</span>
+            <span className={LABEL}>
+              Model
+              <FieldHelp help={CAMPAIGN_HELP.model} />
+            </span>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value as typeof model)}
@@ -380,7 +406,10 @@ export function CampaignBuilder({
             </select>
           </label>
           <label className="block">
-            <span className={LABEL}>Paid for how long</span>
+            <span className={LABEL}>
+              Paid for how long
+              <FieldHelp help={CAMPAIGN_HELP.duration} />
+            </span>
             <select
               value={duration}
               onChange={(e) => setDuration(e.target.value as typeof duration)}
@@ -399,7 +428,10 @@ export function CampaignBuilder({
           </label>
           {duration === "recurring" ? (
             <label className="block">
-              <span className={LABEL}>Number of payments</span>
+              <span className={LABEL}>
+                Number of payments
+                <FieldHelp help={CAMPAIGN_HELP.recurringPeriods} />
+              </span>
               <input
                 type="number"
                 min={1}
@@ -411,7 +443,10 @@ export function CampaignBuilder({
             </label>
           ) : (
             <label className="block">
-              <span className={LABEL}>Applies to</span>
+              <span className={LABEL}>
+                Applies to
+                <FieldHelp help={CAMPAIGN_HELP.scope} />
+              </span>
               <input
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
@@ -424,7 +459,10 @@ export function CampaignBuilder({
         {model === "ladder" ? (
           <div className="mt-5">
             <div className="flex items-center justify-between">
-              <span className={LABEL}>Ladder rungs</span>
+              <span className={LABEL}>
+                Ladder rungs
+                <FieldHelp help={CAMPAIGN_HELP.bands} />
+              </span>
               <button
                 type="button"
                 onClick={() =>
@@ -509,7 +547,10 @@ export function CampaignBuilder({
         {model === "flat" ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className={LABEL}>Flat rate</span>
+              <span className={LABEL}>
+                Flat rate
+                <FieldHelp help={CAMPAIGN_HELP.flatRate} />
+              </span>
               <input
                 type="number"
                 min={0}
@@ -541,7 +582,10 @@ export function CampaignBuilder({
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className={LABEL}>Conversion bonus — monthly plan (R)</span>
+            <span className={LABEL}>
+              Conversion bonus — monthly plan (R)
+              <FieldHelp help={CAMPAIGN_HELP.conversionBonus} />
+            </span>
             <input
               type="number"
               min={0}
@@ -570,7 +614,10 @@ export function CampaignBuilder({
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block">
-            <span className={LABEL}>Scoring</span>
+            <span className={LABEL}>
+              Scoring
+              <FieldHelp help={CAMPAIGN_HELP.scoring} />
+            </span>
             <select
               value={scoringMode}
               onChange={(e) =>
@@ -588,7 +635,10 @@ export function CampaignBuilder({
             </select>
           </label>
           <label className="block">
-            <span className={LABEL}>Leaderboard</span>
+            <span className={LABEL}>
+              Leaderboard
+              <FieldHelp help={CAMPAIGN_HELP.leaderboard} />
+            </span>
             <select
               value={visibility}
               onChange={(e) =>
@@ -608,7 +658,10 @@ export function CampaignBuilder({
             </select>
           </label>
           <label className="block">
-            <span className={LABEL}>Points per live listing</span>
+            <span className={LABEL}>
+              Points per live listing
+              <FieldHelp help={CAMPAIGN_HELP.pointsPerListing} />
+            </span>
             <input
               type="number"
               min={0}
@@ -624,16 +677,21 @@ export function CampaignBuilder({
             checked={countActiveOnly}
             onChange={setCountActiveOnly}
             label="Only count hosts who are still live"
+            help={CAMPAIGN_HELP.countActiveOnly}
           />
           <Toggle
             checked={eachListingCounts}
             onChange={setEachListingCounts}
             label="Every listing counts, not just every host"
+            help={CAMPAIGN_HELP.eachListingCounts}
           />
         </div>
 
         <label className="mt-4 block sm:max-w-sm">
-          <span className={LABEL}>Tie breaker</span>
+          <span className={LABEL}>
+            Tie breaker
+            <FieldHelp help={CAMPAIGN_HELP.tieBreaker} />
+          </span>
           <input
             value={tieBreaker}
             placeholder="earliest_to_final_score"
@@ -644,7 +702,10 @@ export function CampaignBuilder({
 
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <span className={LABEL}>Prizes</span>
+            <span className={LABEL}>
+              Prizes
+              <FieldHelp help={CAMPAIGN_HELP.prizes} />
+            </span>
             <button
               type="button"
               onClick={() =>
@@ -843,20 +904,25 @@ function Toggle({
   checked,
   onChange,
   label,
+  help,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  help?: HelpEntry;
 }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-brand-ink">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-      />
-      {label}
-    </label>
+    <span className="inline-flex items-center gap-1 text-[13px] text-brand-ink">
+      <label className="inline-flex cursor-pointer items-center gap-2">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+        />
+        {label}
+      </label>
+      {help ? <FieldHelp help={help} /> : null}
+    </span>
   );
 }

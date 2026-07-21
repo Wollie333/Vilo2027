@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 
 import { saveCampaignRulesAction } from "../actions";
+import { CAMPAIGN_HELP, FieldHelp } from "./FieldHelp";
 
 // WS-1i follow-up — author the competition rules right here and publish them
 // live at /legal/<slug>. That URL is the fixed retained address the CPA requires,
@@ -69,6 +70,7 @@ export function CampaignRulesEditor({
       <h2 className="flex items-center gap-2 font-display text-[15px] font-bold text-brand-ink">
         <FileText className="h-4 w-4 text-brand-primary" />
         Competition rules
+        <FieldHelp help={CAMPAIGN_HELP.rulesEditor} />
       </h2>
       <p className="mt-0.5 text-[12.5px] text-brand-mute">
         Published live at a fixed URL. Every partner must accept these rules to
