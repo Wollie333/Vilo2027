@@ -198,7 +198,10 @@
   min-height: clamp(560px, 88vh, 920px);
   display: flex;
   align-items: flex-end;
-  padding-bottom: clamp(52px, 8vw, 110px);
+  /* Extra bottom room so the hero text + CTAs sit clear ABOVE the search card
+     that floats up over the hero's lower edge (see .sf-availbar) — the gap ends
+     up ~padding-bottom minus the card's overlap. */
+  padding-bottom: clamp(80px, 9vw, 132px);
   overflow: hidden;
   isolation: isolate;
 }
@@ -279,7 +282,7 @@
 .sfhome .sf-availbar {
   position: relative;
   z-index: 3;
-  margin-top: clamp(-92px, -6.5vw, -40px);
+  margin-top: clamp(-76px, -5.5vw, -36px);
 }
 
 /* ======================================================================
