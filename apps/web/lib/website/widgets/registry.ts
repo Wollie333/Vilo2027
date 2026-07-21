@@ -890,7 +890,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     icon: "MousePointerClick",
     defaults: {
       heading: "Ready to book?",
-      body: "Reserve your dates directly — no booking fees.",
+      body: "Reserve your dates directly.",
       button_label: "Check availability",
       button_href: "#rooms",
       variant: "banner",

@@ -669,7 +669,7 @@ export function SiteCheckoutForm({
         Book {propertyName}
       </SectionHeading>
       <Muted className="mb-8 text-center text-base">
-        Reserve your stay directly — no booking fees.
+        Reserve your stay directly with {propertyName}.
       </Muted>
 
       {special

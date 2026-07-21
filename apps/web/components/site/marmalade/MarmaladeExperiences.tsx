@@ -177,8 +177,7 @@ export function MarmaladeExperiences({
               <h2 style={{ marginTop: 6 }}>Plan it, or don&apos;t</h2>
               <p>
                 Tell us what you&apos;re after — or nothing at all — and
-                we&apos;ll shape the days around you. Booked direct, with 0%
-                booking fees.
+                we&apos;ll shape the days around you. Booked direct.
               </p>
               <div className="pcta">
                 <a href={roomsHref} className="btn btn-accent btn-lg">

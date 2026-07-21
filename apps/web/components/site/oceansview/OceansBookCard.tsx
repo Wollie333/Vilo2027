@@ -150,21 +150,6 @@ export function OceansBookCard({
         </>
       ) : null}
 
-      <div className="nofee">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        >
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
-        <span>No booking fees, ever</span>
-      </div>
-
       <button
         type="button"
         className="btn btn-coral btn-lg btn-block"

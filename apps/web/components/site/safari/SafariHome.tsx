@@ -79,7 +79,6 @@ const PROMISE: { k: string; v: string }[] = [
     k: "Best rate",
     v: "The lowest price lives here. Never cheaper elsewhere.",
   },
-  { k: "No fees", v: "Pay exactly what you see. No agents, no surcharges." },
   { k: "Flexible", v: "Free cancellation up to 48 hours before you arrive." },
 ];
 
@@ -182,7 +181,6 @@ export function SafariHome({
   if (avg != null) stats.push({ b: avg.toFixed(1), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
   if (maxSleeps > 0) stats.push({ b: String(maxSleeps), s: "Sleeps up to" });
-  if (stats.length === 2) stats.push({ b: "0%", s: "Booking fees" });
 
   const exps = (experiences ?? []).filter((e) => e.title);
 
@@ -567,7 +565,7 @@ export function SafariHome({
           <h2 className="sf-h2">Your place by the plain is waiting</h2>
           <p>
             Check the calendar, pick your view, and reserve straight with us —
-            the price you see is the price you pay, with no booking fees.
+            the price you see is the price you pay.
           </p>
           <div className="sf-hero-cta">
             <a href={bookHref} className="sf-btn sf-btn-solid sf-btn-lg">

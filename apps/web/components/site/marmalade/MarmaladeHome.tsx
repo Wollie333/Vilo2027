@@ -75,7 +75,7 @@ const HIGHLIGHTS: {
     emoji: "☕",
     rot: 7,
     title: "Breakfast included",
-    body: "Start every morning with breakfast on the house — and never a booking fee.",
+    body: "Start every morning with breakfast on the house.",
   },
   {
     emoji: "✓",
@@ -155,7 +155,7 @@ export function MarmaladeHome({
     "We're a small guesthouse in the old parsonage on Church Street — pressed ceilings, deep baths, a long table, and a garden the kitchen raids every morning.";
   const leadRest =
     storyParas.slice(1).join("\n\n") ||
-    "There's no front desk, no piped music, and no fee for booking straight with us. Just a key, a cup of tea on arrival, and whichever room suits you best.";
+    "There's no front desk and no piped music. Just a key, a cup of tea on arrival, and whichever room suits you best.";
   const introImg =
     shots[1]?.url ||
     shots[0]?.url ||
@@ -532,7 +532,7 @@ export function MarmaladeHome({
               <h2 style={{ marginTop: 6 }}>Come stay a night or three</h2>
               <p>
                 Booked direct with the house — the price you see is the price
-                you pay, with breakfast and 0% booking fees.
+                you pay, with breakfast.
               </p>
               <div className="pcta">
                 <a href={bookHref} className="btn btn-accent btn-lg">

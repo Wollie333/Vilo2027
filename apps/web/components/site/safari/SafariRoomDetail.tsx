@@ -327,7 +327,7 @@ export function SafariRoomDetail({
                   <h2 className="sf-h3">Seasonal rates</h2>
                   <p className="sf-muted">
                     Our nightly rate shifts with the seasons — the price you see
-                    always includes every tax, with no booking fees.
+                    always includes every tax.
                   </p>
                   <div className="sf-seas">
                     {seasons.map((s, i) => {

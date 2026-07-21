@@ -579,7 +579,7 @@ export const SAMPLE_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
     type: "cta",
     props: {
       heading: "Ready to book?",
-      body: "Reserve your dates directly — no booking fees.",
+      body: "Reserve your dates directly.",
       button_label: "Check availability",
       button_href: "/rooms",
     },

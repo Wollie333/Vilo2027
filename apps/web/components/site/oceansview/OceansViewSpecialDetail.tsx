@@ -337,7 +337,7 @@ export function OceansViewSpecialDetail({
                 </a>
                 <div className="bkperk">
                   <Check />
-                  Booked direct — 0% booking fees, best-rate guarantee.
+                  Booked direct — best-rate guarantee.
                 </div>
               </div>
             </aside>

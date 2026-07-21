@@ -210,7 +210,7 @@ export function RoyalSpecials({
                 >
                   <path d="M20 6 9 17l-5-5" />
                 </svg>{" "}
-                Booked direct · 0% booking fees
+                Booked direct
               </span>
               <h2 style={{ marginTop: 18 }}>Be first to hear the next offer</h2>
               <p>

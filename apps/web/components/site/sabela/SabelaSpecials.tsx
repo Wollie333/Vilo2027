@@ -114,7 +114,7 @@ export function SabelaSpecials({
               <p className="muted">
                 When {brandName} opens a special it lands here automatically. In
                 the meantime the everyday direct rate is already the best you
-                will find — no agents and 0% booking fees on every stay.
+                will find — no agents on every stay.
               </p>
               <div className="pcta">
                 <a href={roomsHref} className="btn btn-primary btn-lg">
@@ -220,7 +220,7 @@ export function SabelaSpecials({
               >
                 <path d="M20 6 9 17l-5-5" />
               </svg>
-              Book direct · 0% booking fees
+              Book direct
             </span>
             <h2>Be first to hear the next offer</h2>
             <p>

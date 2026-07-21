@@ -43,7 +43,6 @@ const FactIcon = (
 const INCLUDED = [
   "Book direct with the host",
   "The price you see is the price you pay",
-  "0% booking fees",
   "Secure payment",
 ];
 

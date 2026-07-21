@@ -306,7 +306,7 @@ export function SabelaSuiteDetail({
                   <h2>Rates &amp; seasons</h2>
                   <p>
                     Our nightly rate shifts with the seasons — the price you see
-                    always includes every tax, with no booking fees.
+                    always includes every tax.
                   </p>
                   <div className="seas">
                     {seasons.map((s, i) => {

@@ -254,7 +254,7 @@ export function SafariJournal({
           <h2>The stories are better in person</h2>
           <p>
             Find your dates and we&apos;ll keep a spot warm for you — no agents,
-            no booking fees, just the plain waking up.
+            just the plain waking up.
           </p>
           <div className="sf-cta-row">
             <a href={roomsHref} className="sf-btn sf-btn-solid sf-btn-lg">

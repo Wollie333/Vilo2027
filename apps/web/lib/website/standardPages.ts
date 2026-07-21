@@ -29,7 +29,7 @@ function homeSpine(siteName: string): Section[] {
   return [
     s("hero", {
       headline: siteName,
-      subheadline: "Book your stay with us directly — no booking fees.",
+      subheadline: "Book your stay with us directly.",
       align: "center",
     }),
     s("intro", {
@@ -43,7 +43,7 @@ function homeSpine(siteName: string): Section[] {
     s("location", { heading: "Where you’ll be", show_map: true }),
     s("cta", {
       heading: "Ready to book?",
-      body: "Reserve your dates directly — no booking fees.",
+      body: "Reserve your dates directly.",
       button_label: "Check availability",
       button_href: "/rooms",
     }),

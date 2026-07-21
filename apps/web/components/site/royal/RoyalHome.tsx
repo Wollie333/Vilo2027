@@ -85,7 +85,6 @@ const PROMISE = [
   "Book direct, always",
   "Best-rate guarantee",
   "Free cancellation",
-  "0% booking fees",
 ];
 
 // Brand-agnostic "everything taken care of" tiles — true for any direct-booking
@@ -106,24 +105,6 @@ const VALUE_TILES = [
         strokeLinejoin="round"
       >
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
-  },
-  {
-    title: "No booking fees",
-    body: "Book direct and pay exactly what you see — no agents, no surcharges, ever.",
-    icon: (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M5 12.5 10 17l9-9" />
       </svg>
     ),
   },
@@ -250,7 +231,6 @@ export function RoyalHome({
   if (avg != null) stats.push({ b: avg.toFixed(1), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
   if (maxSleeps > 0) stats.push({ b: String(maxSleeps), s: "Sleeps up to" });
-  if (stats.length === 2) stats.push({ b: "0%", s: "Booking fees" });
 
   const exps = (experiences ?? []).filter((e) => e.title);
 
@@ -658,7 +638,7 @@ export function RoyalHome({
               </h2>
               <p>
                 Check the calendar, pick your view, and reserve straight with us
-                — no agents, no booking fees.
+                — no agents.
               </p>
               <div className="hero-cta">
                 <a href={bookHref} className="btn btn-white btn-lg">

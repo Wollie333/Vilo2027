@@ -292,7 +292,7 @@ export function SabelaContactForm({
           <path d="M12 8v4l3 2" />
           <circle cx="12" cy="12" r="9" />
         </svg>
-        Replies within a day · booked direct, no fees.
+        Replies within a day · booked direct.
       </p>
       {!live ? (
         <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>

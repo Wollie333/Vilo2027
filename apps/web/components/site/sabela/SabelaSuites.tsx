@@ -232,7 +232,7 @@ export function SabelaSuites({
               >
                 <path d="M20 6 9 17l-5-5" />
               </svg>
-              Book direct · 0% booking fees
+              Book direct
             </span>
             <h2>Ready when you are</h2>
             <p>

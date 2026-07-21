@@ -38,11 +38,11 @@ const ArrowSm = (
 const VALUES: { title: string; body: string }[] = [
   {
     title: "Booked direct with us",
-    body: "Reserve straight with the lodge — no agents, no marketplace and no commission between you and your stay.",
+    body: "Reserve straight with the lodge — no agents and no marketplace between you and your stay.",
   },
   {
     title: "The rate you see is the rate you pay",
-    body: "Zero booking fees and no hidden surcharges. Every cent goes to your stay, not to a middleman.",
+    body: "No hidden surcharges. Every cent goes to your stay, not to a middleman.",
   },
   {
     title: "A real person, always",
@@ -146,7 +146,6 @@ export function SabelaAbout({
     });
   if (avg != null) stats.push({ n: avg.toFixed(2), l: "Guest rating" });
   if (count) stats.push({ n: commas(count), l: "Verified stays" });
-  stats.push({ n: "0%", l: "Booking fees" });
 
   const galShots = shots.slice(0, 3);
   const galSpan = (i: number): string => (i === 0 ? "g span2" : "g");

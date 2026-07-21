@@ -278,7 +278,7 @@ export function MarmaladeRoomDetail({
                     style={{ marginTop: 12, maxWidth: "56ch" }}
                   >
                     Our nightly rate shifts with the seasons — the price you see
-                    always includes every tax, with no booking fees.
+                    always includes every tax.
                   </p>
                   <div className="seas">
                     {seasons.map((s, i) => {

@@ -158,7 +158,7 @@ export function OceansViewFooter({
             {showPoweredBy ? (
               <span className="foot-vilo">
                 {WieloMark}
-                Powered by Wielo · 0% booking fees
+                Powered by Wielo
               </span>
             ) : null}
             {socialKeys.length > 0 ? (

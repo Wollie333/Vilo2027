@@ -22,7 +22,7 @@ function commas(n: number): string {
 const VALUES = [
   {
     title: "Book direct, always",
-    body: "Reserve straight with the house and the price never moves — no agents, no booking fees, no surprises at checkout.",
+    body: "Reserve straight with the house and the price never moves — no agents, no surprises at checkout.",
     icon: (
       <svg
         width="24"
@@ -180,7 +180,6 @@ export function RoyalAbout({
     });
   if (avg != null) stats.push({ b: avg.toFixed(1), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
-  stats.push({ b: "0%", s: "Booking fees" });
 
   const monogram = (brandName.trim()[0] || "R").toUpperCase();
 

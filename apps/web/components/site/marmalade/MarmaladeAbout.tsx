@@ -21,7 +21,7 @@ function commas(n: number): string {
 const VALUES: { title: string; body: string }[] = [
   {
     title: "Book direct, always",
-    body: "Reserve straight with the house and the price never moves — no agents, no surcharges, no fee at checkout.",
+    body: "Reserve straight with the house and the price never moves — no agents, no surcharges.",
   },
   {
     title: "Nothing hidden",
@@ -121,7 +121,6 @@ export function MarmaladeAbout({
     });
   if (avg != null) stats.push({ b: avg.toFixed(2), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
-  stats.push({ b: "0%", s: "Booking fees" });
 
   const galShots = shots.slice(0, 4);
 

@@ -112,7 +112,7 @@ const HIGHLIGHTS: { icon: ReactNode; title: string; body: string }[] = [
       </svg>
     ),
     title: "The rate you see is the rate you pay",
-    body: "Zero booking fees and no hidden surcharges — every cent goes to your stay, not a commission.",
+    body: "No hidden surcharges — every cent goes to your stay.",
   },
   {
     icon: (
@@ -193,7 +193,7 @@ export function SabelaHome({
   const heroSub =
     heroSubheadline?.trim() ||
     "An intimate, design-led lodge on a private reserve — a handful of suites, unhurried days, and nothing between you and the wild.";
-  const heroEyebrow = location?.address?.trim() || "Book direct · zero fees";
+  const heroEyebrow = location?.address?.trim() || "Book direct";
 
   // story is part of the contract; the reference home has no story block.
   void story;
@@ -222,7 +222,6 @@ export function SabelaHome({
   if (avg != null) stats.push({ n: avg.toFixed(1), l: "Guest rating" });
   if (reviewCount) stats.push({ n: commas(reviewCount), l: "Verified stays" });
   if (maxSleeps > 0) stats.push({ n: String(maxSleeps), l: "Sleeps up to" });
-  if (stats.length === 2) stats.push({ n: "0%", l: "Booking fees" });
 
   const galShots = shots.slice(0, 6);
   const galSpan = (i: number): string => {
@@ -570,7 +569,7 @@ export function SabelaHome({
               >
                 <path d="M20 6 9 17l-5-5" />
               </svg>
-              Book direct · 0% booking fees
+              Book direct
             </span>
             <h2>Your stay begins with a single message</h2>
             <p>

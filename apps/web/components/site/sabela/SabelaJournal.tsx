@@ -215,7 +215,7 @@ export function SabelaJournal({
             <h2>See it with your own eyes</h2>
             <p>
               Booked direct with {brandName} — the rate you see is the rate you
-              pay, with zero booking fees.
+              pay.
             </p>
             <div className="hero-cta-row">
               <a href="/rooms" className="btn btn-light btn-lg">

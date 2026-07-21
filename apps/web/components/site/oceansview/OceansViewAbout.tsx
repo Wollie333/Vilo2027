@@ -177,7 +177,6 @@ export function OceansViewAbout({
     });
   if (avg != null) stats.push({ b: avg.toFixed(1), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
-  stats.push({ b: "0%", s: "Booking fees" });
 
   return (
     <div className="ovabout">

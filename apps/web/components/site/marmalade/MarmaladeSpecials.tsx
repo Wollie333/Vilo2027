@@ -75,7 +75,7 @@ export function MarmaladeSpecials({
             <span>·</span>
             <span>Offers</span>
           </div>
-          <span className="hand">booked direct · 0% fees</span>
+          <span className="hand">booked direct</span>
           <h1>
             A few good reasons
             <br />
@@ -102,7 +102,7 @@ export function MarmaladeSpecials({
               <p className="muted">
                 When {brandName} opens a special it lands here automatically. In
                 the meantime, the everyday direct rate is already the best
-                you&apos;ll find — breakfast and 0% booking fees included.
+                you&apos;ll find — breakfast included.
               </p>
               <div className="pcta">
                 <a href={roomsHref} className="btn btn-accent btn-lg">

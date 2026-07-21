@@ -373,9 +373,7 @@ export default async function SiteThankYouPage({
               eft: eftRows,
               primaryCta: { label: "Back to home", href: "/" },
               secondaryCta: { label: "Get in touch", href: "/contact" },
-              footnote: isConfirmed
-                ? "Booked direct — no booking fees were charged."
-                : null,
+              footnote: isConfirmed ? "Booked directly with your host." : null,
             };
             return isSabela ? (
               <SabelaThankYou {...bespokeProps} />

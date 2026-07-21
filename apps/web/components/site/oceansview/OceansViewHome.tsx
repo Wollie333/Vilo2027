@@ -69,24 +69,6 @@ const Arrow = (
 // Branded, always-true value props for the direct-booking model (not host data).
 const VALUE_TILES = [
   {
-    title: "No booking fees",
-    body: "Book direct and pay exactly what you see — no agents, no surcharges.",
-    icon: (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M5 12.5 10 17l9-9" />
-      </svg>
-    ),
-  },
-  {
     title: "Best-rate guarantee",
     body: "The lowest price is always right here — never cheaper anywhere else.",
     icon: (
@@ -229,8 +211,6 @@ export function OceansViewHome({
   if (avg != null) stats.push({ b: avg.toFixed(1), s: "Guest rating" });
   if (count) stats.push({ b: commas(count), s: "Verified reviews" });
   if (maxSleeps > 0) stats.push({ b: String(maxSleeps), s: "Sleeps up to" });
-  // Pad to an even 3-up when we only have two live stats.
-  if (stats.length === 2) stats.push({ b: "0%", s: "Booking fees" });
 
   const exps = (experiences ?? []).filter((e) => e.title);
 
@@ -653,7 +633,7 @@ export function OceansViewHome({
               <h2 style={{ marginTop: 20 }}>Your stay is waiting</h2>
               <p>
                 Check the calendar, pick your room, and reserve straight with us
-                — no agents, no booking fees.
+                — no agents.
               </p>
               <div className="hero-cta">
                 <a href={bookHref} className="btn btn-white btn-lg">

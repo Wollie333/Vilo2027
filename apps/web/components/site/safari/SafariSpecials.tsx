@@ -235,9 +235,7 @@ export function SafariSpecials({
           <span className="sf-scrim" aria-hidden />
         </div>
         <div className="wrap sf-cta-in" data-reveal>
-          <span className="sf-eyebrow on-dark">
-            Booked direct · 0% booking fees
-          </span>
+          <span className="sf-eyebrow on-dark">Booked direct</span>
           <h2>Be first to hear the next offer</h2>
           <p>
             Our best rates rarely last. Say hello and we&apos;ll let you know

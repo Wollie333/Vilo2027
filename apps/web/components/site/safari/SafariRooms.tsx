@@ -45,7 +45,6 @@ const Arrow = (
 const INCLUDED = [
   "Book direct with the lodge",
   "The price you see is the price you pay",
-  "0% booking fees",
   "Secure payment",
 ];
 

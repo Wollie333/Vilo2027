@@ -223,7 +223,7 @@ const safari = {
         },
         {
           title: "Honest pricing",
-          body: "One inclusive rate, booked direct with us. No agents, no booking fees, no commission. The price you're quoted is the price you pay.",
+          body: "One inclusive rate, booked direct with us. No agents in between. The price you're quoted is the price you pay.",
         },
         {
           title: "People of this place",
@@ -274,7 +274,6 @@ const safari = {
         { label: "All meals & house wines" },
         { label: "Two daily safaris" },
         { label: "Airstrip transfers" },
-        { label: "0% booking fees" },
       ];
     }),
   roomsShowcase: () =>
@@ -505,7 +504,7 @@ const hotel = {
         },
         {
           title: "Honest pricing",
-          body: "One inclusive rate, booked direct. No agents, no booking fees, no commission. The price you are quoted is the price you pay.",
+          body: "One inclusive rate, booked direct. No agents in between. The price you are quoted is the price you pay.",
         },
         {
           title: "People of this place",
@@ -556,7 +555,6 @@ const hotel = {
         { label: "All meals & house wines" },
         { label: "Two daily game drives" },
         { label: "Airstrip transfers" },
-        { label: "0% booking fees" },
       ];
     }),
   roomsShowcase: () =>
@@ -861,7 +859,6 @@ const oceansview = {
         { value: "40", label: "Years on the bay" },
         { value: "32", label: "Sea-view rooms" },
         { value: "3", label: "Pools" },
-        { value: "0%", label: "Booking fees" },
       ];
     }),
   aboutHost: () =>
@@ -881,7 +878,7 @@ const oceansview = {
         },
         {
           title: "Honest pricing",
-          body: "One fair rate, booked direct. No agents, no booking fees, no surprises at checkout.",
+          body: "One fair rate, booked direct. No agents, no surprises at checkout.",
         },
         {
           title: "People of the bay",
@@ -931,7 +928,6 @@ const oceansview = {
         { label: "Sea view" },
         { label: "Breakfast included" },
         { label: "Pool & beach access" },
-        { label: "0% booking fees" },
       ];
     }),
   roomsShowcase: () =>
@@ -1213,7 +1209,7 @@ const marmalade = {
       s.props.eyebrow = "Welcome in";
       s.props.heading = "It's less a hotel, more a home with spare rooms.";
       s.props.body =
-        "We're a five-room guesthouse in the old parsonage on Church Street — pressed ceilings, deep baths, a long table, and a garden the kitchen raids every morning.\n\nThere's no front desk, no piped music, and no fee for booking straight with us. Just a key, a cup of tea on arrival, and whichever room suits you best.";
+        "We're a five-room guesthouse in the old parsonage on Church Street — pressed ceilings, deep baths, a long table, and a garden the kitchen raids every morning.\n\nThere's no front desk and no piped music. Just a key, a cup of tea on arrival, and whichever room suits you best.";
       s.props.image_path =
         "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80";
       s.props.badge_value = "1873";
@@ -1273,7 +1269,7 @@ const marmalade = {
         },
         {
           title: "Honest pricing",
-          body: "Book direct and pay what you see. No agents, no surcharges, no fee at checkout.",
+          body: "Book direct and pay what you see. No agents, no surcharges.",
         },
       ];
     }),
@@ -1316,7 +1312,6 @@ const marmalade = {
         { label: "Breakfast included" },
         { label: "Garden & stoep" },
         { label: "Free Wi-Fi & parking" },
-        { label: "0% booking fees" },
       ];
     }),
   roomsShowcase: () =>
@@ -1345,7 +1340,7 @@ const marmalade = {
       s.props.image_path =
         "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=80";
       s.props.body =
-        "Booked direct with the house — the price you see is the price you pay, with breakfast and 0% booking fees.";
+        "Booked direct with the house — the price you see is the price you pay, with breakfast.";
       s.props.button_label = "Check availability";
       s.props.button_href = "#rooms";
       s.props.variant = "banner";

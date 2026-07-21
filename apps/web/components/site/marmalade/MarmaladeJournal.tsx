@@ -223,7 +223,7 @@ export function MarmaladeJournal({
               <h2 style={{ marginTop: 6 }}>Come stay a night or three</h2>
               <p>
                 Booked direct with the house — the price you see is the price
-                you pay, with breakfast and 0% booking fees.
+                you pay, with breakfast.
               </p>
               <div className="pcta">
                 <a href="/rooms" className="btn btn-accent btn-lg">

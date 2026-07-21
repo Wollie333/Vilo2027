@@ -62,7 +62,7 @@ function policiesToFaq(p?: RoomPolicies | null): Faq[] {
 const DIRECT_BOOKING_FAQ: Faq[] = [
   {
     q: "Why book direct instead of through a marketplace?",
-    a: "Booking straight with us means the rate you see is the rate you pay — no agents, no commission and no booking fees added at checkout.",
+    a: "Booking straight with us means the rate you see is the rate you pay — no agents in between.",
   },
   {
     q: "How soon will I hear back?",
@@ -172,7 +172,7 @@ export function SabelaContact({
           <h1>Let&apos;s plan your stay</h1>
           <p className="lead mx-auto">
             Tell us your dates and what you&apos;re hoping for. A real person at{" "}
-            {brandName} replies within a day — booked direct, with no fees.
+            {brandName} replies within a day — booked direct.
           </p>
         </div>
       </section>

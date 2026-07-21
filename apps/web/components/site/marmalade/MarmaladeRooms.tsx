@@ -26,7 +26,6 @@ function money(n?: number | null, currency?: string | null): string | null {
 const INCLUDED = [
   "Book direct with the house",
   "The price you see is the price you pay",
-  "0% booking fees",
   "Secure payment",
 ];
 
