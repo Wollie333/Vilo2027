@@ -67,7 +67,12 @@ export function BookingSearchSection({
   const guestMax = 12;
   return (
     <div className="siteab-wrap">
-      <style>{`
+      {/* dangerouslySetInnerHTML, not children: a `>` child combinator in the CSS
+          (e.g. `.siteab-field > .siteab-lbl`) is escaped to `&gt;` by React on the
+          server only, which trips a `<style>` text-content hydration mismatch. */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .siteab-wrap{max-width:1060px;margin:0 auto;padding:0 20px;}
         .siteab-in{background:var(--site-surface,#fff);border:1px solid var(--site-line,#e9e1d1);border-radius:var(--site-radius-lg,20px);box-shadow:0 30px 70px -30px rgba(10,34,48,.34);display:grid;grid-template-columns:1.6fr 1fr auto;align-items:stretch;overflow:hidden;}
         .siteab-field{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px 22px;border-right:1px solid var(--site-line,#e9e1d1);min-width:0;}
@@ -90,7 +95,9 @@ export function BookingSearchSection({
           .siteab-field{border-right:none;border-bottom:1px solid var(--site-line,#e9e1d1);padding:14px 18px;}
           .siteab-go{padding:12px 18px 16px;}
         }
-      `}</style>
+      `,
+        }}
+      />
       <div className="siteab-in">
         <div className="siteab-field">
           <span className="siteab-lbl">When</span>

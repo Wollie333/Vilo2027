@@ -8,9 +8,9 @@ import type { ReactNode } from "react";
  * (booking card below the content). Theme-agnostic; used on the public room page
  * (both themes) + the room-builder canvas so they match.
  *
- * NOTE: the inline <style> uses descendant selectors only (no `>` child
- * combinator) — React escapes `>` to `&gt;` server-side only, tripping a
- * hydration mismatch inside a <style>.
+ * NOTE: the inline <style> is rendered via dangerouslySetInnerHTML (NOT as
+ * children) — a `>` child combinator in the CSS is escaped to `&gt;` by React on
+ * the server only, tripping a `<style>` text-content hydration mismatch.
  */
 export function RoomDockLayout({
   gallery,
@@ -31,7 +31,9 @@ export function RoomDockLayout({
 }) {
   return (
     <div className="room-dock-page">
-      <style>{`
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .room-dock-grid{display:flex;gap:32px;align-items:flex-start;max-width:1280px;margin:8px auto 0;padding:0 20px;}
         .room-dock-grid .room-dock-main{flex:1;min-width:0;}
         .room-dock-grid .room-dock-main > * + *{margin-top:36px;}
@@ -41,7 +43,9 @@ export function RoomDockLayout({
           .room-dock-grid .room-dock-main > * + *{margin-top:28px;}
           .room-dock-grid .room-dock-aside{width:100%;}
         }
-      `}</style>
+      `,
+        }}
+      />
       {gallery}
       <div className="room-dock-grid">
         <div className="room-dock-main">{children}</div>

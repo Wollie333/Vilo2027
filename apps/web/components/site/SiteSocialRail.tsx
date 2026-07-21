@@ -188,7 +188,12 @@ export function SiteSocialRail({ socials }: { socials?: SiteSocials | null }) {
         </svg>
       </button>
 
-      <style>{`
+      {/* dangerouslySetInnerHTML, not children: a `>` child combinator in the CSS
+          (`.site-social-rail > *`) is escaped to `&gt;` by React on the server only,
+          tripping a `<style>` text-content hydration mismatch on every page. */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .site-social-rail {
           position: fixed;
           left: 0;
@@ -321,7 +326,9 @@ export function SiteSocialRail({ socials }: { socials?: SiteSocials | null }) {
             transition: none;
           }
         }
-      `}</style>
+      `,
+        }}
+      />
     </div>
   );
 }
