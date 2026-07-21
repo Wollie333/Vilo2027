@@ -134,6 +134,9 @@ export type DerivedContent = {
   hostName?: string;
   hostPhotoPath?: string;
   heroPhotoPath?: string;
+  /** The host's own account bio → About host-bio body when the host hasn't written
+   *  one (a body paragraph, so length is safe — unlike story/intro headings). */
+  hostBio?: string;
 };
 
 // ── The canonical binding registry (theme-agnostic) ───────────

@@ -48,15 +48,18 @@ export async function buildDerivedContent(
     if (biz?.host_id) {
       const { data: hostRow } = await supabase
         .from("hosts")
-        .select("user_id, display_name, avatar_url")
+        .select("user_id, display_name, avatar_url, bio")
         .eq("id", biz.host_id)
         .maybeSingle<{
           user_id: string;
           display_name: string | null;
           avatar_url: string | null;
+          bio: string | null;
         }>();
       let hostName = hostRow?.display_name?.trim() || "";
       let hostPhoto = hostRow?.avatar_url?.trim() || "";
+      const hostBio = hostRow?.bio?.trim();
+      if (hostBio) derived.hostBio = hostBio;
       if ((!hostName || !hostPhoto) && hostRow?.user_id) {
         const { data: profile } = await supabase
           .from("user_profiles")
@@ -182,6 +185,12 @@ export function mergeDerivedProfile(
       hostBio: { ...p.about?.hostBio, photoPath: derived.hostPhotoPath },
     };
   }
+  if (isBlank(p.about?.hostBio?.body) && derived.hostBio) {
+    p.about = {
+      ...p.about,
+      hostBio: { ...p.about?.hostBio, body: derived.hostBio },
+    };
+  }
   if (isBlank(p.contact?.faq) && derived.policiesFaq?.length) {
     p.contact = { ...p.contact, faq: derived.policiesFaq };
   }
@@ -195,6 +204,7 @@ function allDerivableSlotsFilled(p: ContentProfile): boolean {
   return (
     !isBlank(p.home?.hero?.imagePath) &&
     !isBlank(p.about?.hostBio?.photoPath) &&
+    !isBlank(p.about?.hostBio?.body) &&
     !isBlank(p.contact?.faq)
   );
 }

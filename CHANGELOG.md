@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-21 — Build auto-fills the About host-bio from the account (+ structural-pull audit).
+
+Follow-up to the account-reuse work. Wired the one genuinely-sourced structural gap
+and audited the rest:
+
+- **Host bio → About** (`deriveContent.ts` + schema): `buildDerivedContent` now reads
+  `hosts.bio` and `mergeDerivedProfile` fills the bespoke themes' About → host-bio
+  **body** when the host hasn't written one (a body paragraph — length-safe, unlike
+  the story/intro headings that are deliberately excluded). AI-written bio still wins
+  when present (fills empty slots only). **Verified live** on mana's Safari About —
+  the "Your host" section now renders the account bio instead of demo copy.
+- **Already flowing (verified, nothing to do):** room **featured images** on the
+  room cards (5/5 render), room descriptions + prices, add-ons, policies → FAQ,
+  ratings → stats + AI grounding.
+- **Not built — no account source:** `hosts.social_links` and `cover_photo_url` are
+  **unpopulated columns with no editor** (host Settings only captures bio, languages,
+  highlights, website, avatar; socials live *only* in the website builder). Pulling
+  them would be dead code — they'd need to be captured in host Settings/onboarding
+  first (a product decision). `languages_spoken` has data but no display slot yet.
+- tsc + lint clean. (Also scaffolded `ANTHROPIC_API_KEY=` in the gitignored
+  `apps/web/.env.local` so the AI generation can be tested locally once the key is set.)
+
 ## 2026-07-21 — Wizard AI grounded in the host's real account data + reviews.
 
 The AI-assisted wizard already grounded its copy in a few property facts. Widened
