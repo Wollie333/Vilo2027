@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-21 — Fix: the site-render hydration mismatch is SOLVED (`583b6f2`).
+
+The long-standing React #418/#423/#425 hydration errors on every themed site page
+(~11 per page, home AND about) are **fixed and dev-verified** (founder added the
+service-role key so a local `pnpm dev` could show un-minified React).
+
+- **Root cause:** inline `<style>` tags rendered as **children** whose CSS contains
+  a `>` child combinator. React escapes `>` → `&gt;` in text content on the SERVER
+  only, so the `<style>` text content differs from the client → "Text content did
+  not match", which structurally displaces the following siblings (matching the
+  earlier finding of "0 missing text nodes" but a shifted tree).
+- **Culprits → fixed** by rendering the CSS via `dangerouslySetInnerHTML` (React
+  does not escape it): **SiteSocialRail** (`.site-social-rail > *`, in SiteChrome →
+  every page — the shared home+about cause), **BookingSearchSection**
+  (`.siteab-field > .siteab-lbl`, home hero search), **RoomDockLayout**
+  (`.room-dock-main > * + *`; a `>` had crept back after an earlier partial fix —
+  stale comment corrected).
+- **Verified in dev:** home + about now hydrate with **ZERO console errors** (were
+  ~11 each). tsc + lint clean. (The earlier `SiteFontLinks` precedence fix `d07a544`
+  addressed a real but separate DOM inconsistency; this was the actual mismatch.)
+
 ## 2026-07-21 — Remove "no booking fees" messaging from tenant direct sites (`4c05103`).
 
 Founder directive: on a host's OWN direct website, touting "no booking fees / 0%

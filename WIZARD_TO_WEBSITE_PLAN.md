@@ -35,10 +35,12 @@
 >    a geocodable address / lat-lng, else `refreshNearbyExperiencesAction` returns `none_found`. Files:
 >    `lib/site/nearbyFetch.ts`, `refreshNearbyExperiencesAction` in `dashboard/website/actions.ts`,
 >    `NearbyExperiencesCard.tsx`, `content_profile.experiences.nearby`, `SiteNearbyExperiences` + 5 `*Experiences.tsx`.
-> 2. **Hydration errors on the site preview render — NOT fixed** (recoverable/non-functional). Narrowed
->    this session to a client component inside `SiteChrome` (dev-repro proved SiteThemeRoot/fonts are
->    clean). Needs a dev build to name the exact node → needs `SUPABASE_SERVICE_ROLE_KEY` in
->    `apps/web/.env.local`. See the dedicated section at the very bottom.
+> 2. **Hydration errors on the site render — ✅ FIXED (`583b6f2`, dev-verified).** Root cause: inline
+>    `<style>` tags rendered as CHILDREN whose CSS has a `>` child combinator — React escapes `>`→`&gt;`
+>    on the server only, so the `<style>` text mismatches on the client. Fixed by `dangerouslySetInnerHTML`
+>    in `SiteSocialRail` (shared chrome → the home+about cause), `BookingSearchSection`, `RoomDockLayout`.
+>    Verified with a local `pnpm dev` (founder added the service-role key): home + about now render with
+>    ZERO console errors (were ~11 each). See the dedicated section at the bottom.
 > 3. **Phase 5 — mobile pass DONE (`c1e2765`); differentiation polish still open.** Ran a per-theme
 >    mobile CSS audit at 360–414px across all 5 themes (5 parallel Explore agents). Verdict: themes are
 >    broadly well-built for phones (grids collapse, `clamp()` type, images constrained, drawers work).
@@ -305,9 +307,19 @@ Phases 1–3 done (3 = booking, already wired + Phase-1 no-regression confirmed 
 Pre-existing hydration errors (#418/#423/#425) on the site preview render were found this session (NOT ours —
 identical on the pre-change control deploy) and flagged as a separate background task.
 
-## 🐛 OPEN — Site-render hydration errors (needs a DEV BUILD to finish)
-React #418/#423/#425 fire on load of every themed site page in preview (`?preview=1`). Page renders
-CORRECTLY (recoverable mismatch) — this is a correctness/perf smell, not a functional break.
+## ✅ RESOLVED — Site-render hydration errors (`583b6f2`, 2026-07-21)
+React #418/#423/#425 fired on every themed site page. **ROOT CAUSE FOUND + FIXED** via a local
+`pnpm dev` build (founder supplied the service-role key): inline `<style>` tags rendered as **children**
+whose CSS contains a `>` child combinator. React escapes `>`→`&gt;` in text content on the **server only**,
+so the `<style>` text differed on the client → "Text content did not match", structurally displacing the
+following siblings (explains the earlier "0 missing text nodes but shifted tree" finding). Fixed by
+rendering those styles via `dangerouslySetInnerHTML` (not escaped) in **SiteSocialRail**
+(`.site-social-rail > *`, in SiteChrome → EVERY page, the shared home+about cause), **BookingSearchSection**
+(`.siteab-field > .siteab-lbl`), and **RoomDockLayout** (`.room-dock-main > * + *`). **Dev-verified: home +
+about now render with ZERO console errors** (were ~11 each). History below kept for context.
+
+---
+_Original investigation notes (pre-fix):_
 
 **Established this session (2026-07-20):**
 - **It's a REAL site-render bug, NOT browser extensions.** Live, same authenticated browser: a themed
