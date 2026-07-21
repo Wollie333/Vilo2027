@@ -8,10 +8,13 @@ import { toast } from "sonner";
 import {
   COMMISSION_DURATIONS,
   COMMISSION_MODELS,
+  COMMISSION_SCOPES,
   ELIGIBLE_PARTNERS,
   ELIGIBLE_REFERRALS,
   LEADERBOARD_VISIBILITY,
+  MILESTONES,
   SCORING_MODES,
+  TIE_BREAKERS,
   pctToRate,
   rateToPct,
   sortBandsForDisplay,
@@ -447,11 +450,17 @@ export function CampaignBuilder({
                 Applies to
                 <FieldHelp help={CAMPAIGN_HELP.scope} />
               </span>
-              <input
+              <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
                 className={FIELD}
-              />
+              >
+                {COMMISSION_SCOPES.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
         </div>
@@ -692,12 +701,18 @@ export function CampaignBuilder({
             Tie breaker
             <FieldHelp help={CAMPAIGN_HELP.tieBreaker} />
           </span>
-          <input
+          <select
             value={tieBreaker}
-            placeholder="earliest_to_final_score"
             onChange={(e) => setTieBreaker(e.target.value)}
             className={FIELD}
-          />
+          >
+            <option value="">No tie breaker stated</option>
+            {TIE_BREAKERS.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </label>
 
         <div className="mt-6">
@@ -829,9 +844,8 @@ export function CampaignBuilder({
                   <span className="text-[10px] text-brand-mute">
                     Milestone (optional)
                   </span>
-                  <input
+                  <select
                     value={p.milestone ?? ""}
-                    placeholder="first_to_10"
                     onChange={(e) =>
                       setPrizes((prev) =>
                         prev.map((x, j) =>
@@ -842,7 +856,14 @@ export function CampaignBuilder({
                       )
                     }
                     className="mt-0.5 w-full min-w-[9rem] rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
-                  />
+                  >
+                    <option value="">Not a milestone prize</option>
+                    {MILESTONES.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <button
                   type="button"

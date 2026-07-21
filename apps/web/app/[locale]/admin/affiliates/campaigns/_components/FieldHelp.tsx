@@ -200,8 +200,8 @@ export const CAMPAIGN_HELP = {
   tieBreaker: {
     title: "Tie breaker",
     body: [
-      "How to settle equal scores. The rules document should state this in plain language too, because it decides who takes a prize.",
-      "“earliest_to_final_score” means whoever reached that score first wins the tie.",
+      "How equal scores are settled. Pick from the list — it is stored as a fixed value so the same wording appears everywhere and cannot be mistyped.",
+      "This is a statement of the rule, not an automatic process: Wielo does not split ties for you. Whatever you choose here should also be written into the rules document, because it decides who takes a prize.",
     ],
   },
   prizes: {
@@ -211,7 +211,8 @@ export const CAMPAIGN_HELP = {
       "Cash: the rand amount paid to the winner.",
       "Rate floor: permanently locks that partner's minimum commission rate. It outlives the campaign — treat it as a lasting commitment, not a once-off.",
       "Monthly top mover: a recurring prize for the biggest gain in a month.",
-      "Milestone: a named achievement, for example the first partner to reach ten live listings.",
+      "Milestone: a named achievement chosen from the list, for example the first partner to reach ten live listings.",
+      "Prizes are not paid automatically. When the campaign is judged you pay them from Affiliates → Payouts, where you can filter to this campaign.",
     ],
   },
   rulesEditor: {

@@ -30,6 +30,71 @@ export const LEADERBOARD_VISIBILITY = ["public", "partners", "hidden"] as const;
 export const COMMISSION_MODELS = ["ladder", "flat", "inherit"] as const;
 export const COMMISSION_DURATIONS = ["once", "recurring", "lifetime"] as const;
 
+// Free text in a config that decides prize money is a typo waiting to happen, so
+// the builder offers only these. They are DESCRIPTIVE: they state how the
+// competition is judged (and are quoted in the rules document) — no code awards
+// a milestone or resolves a tie automatically, the founder does that from the
+// campaign payouts screen. Adding a value here is safe; renaming one changes the
+// meaning of every campaign already storing it.
+export const TIE_BREAKERS = [
+  {
+    key: "earliest_to_final_score",
+    label: "Whoever reached the score first",
+  },
+  {
+    key: "most_listings_in_final_month",
+    label: "Most listings added in the final month",
+  },
+  {
+    key: "earliest_enrolled",
+    label: "Whoever joined the competition first",
+  },
+  { key: "highest_net_change", label: "Biggest net growth over the period" },
+  { key: "judges_decision", label: "Decided by Wielo" },
+] as const;
+
+export const MILESTONES = [
+  { key: "first_to_5", label: "First partner to 5 live listings" },
+  { key: "first_to_10", label: "First partner to 10 live listings" },
+  { key: "first_to_25", label: "First partner to 25 live listings" },
+  {
+    key: "any_reaching_5_in_30d",
+    label: "Any partner reaching 5 live listings in 30 days",
+  },
+  {
+    key: "any_reaching_10_in_30d",
+    label: "Any partner reaching 10 live listings in 30 days",
+  },
+  { key: "first_host_live", label: "First host live in the competition" },
+] as const;
+
+/** What a campaign's commission structure applies to. */
+export const COMMISSION_SCOPES = [
+  { key: "subscription", label: "Host membership subscriptions" },
+  { key: "addon", label: "Add-on purchases" },
+  { key: "any", label: "Any product purchase" },
+] as const;
+
+export type TieBreakerKey = (typeof TIE_BREAKERS)[number]["key"];
+export type MilestoneKey = (typeof MILESTONES)[number]["key"];
+
+const TIE_BREAKER_KEYS = TIE_BREAKERS.map((t) => t.key) as [
+  string,
+  ...string[],
+];
+const MILESTONE_KEYS = MILESTONES.map((m) => m.key) as [string, ...string[]];
+const SCOPE_KEYS = COMMISSION_SCOPES.map((s) => s.key) as [string, ...string[]];
+
+/** Human label for a stored key, falling back to the raw value for anything
+ *  saved before these lists existed. */
+export function labelFor(
+  list: readonly { key: string; label: string }[],
+  key: string | undefined | null,
+): string {
+  if (!key) return "—";
+  return list.find((i) => i.key === key)?.label ?? key;
+}
+
 const rateFraction = z.number().min(0).max(1);
 
 export const ladderBandSchema = z.object({
@@ -41,7 +106,7 @@ export const ladderBandSchema = z.object({
 export const commissionStructureSchema = z
   .object({
     model: z.enum(COMMISSION_MODELS),
-    scope: z.string().max(40).optional(),
+    scope: z.enum(SCOPE_KEYS).optional(),
     duration: z.enum(COMMISSION_DURATIONS).optional(),
     recurring_periods: z.number().int().positive().max(120).optional(),
     bands: z.array(ladderBandSchema).max(12).optional(),
@@ -107,7 +172,9 @@ export const prizeSchema = z.object({
   placing: z.number().int().positive().max(100).optional(),
   cash: z.number().min(0).max(1_000_000).optional(),
   floor: rateFraction.optional(),
-  milestone: z.string().max(60).optional(),
+  // Constrained to the known list so a prize can never be defined against a
+  // milestone nobody can look up.
+  milestone: z.enum(MILESTONE_KEYS).optional(),
   monthly_top_net_change: z.number().min(0).max(1_000_000).optional(),
 });
 
@@ -118,7 +185,7 @@ export const competitionSchema = z.object({
   scoring_mode: z.enum(SCORING_MODES).optional(),
   count_active_only: z.boolean().optional(),
   each_listing_counts: z.boolean().optional(),
-  tie_breaker: z.string().max(60).optional(),
+  tie_breaker: z.enum(TIE_BREAKER_KEYS).optional(),
   leaderboard_visibility: z.enum(LEADERBOARD_VISIBILITY).optional(),
   prizes: z.array(prizeSchema).max(30).optional(),
 });

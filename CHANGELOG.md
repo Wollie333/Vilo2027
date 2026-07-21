@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-21 (pt51) — Campaign field help, constrained dropdowns, and a Payouts tab.
+
+Three founder asks. All green (build, lint, 25 affiliate tests).
+
+- **Inline field help** (`FieldHelp.tsx`): a superscript ⓘ beside every label in the campaign builder and
+  rules editor, opening a plain-language explanation with worked examples where the maths bites (the
+  ladder popover spells out "a partner with a R26 000 book earns 25% on the whole R26 000"). Copy lives in
+  one `CAMPAIGN_HELP` map so it can be reviewed as a set.
+- **Free text replaced with system values.** `tie_breaker`, prize `milestone` and commission `scope` are
+  now dropdowns backed by `TIE_BREAKERS` / `MILESTONES` / `COMMISSION_SCOPES`, and the zod schema enforces
+  them with `z.enum` — a typo can no longer reach a config that decides prize money. Existing seeded
+  values (`earliest_to_final_score`, `first_to_10`, `any_reaching_5_in_30d`, `subscription`) all map onto
+  the new lists; verified by re-saving the live campaign with all 6 prizes intact.
+  ⚠️ **Honest framing added to the help copy:** these fields are DESCRIPTIVE — nothing in the codebase
+  consumes `tie_breaker` or `milestone`. No code splits a tie or awards a milestone; the founder does that
+  from the Payouts tab. The value's job is to state the rule consistently and appear in the rules document.
+- **Admin → Affiliates → Payouts** (new tab): campaign filter chips (all / each campaign / outside any
+  campaign) driving a commission read-out — payable now, on hold, in flight, paid to date, lifetime — plus
+  a per-partner breakdown, an actionable queue (approve / mark paid / reject, reusing the existing audited
+  `settleAffiliatePayoutAction` + `settle_affiliate_payout` RPC) and full payout history.
+  ⚠️ **Deliberately not faked:** `affiliate_payouts` are per-PARTNER, not per-campaign — a payout settles a
+  partner's whole cleared balance. The campaign filter therefore scopes the commission figures, and the
+  payout queue says so in as many words rather than implying a per-campaign settlement.
+- **Verified live:** payouts tab renders the three real historical EFT payouts and the campaign/`none`
+  filters change the scope copy; every dropdown pre-selects its stored value across all 6 prize rows.
+  ⚠️ The approve/mark-paid/reject buttons were **not exercised live** — there are no open payout requests
+  and no cleared commission, and I would not mint fake rows on the money tables to manufacture one. The
+  action is the same one already in use on the Overview tab.
+
+---
+
 ## 2026-07-21 (pt50) — Rules authoring in the campaign builder + accept-to-enter enforcement.
 
 Founder asked for a WYSIWYG rules editor inside the campaign builder that publishes a live URL, with every
