@@ -21,9 +21,23 @@ export type SiteContext = {
   location?: string;
   propertyDescription?: string;
   hostName?: string;
-  /** A short summary of the host's real rooms, e.g. "Garden Suite (sleeps 2),
-   *  Loft Room (sleeps 3)" — grounds the copy in concrete, true specifics. */
+  /** A short summary of the host's real rooms, e.g. "Garden Suite (sleeps 2, from
+   *  R1 200) — a quiet room over the garden" — grounds the copy in true specifics. */
   rooms?: string;
+  /** The host's own bio from their account profile — grounds the host/About copy. */
+  hostBio?: string;
+  /** Booking policies in plain words (cancellation, check-in/out, house rules). */
+  policies?: string;
+  /** Paid extras/add-ons the host offers ("name — description"). */
+  addOns?: string;
+  /** Standout features the host flagged on their account profile. */
+  highlights?: string[];
+  /** Aggregate trust signal, e.g. "4.9★ from 128 reviews · Superhost". */
+  rating?: string;
+  /** Representative REAL guest reviews ("5★: <what they wrote>"). The copywriter
+   *  mines these for the authentic themes guests value — never fabricating a quote
+   *  or attributing words to a named person. */
+  reviews?: string[];
 };
 
 const SYSTEM = [
@@ -59,6 +73,14 @@ const SYSTEM = [
   "- TRUTH ONLY. Use ONLY the facts the host gives you. Never invent amenities,",
   "  prices, star ratings, distances, awards, room counts, or place names that",
   "  aren't provided. Persuasion never requires a lie — write around what's missing.",
+  "- GUEST REVIEWS, when provided, are real sentiment from real stays. Mine them to",
+  "  learn what guests genuinely value, and let that shape the copy (the About story,",
+  "  a 'why guests choose us' line, the host bio). Paraphrase recurring THEMES only —",
+  "  never quote a review verbatim, invent a statistic from them, or put words in a",
+  "  named guest's mouth.",
+  "- Nearby attractions / things-to-do are added SEPARATELY from real map data — do",
+  "  NOT invent a directory of nearby places, distances, or drive times. Treat the",
+  "  host's own highlights as inspiration for the story/welcome copy, not a listing.",
   "- Expand the host's short notes into polished copy; keep their meaning and truth.",
   "- If there is nothing real to say for a field, leave it empty rather than padding.",
   "- No emoji anywhere except the experiences 'icon' field.",
@@ -70,9 +92,26 @@ function contextBlock(ctx: SiteContext): string {
   if (ctx.tagline) lines.push(`Existing tagline: ${ctx.tagline}`);
   if (ctx.location) lines.push(`Location: ${ctx.location}`);
   if (ctx.hostName) lines.push(`Host name: ${ctx.hostName}`);
+  if (ctx.rating) lines.push(`Reputation: ${ctx.rating}`);
   if (ctx.rooms) lines.push(`Rooms: ${ctx.rooms}`);
+  if (ctx.addOns) lines.push(`Add-ons / extras offered: ${ctx.addOns}`);
+  if (ctx.policies) lines.push(`Booking policies: ${ctx.policies}`);
+  if (ctx.highlights?.length) {
+    lines.push(`Host-flagged highlights: ${ctx.highlights.join("; ")}`);
+  }
   if (ctx.propertyDescription) {
     lines.push(`Property description: ${ctx.propertyDescription}`);
+  }
+  if (ctx.hostBio) lines.push(`Host bio (their own words): ${ctx.hostBio}`);
+  if (ctx.reviews?.length) {
+    lines.push(
+      "",
+      "REAL GUEST REVIEWS (authentic sentiment from real stays — mine these for the " +
+        "themes guests genuinely value and to write credible copy; paraphrase " +
+        "recurring themes, NEVER fabricate a quote or attribute words to a named guest):",
+    );
+    ctx.reviews.forEach((r, i) => lines.push(`  ${i + 1}. ${r}`));
+    lines.push("");
   }
   lines.push(
     "(These are the ONLY concrete facts you may use — draw specifics from here; " +

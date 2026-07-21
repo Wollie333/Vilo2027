@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-21 — Wizard AI grounded in the host's real account data + reviews.
+
+The AI-assisted wizard already grounded its copy in a few property facts. Widened
+that grounding so the AI writes accurate copy from everything the host captured at
+onboarding — **in conjunction with their wizard answers** — instead of generic
+filler. Founder direction: reuse existing account content; treat guest REVIEWS as a
+first-class source the AI writes *from*.
+
+- **`loadHostAiFacts` (`_wizard/aiActions.ts`)** now gathers: the host's **bio**,
+  **reputation** (avg rating / review count / superhost), **rooms** enriched with
+  from-price + short description, **add-ons**, **policies** (cancellation /
+  check-in-out / house rules), account **highlights**, and up to 8 real **published
+  guest reviews** (rating + trip type + body).
+- **Prompt (`aiPrompts.ts`)**: `SiteContext` + the context block carry all of the
+  above; a dedicated GUEST REVIEWS block instructs the copywriter to mine reviews
+  for the themes guests genuinely value — paraphrasing themes, **never** fabricating
+  or quoting a named guest. New hard rules: don't invent a nearby-attractions
+  directory (that's the map-data feature) and treat host highlights as story
+  inspiration, not a listing.
+- **Verified** against mana's live data (service-role read): the grounding pulls 3
+  real reviews, the bio, add-ons, rating and check-in — so the pipeline has real
+  context to write from. The generation itself activates when `ANTHROPIC_API_KEY`
+  is set (the AI actions are inert without it); the grounding + prompt are ready.
+- tsc + lint clean.
+
 ## 2026-07-21 — Fix: the site-render hydration mismatch is SOLVED (`583b6f2`).
 
 The long-standing React #418/#423/#425 hydration errors on every themed site page

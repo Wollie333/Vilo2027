@@ -54,59 +54,168 @@ type RegenResult =
   | { ok: true; slot: AiStringSlot; value: string }
   | { ok: false; error: string; detail?: string };
 
+/** Format a `HH:MM(:SS)` time to `HH:MM` (or null when absent). */
+function fmtTime(t: string | null | undefined): string | null {
+  if (!t) return null;
+  const [h, m] = t.split(":");
+  return h && m ? `${h.padStart(2, "0")}:${m}` : t.trim();
+}
+
 /**
- * Real, concrete facts about the host's property — so the copywriter grounds the
- * copy in specifics ("the Garden Suite", "Nieu-Bethesda") instead of generalities,
- * and still never invents. Best-effort: any part may be empty.
+ * The host's REAL account context — so the copywriter writes accurate, grounded
+ * copy from known facts instead of generalities, and never invents. Pulls what the
+ * host already captured at onboarding: property + rooms (with prices/descriptions),
+ * add-ons, policies, their own bio, reputation, and — crucially — real published
+ * GUEST REVIEWS, which the AI mines for the authentic themes guests value.
+ * Best-effort: any part may be empty; a read failure just drops that field.
  */
 async function loadHostAiFacts(hostId: string): Promise<{
   location?: string;
   propertyDescription?: string;
   rooms?: string;
+  hostBio?: string;
+  policies?: string;
+  addOns?: string;
+  highlights?: string[];
+  rating?: string;
+  reviews?: string[];
 }> {
   const supabase = createServerClient();
-  const { data: biz } = await supabase
-    .from("businesses")
-    .select("city, province")
-    .eq("host_id", hostId)
-    .eq("is_default", true)
-    .eq("is_archived", false)
-    .maybeSingle();
-  const { data: prop } = await supabase
-    .from("properties")
-    .select("id, description, city, province")
-    .eq("host_id", hostId)
-    .is("deleted_at", null)
-    .order("is_published", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
+  const [{ data: hostRow }, { data: biz }, { data: prop }] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("bio, highlights, avg_rating, total_reviews, is_superhost")
+      .eq("id", hostId)
+      .maybeSingle(),
+    supabase
+      .from("businesses")
+      .select("city, province")
+      .eq("host_id", hostId)
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .maybeSingle(),
+    supabase
+      .from("properties")
+      .select(
+        "id, description, city, province, cancellation_policy_label, check_in_time, check_out_time, house_rules",
+      )
+      .eq("host_id", hostId)
+      .is("deleted_at", null)
+      .order("is_published", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  // Rooms — name, sleeps, from-price, short description.
   let rooms: string | undefined;
   if (prop?.id) {
     const { data: rms } = await supabase
       .from("property_rooms")
-      .select("name, max_guests")
+      .select("name, max_guests, base_price, description")
       .eq("property_id", prop.id)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .limit(6);
     const parts = (rms ?? [])
-      .map((r) =>
-        r.max_guests ? `${r.name} (sleeps ${r.max_guests})` : String(r.name),
-      )
+      .map((r) => {
+        const meta: string[] = [];
+        if (r.max_guests) meta.push(`sleeps ${r.max_guests}`);
+        if (r.base_price) meta.push(`from R${Math.round(r.base_price)}`);
+        let s = String(r.name) + (meta.length ? ` (${meta.join(", ")})` : "");
+        const d = r.description?.trim();
+        if (d) s += ` — ${d.slice(0, 160)}`;
+        return s;
+      })
       .filter(Boolean);
-    rooms = parts.length ? parts.join(", ") : undefined;
+    rooms = parts.length ? parts.join("; ") : undefined;
   }
+
+  // Add-ons / extras the host offers (host-scoped, active).
+  let addOns: string | undefined;
+  {
+    const { data: adr } = await supabase
+      .from("addons")
+      .select("name, description")
+      .eq("host_id", hostId)
+      .eq("is_active", true)
+      .limit(8);
+    const parts = (adr ?? [])
+      .map((a) => {
+        const d = a.description?.trim();
+        return d ? `${a.name} — ${d.slice(0, 120)}` : String(a.name);
+      })
+      .filter(Boolean);
+    addOns = parts.length ? parts.join("; ") : undefined;
+  }
+
+  // Real published guest reviews — the authentic sentiment the AI writes from.
+  let reviews: string[] | undefined;
+  {
+    const { data: revs } = await supabase
+      .from("reviews")
+      .select("body, rating, trip_type")
+      .eq("host_id", hostId)
+      .eq("is_published", true)
+      .eq("flagged", false)
+      .not("body", "is", null)
+      .order("helpful_count", { ascending: false })
+      .limit(8);
+    const parts = (revs ?? [])
+      .map((r) => {
+        const b = r.body?.trim();
+        if (!b) return null;
+        const trip = r.trip_type ? ` (${r.trip_type})` : "";
+        return `${r.rating}★${trip}: ${b.slice(0, 280)}`;
+      })
+      .filter((v): v is string => Boolean(v));
+    reviews = parts.length ? parts : undefined;
+  }
+
+  // Reputation trust signal.
+  let rating: string | undefined;
+  if (hostRow?.avg_rating && hostRow.total_reviews) {
+    const n = hostRow.total_reviews;
+    rating =
+      `${Number(hostRow.avg_rating).toFixed(1)}★ from ${n} review${n === 1 ? "" : "s"}` +
+      (hostRow.is_superhost ? " · Superhost" : "");
+  }
+
+  // Booking policies in plain words.
+  const polParts: string[] = [];
+  const cancel = prop?.cancellation_policy_label?.trim();
+  if (cancel) polParts.push(`Cancellation — ${cancel}`);
+  const ci = fmtTime(prop?.check_in_time);
+  const co = fmtTime(prop?.check_out_time);
+  if (ci || co) {
+    polParts.push(
+      `Check-in from ${ci ?? "flexible"}, check-out by ${co ?? "flexible"}`,
+    );
+  }
+  const houseRules = prop?.house_rules?.trim();
+  if (houseRules) polParts.push(`House rules — ${houseRules.slice(0, 220)}`);
+  const policies = polParts.length ? polParts.join(". ") : undefined;
+
+  const highlights = ((hostRow?.highlights ?? []) as string[])
+    .map((h) => h?.trim())
+    .filter((v): v is string => Boolean(v));
 
   const location =
     [prop?.city ?? biz?.city, prop?.province ?? biz?.province]
       .filter(Boolean)
       .join(", ") || undefined;
+
   return {
     location,
     propertyDescription: prop?.description ?? undefined,
     rooms,
+    hostBio: hostRow?.bio?.trim() || undefined,
+    policies,
+    addOns,
+    highlights: highlights.length ? highlights : undefined,
+    rating,
+    reviews,
   };
 }
 
