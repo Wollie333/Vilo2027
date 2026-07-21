@@ -10,6 +10,7 @@ import {
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { isFoundingOffersOpen } from "@/lib/billing/recurring";
+import { applyPaidUpgrade } from "@/lib/billing/upgrade-apply";
 import {
   grantCreditsForOrder,
   grantSubscriptionCredits,
@@ -73,11 +74,16 @@ export async function createProductOrder(
     phone?: string | null;
     // Custom-amount top-up (e.g. a pro-rated subscription UPGRADE delta): bill
     // this amount instead of the product price, label the order accordingly, and
-    // set activateOnPay=false so settling does NOT re-activate the plan (the tier
-    // was already activated at admin time — the link only collects the delta).
+    // set activateOnPay=false so settling does NOT open a fresh billing cycle —
+    // the link only collects the delta on the host's existing period.
     amountOverride?: number | null;
     label?: string | null;
     activateOnPay?: boolean;
+    // Prorated UPGRADE delta: the subscription to switch onto this order's
+    // product once the delta is PAID (applyPaidUpgrade, period preserved). The
+    // tier is never granted before the money lands.
+    upgradeSubscriptionId?: string | null;
+    upgradePlanKey?: string | null;
     // Wielo promo code typed by the buyer. Resolved server-side — an invalid one
     // FAILS the order rather than quietly billing full price (a checkout that
     // accepts a code and charges as if you hadn't typed it is a lying label).
@@ -237,6 +243,8 @@ export async function createProductOrder(
     pay_token: payToken,
     created_by: input.createdBy,
     activate_on_pay: input.activateOnPay ?? true,
+    upgrade_subscription_id: input.upgradeSubscriptionId ?? null,
+    upgrade_plan_key: input.upgradePlanKey ?? null,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -1075,7 +1083,7 @@ export async function markProductOrderEftReceived(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle, upgrade_subscription_id, upgrade_plan_key",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -1152,6 +1160,8 @@ export async function markProductOrderEftReceived(
       order.billing_cycle as "monthly" | "annual" | null,
     );
   }
+  // Prorated upgrade delta → NOW grant the higher tier (period preserved).
+  await applyPaidUpgrade(admin, order);
   await grantCreditsForOrder(admin, order);
   await setPayCardStatus(admin, {
     userId: order.payer_user_id,
@@ -1355,7 +1365,7 @@ export async function confirmProductOrderByReference(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle, upgrade_subscription_id, upgrade_plan_key",
     )
     .eq("provider_reference", reference)
     .maybeSingle();
@@ -1456,8 +1466,8 @@ export async function confirmProductOrderByReference(
     // Commission accrual must never break settlement.
   }
 
-  // A custom-amount top-up order (e.g. a pro-rated upgrade delta) only collects
-  // money — the plan was activated at admin time, so don't re-activate it here.
+  // A custom-amount top-up order (e.g. a pro-rated upgrade delta) must NOT open a
+  // fresh billing cycle — it tops up the host's existing period.
   if (order.activate_on_pay !== false) {
     await activateMappedPlan(
       admin,
@@ -1467,6 +1477,10 @@ export async function confirmProductOrderByReference(
       order.billing_cycle as "monthly" | "annual" | null,
     );
   }
+
+  // Prorated upgrade delta → the money is in, so NOW switch the host's
+  // subscription to the higher tier, keeping their remaining paid days.
+  await applyPaidUpgrade(admin, order);
 
   // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).
   await grantCreditsForOrder(admin, order);
@@ -1499,7 +1513,7 @@ export async function capturePayPalProductOrder(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle, upgrade_subscription_id, upgrade_plan_key",
     )
     .eq("provider_reference", orderId)
     .maybeSingle();
@@ -1602,7 +1616,7 @@ export async function capturePayPalProductOrder(
     // Commission accrual must never break settlement.
   }
 
-  // Custom-amount top-up (upgrade delta) → collect only; don't re-activate.
+  // Custom-amount top-up (upgrade delta) → collect only; no fresh cycle.
   if (order.activate_on_pay !== false) {
     await activateMappedPlan(
       admin,
@@ -1612,6 +1626,9 @@ export async function capturePayPalProductOrder(
       order.billing_cycle as "monthly" | "annual" | null,
     );
   }
+
+  // Prorated upgrade delta → grant the higher tier now the delta is paid.
+  await applyPaidUpgrade(admin, order);
 
   // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).
   await grantCreditsForOrder(admin, order);

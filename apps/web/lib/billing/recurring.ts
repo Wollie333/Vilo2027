@@ -15,6 +15,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * Fail CLOSED: any read error (missing row, RLS, transient DB) resolves to
  * "disabled" so a blip can never accidentally arm live recurring charges.
+ *
+ * The PayPal rail carries a SECOND, non-negotiable condition. PayPal has no
+ * merchant-initiated charge, so renewals arrive ONLY as webhooks, and
+ * /api/paypal-webhook refuses every event it cannot verify — which, without
+ * PAYPAL_WEBHOOK_ID, is all of them (401, fail closed). Arming the rail in that
+ * state is the worst possible outcome: PayPal bills the host on schedule while
+ * Wielo records no renewal, no cancellation, no failure. So the env var is
+ * treated as part of the gate — the DB flag alone cannot arm a rail whose only
+ * settle path is guaranteed to reject.
  */
 export type RecurringConfig = {
   paystack: boolean;
@@ -31,7 +40,9 @@ export async function getRecurringConfig(): Promise<RecurringConfig> {
       .maybeSingle();
     return {
       paystack: data?.paystack_recurring_enabled === true,
-      paypal: data?.paypal_recurring_enabled === true,
+      paypal:
+        data?.paypal_recurring_enabled === true &&
+        !!process.env.PAYPAL_WEBHOOK_ID,
     };
   } catch {
     return { paystack: false, paypal: false };

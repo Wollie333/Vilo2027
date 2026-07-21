@@ -11,7 +11,7 @@ import {
   unusedFraction,
 } from "@/lib/billing/proration";
 import { getRecurringConfig } from "@/lib/billing/recurring";
-import { grantSubscriptionCredits } from "@/lib/credits/wallet";
+import { applyPaidUpgrade } from "@/lib/billing/upgrade-apply";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -177,11 +177,13 @@ export type UpgradeRunResult =
  * is nothing to prorate (no unused period) so the caller runs the normal
  * full-price checkout that opens a fresh cycle instead.
  *
- * Ordering is deliberate: the delta order + checkout are created FIRST, and the
- * plan is only rewritten once the checkout is confirmed started — so a failed
- * order/init never leaves a host upgraded without a pending charge. (Once handed
- * off, this is grant-then-collect per R5's activate_on_pay:false top-up model; an
- * abandoned delta self-corrects at renewal via the dunning path.)
+ * Ordering is COLLECT-BEFORE-GRANT: the delta order carries the upgrade
+ * (upgrade_subscription_id / upgrade_plan_key) and the tier is switched by
+ * applyPaidUpgrade from the settle paths — Paystack return, PayPal capture, EFT
+ * received — i.e. only once the delta is really paid. Handing off to the card
+ * form grants nothing: abandon the checkout and the host stays on the tier they
+ * have paid for. (This previously rewrote the plan at hand-off, which left a real
+ * R513.79 delta pending on an already-upgraded host.)
  */
 export async function runProratedPaystackUpgrade(input: {
   hostId: string;
@@ -256,58 +258,31 @@ export async function runProratedPaystackUpgrade(input: {
   );
   const currency = newProduct.currency ?? "ZAR";
 
-  // Rewrite the ONE membership row in place to the new tier, PRESERVING the
-  // period (R3): the host keeps their remaining paid days, now at the higher
-  // tier; the saved Paystack card authorization is untouched and the renewal cron
-  // re-charges the NEW price at period_end.
-  const rewrite = async (): Promise<void> => {
+  // A delta that rounds to zero (equal prices at this cycle) → there is nothing
+  // to collect, so switch the tier straight away. PRESERVE the period (R3): the
+  // host keeps their remaining paid days, now at the higher tier; the saved
+  // Paystack card authorization is untouched and the renewal cron re-charges the
+  // NEW price at period_end.
+  if (!(delta > 0)) {
     await admin
       .from("subscriptions")
-      .update({
-        product_id: newProduct.id,
-        plan: input.planKey,
-        billing_cycle: cycle,
-        status: "active",
-        cancel_at_period_end: false,
-        cancelled_at: null,
-        cancellation_reason: null,
-      })
+      .update({ billing_cycle: cycle })
       .eq("id", sub.id);
-
-    // The higher tier's recurring credit allotment applies to the current period
-    // straight away (idempotent per product+period).
-    if (sub.current_period_start) {
-      try {
-        await grantSubscriptionCredits(admin, {
-          hostId: input.hostId,
-          productId: newProduct.id,
-          periodStart: sub.current_period_start,
-        });
-      } catch {
-        // Credits must never block an upgrade.
-      }
-    }
-
-    await admin.from("subscription_history").insert({
-      subscription_id: sub.id,
-      host_id: input.hostId,
-      event: "plan_change",
-      to_plan: input.planKey,
-      to_status: "active",
-      notes: `Upgraded (prorated delta ${currency} ${delta.toFixed(2)})`,
+    await applyPaidUpgrade(admin, {
+      id: sub.id,
+      product_id: newProduct.id,
+      amount: 0,
+      currency,
+      upgrade_subscription_id: sub.id,
+      upgrade_plan_key: input.planKey,
     });
-  };
-
-  // A delta that rounds to zero (equal prices at this cycle) → just switch the
-  // tier, no charge to collect.
-  if (!(delta > 0)) {
-    await rewrite();
     return { ok: true };
   }
 
-  // Collect the delta as a one-time top-up (activate_on_pay:false → the plan is
-  // switched here, the link ONLY collects the difference). Jump straight to the
-  // Paystack card form.
+  // Collect the delta as a one-time top-up (activate_on_pay:false → no fresh
+  // billing cycle; the link ONLY collects the difference). The order CARRIES the
+  // upgrade — applyPaidUpgrade switches the tier when the delta settles, never
+  // before — so an abandoned checkout leaves the host on the tier they paid for.
   const order = await createProductOrder(
     {
       productId: newProduct.id,
@@ -315,6 +290,8 @@ export async function runProratedPaystackUpgrade(input: {
       createdBy: input.userId,
       amountOverride: delta,
       activateOnPay: false,
+      upgradeSubscriptionId: sub.id,
+      upgradePlanKey: input.planKey,
       label: `Upgrade to ${newProduct.name} (prorated)`,
     },
     input.origin,
@@ -322,12 +299,8 @@ export async function runProratedPaystackUpgrade(input: {
   if (!order.ok) return order;
 
   const pay = await startProductPaystack(order.token, input.origin, false);
-
-  // Checkout is confirmed started → now commit the plan switch, then send the
-  // host to pay the delta.
-  await rewrite();
-
   if (pay.ok) return { ok: true, redirectUrl: pay.authorizationUrl };
-  // Init failed after the switch — hand back the pay page (host can retry / EFT).
+  // Init failed — hand back the pay page (host can retry / pay by EFT). Still no
+  // tier granted until that order settles.
   return { ok: true, redirectUrl: order.url };
 }

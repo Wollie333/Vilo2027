@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -7525,6 +7525,8 @@ export type Database = {
           provider_reference: string | null
           setup_fee_amount: number
           status: string
+          upgrade_plan_key: string | null
+          upgrade_subscription_id: string | null
         }
         Insert: {
           activate_on_pay?: boolean
@@ -7547,6 +7549,8 @@ export type Database = {
           provider_reference?: string | null
           setup_fee_amount?: number
           status?: string
+          upgrade_plan_key?: string | null
+          upgrade_subscription_id?: string | null
         }
         Update: {
           activate_on_pay?: boolean
@@ -7569,6 +7573,8 @@ export type Database = {
           provider_reference?: string | null
           setup_fee_amount?: number
           status?: string
+          upgrade_plan_key?: string | null
+          upgrade_subscription_id?: string | null
         }
         Relationships: [
           {
@@ -7597,6 +7603,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_upgrade_subscription_id_fkey"
+            columns: ["upgrade_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
