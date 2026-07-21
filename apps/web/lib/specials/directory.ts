@@ -405,3 +405,32 @@ export async function searchSpecials(
     nextHref,
   };
 }
+
+/**
+ * The single deal to feature on the home page, or null when there is nothing to
+ * show.
+ *
+ * Deliberately built on searchSpecials rather than its own query: the home page
+ * must never advertise a deal the /deals page won't display. Sold out, expired,
+ * not yet live, unlisted, or on a deleted property are all decided in exactly
+ * one place, and this inherits every one of them.
+ *
+ * Pick order: the host's own featured flag first, then the biggest genuine
+ * saving, then the newest — so the banner leads with the strongest offer
+ * available rather than whatever happens to sort first.
+ */
+export async function loadFeaturedDeal(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<DirectorySpecial | null> {
+  const result = await searchSpecials(admin, undefined, "/deals");
+  const eligible = result.specials.filter((s) => s.heroUrl);
+  if (eligible.length === 0) return null;
+
+  return [...eligible].sort((a, b) => {
+    if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
+    const savingA = a.savingsPct ?? 0;
+    const savingB = b.savingsPct ?? 0;
+    if (savingA !== savingB) return savingB - savingA;
+    return 0;
+  })[0];
+}
