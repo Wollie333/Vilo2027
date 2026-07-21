@@ -21,15 +21,26 @@ the list below is untestable until they are done.
 
 | # | What | Why it blocks |
 |---|---|---|
-| 0.1 | Set `RESEND_API_KEY` + `EMAIL_FROM_ADDRESS` (verified domain in Resend) | **No email is being sent at all.** Every test involving a link in an inbox fails. Partner self-activation is impossible. |
-| 0.2 | `openssl rand -base64 32` → set `PAYMENT_CIPHER_KEY` and `BANKING_CIPHER_KEY` in Vercel, then run `node scripts/encrypt-secrets-backfill.mjs --apply` | 6 real secrets — including a host's live gateway key and 3 bank account numbers — are stored in plain text. Setting the keys alone does NOT fix existing rows. |
-| 0.3 | Decide on error monitoring | Nothing reports runtime errors in production. You will not know a launch-day failure happened. |
-| 0.4 | Replace the `founding-race-rules` legal doc with the attorney copy | It currently contains a test sentence, and it is **snapshotted and hashed into every partner's signature**. |
-| 0.5 | Decide whether the Founding Race stays `status='active'` with both affiliates enrolled | It is live and publicly joinable the moment you deploy. |
-| 0.6 | Remove the seeded demo properties from the live directory | Real guests should not see test listings. |
+| 0.1 | `openssl rand -base64 32` → set `PAYMENT_CIPHER_KEY` and `BANKING_CIPHER_KEY` in Vercel, then run `node scripts/encrypt-secrets-backfill.mjs --apply` | 6 real secrets — including a host's live gateway key and 3 bank account numbers — are stored in plain text. Setting the keys alone does NOT fix existing rows. |
+| 0.2 | Decide on error monitoring | Nothing reports runtime errors in production. You will not know a launch-day failure happened. |
+| 0.3 | Replace the `founding-race-rules` legal doc with the attorney copy | It currently contains a test sentence, and it is **snapshotted and hashed into every partner's signature**. |
+| 0.4 | Decide whether the Founding Race stays `status='active'` with both affiliates enrolled | It is live and publicly joinable the moment you deploy. |
+| 0.5 | Remove the seeded demo properties from the live directory | Real guests should not see test listings. |
 
-**Verify 0.1 worked:** Admin → Emails. The red "Email is not reaching customers"
-banner must be gone and show your real sender.
+### Email — configured and sending ✅
+
+Verified on production: Admin → Emails shows **"Email is configured — sending
+as …"** and the queue reported 2 sent in the last 24 hours. Nothing to do.
+
+Two notes:
+
+- The queue also showed **1 failure in the last 24h**. Worth opening Admin →
+  Emails and checking what it was before launch — one failure is noise, a
+  pattern is not.
+- **Local development has no email.** `apps/web/.env.local` has no
+  `RESEND_API_KEY`, so nothing sends when running locally. That is a
+  dev-environment gap, not a production one — but it means any email step in
+  this list must be tested against the deployed site, not localhost.
 
 ---
 
@@ -86,15 +97,16 @@ Paystack test card: `4084 0840 8408 4081`, CVV `408`, OTP `123456`.
 
 ## 3. Affiliate / Founding Race
 
-> ⚠️ Until 0.1 is done, a partner **cannot self-activate** — email confirmation
-> is one of the required gates. Admin activation is the only working path.
+> Test these on the DEPLOYED site — self-activation needs a real confirmation
+> email, and localhost sends none.
 
 - [ ] **3.1 Partner signs up via a campaign URL** —
       `/signup/partner/founding-race`. Account is created and lands on the
       "finishing setup" checklist, not a dead end.
 - [ ] **3.2 Photo upload** during signup shows on the partner page afterwards.
 - [ ] **3.3 Self-activation.** Confirm the email → partner becomes Active and is
-      enrolled in the race automatically. *(Blocked by 0.1.)*
+      enrolled in the race automatically. **This is the main path a real partner
+      takes — test it before anything else in this section.**
 - [ ] **3.4 Admin activation.** Admin → Affiliates → the pending partner shows
       "awaiting setup" with an **Activate** button. Click it. They become active.
 - [ ] **3.5 Existing email cannot be hijacked.** Sign up as a partner using an
