@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Users } from "lucide-react";
+import { ExternalLink, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -154,16 +154,21 @@ export function CampaignsList({ campaigns }: { campaigns: Row[] }) {
         </div>
       ) : (
         <div className="space-y-3">
+          {/* The card is a plain container, not a wrapping link: the public-link
+              anchor has to be independently clickable (and open a new tab), and
+              an <a> inside an <a> is invalid HTML. */}
           {campaigns.map((c) => (
-            <Link
+            <div
               key={c.id}
-              href={`/admin/affiliates/campaigns/${c.id}`}
-              className="block rounded-card border border-brand-line bg-white p-5 shadow-card transition hover:border-brand-primary/40"
+              className="rounded-card border border-brand-line bg-white p-5 shadow-card transition hover:border-brand-primary/40"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <span className="font-display text-[16px] font-bold text-brand-ink">
+                <Link
+                  href={`/admin/affiliates/campaigns/${c.id}`}
+                  className="font-display text-[16px] font-bold text-brand-ink hover:text-brand-primary hover:underline"
+                >
                   {c.name}
-                </span>
+                </Link>
                 <span
                   className={`inline-flex items-center rounded-pill border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
                     STATUS_STYLES[c.status] ?? STATUS_STYLES.draft
@@ -171,9 +176,20 @@ export function CampaignsList({ campaigns }: { campaigns: Row[] }) {
                 >
                   {c.status}
                 </span>
-                <span className="font-mono text-[12px] text-brand-mute">
+                <a
+                  href={`/competitions/${c.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={
+                    c.status === "active"
+                      ? "Open the public leaderboard in a new tab"
+                      : "Not live yet — visitors get a 404 until you launch"
+                  }
+                  className="inline-flex items-center gap-1 font-mono text-[12px] text-brand-mute hover:text-brand-primary hover:underline"
+                >
                   /competitions/{c.slug}
-                </span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
                 <span className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] text-brand-mute">
                   <Users className="h-3.5 w-3.5" />
                   {c.enrolled} enrolled
@@ -185,8 +201,14 @@ export function CampaignsList({ campaigns }: { campaigns: Row[] }) {
                 <span>
                   {fmtDate(c.starts_at)} → {fmtDate(c.ends_at)}
                 </span>
+                <Link
+                  href={`/admin/affiliates/campaigns/${c.id}`}
+                  className="ml-auto font-medium text-brand-primary hover:underline"
+                >
+                  Edit campaign →
+                </Link>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

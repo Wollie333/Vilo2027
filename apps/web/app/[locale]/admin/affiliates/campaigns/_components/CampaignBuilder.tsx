@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertTriangle, Pause, Play, Plus, Save, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Pause,
+  Play,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -282,8 +290,25 @@ export function CampaignBuilder({
               onChange={(e) => setSlug(e.target.value)}
               className={`${FIELD} font-mono text-[13px]`}
             />
-            <span className="mt-1 block text-[11px] text-brand-mute">
-              /competitions/{slug || "…"}
+            {/* Open the real public page in a new tab — the founder should be
+                able to see exactly what a visitor sees, not a description of it. */}
+            <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
+              <a
+                href={`/competitions/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+              >
+                /competitions/{slug || "…"}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              {isLive ? (
+                <span>· live now</span>
+              ) : (
+                <span className="text-status-pending">
+                  · visitors get a 404 until you launch
+                </span>
+              )}
             </span>
           </label>
           <label className="block">

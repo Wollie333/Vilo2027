@@ -279,17 +279,20 @@ export default async function AdminCampaignPage({
             <Trophy className="h-6 w-6 text-brand-primary" />
             {campaign.name}
           </h1>
-          {campaign.status === "active" ? (
-            <a
-              href={`/competitions/${campaign.slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-primary hover:underline"
-            >
-              View public leaderboard
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : null}
+          {/* Always offered, so the page can be checked exactly as a visitor
+              sees it. While the campaign is a draft that IS a 404 — the label
+              says so rather than hiding the link. */}
+          <a
+            href={`/competitions/${campaign.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-primary hover:underline"
+          >
+            {campaign.status === "active"
+              ? "View public leaderboard"
+              : "Preview public page (404 until launched)"}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
       </header>
 
