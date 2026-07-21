@@ -12273,6 +12273,7 @@ export type Database = {
         Args: { p_affiliate_id: string; p_method: string }
         Returns: Json
       }
+      current_user_has_password: { Args: never; Returns: boolean }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {

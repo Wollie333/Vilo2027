@@ -24,7 +24,11 @@ export function PasswordCard() {
   const [pending, start] = useTransition();
   const form = useForm<PasswordInput>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { new_password: "", confirm_password: "" },
+    defaultValues: {
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    },
   });
 
   function onSubmit(values: PasswordInput) {
@@ -32,7 +36,11 @@ export function PasswordCard() {
       const result = await changePasswordAction(values);
       if (result.ok) {
         toast.success("Password changed");
-        form.reset({ new_password: "", confirm_password: "" });
+        form.reset({
+          current_password: "",
+          new_password: "",
+          confirm_password: "",
+        });
       } else {
         toast.error(result.error);
       }
@@ -61,6 +69,27 @@ export function PasswordCard() {
             className="space-y-4"
             noValidate
           >
+            <FormField
+              control={form.control}
+              name="current_password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      disabled={pending}
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="new_password"

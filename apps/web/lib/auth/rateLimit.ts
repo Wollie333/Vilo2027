@@ -19,14 +19,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const WINDOW_MINUTES = 60;
 const MAX_ATTEMPTS_PER_WINDOW = 8;
 
-function hashIp(ip: string): string {
+function hashIp(ip: string, purpose = "signup"): string {
   // Prefer a dedicated salt; fall back to the service-role key (already secret
   // and server-only) so this works without extra env config.
+  //
+  // `purpose` is folded into the hash so different endpoints get INDEPENDENT
+  // buckets out of the same table without a schema change — verifying a password
+  // must not eat someone's signup allowance, and vice versa.
   const salt =
     process.env.RATE_LIMIT_SALT ??
     process.env.SUPABASE_SERVICE_ROLE_KEY ??
     "wielo-signup";
-  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+  return createHash("sha256").update(`${salt}:${purpose}:${ip}`).digest("hex");
 }
 
 export type RateLimitResult =
@@ -41,12 +45,29 @@ export type RateLimitResult =
 export async function checkSignupRateLimit(
   ip: string | null | undefined,
 ): Promise<RateLimitResult> {
+  return checkRateLimit(ip, "signup", MAX_ATTEMPTS_PER_WINDOW, WINDOW_MINUTES);
+}
+
+/**
+ * Rate limit any IP-keyed action against its own bucket.
+ *
+ * Used for re-authentication: verifying a current password is, by construction,
+ * an oracle that says "right" or "wrong", so it has to be throttled or it is a
+ * brute-force endpoint wearing a different hat. Tighter and shorter than signup
+ * — a real person mistypes their own password a handful of times, not fifty.
+ */
+export async function checkRateLimit(
+  ip: string | null | undefined,
+  purpose: string,
+  maxAttempts: number,
+  windowMinutes: number,
+): Promise<RateLimitResult> {
   if (!ip) return { ok: true }; // unidentifiable → fail open
 
   try {
     const admin = createAdminClient();
-    const ipHash = hashIp(ip);
-    const since = new Date(Date.now() - WINDOW_MINUTES * 60_000).toISOString();
+    const ipHash = hashIp(ip, purpose);
+    const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
 
     const { count, error } = await admin
       .from("signup_rate_limits")
@@ -56,8 +77,8 @@ export async function checkSignupRateLimit(
 
     if (error) return { ok: true }; // DB hiccup → don't block real users
 
-    if ((count ?? 0) >= MAX_ATTEMPTS_PER_WINDOW) {
-      return { ok: false, retryAfterMinutes: WINDOW_MINUTES };
+    if ((count ?? 0) >= maxAttempts) {
+      return { ok: false, retryAfterMinutes: windowMinutes };
     }
 
     // Record this attempt. Best-effort — a failed insert just means the next

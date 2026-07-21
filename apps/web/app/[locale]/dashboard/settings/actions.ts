@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
+import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
+import { requireReauth } from "@/lib/auth/reauth";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -182,9 +187,20 @@ export async function uploadAvatarAction(
   return { ok: true, url: pub.publicUrl };
 }
 
-// Changes the signed-in user's password via the admin client. Pre-MVP we
-// don't require the current password — the user is already authenticated
-// in this session. When real users land, gate this behind a re-auth step.
+/**
+ * Change the signed-in user's password — behind re-authentication.
+ *
+ * Previously this took a session as sufficient proof and pushed the new password
+ * through the SERVICE-ROLE client, which sidesteps GoTrue's own protections
+ * entirely. Anyone with a borrowed session could therefore set a new password
+ * and lock the real owner out permanently, with nothing emailed to the owner and
+ * no current password asked for.
+ *
+ * Now: prove ownership first, then write through the USER's own session rather
+ * than as the service role. A passwordless account has no current password to
+ * give, so it is sent an emailed set-password link instead — control of the
+ * inbox is the equivalent proof, and it is exactly what a session thief lacks.
+ */
 export async function changePasswordAction(
   input: PasswordInput,
 ): Promise<SettingsActionResult> {
@@ -203,16 +219,38 @@ export async function changePasswordAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in to change your password." };
 
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(user.id, {
+  // Throttle before checking: a "right/wrong" answer about a password is a
+  // brute-force oracle unless it is rate limited.
+  const hdrs = headers();
+  const limit = await checkRateLimit(
+    clientIpFromHeaders(hdrs),
+    "reauth",
+    10,
+    15,
+  );
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many attempts. Please wait a few minutes and try again.",
+    };
+  }
+
+  const reauth = await requireReauth(user.email, parsed.data.current_password);
+  if (!reauth.ok) {
+    if (reauth.needsSetPassword) {
+      await sendPasswordResetEmail({
+        email: user.email ?? "",
+        origin: hdrs.get("origin") ?? "",
+      });
+    }
+    return { ok: false, error: reauth.error };
+  }
+
+  const { error } = await supabase.auth.updateUser({
     password: parsed.data.new_password,
   });
   if (error) {
-    console.error("[settings:changePassword] update failed", error);
-    return {
-      ok: false,
-      error: `Could not change your password: ${error.message}`,
-    };
+    return { ok: false, error: "Could not change your password. Try again." };
   }
   return { ok: true };
 }

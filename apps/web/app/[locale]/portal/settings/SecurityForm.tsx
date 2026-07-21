@@ -41,15 +41,20 @@ export function SecurityForm({ email }: { email: string }) {
 
 function EmailSection({ currentEmail }: { currentEmail: string }) {
   const [email, setEmail] = useState(currentEmail);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [pending, start] = useTransition();
 
   function save() {
     start(async () => {
-      const r = await updateEmailAction({ email });
+      const r = await updateEmailAction({
+        email,
+        current_password: currentPassword,
+      });
       if (r.ok) {
         toast.success(
           "Check your new inbox — we sent a link to confirm the change.",
         );
+        setCurrentPassword("");
       } else toast.error(r.error);
     });
   }
@@ -72,6 +77,23 @@ function EmailSection({ currentEmail }: { currentEmail: string }) {
             className={inputCls}
           />
         </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+            Current password
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-brand-mute">
+            Confirms it&apos;s really you. Sign in by email link instead?
+            We&apos;ll email you a link to set a password.
+          </p>
+        </div>
         <div className="flex justify-end">
           <button
             type="button"
@@ -90,6 +112,7 @@ function EmailSection({ currentEmail }: { currentEmail: string }) {
 function PasswordSection() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [pending, start] = useTransition();
 
   function save() {
@@ -98,11 +121,15 @@ function PasswordSection() {
       return;
     }
     start(async () => {
-      const r = await updatePasswordAction({ password });
+      const r = await updatePasswordAction({
+        password,
+        current_password: currentPassword,
+      });
       if (r.ok) {
         toast.success("Password updated.");
         setPassword("");
         setConfirm("");
+        setCurrentPassword("");
       } else toast.error(r.error);
     });
   }
@@ -113,6 +140,23 @@ function PasswordSection() {
       description="Choose a new password — at least 8 characters."
     >
       <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+            Current password
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-brand-mute">
+            Confirms it&apos;s really you. Sign in by email link instead?
+            We&apos;ll email you a link to set a password.
+          </p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-brand-ink">

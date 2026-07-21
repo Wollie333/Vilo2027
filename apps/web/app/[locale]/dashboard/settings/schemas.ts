@@ -61,6 +61,11 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 
 export const passwordSchema = z
   .object({
+    // Re-authentication: holding a session is not proof of ownership, so the
+    // current password is required before the account's keys can be changed.
+    // Empty is allowed through the schema only so a passwordless (magic-link)
+    // account gets the "we'll email you a link" answer instead of a form error.
+    current_password: z.string().max(72).optional(),
     new_password: z
       .string()
       .min(8, "Password must be at least 8 characters.")

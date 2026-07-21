@@ -1,8 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
+import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
+import { requireReauth } from "@/lib/auth/reauth";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -24,12 +29,17 @@ const prefsSchema = z.object({
   marketing_opt_in: z.boolean().default(false),
 });
 
+// Both carry `current_password` for re-authentication. Optional in the schema
+// only so a passwordless account reaches the "we'll email you a link" answer
+// rather than a validation error about a password it has never had.
 const emailSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
+  current_password: z.string().max(72).optional(),
 });
 
 const passwordSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters.").max(72),
+  current_password: z.string().max(72).optional(),
 });
 
 export async function updateProfileAction(
@@ -147,6 +157,33 @@ export async function updateEmailAction(
     return { ok: false, error: "That's already your email address." };
   }
 
+  // Moving the sign-in address moves the account. Same re-auth gate as the
+  // password change — otherwise a borrowed session can redirect every future
+  // recovery email to an address the owner doesn't control.
+  const hdrs = headers();
+  const limit = await checkRateLimit(
+    clientIpFromHeaders(hdrs),
+    "reauth",
+    10,
+    15,
+  );
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many attempts. Please wait a few minutes and try again.",
+    };
+  }
+  const reauth = await requireReauth(user.email, parsed.data.current_password);
+  if (!reauth.ok) {
+    if (reauth.needsSetPassword) {
+      await sendPasswordResetEmail({
+        email: user.email ?? "",
+        origin: hdrs.get("origin") ?? "",
+      });
+    }
+    return { ok: false, error: reauth.error };
+  }
+
   const { error } = await supabase.auth.updateUser({
     email: parsed.data.email,
   });
@@ -159,7 +196,11 @@ export async function updateEmailAction(
   return { ok: true };
 }
 
-// Set a new account password for the signed-in guest.
+/**
+ * Set a new account password for the signed-in guest — behind re-authentication.
+ * See lib/auth/reauth.ts: a live session proves presence, not ownership, and a
+ * password change is the one edit that can take an account away from its owner.
+ */
 export async function updatePasswordAction(
   input: z.infer<typeof passwordSchema>,
 ): Promise<ActionResult> {
@@ -175,6 +216,31 @@ export async function updatePasswordAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Your session expired." };
+
+  const hdrs = headers();
+  const limit = await checkRateLimit(
+    clientIpFromHeaders(hdrs),
+    "reauth",
+    10,
+    15,
+  );
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many attempts. Please wait a few minutes and try again.",
+    };
+  }
+
+  const reauth = await requireReauth(user.email, parsed.data.current_password);
+  if (!reauth.ok) {
+    if (reauth.needsSetPassword) {
+      await sendPasswordResetEmail({
+        email: user.email ?? "",
+        origin: hdrs.get("origin") ?? "",
+      });
+    }
+    return { ok: false, error: reauth.error };
+  }
 
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,
