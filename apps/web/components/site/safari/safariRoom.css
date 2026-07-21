@@ -321,6 +321,193 @@
 }
 
 /* ======================================================================
+ * BOOKING CARD — shared <OceansBookCard> (.bkcard/.field/.bkrate/.btn…),
+ * Safari-toned. These classes are styled PER THEME scoped to the room
+ * wrapper (`.ovroom .bkcard`, `.rroom .bkcard`, …); safariRoom never got
+ * its copy, so under `.sfroom` the card rendered as raw unstyled HTML.
+ * This is the warm-lodge skin: cream surface, tan hairlines, sharp 3px
+ * radius, Fraunces figures, a terracotta "Reserve" CTA. (The dates picker
+ * is <ThemedDateRange>, already token-driven — no styling needed here.)
+ * ==================================================================== */
+.sfroom .bkcard {
+  background: var(--site-surface, #fbf6ec);
+  border: 1px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  padding: clamp(20px, 2vw, 26px);
+  box-shadow: 0 24px 48px -34px rgba(52, 34, 12, 0.4);
+}
+.sfroom .bktrust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-ink, #221a11);
+  margin-bottom: 16px;
+}
+.sfroom .bkrate {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--site-line, #dbcfb8);
+  margin-bottom: 18px;
+}
+.sfroom .bkrate .amt {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 560;
+  font-size: 2.3rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--site-ink, #221a11);
+}
+.sfroom .bkrate .muted {
+  font-size: 14px;
+}
+.sfroom .muted {
+  color: var(--site-mute, #6e6048);
+}
+.sfroom .center {
+  text-align: center;
+}
+
+/* form fields (label + native guests select; dates = ThemedDateRange) */
+.sfroom .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.sfroom .field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfroom .field input,
+.sfroom .field select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--site-ink, #221a11);
+  background: var(--site-bg, #f4ede0);
+  border: 1.5px solid var(--site-line, #dbcfb8);
+  border-radius: var(--sf-radius);
+  padding: 13px 14px;
+  width: 100%;
+  min-height: 50px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.sfroom .field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6048' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+.sfroom .field input:focus,
+.sfroom .field select:focus {
+  outline: none;
+  border-color: var(--site-accent, #b26c2e);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--site-accent, #b26c2e) 18%, transparent);
+}
+
+/* subtotal / total lines */
+.sfroom .sline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  font-size: 14.5px;
+  color: var(--site-mute, #6e6048);
+}
+.sfroom .sline b {
+  color: var(--site-ink, #221a11);
+  font-weight: 700;
+}
+.sfroom .stotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--site-line, #dbcfb8);
+}
+.sfroom .stotal .l {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--site-mute, #6e6048);
+}
+.sfroom .stotal .amt {
+  font-family: var(--site-font-heading, "Fraunces", Georgia, serif);
+  font-weight: 560;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--site-ink, #221a11);
+}
+.sfroom .nofee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-accent-deep, #8f5320);
+}
+.sfroom .nofee svg {
+  flex-shrink: 0;
+}
+
+/* Reserve CTA — terracotta solid, sharp; ≥46px tap target */
+.sfroom .bkcard .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 13px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--sf-radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.25s,
+    color 0.25s,
+    border-color 0.25s;
+}
+.sfroom .bkcard .btn-coral {
+  background: var(--site-accent, #b26c2e);
+  color: #fff;
+}
+.sfroom .bkcard .btn-coral:hover {
+  background: var(--site-accent-deep, #8f5320);
+}
+.sfroom .bkcard .btn-lg {
+  min-height: 52px;
+  font-size: 15px;
+}
+.sfroom .bkcard .btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ======================================================================
  * REVIEWS
  * ==================================================================== */
 .sfroom .sf-sechead {
