@@ -207,6 +207,8 @@ export const campaignInputSchema = z
     eligible_partners: z.enum(ELIGIBLE_PARTNERS),
     eligible_referrals: z.enum(ELIGIBLE_REFERRALS),
     rules_doc_slug: z.string().trim().max(80).nullable(),
+    /** Places available. null = unlimited. Enforced by trg_campaign_capacity. */
+    max_participants: z.number().int().positive().max(100_000).nullable(),
     commission_structure: commissionStructureSchema,
     competition: competitionSchema,
   })

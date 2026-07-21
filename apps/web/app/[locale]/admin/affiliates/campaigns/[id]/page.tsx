@@ -31,7 +31,7 @@ export default async function AdminCampaignPage({
   const { data: campaign } = await service
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug",
+      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -307,6 +307,8 @@ export default async function AdminCampaignPage({
           eligible_partners: campaign.eligible_partners as never,
           eligible_referrals: campaign.eligible_referrals as never,
           rules_doc_slug: (campaign.rules_doc_slug as string | null) ?? null,
+          max_participants:
+            (campaign.max_participants as number | null) ?? null,
           commission_structure: (campaign.commission_structure ?? {
             model: "inherit",
           }) as never,
@@ -316,6 +318,9 @@ export default async function AdminCampaignPage({
           slug: d.slug as string,
           title: d.title as string,
         }))}
+        enrolledActive={
+          enrolledRows.filter((e) => e.status === "active").length
+        }
       />
 
       <CampaignRulesEditor

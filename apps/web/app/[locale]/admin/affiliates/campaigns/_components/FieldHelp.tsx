@@ -99,6 +99,17 @@ export const CAMPAIGN_HELP = {
       "Went live during the campaign: only hosts whose listing actually went live in the window — the strictest and the fairest for a race.",
     ],
   },
+  maxParticipants: {
+    title: "Places available",
+    body: [
+      "How many partners may take part. Once the places are gone, the Join button is closed and anyone else is told the competition is full.",
+      "Leave it blank for unlimited. The limit counts only partners currently in the competition — if someone withdraws or you remove them, their place frees up for the next joiner.",
+      "The cap is enforced by the database, not just this screen, so two partners joining at the same instant can never both take the last place.",
+      "Raising the cap later re-opens joining. Lowering it below the number already in does NOT remove anyone — they keep their place; it just stops new joins.",
+    ],
+    example:
+      "The Founding Programme is capped at 25 partners — set 25 here and the 26th is turned away automatically.",
+  },
   rulesDoc: {
     title: "Rules document",
     body: [

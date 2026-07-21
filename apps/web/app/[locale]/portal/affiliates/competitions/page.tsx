@@ -31,6 +31,19 @@ export default async function AffiliateCompetitionsPage() {
   const me = await getAffiliateForUser(admin, user.id);
   if (!me) return null; // layout shows the terms gate
 
+  async function placesLeftFor(
+    campaignId: string,
+    cap: number | null,
+  ): Promise<number | null> {
+    if (cap == null) return null;
+    const { count } = await admin
+      .from("affiliate_campaign_enrollments")
+      .select("affiliate_id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId)
+      .eq("status", "active");
+    return Math.max(0, cap - (count ?? 0));
+  }
+
   // Active campaigns (any partner may join 'all'/'tagged'); projection price is
   // the live subscription plan price (config-driven — admin edits the product).
   const [{ data: campaigns }, { data: enrollments }, { data: planProduct }] =
@@ -38,7 +51,7 @@ export default async function AffiliateCompetitionsPage() {
       admin
         .from("affiliate_campaigns")
         .select(
-          "id, slug, name, status, ends_at, eligible_partners, commission_structure, competition, rules_doc_slug",
+          "id, slug, name, status, ends_at, eligible_partners, commission_structure, competition, rules_doc_slug, max_participants",
         )
         .eq("status", "active")
         .order("created_at", { ascending: true }),
@@ -145,6 +158,13 @@ export default async function AffiliateCompetitionsPage() {
           ? ((await getPublishedLegalDocument(c.rules_doc_slug))?.version ??
             null)
           : null,
+        // Places left on a capped competition (null = unlimited). Display only —
+        // the cap is enforced by the DB when the join actually happens.
+        placesLeft: await placesLeftFor(
+          c.id as string,
+          c.max_participants as number | null,
+        ),
+        campaignSlug: c.slug as string,
       };
     }),
   );

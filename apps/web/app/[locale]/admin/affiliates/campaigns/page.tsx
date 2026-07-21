@@ -25,7 +25,7 @@ export default async function AdminCampaignsPage() {
   const { data: campaigns } = await service
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, commission_structure, competition",
+      "id, slug, name, status, starts_at, ends_at, commission_structure, competition, max_participants",
     )
     .order("created_at", { ascending: false });
 
@@ -59,6 +59,7 @@ export default async function AdminCampaignsPage() {
     starts_at: c.starts_at as string | null,
     ends_at: c.ends_at as string | null,
     enrolled: enrolledByCampaign.get(c.id) ?? 0,
+    capacity: (c.max_participants as number | null) ?? null,
     ladder: describeLadder(
       (c.commission_structure ?? null) as CommissionStructure | null,
     ),

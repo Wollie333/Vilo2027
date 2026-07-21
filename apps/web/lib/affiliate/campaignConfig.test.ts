@@ -36,6 +36,8 @@ const BASE_CAMPAIGN = {
   eligible_partners: "all" as const,
   eligible_referrals: "activated_in_window" as const,
   rules_doc_slug: "founding-race-rules",
+  // null = unlimited places; the Founding Programme sets 25.
+  max_participants: null,
   commission_structure: FOUNDING_LADDER,
   competition: { leaderboard_visibility: "public" as const, prizes: [] },
 };
@@ -123,6 +125,21 @@ describe("commissionStructureSchema", () => {
 describe("campaignInputSchema", () => {
   it("accepts the seeded campaign", () => {
     expect(campaignInputSchema.safeParse(BASE_CAMPAIGN).success).toBe(true);
+  });
+
+  it("accepts a capped campaign and refuses a nonsense cap", () => {
+    expect(
+      campaignInputSchema.safeParse({ ...BASE_CAMPAIGN, max_participants: 25 })
+        .success,
+    ).toBe(true);
+    for (const bad of [0, -5, 2.5]) {
+      expect(
+        campaignInputSchema.safeParse({
+          ...BASE_CAMPAIGN,
+          max_participants: bad,
+        }).success,
+      ).toBe(false);
+    }
   });
 
   it("REFUSES an end date on or before the start", () => {

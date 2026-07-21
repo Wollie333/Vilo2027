@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, Hourglass, RotateCcw, Wallet } from "lucide-react";
 
+import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import { formatMoney } from "@/lib/format";
 import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
@@ -219,21 +220,37 @@ export default async function RefundsPage({
         />
       </section>
 
-      {/* Tabs */}
-      <section className="flex flex-wrap items-center gap-2">
-        <TabLink tab="pending" current={tab} count={pendingCount ?? 0}>
-          Pending
-        </TabLink>
-        <TabLink tab="approved" current={tab} count={approvedCount ?? 0}>
-          Approved
-        </TabLink>
-        <TabLink tab="declined" current={tab} count={declinedCount ?? 0}>
-          Declined
-        </TabLink>
-        <TabLink tab="all" current={tab} count={allCount ?? 0}>
-          All
-        </TabLink>
-      </section>
+      {/* Tabs — the canonical underline bar (RecordTabs), the same component the
+          user record and booking record use, instead of a bespoke pill set. */}
+      <RecordTabs
+        active={tab}
+        tabs={[
+          {
+            key: "pending",
+            label: "Pending",
+            count: pendingCount ?? 0,
+            href: "/dashboard/refunds",
+          },
+          {
+            key: "approved",
+            label: "Approved",
+            count: approvedCount ?? 0,
+            href: "/dashboard/refunds?tab=approved",
+          },
+          {
+            key: "declined",
+            label: "Declined",
+            count: declinedCount ?? 0,
+            href: "/dashboard/refunds?tab=declined",
+          },
+          {
+            key: "all",
+            label: "All",
+            count: allCount ?? 0,
+            href: "/dashboard/refunds?tab=all",
+          },
+        ]}
+      />
 
       {/* Feed */}
       <section className="space-y-3">
@@ -400,43 +417,6 @@ export default async function RefundsPage({
         )}
       </section>
     </div>
-  );
-}
-
-function TabLink({
-  tab,
-  current,
-  count,
-  children,
-}: {
-  tab: Tab;
-  current: Tab;
-  count: number;
-  children: React.ReactNode;
-}) {
-  const active = tab === current;
-  return (
-    <Link
-      href={
-        tab === "pending"
-          ? "/dashboard/refunds"
-          : `/dashboard/refunds?tab=${tab}`
-      }
-      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? "bg-brand-primary text-white shadow-sm"
-          : "border border-brand-line bg-white text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-      }`}
-    >
-      {children}
-      <span
-        className={`num rounded-pill px-1.5 py-0.5 text-[10px] font-semibold ${
-          active ? "bg-white/25 text-white" : "bg-brand-light text-brand-mute"
-        }`}
-      >
-        {count}
-      </span>
-    </Link>
   );
 }
 

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Link, usePathname } from "@/i18n/navigation";
+
 import { enrollInCampaignAction } from "../actions";
 
 // One campaign panel on the Competitions tab (WS-1.4). Shows the partner's
@@ -23,6 +25,8 @@ export function CampaignCard({
   calculator,
   rulesHref,
   rulesVersion,
+  placesLeft,
+  campaignSlug,
 }: {
   campaignId: string;
   name: string;
@@ -44,8 +48,17 @@ export function CampaignCard({
   /** Published rules version, when this campaign has rules. Accepting them is a
    *  condition of entry — the server refuses to enrol without it. */
   rulesVersion?: number | null;
+  /** Places left when the competition is capped; null = unlimited. */
+  placesLeft?: number | null;
+  campaignSlug: string;
 }) {
   const router = useRouter();
+  // This card renders inside BOTH shells (guest portal + host dashboard), so it
+  // resolves its own base path rather than making every caller thread one.
+  const pathname = usePathname();
+  const basePath = pathname.startsWith("/dashboard")
+    ? "/dashboard/affiliates"
+    : "/portal/affiliates";
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
   const [acceptedRules, setAcceptedRules] = useState(false);
@@ -139,6 +152,19 @@ export function CampaignCard({
               Join the competition to get your campaign link and appear on the
               leaderboard.
             </p>
+            {typeof placesLeft === "number" ? (
+              <p
+                className={`mt-1 text-[12.5px] font-medium ${
+                  placesLeft > 0
+                    ? "text-brand-secondary"
+                    : "text-status-pending"
+                }`}
+              >
+                {placesLeft > 0
+                  ? `${placesLeft} ${placesLeft === 1 ? "place" : "places"} left`
+                  : "This competition is full — all places have been taken."}
+              </p>
+            ) : null}
             {rulesRequired ? (
               <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-[11px] border border-brand-line bg-brand-light/40 p-3">
                 <input
@@ -164,7 +190,9 @@ export function CampaignCard({
             ) : null}
             <button
               onClick={join}
-              disabled={pending || (rulesRequired && !acceptedRules)}
+              disabled={
+                pending || (rulesRequired && !acceptedRules) || placesLeft === 0
+              }
               className="mt-2 inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
             >
               {pending ? "Joining…" : "Join competition"}
@@ -217,14 +245,27 @@ export function CampaignCard({
           </p>
         </div>
 
-        {rulesHref ? (
-          <a
-            href={rulesHref}
-            className="mt-4 inline-block text-[13px] font-medium text-brand-primary underline underline-offset-2"
-          >
-            Competition rules
-          </a>
-        ) : null}
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          {enrolled ? (
+            <Link
+              href={`${basePath}/race/${campaignSlug}`}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-primary hover:text-brand-secondary"
+            >
+              <Trophy className="h-4 w-4" />
+              Open the full leaderboard
+            </Link>
+          ) : null}
+          {rulesHref ? (
+            <a
+              href={rulesHref}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[13px] font-medium text-brand-primary underline underline-offset-2"
+            >
+              Competition rules
+            </a>
+          ) : null}
+        </div>
       </div>
     </div>
   );

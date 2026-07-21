@@ -513,6 +513,8 @@ export type Database = {
         Row: {
           accepted_at: string
           bio: string | null
+          community_members: number | null
+          community_name: string | null
           created_at: string
           currency: string
           default_payout_method: string | null
@@ -520,6 +522,7 @@ export type Database = {
           id: string
           payout_threshold: number | null
           photo_url: string | null
+          region: string | null
           slug: string
           status: string
           suspended_at: string | null
@@ -532,6 +535,8 @@ export type Database = {
         Insert: {
           accepted_at?: string
           bio?: string | null
+          community_members?: number | null
+          community_name?: string | null
           created_at?: string
           currency?: string
           default_payout_method?: string | null
@@ -539,6 +544,7 @@ export type Database = {
           id?: string
           payout_threshold?: number | null
           photo_url?: string | null
+          region?: string | null
           slug: string
           status?: string
           suspended_at?: string | null
@@ -551,6 +557,8 @@ export type Database = {
         Update: {
           accepted_at?: string
           bio?: string | null
+          community_members?: number | null
+          community_name?: string | null
           created_at?: string
           currency?: string
           default_payout_method?: string | null
@@ -558,6 +566,7 @@ export type Database = {
           id?: string
           payout_threshold?: number | null
           photo_url?: string | null
+          region?: string | null
           slug?: string
           status?: string
           suspended_at?: string | null
@@ -860,6 +869,7 @@ export type Database = {
           eligible_referrals: string
           ends_at: string | null
           id: string
+          max_participants: number | null
           name: string
           rules_doc_slug: string | null
           slug: string
@@ -876,6 +886,7 @@ export type Database = {
           eligible_referrals?: string
           ends_at?: string | null
           id?: string
+          max_participants?: number | null
           name: string
           rules_doc_slug?: string | null
           slug: string
@@ -892,6 +903,7 @@ export type Database = {
           eligible_referrals?: string
           ends_at?: string | null
           id?: string
+          max_participants?: number | null
           name?: string
           rules_doc_slug?: string | null
           slug?: string

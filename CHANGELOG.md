@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-07-21 (pt54) — Founding Race leaderboard (public + partner), competition capacity, refunds tabs.
+
+Founder supplied two approved designs (public leaderboard + partner dashboard). Both are now real pages
+driven by live data, plus a capacity control on competitions. All green (build, lint, 407 tests).
+
+- **Competition capacity** (`20260721180000`): `affiliate_campaigns.max_participants` (NULL = unlimited)
+  with **`trg_campaign_capacity` enforcing it in the DATABASE** — it locks the campaign row so two
+  partners clicking Join at the same instant cannot both take the last place. Proven by rolled-back
+  probe: first join allowed · second over cap blocked · repeat join by the same partner keeps their place ·
+  a withdrawal frees a place. Builder field with help copy, "n of N places · full" in the admin list,
+  "X places left" + disabled Join in the portal, and a friendly "just filled up" message when the trigger
+  fires on a race.
+- **Partner community profile** (`20260721200000`): `community_name`, `community_members`, `region` on
+  `affiliate_accounts` — the leaderboard design shows "Karoo & Kalahari Stays · 4 200 members · Karoo" and
+  there was nowhere for any of it to live. Optional; the board degrades to the partner's name alone.
+- **`lib/affiliate/leaderboard.ts`** — ONE loader behind both views so a standing can never differ between
+  them. Score = `campaign_active_listings`; "this month" is a real measured delta against the first
+  `affiliate_campaign_daily_scores` snapshot of the month (0 when there is nothing to compare to, never a
+  guess); rate/next-rung from `campaign_ladder_book` + the campaign's own ladder.
+- **Public page** `/competitions/[slug]` rebuilt to the design: dark hero with live stat pills, staged
+  2·1·3 podium with medals and gradient caps, full standings table, scoring explainer, prize panel with
+  permanent floors, momentum prizes, CTA, rules footer. Public names are first-name + last-initial only.
+- **Partner page** `/portal|dashboard/affiliates/race/[slug]`: rank/score/rate/book stat strip, distance-
+  to-next-rung progress, the same standings with a "You" highlight, and prize reminders.
+- **`/race`** short alias → whichever competition is currently live (marketing links never need reprinting).
+- **Naming fix:** the old affiliate "Leaderboard" tab ranks lifetime COMMISSION, which now collides with a
+  competition leaderboard — renamed **"Top earners"**.
+- **Refunds tabs**: the bespoke pill row on `/dashboard/refunds` now uses the canonical `RecordTabs`
+  underline bar, the same component the user record and booking record use.
+- ⚠️ **Preview data left in the live DB** — see the save point: Founding Race was set **active** with a
+  3-months-ago start, 25 places, and both real affiliates enrolled so the design could be verified with
+  real rendering. Revert before launch if that is not wanted.
+
+---
+
 ## 2026-07-21 (pt53) — MONEY: refunds no longer claim to have paid a guest who was never paid.
 
 Launch-blocker #1 from the audit. Approving a refund on the Paystack or PayPal rail marked it

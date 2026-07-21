@@ -65,10 +65,13 @@ export function CampaignBuilder({
   campaignId,
   initial,
   legalDocs,
+  enrolledActive,
 }: {
   campaignId: string;
   initial: CampaignInput;
   legalDocs: { slug: string; title: string }[];
+  /** Places already taken — shown against the cap so it can't be set blind. */
+  enrolledActive: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -85,6 +88,9 @@ export function CampaignBuilder({
     initial.eligible_referrals,
   );
   const [rulesDoc, setRulesDoc] = useState(initial.rules_doc_slug ?? "");
+  const [maxParticipants, setMaxParticipants] = useState<string>(
+    initial.max_participants != null ? String(initial.max_participants) : "",
+  );
 
   const cs = initial.commission_structure;
   const [model, setModel] = useState(cs.model);
@@ -134,6 +140,9 @@ export function CampaignBuilder({
       eligible_partners: eligiblePartners,
       eligible_referrals: eligibleReferrals,
       rules_doc_slug: rulesDoc || null,
+      max_participants: maxParticipants.trim()
+        ? Math.max(1, Math.round(Number(maxParticipants)))
+        : null,
       commission_structure: {
         model,
         scope,
@@ -381,6 +390,39 @@ export function CampaignBuilder({
               ))}
             </select>
           </label>
+          <label className="block">
+            <span className={LABEL}>
+              Places available
+              <FieldHelp help={CAMPAIGN_HELP.maxParticipants} />
+            </span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={maxParticipants}
+              placeholder="Unlimited"
+              onChange={(e) => setMaxParticipants(e.target.value)}
+              className={FIELD}
+            />
+            <span className="mt-1 block text-[11px] text-brand-mute">
+              {maxParticipants.trim() ? (
+                <>
+                  {enrolledActive} of {maxParticipants} taken
+                  {Number(maxParticipants) <= enrolledActive ? (
+                    <span className="text-status-pending">
+                      {" "}
+                      · full, no new partners can join
+                    </span>
+                  ) : (
+                    <> · {Number(maxParticipants) - enrolledActive} left</>
+                  )}
+                </>
+              ) : (
+                <>Leave blank for unlimited · {enrolledActive} enrolled</>
+              )}
+            </span>
+          </label>
+
           <label className="block sm:col-span-2">
             <span className={LABEL}>
               Rules document

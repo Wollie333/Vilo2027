@@ -27,7 +27,10 @@ const TAB_DEFS: {
   { suffix: "/marketing", label: "Marketing", icon: Megaphone },
   { suffix: "/payouts", label: "Payouts", icon: Wallet },
   { suffix: "/competitions", label: "Competitions", icon: Flag },
-  { suffix: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  // "Top earners" not "Leaderboard": this ranks lifetime COMMISSION, while a
+  // competition's leaderboard ranks live listings. Two different boards — the
+  // names have to say which is which.
+  { suffix: "/leaderboard", label: "Top earners", icon: Trophy },
 ];
 
 export function AffiliateNav({

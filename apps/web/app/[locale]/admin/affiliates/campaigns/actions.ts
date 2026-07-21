@@ -21,7 +21,7 @@ export type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 const CAMPAIGN_COLS =
-  "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug";
+  "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants";
 
 /** Create a DRAFT campaign. A campaign is never born live — the founder
  *  configures the ladder and prizes first, then launches it explicitly. */
@@ -144,12 +144,17 @@ export const updateCampaignAction = withAdminAudit<
         eligible_partners: c.eligible_partners,
         eligible_referrals: c.eligible_referrals,
         rules_doc_slug: c.rules_doc_slug || null,
+        max_participants: c.max_participants,
         commission_structure: c.commission_structure,
         competition: c.competition,
         updated_at: new Date().toISOString(),
       })
       .eq("id", args.campaignId);
-    if (error) return { result: { ok: false, error: error.message } };
+    if (error) {
+      // The capacity trigger has no say on a campaign UPDATE, but lowering the
+      // cap below the number already enrolled is a foot-gun worth naming.
+      return { result: { ok: false, error: error.message } };
+    }
 
     revalidatePath("/admin/affiliates/campaigns");
     revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);

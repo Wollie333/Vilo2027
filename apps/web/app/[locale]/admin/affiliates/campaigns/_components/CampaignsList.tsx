@@ -21,6 +21,7 @@ type Row = {
   starts_at: string | null;
   ends_at: string | null;
   enrolled: number;
+  capacity: number | null;
   ladder: string;
   competition: string;
 };
@@ -192,7 +193,18 @@ export function CampaignsList({ campaigns }: { campaigns: Row[] }) {
                 </a>
                 <span className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] text-brand-mute">
                   <Users className="h-3.5 w-3.5" />
-                  {c.enrolled} enrolled
+                  {c.capacity != null ? (
+                    <>
+                      {c.enrolled} of {c.capacity} places
+                      {c.enrolled >= c.capacity ? (
+                        <span className="font-semibold text-status-pending">
+                          · full
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>{c.enrolled} enrolled</>
+                  )}
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-brand-mute">

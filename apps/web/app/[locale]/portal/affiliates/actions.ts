@@ -429,7 +429,7 @@ export async function enrollInCampaignAction(
 
   const { data: campaign } = await admin
     .from("affiliate_campaigns")
-    .select("id, status, eligible_partners, rules_doc_slug")
+    .select("id, status, eligible_partners, rules_doc_slug, max_participants")
     .eq("id", campaignId)
     .maybeSingle();
   if (!campaign || campaign.status !== "active") {
@@ -437,6 +437,25 @@ export async function enrollInCampaignAction(
   }
   if (campaign.eligible_partners === "invite") {
     return { ok: false, error: "This competition is invite-only." };
+  }
+
+  // Friendly capacity check. The DATABASE is the real gate (trg_campaign_capacity
+  // locks the campaign row, so two simultaneous joins can't share the last
+  // place) — this exists so a full competition reads as "full" instead of a
+  // constraint error, and is deliberately not trusted on its own.
+  if (campaign.max_participants != null) {
+    const { count: taken } = await admin
+      .from("affiliate_campaign_enrollments")
+      .select("affiliate_id", { count: "exact", head: true })
+      .eq("campaign_id", campaign.id)
+      .eq("status", "active")
+      .neq("affiliate_id", acct.id);
+    if ((taken ?? 0) >= campaign.max_participants) {
+      return {
+        ok: false,
+        error: "This competition is full — all places have been taken.",
+      };
+    }
   }
 
   // Rules acceptance is a CONDITION OF ENTRY, enforced here and not only in the
@@ -492,7 +511,17 @@ export async function enrollInCampaignAction(
       { affiliate_id: acct.id, campaign_id: campaign.id, status: "active" },
       { onConflict: "affiliate_id,campaign_id", ignoreDuplicates: true },
     );
-  if (error) return { ok: false, error: "Could not join the competition." };
+  if (error) {
+    // The capacity trigger raises check_violation when the last place went to
+    // someone else between the check above and this insert.
+    if (/campaign_full/.test(error.message)) {
+      return {
+        ok: false,
+        error: "This competition just filled up — the last place has gone.",
+      };
+    }
+    return { ok: false, error: "Could not join the competition." };
+  }
 
   revalidatePath("/portal/affiliates/competitions");
   revalidatePath("/dashboard/affiliates/competitions");
