@@ -29,7 +29,15 @@ export async function buyProductAction(
     return { ok: false, error: "Enter a valid email." };
   }
   const origin = headers().get("origin") ?? "";
-  const r = await purchaseProductBySlug(slug, effectiveEmail, origin);
+  // Pass the VERIFIED session id so the free path can tell "this is my own
+  // account" from "someone typed my address" — see the gate in
+  // fulfilFreeProductBySlug.
+  const r = await purchaseProductBySlug(
+    slug,
+    effectiveEmail,
+    origin,
+    user?.id ?? null,
+  );
   return r.ok
     ? { ok: true, url: r.url, free: r.free }
     : { ok: false, error: r.error };

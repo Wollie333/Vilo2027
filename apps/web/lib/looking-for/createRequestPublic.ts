@@ -126,7 +126,7 @@ export async function createRequestPublic(
   if (!identity) {
     return { ok: false, error: "Could not start your account. Try again." };
   }
-  const { guestId, isLead } = identity;
+  const { guestId, isLead, created } = identity;
 
   // Record THIS consent event for an account that hasn't consented yet (fresh
   // lead, or an older one created before consent capture). Never overwrite an
@@ -188,14 +188,17 @@ export async function createRequestPublic(
   }
   const postId = result.id;
 
-  // Where the guest goes next. A magic link is minted ONLY for a passwordless
-  // lead (auto-sign-in is safe — no password to bypass). An existing/claimed
-  // account is sent to /login: we never sign someone in from a form anyone could
-  // submit with their email. Two links per email would invalidate the first, so
-  // we mint exactly one, reused by the redirect.
+  // Where the guest goes next. A magic link is minted ONLY when this request
+  // just created the account — it holds nothing but the post they wrote, so
+  // signing them straight in is safe and is the point of the post-first funnel.
+  //
+  // An account that ALREADY existed is sent to /login, even a passwordless lead:
+  // anyone can submit this form with someone else's address, and a lead owns
+  // real bookings, conversations and PII. Two links per email would invalidate
+  // the first, so we mint exactly one, reused by the redirect.
   const nextPath = `/portal/looking-for/${postId}`;
   let redirectTo = `/login?next=${encodeURIComponent(nextPath)}`;
-  if (isLead) {
+  if (created) {
     try {
       const { data: linkData } = await admin.auth.admin.generateLink({
         type: "magiclink",

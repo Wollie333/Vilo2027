@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-21 (pt52) — SECURITY: close the anonymous account-takeover via returned magic links.
+
+**Live, exploitable, now fixed.** Three public entry points returned a Supabase magic-link `hashed_token`
+in the HTTP response for an email the ANONYMOUS caller typed. Redeeming it establishes a full session, so
+anyone who knew an address could sign in as that person. The `beta` product (`price = 0`, active) made the
+worst variant reachable in practice — including against a super-admin.
+
+- **Root cause:** `findOrCreateLeadIdentity` returns an existing account for a known email, and callers
+  gated auto-sign-in on `isLead` (or, on the free-product path, on nothing at all). Leads are minted for
+  every enquirer and every booking party member, and they own bookings, conversations and PII.
+- **Fix:** the helper now also returns **`created`** — true only when THIS request minted the account —
+  and every session-issuing path gates on it:
+  - `lib/billing/product-checkout.ts` `fulfilFreeProductBySlug` — refuses outright for an existing
+    account unless the caller is the signed-in owner (`signedInUserId` threaded from the verified session
+    in `p/[slug]/actions.ts`). This also stops a stranger's free-plan activation **rewriting a paying
+    host's subscription**. A signed-in buyer gets `/dashboard`, never a token.
+  - `lib/looking-for/createRequestPublic.ts` — auto-sign-in only for a newly created account; an existing
+    one goes to `/login`.
+  - `lib/enquiry/create-enquiry.ts` — the claim token still goes out **by email** (only the mailbox owner
+    sees it), but reaches the browser only when the account was just created.
+- **Proven live, both directions.** Signed out, tampered the server-action payload to request the free
+  `beta` product against `wollie@manamarketing.co.za`: server returned
+  `{"ok":false,"error":"That email already has a Wielo account — please sign in first…"}` — no token, no
+  session, no grant. Then the Looking-For funnel with a fresh address auto-signed-in as designed
+  (`/auth/confirm?token_hash=…`), and the **same address on a second submission** returned `/login` with
+  no token. Full suite 406 passing, build + lint clean. Test posts deleted.
+
+---
+
 ## 2026-07-21 (pt51) — Campaign field help, constrained dropdowns, and a Payouts tab.
 
 Three founder asks. All green (build, lint, 25 affiliate tests).

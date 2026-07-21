@@ -214,7 +214,7 @@ export async function createEnquiry(
   if (!identity) {
     return { ok: false, error: "Could not start your request. Try again." };
   }
-  const { guestId, isLead } = identity;
+  const { guestId, isLead, created } = identity;
 
   // Upsert the host's contact row through the one canonical writer (find-or-
   // update by email, back-fill guest_id, never duplicate). Fill-only so a lead's
@@ -488,8 +488,15 @@ export async function createEnquiry(
     } catch {
       claimTokenHash = null;
     }
-    if (claimTokenHash) {
+    // SECURITY: the token goes in the RESPONSE only when this request just
+    // created the account. Anyone can submit this form with someone else's
+    // address, so handing the browser a session for an account that already
+    // existed — lead or not — is an account takeover. An existing lead still
+    // gets their claim link, but by EMAIL, where only the mailbox owner sees it.
+    if (claimTokenHash && created) {
       redirectTo = `/auth/confirm?token_hash=${claimTokenHash}&type=magiclink&next=${claimNext}`;
+    } else if (!created) {
+      redirectTo = `/login?next=${inboxNext}`;
     } else {
       // Couldn't mint a link — fall back to the thread (login will gate it).
       redirectTo = `/portal/inbox/${conversationId}`;

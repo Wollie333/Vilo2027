@@ -480,6 +480,8 @@ export async function purchaseProductBySlug(
   slug: string,
   email: string,
   origin: string,
+  /** The verified session user, when the buyer is signed in. Anonymous = null. */
+  signedInUserId: string | null = null,
 ): Promise<PurchaseResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -491,7 +493,12 @@ export async function purchaseProductBySlug(
     return { ok: false, error: "This product isn't available." };
   }
   if (Number(product.price) === 0) {
-    const r = await fulfilFreeProductBySlug(slug, email, origin);
+    const r = await fulfilFreeProductBySlug(
+      slug,
+      email,
+      origin,
+      signedInUserId,
+    );
     return r.ok ? { ok: true, url: r.loginUrl, free: true } : r;
   }
   const r = await createProductOrder(
@@ -516,6 +523,7 @@ export async function fulfilFreeProductBySlug(
   slug: string,
   email: string,
   origin: string,
+  signedInUserId: string | null = null,
 ): Promise<FreeFulfilResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -545,6 +553,24 @@ export async function fulfilFreeProductBySlug(
     return { ok: false, error: "Couldn't create your account. Try again." };
   }
   const userId = identity.guestId;
+
+  // SECURITY GATE. The caller is anonymous and typed this email, so anything
+  // beyond here would act on an account we have NOT proven they own:
+  //   • returning a magic link = sign-in as that person (full takeover),
+  //   • activating the plan = rewriting a paying host's subscription.
+  // Both are refused unless the account was minted by this very request. An
+  // existing owner signs in first; the signed-in path (purchaseProductBySlug)
+  // resolves the email from the session and never reaches this branch anonymously.
+  if (!identity.created && !signedInUserId) {
+    return {
+      ok: false,
+      error:
+        "That email already has a Wielo account — please sign in first, then claim this.",
+    };
+  }
+  if (signedInUserId && signedInUserId !== userId) {
+    return { ok: false, error: "Sign in with that email to claim this." };
+  }
 
   // 2) Ensure a host record (features resolve through a host-scoped subscription).
   const { data: existingHost } = await admin
@@ -606,7 +632,14 @@ export async function fulfilFreeProductBySlug(
     created_by: null,
   });
 
-  // 5) Magic link → auto sign-in → dashboard (no password needed).
+  // 5) Where they go next.
+  // An already-signed-in buyer has a session — just send them to the dashboard.
+  if (signedInUserId) {
+    return { ok: true, loginUrl: `${origin}/dashboard` };
+  }
+  // Otherwise this account was minted moments ago by this request (the gate
+  // above guarantees it): it holds nothing but what we just created and has no
+  // password, so auto-sign-in is safe and is the point of the free flow.
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email: cleanEmail,
