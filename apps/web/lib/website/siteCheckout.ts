@@ -168,12 +168,6 @@ const siteBookingExtraSchema = z.object({
 });
 
 /**
- * Create an on-site booking session-lessly and start payment. Resolves (or
- * creates) a passwordless guest lead from the supplied contact details, then runs
- * the shared booking core — so the on-site charge is priced and persisted exactly
- * like the app checkout. Returns the payment redirect target.
- */
-/**
  * Ceiling on anonymous booking creation.
  *
  * Set HIGH on purpose. This is the revenue path, and South African mobile
@@ -200,6 +194,12 @@ async function bookingRateLimit(): Promise<
   };
 }
 
+/**
+ * Create an on-site booking session-lessly and start payment. Resolves (or
+ * creates) a passwordless guest lead from the supplied contact details, then runs
+ * the shared booking core — so the on-site charge is priced and persisted exactly
+ * like the app checkout. Returns the payment redirect target.
+ */
 export async function createSiteBooking(
   body: unknown,
   ctx: { origin: string },
