@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-21 — Fix: wizard theme picker was missing Royal + showed stale "Sabela".
+
+Founder testing the wizard saw the wrong/incomplete theme set. Root cause: the
+`site_themes` catalogue (what the wizard/gallery reads) was **out of sync with the
+code**:
+- **Royal was never in the catalogue.** It shipped as a code preset + `.wielo-royal`
+  skin + bespoke `.r*` pages, but no migration ever inserted its `site_themes` row —
+  so it never appeared in the picker (4 of 5 themes shown).
+- **The sabela→hotel rename** (migration `20260718090000`) had **not been applied to
+  the cloud** — the picker still showed slug `sabela` / "Sabela Lodge", which the
+  render path doesn't map to the bespoke `hotel` preset (`?theme=sabela` fell back to
+  generic).
+
+Fix (applied to the linked cloud DB; pre-MVP catalogue data):
+- Applied the sabela→hotel rename (row + any site's `theme.preset` pointer).
+- Inserted the **Royal Hotel** catalogue row, `base` mirroring `SITE_PRESETS.royal`
+  (new migration `20260721120000_add_royal_theme_to_catalog.sql`, idempotent).
+- **Catalogue now: safari, hotel, oceansview, marmalade, royal — all 5, active,
+  correct slugs.** The wizard reads this live, so a refresh shows all five with their
+  real bespoke previews.
+
 ## 2026-07-21 — Build auto-fills the About host-bio from the account (+ structural-pull audit).
 
 Follow-up to the account-reuse work. Wired the one genuinely-sourced structural gap
