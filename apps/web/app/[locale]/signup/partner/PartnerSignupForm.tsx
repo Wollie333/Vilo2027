@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { ImagePlus } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useRouter, Link } from "@/i18n/navigation";
@@ -13,7 +14,10 @@ import {
 } from "@/components/site/TurnstileWidget";
 import { agreementParagraphs } from "@/lib/affiliate/agreement.shared";
 
-import { createPartnerAccountAction } from "./actions";
+import {
+  createPartnerAccountAction,
+  uploadPartnerPhotoAction,
+} from "./actions";
 
 export function PartnerSignupForm({
   brand,
@@ -43,6 +47,23 @@ export function PartnerSignupForm({
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const [honeypot, setHoneypot] = useState("");
+  // The photo is held here until the account exists — there is nowhere to write
+  // it before then. Uploaded immediately after signup returns.
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  // Object URLs leak until revoked, so the preview is derived from the file
+  // rather than set alongside it — one owner, cleaned up on change/unmount.
+  useEffect(() => {
+    if (!photo) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photo);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
   // Set when the email already has an account — we never issue a session on
   // that path, so the form offers a sign-in link that returns them here.
   const [signInUrl, setSignInUrl] = useState<string | null>(null);
@@ -90,6 +111,15 @@ export function PartnerSignupForm({
         setCaptchaToken(null);
         return;
       }
+      // The account (and its session) now exist, so the held photo has somewhere
+      // to go. Never fail the signup over it — they can add one later.
+      if (photo) {
+        const fd = new FormData();
+        fd.append("file", photo);
+        const up = await uploadPartnerPhotoAction(fd);
+        if (!up.ok) toast.error(`${up.error} You can add a photo later.`);
+      }
+
       toast.success(
         r.data?.awaitingEmail
           ? "Account created — confirm your email to go live."
@@ -110,6 +140,68 @@ export function PartnerSignupForm({
           &apos;ll let you know if a place opens up.
         </div>
       ) : null}
+
+      {/* Your photo — optional, but it's the face on the partner landing page
+          and the race standings, so it's asked for up front. */}
+      <div className="flex items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-line bg-white">
+          {photoPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoPreview}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <ImagePlus className="h-5 w-5 text-brand-mute" aria-hidden />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="text-[12px] font-semibold text-brand-ink">
+            Your photo{" "}
+            <span className="font-normal text-brand-mute">(optional)</span>
+          </div>
+          <p className="mt-0.5 text-[12px] leading-snug text-brand-mute">
+            Shown on your partner page and the leaderboard. Max 5MB.
+          </p>
+          <div className="mt-1.5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => photoInput.current?.click()}
+              className="text-[12px] font-semibold text-brand-primary hover:underline"
+            >
+              {photo ? "Change photo" : "Choose a photo"}
+            </button>
+            {photo ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPhoto(null);
+                  if (photoInput.current) photoInput.current.value = "";
+                }}
+                className="text-[12px] font-semibold text-brand-mute hover:underline"
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+          <input
+            ref={photoInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              if (f && f.size > 5 * 1024 * 1024) {
+                toast.error("Image is too large — max 5MB.");
+                e.target.value = "";
+                return;
+              }
+              setPhoto(f);
+            }}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -215,8 +307,10 @@ export function PartnerSignupForm({
       </label>
 
       {/* Affiliate agreement — a SEPARATE act of consent. The exact text shown
-          here is what gets snapshotted and hashed against the signature. */}
-      <div className="rounded-input border border-brand-line bg-white p-3">
+          here is what gets snapshotted and hashed against the signature. Styled
+          identically to the other two consents: three checkboxes asking for
+          three agreements should look like three of the same thing. */}
+      <div>
         <label className="flex items-start gap-2.5 text-[12.5px] leading-snug text-brand-mute">
           <input
             type="checkbox"
@@ -235,12 +329,12 @@ export function PartnerSignupForm({
         <button
           type="button"
           onClick={() => setShowAgreement((v) => !v)}
-          className="mt-2 text-[12px] font-semibold text-brand-primary hover:underline"
+          className="mt-1.5 pl-[26px] text-[12px] font-semibold text-brand-primary hover:underline"
         >
           {showAgreement ? "Hide agreement" : "Read the agreement"}
         </button>
         {showAgreement ? (
-          <div className="rounded-input mt-2 max-h-52 overflow-y-auto bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
+          <div className="rounded-input mt-2 max-h-52 overflow-y-auto border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
             {agreementParagraphs(agreementBody).map((p, i) => (
               <p key={i} className={i > 0 ? "mt-2" : undefined}>
                 {p}

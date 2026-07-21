@@ -1,8 +1,10 @@
 "use client";
 import { Check, Copy, ExternalLink, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import { uploadPartnerPhotoAction } from "@/app/[locale]/signup/partner/actions";
 
 import { updatePartnerProfileAction } from "../actions";
 
@@ -28,6 +30,8 @@ export function PartnerProfileCard({
   const [headlineValue, setHeadlineValue] = useState(headline ?? "");
   const [bioValue, setBioValue] = useState(bio ?? "");
   const [photoValue, setPhotoValue] = useState(photoUrl ?? "");
+  const [uploading, setUploading] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const publicUrl = `${baseUrl}/partners/${slug}`;
   const display = publicUrl.replace(/^https?:\/\//, "");
@@ -137,18 +141,77 @@ export function PartnerProfileCard({
 
         <div>
           <label className="block text-[12.5px] font-semibold text-brand-ink">
-            Photo URL
+            Your photo
           </label>
+          <div className="mt-1.5 flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-line bg-brand-light">
+              {photoValue ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoValue}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-5 w-5 text-brand-mute" aria-hidden />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => photoInput.current?.click()}
+                  disabled={uploading}
+                  className="text-[12.5px] font-semibold text-brand-primary hover:underline disabled:opacity-60"
+                >
+                  {uploading
+                    ? "Uploading…"
+                    : photoValue
+                      ? "Change photo"
+                      : "Upload a photo"}
+                </button>
+                {photoValue ? (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoValue("")}
+                    className="text-[12.5px] font-semibold text-brand-mute hover:underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-brand-mute">
+                Shown on your partner page and the race standings. Max 5MB.
+                Leave blank to show your initial instead.
+              </p>
+            </div>
+          </div>
           <input
-            value={photoValue}
-            onChange={(e) => setPhotoValue(e.target.value)}
-            inputMode="url"
-            placeholder="https://…/your-photo.jpg"
-            className="mt-1.5 w-full rounded-[11px] border border-brand-line bg-brand-light px-3.5 py-2.5 font-mono text-[13px] text-brand-ink outline-none focus:border-brand-accent"
+            ref={photoInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                toast.error("Image is too large — max 5MB.");
+                return;
+              }
+              // Uploaded straight away so the preview shows the REAL stored
+              // image, not a blob that would vanish on save.
+              setUploading(true);
+              const fd = new FormData();
+              fd.append("file", file);
+              uploadPartnerPhotoAction(fd)
+                .then((res) => {
+                  if (res.ok && res.data) setPhotoValue(res.data.url);
+                  else if (!res.ok) toast.error(res.error);
+                })
+                .finally(() => setUploading(false));
+            }}
           />
-          <p className="mt-1 text-[11px] text-brand-mute">
-            Optional. Leave blank to show your initial instead.
-          </p>
         </div>
 
         <button

@@ -300,6 +300,65 @@ export async function createPartnerAccountAction(
   };
 }
 
+/**
+ * Attach the partner's photo after signup.
+ *
+ * Deliberately a SECOND call rather than part of the signup payload: there is no
+ * account (and therefore no folder to write to, and no session to authorise the
+ * write) until the account exists. The form holds the chosen file and sends it
+ * here the moment signup returns.
+ *
+ * Writes to the same `avatars` bucket as guest onboarding, under the user's own
+ * folder — storage RLS allows an owner to write only under `<user_id>/`, so the
+ * session is what constrains the path, not the caller's claim about it.
+ *
+ * Saved in BOTH places on purpose: `user_profiles.avatar_url` is who they are in
+ * the app chrome, `affiliate_accounts.photo_url` is the face on their partner
+ * landing page and the race standings.
+ */
+export async function uploadPartnerPhotoAction(
+  formData: FormData,
+): Promise<ActionResult<{ url: string }>> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file received." };
+  if (file.size > 5 * 1024 * 1024) {
+    return { ok: false, error: "Image is too large — max 5MB." };
+  }
+  if (!file.type.startsWith("image/")) {
+    return { ok: false, error: "Only image files are allowed." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Sign in to upload a photo." };
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+  const { error: uploadErr } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadErr) return { ok: false, error: "Upload failed. Try again." };
+
+  const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = pub.publicUrl;
+
+  const admin = createAdminClient();
+  await admin
+    .from("user_profiles")
+    .update({ avatar_url: url })
+    .eq("id", user.id);
+  await admin
+    .from("affiliate_accounts")
+    .update({ photo_url: url })
+    .eq("user_id", user.id);
+
+  return { ok: true, data: { url } };
+}
+
 /** The campaign behind a signup URL — must be open to be joinable. */
 async function resolveSignupCampaign(
   admin: ReturnType<typeof createAdminClient>,
