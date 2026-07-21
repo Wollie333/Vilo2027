@@ -183,7 +183,9 @@ export function ThemedDateRange({
     height: 28,
     border: `1px solid ${line}`,
     borderRadius: 8,
-    background: "#fff",
+    // Theme surface (not hardcoded #fff) so the calendar nav reads on dark themes
+    // — a white button with the theme's light `ink` arrow was invisible on Sabela.
+    background: surface,
     color: ink,
     cursor: "pointer",
     fontSize: 16,
@@ -231,7 +233,9 @@ export function ThemedDateRange({
           textAlign: "left",
           border: bare ? "none" : `1px solid ${line}`,
           borderRadius: bare ? 0 : radius,
-          background: bare ? "transparent" : "#fff",
+          // Theme surface (callers already pass it) — the hardcoded #fff made the
+          // date "card" a white box with light text on dark themes (Sabela).
+          background: bare ? "transparent" : surface,
           padding: bare ? 0 : "10px 12px",
           cursor: "pointer",
         }}

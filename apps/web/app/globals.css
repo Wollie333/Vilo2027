@@ -746,6 +746,19 @@ section[id^="sec-"] {
   opacity: 1;
 }
 
+/* Booking-card guests <select> — make it read as a sibling of the themed
+   date-picker "card" directly above it (same surface, hairline, radius and
+   height) on every theme, instead of the shorter/sharper generic field look.
+   Out-specifies each theme's own `.<wrapper> .field select` rule. The date card
+   is `<ThemedDateRange>` (theme `surface`, `--site-radius-sm`, ~66px two-line
+   box); mirror those here. */
+.wielo-site-root .bkcard .field select {
+  background-color: var(--site-surface);
+  border: 1px solid var(--site-line);
+  border-radius: var(--site-radius-sm, 11px);
+  min-height: 66px;
+}
+
 /* Sticky booking / summary card — the SINGLE rule shared by every right-hand card
    on a website's booking surfaces (checkout Summary + room-detail booking dock),
    so they behave IDENTICALLY: from desktop up they follow the scroll, clear the
