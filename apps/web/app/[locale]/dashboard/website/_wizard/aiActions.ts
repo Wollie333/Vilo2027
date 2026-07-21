@@ -25,6 +25,7 @@ import {
   aiContentJsonSchema,
   aiContentSchema,
   aiContentToProfile,
+  clampSlot,
   mergeContentProfile,
   stringSlotToProfile,
   type AiStringSlot,
@@ -503,7 +504,7 @@ export async function writeWizardSlotAction(
   if (!parsed.success || !parsed.data.value.trim()) {
     return { ok: false, error: "ai_invalid" };
   }
-  return { ok: true, slot, value: parsed.data.value.trim() };
+  return { ok: true, slot, value: clampSlot(slot, parsed.data.value) };
 }
 
 export async function regenerateSlotAction(
@@ -561,12 +562,13 @@ export async function regenerateSlotAction(
     return { ok: false, error: "ai_invalid" };
   }
 
+  const value = clampSlot(slot, parsed.data.value);
   const merged = mergeContentProfile(
     loaded.profile,
-    stringSlotToProfile(slot, parsed.data.value.trim()),
+    stringSlotToProfile(slot, value),
   );
   if (!(await persistProfile(websiteId, merged))) {
     return { ok: false, error: "save_failed" };
   }
-  return { ok: true, slot, value: parsed.data.value.trim() };
+  return { ok: true, slot, value };
 }

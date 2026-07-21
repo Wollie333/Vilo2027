@@ -149,17 +149,21 @@ export function buildSiteContentPrompt(
     "THE HOST'S ANSWERS",
     answersBlock(answers),
     "",
-    "Produce, via the tool (apply the craft above; the guest is the hero):",
-    "- heroHeadline: the hook (≤ 8 words). Promise the feeling or the",
-    "  transformation, not a description. Concrete and specific; no business name,",
-    "  no clichés. It must earn the next line.",
-    "- heroSubheadline: one line that says who it's for and the payoff, leaning",
-    "  gently toward the decision to book.",
-    "- aboutStory: the About story (2–4 sentences). Frame the guest's desire, cast",
-    "  the place as the guide that delivers it, and close with a quiet invitation.",
-    "- hostBioBody: a few lines that build trust — why THIS host, with warmth and",
-    "  quiet authority, so the guest feels in good hands.",
-    "- experiencesIntro: one line framing what's nearby as part of their stay.",
+    "Produce, via the tool (apply the craft above; the guest is the hero). Keep to",
+    "the length limits — compact reads more professional, and the host expands any",
+    "field later if they want:",
+    "- heroHeadline: the hook (≤ 8 words AND ≤ 60 characters). Promise the feeling",
+    "  or the transformation, not a description. Concrete and specific; no business",
+    "  name, no clichés. It must earn the next line.",
+    "- heroSubheadline: ONE short line (≤ 120 characters) that says who it's for and",
+    "  the payoff, leaning gently toward the decision to book.",
+    "- aboutStory: the About story (2–3 sentences, ≤ 440 characters). Frame the",
+    "  guest's desire, cast the place as the guide that delivers it, and close with a",
+    "  quiet invitation.",
+    "- hostBioBody: a few lines (≤ 440 characters) that build trust — why THIS host,",
+    "  with warmth and quiet authority, so the guest feels in good hands.",
+    "- experiencesIntro: one line (≤ 180 characters) framing what's nearby as part",
+    "  of their stay.",
     "- experiences: up to 3 items (a vivid benefit-led title + one concrete,",
     "  sensory sentence + a fitting emoji) from the things-to-do notes. Omit if",
     "  none were given.",
@@ -170,19 +174,20 @@ export function buildSiteContentPrompt(
 
 const SLOT_BRIEF: Record<AiStringSlot, string> = {
   heroHeadline:
-    "the home hero headline — the hook (≤ 8 words): promise the feeling or " +
-    "transformation, concrete and specific, no business name or clichés",
+    "the home hero headline — the hook (≤ 8 words AND ≤ 60 characters): promise " +
+    "the feeling or transformation, concrete and specific, no business name or clichés",
   heroSubheadline:
-    "the one supporting line under the hero headline — who it's for and the " +
-    "payoff, leaning gently toward booking",
+    "the one short supporting line under the hero headline (≤ 120 characters) — " +
+    "who it's for and the payoff, leaning gently toward booking",
   aboutStory:
-    "the About-page story (2–4 sentences): the guest's desire, the place as the " +
-    "guide, a quiet invitation",
+    "the About-page story (2–3 sentences, ≤ 440 characters): the guest's desire, " +
+    "the place as the guide, a quiet invitation",
   hostBioBody:
-    "a few lines introducing the host or team that build trust — warmth plus " +
-    "quiet authority",
+    "a few lines (≤ 440 characters) introducing the host or team that build trust " +
+    "— warmth plus quiet authority",
   experiencesIntro:
-    "the one line framing what there is to do nearby as part of the guest's stay",
+    "the one line (≤ 180 characters) framing what there is to do nearby as part " +
+    "of the guest's stay",
 };
 
 /** Build a single-slot regeneration prompt (Haiku). */

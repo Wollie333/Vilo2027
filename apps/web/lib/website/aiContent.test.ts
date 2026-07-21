@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  AI_SLOT_CHAR_LIMITS,
   aiContentSchema,
   aiContentToProfile,
+  clampCopy,
+  clampSlot,
   mergeContentProfile,
   stringSlotToProfile,
 } from "./aiContent";
@@ -16,6 +19,54 @@ describe("aiContentSchema", () => {
     expect(
       aiContentSchema.safeParse({ heroHeadline: "x".repeat(201) }).success,
     ).toBe(false);
+  });
+});
+
+describe("clampCopy", () => {
+  it("leaves copy within the cap untouched (trimmed)", () => {
+    expect(clampCopy("  Short and sweet  ", 64)).toBe("Short and sweet");
+  });
+  it("never exceeds the cap and never cuts mid-word", () => {
+    const long =
+      "Wake to the sound of the river and nothing else at all this fine morning";
+    const out = clampCopy(long, 40);
+    expect(out.length).toBeLessThanOrEqual(40);
+    expect(long.startsWith(out)).toBe(true); // a clean prefix, no mangled word
+    expect(out.endsWith(" ")).toBe(false);
+  });
+  it("prefers a sentence boundary for longer prose", () => {
+    const story =
+      "You have been meaning to slow down for months. This is the place that finally lets you do it in full.";
+    expect(clampCopy(story, 70)).toBe(
+      "You have been meaning to slow down for months.",
+    );
+  });
+  it("strips dangling punctuation when it falls back to a word cut", () => {
+    expect(
+      /[\s,;:.!?–—-]$/u.test(clampCopy("one, two, three, four, five", 12)),
+    ).toBe(false);
+  });
+});
+
+describe("clampSlot", () => {
+  it("hard-caps the hero headline + subheadline to their compact limits", () => {
+    const headline = clampSlot("heroHeadline", "word ".repeat(40));
+    const sub = clampSlot("heroSubheadline", "word ".repeat(60));
+    expect(headline.length).toBeLessThanOrEqual(
+      AI_SLOT_CHAR_LIMITS.heroHeadline,
+    );
+    expect(sub.length).toBeLessThanOrEqual(AI_SLOT_CHAR_LIMITS.heroSubheadline);
+  });
+});
+
+describe("aiContentToProfile clamps", () => {
+  it("truncates an over-long hero headline into the profile", () => {
+    const profile = aiContentToProfile({
+      heroHeadline: "brilliant ".repeat(20),
+    });
+    expect(profile.home?.hero?.headline?.length).toBeLessThanOrEqual(
+      AI_SLOT_CHAR_LIMITS.heroHeadline,
+    );
   });
 });
 

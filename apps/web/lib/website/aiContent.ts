@@ -40,24 +40,28 @@ export const aiContentJsonSchema = {
   properties: {
     heroHeadline: {
       type: "string",
-      description: "Home hero headline — short, evocative, ≤ 8 words.",
+      description:
+        "Home hero headline — short, evocative, ≤ 8 words AND ≤ 60 characters.",
     },
     heroSubheadline: {
       type: "string",
-      description: "One warm supporting line under the hero headline.",
+      description:
+        "One warm supporting line under the hero headline — ≤ 120 characters.",
     },
     aboutStory: {
       type: "string",
       description:
-        "The About-page story: who you are and why you host, 2–4 sentences.",
+        "The About-page story: who you are and why you host, 2–3 sentences, ≤ 440 characters.",
     },
     hostBioBody: {
       type: "string",
-      description: "A few warm lines introducing the host or team.",
+      description:
+        "A few warm lines introducing the host or team — ≤ 440 characters.",
     },
     experiencesIntro: {
       type: "string",
-      description: "One or two lines framing what there is to do nearby.",
+      description:
+        "One line framing what there is to do nearby — ≤ 180 characters.",
     },
     experiences: {
       type: "array",
@@ -108,26 +112,74 @@ export const AI_STRING_SLOTS = [
 ] as const;
 export type AiStringSlot = (typeof AI_STRING_SLOTS)[number];
 
+/**
+ * Hard character caps for the AI-written copy, enforced at the mapping boundary
+ * so no model output can blow past them regardless of the prompt. Kept compact +
+ * professional: the home hero title and its supporting line stay short so the
+ * page reads clean, the "one line" fields stay one line, and the narrative fields
+ * are bounded to a tidy few sentences. The host can always expand any field
+ * afterwards in the builder — these only cap the auto-generated first draft.
+ */
+export const AI_SLOT_CHAR_LIMITS: Record<AiStringSlot, number> = {
+  heroHeadline: 64,
+  heroSubheadline: 130,
+  experiencesIntro: 200,
+  aboutStory: 460,
+  hostBioBody: 460,
+};
+/** Compact cap for an experience card title (short label, not a sentence). */
+export const AI_EXPERIENCE_TITLE_LIMIT = 60;
+
+/**
+ * Trim copy to a hard character cap WITHOUT an ellipsis or a mid-word cut: prefer
+ * the last sentence end within the cap, else the last word boundary, then strip
+ * any dangling punctuation so the result reads like finished copy, not a stub.
+ */
+export function clampCopy(value: string, max: number): string {
+  const s = value.trim();
+  if (s.length <= max) return s;
+  const window = s.slice(0, max);
+  const lastSentence = Math.max(
+    window.lastIndexOf(". "),
+    window.lastIndexOf("! "),
+    window.lastIndexOf("? "),
+  );
+  if (lastSentence >= max * 0.5)
+    return window.slice(0, lastSentence + 1).trim();
+  const lastSpace = window.lastIndexOf(" ");
+  const base = lastSpace >= max * 0.5 ? window.slice(0, lastSpace) : window;
+  return base.replace(/[\s,;:.!?–—-]+$/u, "").trim();
+}
+
+/** Clamp an AI string-slot value to its compact hard cap. */
+export function clampSlot(slot: AiStringSlot, value: string): string {
+  return clampCopy(value, AI_SLOT_CHAR_LIMITS[slot]);
+}
+
 /** Map the flat AI result into the canonical ContentProfile slots. Omits empty
  *  branches so hydration keeps the theme's demo copy where the model said nothing. */
 export function aiContentToProfile(ai: AiContent): ContentProfile {
   const profile: ContentProfile = {};
 
   const hero: NonNullable<NonNullable<ContentProfile["home"]>["hero"]> = {};
-  if (ai.heroHeadline) hero.headline = ai.heroHeadline;
-  if (ai.heroSubheadline) hero.subheadline = ai.heroSubheadline;
+  if (ai.heroHeadline)
+    hero.headline = clampSlot("heroHeadline", ai.heroHeadline);
+  if (ai.heroSubheadline)
+    hero.subheadline = clampSlot("heroSubheadline", ai.heroSubheadline);
   if (Object.keys(hero).length) profile.home = { hero };
 
   const about: NonNullable<ContentProfile["about"]> = {};
-  if (ai.aboutStory) about.story = ai.aboutStory;
-  if (ai.hostBioBody) about.hostBio = { body: ai.hostBioBody };
+  if (ai.aboutStory) about.story = clampSlot("aboutStory", ai.aboutStory);
+  if (ai.hostBioBody)
+    about.hostBio = { body: clampSlot("hostBioBody", ai.hostBioBody) };
   if (Object.keys(about).length) profile.about = about;
 
   const experiences: NonNullable<ContentProfile["experiences"]> = {};
-  if (ai.experiencesIntro) experiences.intro = ai.experiencesIntro;
+  if (ai.experiencesIntro)
+    experiences.intro = clampSlot("experiencesIntro", ai.experiencesIntro);
   if (ai.experiences?.length) {
     experiences.items = ai.experiences.map((e) => ({
-      title: e.title,
+      title: clampCopy(e.title, AI_EXPERIENCE_TITLE_LIMIT),
       body: e.body,
       icon: e.icon,
     }));
