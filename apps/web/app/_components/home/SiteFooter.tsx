@@ -29,6 +29,7 @@ const HOSTS = [
   // "For hosts" (/booking-management) is hidden for now — point host links at
   // the signup flow and drop the deep anchors into the removed page.
   { href: "/signup/host", key: "hostsList" },
+  { href: "/commission-calculator", key: "hostsCalculator" },
   { href: "/help", key: "hostsAcademy" },
   { href: "/help", key: "hostsMigration" },
 ] as const;

@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-07-21 (pt49) — Campaign builder in admin (WS-1i) + calculator footer link.
+
+Founder spotted that the affiliate programme's campaign settings were nowhere in admin. They were right:
+`affiliate_campaigns` was seeded by migration and read only by the portal and the public leaderboard, so
+the **Founding Race has been sitting at `status='draft'` with no way to see, edit or launch it**. The
+launch plan had deferred this builder ("config-in-code for the first run"). All green (build, lint,
+406 tests incl. 15 new).
+
+- **Admin → Affiliates → Campaigns** (new tab): list with status, ladder summary, competition summary,
+  window and enrolled count; create mints a **draft that pays nothing** (`model: "inherit"`, hidden
+  leaderboard) so a half-configured campaign can never be live.
+- **The builder** (`/admin/affiliates/campaigns/[id]`): name, public slug, dates, who may join, which
+  referrals count, rules-document picker (reads `legal_documents`), the full **commission ladder**
+  (add/remove rungs, percent in the UI ↔ fraction in the DB), flat-rate mode, duration, conversion
+  bonuses, and the **competition** — scoring mode, leaderboard visibility, points per listing, tie
+  breaker, and the prize table incl. rate **floors** (permanent minimum rates that outlive the campaign).
+  Read-only panels below: live standings (same RPC the public leaderboard uses), enrolled partners, and
+  floors already awarded.
+- **Money-safety.** Campaign config is read by the accrual resolver, so a malformed ladder silently
+  mis-pays partners. `lib/affiliate/campaignConfig.ts` (pure, **15 tests**) refuses to save a ladder with
+  no open-ended top rung, two open-ended rungs, duplicate ceilings, out-of-range rates, an empty ladder,
+  a flat structure with no rate, recurring with no period count, an end date before the start, or a slug
+  that would break the public URL. Launching is separately refused when the structure "would pay nobody".
+  Every write goes through `withAdminAudit` (new `affiliate_campaign` target, migration `20260721140000`)
+  with a before/after snapshot.
+- ⚠️ **Round-trip trap found while verifying:** the seeded config carries a
+  `{monthly_top_net_change: 1000}` prize that the editor had no field for. It survived (unknown keys are
+  preserved), but rendered as a blank row the founder could delete without knowing what it was — so the
+  field is now shown explicitly.
+- **Verified live:** the Founding Race renders its real config (10→25% over 4 rungs, R250/R400 bonuses,
+  6 prizes); a save round-trips `commission_structure` and all 6 prizes byte-identical in content and
+  writes an audit row; a probe campaign whose every rung paid 0% was **refused launch** with the reason;
+  after setting a real rate it launched, the public leaderboard went **200**, and Pause returned it to
+  **404**. Probe deleted afterwards.
+- Also: **"Commission calculator" now links from the site footer** (Hosts column, en + af).
+
+---
+
 ## 2026-07-21 (pt48) — WS-8: public commission calculator (live pricing; verified live).
 
 The last pre-launch build. A shareable public tool at `/commission-calculator`: a host enters their monthly

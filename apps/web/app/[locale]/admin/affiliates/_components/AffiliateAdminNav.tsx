@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Settings,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,11 @@ const TABS: {
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/admin/affiliates/campaigns",
+    label: "Campaigns",
+    icon: Trophy,
   },
   {
     href: "/admin/affiliates/marketing",

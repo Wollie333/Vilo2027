@@ -75,6 +75,7 @@ export const AUDIT_TARGET_TYPES = [
   "affiliate",
   "affiliate_payout",
   "affiliate_settings",
+  "affiliate_campaign",
   "marketing_asset",
   "special_category",
   "looking_for_requirement_group",
