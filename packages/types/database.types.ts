@@ -7815,6 +7815,7 @@ export type Database = {
           property_type: string
           province: string | null
           published_at: string | null
+          ranking_score: number
           room_config: Json | null
           schedule: Json | null
           search_vector: unknown
@@ -7889,6 +7890,7 @@ export type Database = {
           property_type: string
           province?: string | null
           published_at?: string | null
+          ranking_score?: number
           room_config?: Json | null
           schedule?: Json | null
           search_vector?: unknown
@@ -7963,6 +7965,7 @@ export type Database = {
           property_type?: string
           province?: string | null
           published_at?: string | null
+          ranking_score?: number
           room_config?: Json | null
           schedule?: Json | null
           search_vector?: unknown
