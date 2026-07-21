@@ -6,6 +6,7 @@ import { createElement } from "react";
 
 import { ClaimAccount, ConfirmEmail, ExistingAccount } from "@vilo/emails";
 
+import { tokenSecret } from "@/lib/auth/tokenSecret";
 import { getBrandName } from "@/lib/brand";
 import { sendReactEmail } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -27,16 +28,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 3; // 3 days
 
-function secret(): string {
-  return (
-    process.env.EMAIL_VERIFY_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    "wielo-email-verify"
-  );
-}
-
 function sign(payload: string): string {
-  return createHmac("sha256", secret()).update(payload).digest("hex");
+  // Was: EMAIL_VERIFY_SECRET ?? SERVICE_ROLE_KEY ?? "wielo-email-verify" — a
+  // literal in this repo. Anyone could forge a verification token, and email
+  // verification gates affiliate activation. See lib/auth/tokenSecret.ts.
+  return createHmac("sha256", tokenSecret("email-verify"))
+    .update(payload)
+    .digest("hex");
 }
 
 /** Mint a signed verification token for a user id. */

@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { tokenSecret } from "@/lib/auth/tokenSecret";
+
 // Ephemeral, signed token for a Statement of Account (F4). A statement is a
 // bank-style VIEW over a ledger — it mints NO document number and stores NO row.
 // Instead the shareable link carries a signed payload describing WHICH slice to
@@ -34,12 +36,10 @@ export type StatementToken = {
 };
 
 function getSecret(): Buffer {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key)
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is required for statement token signing.",
-    );
-  return Buffer.from(key);
+  // Purpose-specific key (see lib/auth/tokenSecret.ts) rather than the raw
+  // service-role credential, so a statement link cannot be replayed as any
+  // other kind of token and the signing key can be rotated on its own.
+  return tokenSecret("statement");
 }
 
 export function signStatementToken(payload: StatementToken): string {

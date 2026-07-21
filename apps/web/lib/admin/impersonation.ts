@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { cookies } from "next/headers";
 
+import { tokenSecret } from "@/lib/auth/tokenSecret";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const IMPERSONATION_COOKIE = "vilo_impersonation";
@@ -88,17 +89,14 @@ export async function closeImpersonationSession(): Promise<string | null> {
 }
 
 // ─── cookie signing ──────────────────────────────────────────
-// HMAC-SHA256 over JSON. Secret comes from SUPABASE_SERVICE_ROLE_KEY (already
-// server-only). If you rotate the service key, all open impersonation sessions
-// invalidate — that's the correct behaviour.
+// HMAC-SHA256 over JSON, keyed per-purpose (lib/auth/tokenSecret.ts) rather than
+// with the raw service-role credential — so an impersonation cookie can never be
+// replayed as another kind of signed token, and the key can be rotated without
+// rotating database access. Rotating it invalidates all open impersonation
+// sessions, which is the correct behaviour.
 
 function getSecret(): Buffer {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key)
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is required for impersonation signing.",
-    );
-  return Buffer.from(key);
+  return tokenSecret("impersonation");
 }
 
 function signToken(ctx: ImpersonationContext): string {
