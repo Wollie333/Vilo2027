@@ -10,6 +10,7 @@ import {
 import {
   CLIENT_EVENTS,
   FUNNEL_LOOKING_FOR,
+  FUNNELS,
   LF_STEPS,
   type FunnelEvent,
 } from "@/lib/funnel/shared";
@@ -26,10 +27,16 @@ export const dynamic = "force-dynamic";
 // are recorded server-side in the publish path, so a forged beacon cannot
 // inflate the conversion numbers this funnel is judged on.
 
-type Body = { event?: unknown; step?: unknown; referrer?: unknown };
+type Body = {
+  event?: unknown;
+  step?: unknown;
+  referrer?: unknown;
+  funnel?: unknown;
+};
 
 const ALLOWED = new Set<string>(CLIENT_EVENTS);
 const STEPS = new Set<string>(LF_STEPS);
+const KNOWN_FUNNELS = new Set<string>(FUNNELS);
 
 export async function POST(req: Request) {
   // Honour Do Not Track — accept silently, record nothing.
@@ -50,10 +57,16 @@ export async function POST(req: Request) {
   const step =
     typeof body.step === "string" && STEPS.has(body.step) ? body.step : null;
 
+  const funnel =
+    typeof body.funnel === "string" && KNOWN_FUNNELS.has(body.funnel)
+      ? body.funnel
+      : FUNNEL_LOOKING_FOR;
+
   await recordFunnelEvent(createAdminClient(), {
     event: event as FunnelEvent,
+    funnel,
     step,
-    sessionId: funnelSessionId(req.headers, FUNNEL_LOOKING_FOR),
+    sessionId: funnelSessionId(req.headers, funnel),
     device: deviceFromUa(req.headers.get("user-agent") ?? ""),
     country: countryFromHeaders(req.headers),
     referrerHost: referrerHost(body.referrer),

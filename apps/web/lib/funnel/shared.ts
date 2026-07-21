@@ -3,6 +3,14 @@
 // no node imports, no DB.
 
 export const FUNNEL_LOOKING_FOR = "looking_for";
+export const FUNNEL_CALCULATOR = "calculator";
+
+/** Funnels the beacon will accept. Anything else is dropped, so a stray or
+ *  forged payload cannot invent a funnel that pollutes the admin read-out. */
+export const FUNNELS: readonly string[] = [
+  FUNNEL_LOOKING_FOR,
+  FUNNEL_CALCULATOR,
+];
 
 export type FunnelEvent =
   | "landing_view"

@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-21 (pt48) — WS-8: public commission calculator (live pricing; verified live).
+
+The last pre-launch build. A shareable public tool at `/commission-calculator`: a host enters their monthly
+bookings revenue and sees, in rand, what commission costs them a year against Wielo's flat fee. The partner
+pack links straight to it. All green (build, lint, 391 tests incl. 10 new).
+
+- **Prices come from the DB, never a constant.** New reader `lib/products/membershipPublic.ts` →
+  `getPublicMembershipPricing()`, which also advertises the **Founding** numbers only while
+  `founding_offers_open` is on (fails closed → list price). ⚠️ Selecting the plan needs care: `products`
+  also holds the R0 `beta` membership and the `quote_only` Wielo Quotes plan, so "first membership by
+  sort_order" picks the WRONG row (it did on the first run — the page rendered "pricing unavailable").
+  The rule is now the cheapest `account_kind='host'` membership with `price > 0`.
+- **Honest maths** (`lib/products/commissionMath.ts`, pure, 10 tests): the subscription is always
+  subtracted — no "R0" headline. Multi-listing reuses WS-5's `resolveMembershipAmount` (first place
+  included, each extra adds the per-listing amount). Below break-even the tool **says commission is
+  cheaper** and shows the revenue at which the subscription starts paying for itself. Junk input
+  (`?revenue=Infinity`) clamps to the MINIMUM, never the flattering maximum.
+- **Shareable:** state seeds from `?revenue=&rate=&listings=` server-side, and a "Copy these numbers as a
+  link" button rebuilds that URL — a partner can send a prospect their own figures.
+- **Instrumented (WS-7):** the beacon now takes an allowlisted `funnel`, so calculator traffic is measured
+  separately from the Looking-For funnel under its own session hash.
+- **Verified live:** page renders the real R999 / R299-per-extra-place from the products row; 3 places =
+  R1 597/mo; R65k @ 17% = R132 600/yr commission vs R11 988 Wielo; the below-break-even path shows the
+  honest message with break-even R10 647/mo. Copy-link captured as
+  `…?revenue=5000&rate=15&listings=3` and a fresh load restores those numbers. Mobile (375px) stacks with
+  no horizontal overflow. A forged `published` beacon on an unknown funnel wrote nothing — the WS-7 trust
+  boundary holds. Dev telemetry rows deleted afterwards.
+
+---
+
 ## 2026-07-21 (pt47) — WS-7: Looking-For funnel instrumentation (cookieless; verified live end-to-end).
 
 Nothing measured Wielo's OWN funnel — `website_analytics_events` instruments host micro-sites only — so

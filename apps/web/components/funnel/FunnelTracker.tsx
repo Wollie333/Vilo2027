@@ -10,11 +10,16 @@ import type { FunnelEvent } from "@/lib/funnel/shared";
 // must never surface to a visitor or block a step.
 
 /** Fire one funnel event. Safe to call from anywhere in the browser. */
-export function trackFunnel(event: FunnelEvent, step?: string) {
+export function trackFunnel(
+  event: FunnelEvent,
+  step?: string,
+  funnel?: string,
+) {
   if (typeof window === "undefined") return;
   const payload = JSON.stringify({
     event,
     step: step ?? null,
+    funnel: funnel ?? null,
     referrer: document.referrer || null,
   });
   try {
@@ -40,19 +45,22 @@ export function trackFunnel(event: FunnelEvent, step?: string) {
 export function FunnelTracker({
   event,
   step,
+  funnel,
 }: {
   event: FunnelEvent;
   step?: string;
+  /** Defaults to the Looking-For funnel server-side when omitted. */
+  funnel?: string;
 }) {
   // Fire once per (event, step) for the life of this mount. React StrictMode
   // double-invokes effects in dev, and a remount would otherwise double-count
   // the top of the funnel — which is the denominator of every ratio below it.
   const fired = useRef<string | null>(null);
   useEffect(() => {
-    const key = `${event}:${step ?? ""}`;
+    const key = `${funnel ?? ""}:${event}:${step ?? ""}`;
     if (fired.current === key) return;
     fired.current = key;
-    trackFunnel(event, step);
-  }, [event, step]);
+    trackFunnel(event, step, funnel);
+  }, [event, step, funnel]);
   return null;
 }
