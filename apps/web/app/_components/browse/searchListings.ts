@@ -5,14 +5,17 @@ import {
   getDescendantIds,
 } from "@/lib/taxonomy/getCategories";
 
+import { DEFAULT_SORT } from "./browseSort";
+
 // Shared listing-search logic for the public /explore page and the in-portal
 // /portal/browse page. Both run the same query and pagination; they differ only
 // in their surrounding chrome and the `basePath` used to build links.
 
 export const BROWSE_PAGE_SIZE = 24;
 
-// "Best match" is the default now that the ranking is computed and sortable.
-export const DEFAULT_SORT = "recommended";
+// Re-exported so existing importers keep working; defined in browseSort.ts so
+// client components can read it without importing this server-side loader.
+export { DEFAULT_SORT };
 
 // A uuid no row can have, used to express "this filter matches nothing" — an
 // empty .in() list is treated as no constraint by PostgREST, which would turn an

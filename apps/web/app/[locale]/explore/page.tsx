@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { BrowseResults } from "@/app/_components/browse/BrowseResults";
+import { getBrowseAmenities } from "@/app/_components/browse/browseAmenities";
+import { FilterSheet } from "@/app/_components/browse/FilterSheet";
 import {
   searchListings,
   type BrowseSearchParams,
@@ -36,6 +38,7 @@ export default async function ExplorePage({
     "/explore",
     priorityCountry,
   );
+  const amenityOptions = await getBrowseAmenities();
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -55,8 +58,17 @@ export default async function ExplorePage({
 
       {/* Type chips */}
       <section className="sticky top-16 z-20 border-b border-brand-line bg-white">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <TypeChips currentType={result.type} />
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 lg:px-8">
+          <div className="min-w-0 flex-1">
+            <TypeChips currentType={result.type} />
+          </div>
+          <FilterSheet
+            advanced={result.advanced}
+            advancedCount={result.advancedCount}
+            guests={result.guests}
+            sort={result.sort}
+            amenityOptions={amenityOptions}
+          />
         </div>
       </section>
 

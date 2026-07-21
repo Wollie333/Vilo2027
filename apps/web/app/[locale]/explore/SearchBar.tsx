@@ -1,10 +1,13 @@
 "use client";
 
 import { ArrowDownUp, Search, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { DEFAULT_SORT } from "@/app/_components/browse/browseSort";
+
 const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: DEFAULT_SORT, label: "Best match" },
   { value: "newest", label: "Newest first" },
   { value: "price_asc", label: "Price · low to high" },
   { value: "price_desc", label: "Price · high to low" },
@@ -25,17 +28,25 @@ export function SearchBar({
   basePath?: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [w, setW] = useState(where);
   const [g, setG] = useState<number>(guests);
-  const [s, setS] = useState<string>(currentSort || "newest");
+  const [s, setS] = useState<string>(currentSort || DEFAULT_SORT);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const params = new URLSearchParams();
+    // Start from the current URL so the advanced filters set in the Filters
+    // sheet survive a search — searching narrows, it does not reset.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
     if (w.trim().length > 0) params.set("where", w.trim());
+    else params.delete("where");
     if (g > 0) params.set("guests", String(g));
+    else params.delete("guests");
     if (currentType) params.set("type", currentType);
-    if (s && s !== "newest") params.set("sort", s);
+    else params.delete("type");
+    if (s && s !== DEFAULT_SORT) params.set("sort", s);
+    else params.delete("sort");
     const qs = params.toString();
     router.push(qs ? `${basePath}?${qs}` : basePath);
   }
