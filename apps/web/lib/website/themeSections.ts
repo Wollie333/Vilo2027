@@ -1648,18 +1648,404 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
   },
 ];
 
+// ── Royal — grand urban-luxury hotel (white/ink, champagne-gold, espresso)
+// The founder's fifth theme. Voice: the grand city hotel — arrival, suites,
+// the concierge, the lobby, evenings. By design Royal REUSES the OceansView
+// page layout/composition (same section types, same structure, same prop
+// shapes) re-skinned via the scoped .wielo-royal layer (champagne-gold accent,
+// Archivo display). It is its OWN object with its OWN copy so it can diverge
+// later — no shared references with oceansview.
+const royal = {
+  heroFull: () =>
+    build("hero", (s) => {
+      s.props.headline = "Arrive somewhere grand";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=2400&q=80";
+      s.props.subheadline =
+        "A landmark hotel in the heart of the city — light-filled suites, an attentive concierge, and evenings that begin the moment you step into the lobby.";
+      s.props.cta_label = "Reserve a suite";
+      s.props.cta_href = "#book";
+      s.props.cta2_label = "Discover the hotel";
+      s.props.cta2_href = "/about";
+      s.props.stats = [
+        { value: "48", label: "Suites & rooms" },
+        { value: "24/7", label: "Concierge" },
+        { value: "4.9 ★★★★★", label: "900+ stays" },
+      ];
+      s.props.align = "left";
+      s.props.variant = "fullscreen";
+      s.props.overlay = "medium";
+      s.props.textTone = "light";
+      s.props.height = "tall";
+    }),
+  heroSplit: () =>
+    build("hero", (s) => {
+      s.props.headline = "A house of hospitality";
+      s.props.subheadline =
+        "Generations of innkeeping behind one idea: a grand address where every arrival is met and nothing is left to chance.";
+      s.props.cta_label = "See the suites";
+      s.props.cta_href = "#rooms";
+      s.props.align = "left";
+      s.props.variant = "split_right";
+      s.props.height = "medium";
+    }),
+  story: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Timeless luxury";
+      s.props.heading = "Timeless luxury, in the heart of the city";
+      s.props.body =
+        "Days here move at the pace you choose — a slow breakfast beneath the chandeliers, an afternoon about town, and evenings that gather in the lobby before dinner.\n\nReplace this with your own story: the building, the welcome, and why guests return to stay with you again and again.";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1200&q=80";
+      s.props.badge_value = "24/7";
+      s.props.badge_label = "Concierge";
+      s.props.variant = "story";
+    }),
+  // ── About-page blocks ──
+  aboutHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "About";
+      s.props.headline = "A house of hospitality";
+      s.props.subheadline =
+        "Generations of innkeeping behind one idea: a grand address where every arrival is met and nothing is left to chance.";
+    }),
+  aboutStory: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Our story";
+      s.props.heading = "It began with an address";
+      s.props.body =
+        "Tell guests who you are and why you host: the building, the welcome, and why people return to stay with you. A paragraph or two is plenty.";
+      s.props.badge_value = "40";
+      s.props.badge_label = "Years of welcome";
+      s.props.variant = "lead";
+    }),
+  aboutStats: () =>
+    build("stats", (s) => {
+      s.props.items = [
+        { value: "40", label: "Years of welcome" },
+        { value: "48", label: "Suites & rooms" },
+        { value: "24/7", label: "Concierge" },
+      ];
+    }),
+  aboutHost: () =>
+    build("host_bio", (s) => {
+      s.props.heading = "Your hosts";
+      s.props.name = "The house team";
+      s.props.body =
+        "A few warm lines about the people who will welcome you through the doors, and what they love most about looking after guests.";
+    }),
+  aboutValues: () =>
+    build("values", (s) => {
+      s.props.heading = "What we stand for";
+      s.props.items = [
+        {
+          title: "Service, always",
+          body: "Every request met with grace — an attentive team who anticipate before you ask.",
+        },
+        {
+          title: "Honest pricing",
+          body: "One fair rate, booked direct. No agents, no surprises at checkout.",
+        },
+        {
+          title: "People of the house",
+          body: "Our team have hospitality in their bones — their warmth is the real luxury.",
+        },
+      ];
+    }),
+  experiences: () =>
+    build("highlights", (s) => {
+      s.props.heading = "Everything taken care of";
+      s.props.variant = "grid";
+      s.props.items = [
+        {
+          icon: "🛎️",
+          title: "A concierge who knows",
+          body: "Reservations, tickets and quiet recommendations — arranged before you think to ask.",
+        },
+        {
+          icon: "🍽️",
+          title: "Dining under the lights",
+          body: "A grand dining room and a bar for evenings that begin the moment you arrive.",
+        },
+        {
+          icon: "🥂",
+          title: "The lobby at dusk",
+          body: "Aperitifs, soft music and the gentle hum of a hotel at its best.",
+        },
+      ];
+    }),
+  rooms: () =>
+    build("rooms_preview", (s) => {
+      s.props.heading = "Suites made for the city";
+    }),
+  // ── Rooms-page blocks ──
+  roomsHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Rooms & suites";
+      s.props.headline = "Rooms & suites in the city";
+      s.props.subheadline =
+        "Every room is its own retreat above the streets, each one a little different. Choose the one that suits your stay.";
+    }),
+  roomsIncluded: () =>
+    build("amenities", (s) => {
+      s.props.variant = "inline";
+      s.props.items = [
+        { label: "City views" },
+        { label: "Breakfast included" },
+        { label: "Concierge service" },
+      ];
+    }),
+  roomsShowcase: () =>
+    build("rooms_preview", (s) => {
+      s.props.display = "showcase";
+      s.props.heading = "Where you will stay";
+    }),
+  gallery: () =>
+    build("gallery", (s) => {
+      s.props.heading = "Scenes from the house";
+      s.props.layout = "mosaic";
+    }),
+  reviews: () =>
+    build("reviews", (s) => {
+      s.props.heading = "The reviews say it best";
+      s.props.variant = "grid";
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "In the heart of it all";
+      s.props.variant = "split";
+    }),
+  ctaBanner: () =>
+    build("cta", (s) => {
+      s.props.heading = "Your suite is ready when you are";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=2000&q=80";
+      s.props.body =
+        "Book direct for the best rate and a room upgrade when we can — we will take care of the rest.";
+      s.props.button_label = "Reserve a suite";
+      s.props.button_href = "#book";
+      s.props.variant = "banner";
+    }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Send a message";
+      s.props.body = "We usually reply within a few hours.";
+      s.props.variant = "split";
+    }),
+  // ── Contact-page blocks ──
+  contactHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Contact";
+      s.props.headline = "Say hello";
+      s.props.subheadline =
+        "Tell us your dates and what you are hoping for. A real person at the front desk replies within a day.";
+    }),
+  contactMap: () =>
+    build("map", (s) => {
+      s.props.heading = "Find us";
+      s.props.address = "In the city centre · Cape Town";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Good to know";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "How do we get there?",
+          a: "We are in the heart of the city, moments from the main sights. Full directions follow your booking.",
+        },
+        {
+          q: "Is there parking?",
+          a: "Yes — secure valet and self-parking for every room, plus easy drop-off at the door.",
+        },
+        {
+          q: "What is included?",
+          a: "Rates include breakfast and concierge service. Replace this with your own inclusions.",
+        },
+      ];
+    }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "At the hotel";
+      s.props.items = [
+        { icon: "🛎️", label: "24-hour concierge" },
+        { icon: "🍳", label: "Breakfast included" },
+        { icon: "🍸", label: "Bar & lounge" },
+        { icon: "💆", label: "Spa & wellness" },
+        { icon: "🚗", label: "Valet parking" },
+        { icon: "📶", label: "Fast Wi-Fi" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        {
+          label: "Classic room",
+          price: "R2 950",
+          note: "per night, incl. breakfast",
+        },
+        {
+          label: "City suite",
+          price: "R4 500",
+          note: "per night, incl. breakfast",
+        },
+      ];
+      s.props.footnote =
+        "Rates are indicative and include breakfast — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the journal";
+    }),
+  // ── Journal-page blocks ──
+  journalHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "The journal";
+      s.props.headline = "The journal";
+      s.props.subheadline =
+        "Notes from the house — the table, what to see nearby, and life in the city.";
+    }),
+  journalPosts: () =>
+    build("blog_preview", (s) => {
+      s.props.display = "journal";
+      s.props.heading = "Latest from the journal";
+      s.props.max = 9;
+    }),
+  newsletterCta: () =>
+    build("cta", (s) => {
+      s.props.newsletter = true;
+      s.props.heading = "The house, in your inbox";
+      s.props.body =
+        "Open dates, stories and the occasional secret address — once a season, never more.";
+      s.props.button_label = "Subscribe";
+      s.props.button_href = "#";
+    }),
+};
+
+const ROYAL_PRESETS: ThemeSectionPreset[] = [
+  {
+    key: "royal_hero_full",
+    label: "Hero — fullscreen",
+    make: royal.heroFull,
+  },
+  {
+    key: "royal_hero_split",
+    label: "Hero — split",
+    make: royal.heroSplit,
+  },
+  { key: "royal_story", label: "Story", make: royal.story },
+  {
+    key: "royal_experiences",
+    label: "Experiences",
+    make: royal.experiences,
+  },
+  { key: "royal_gallery", label: "Gallery", make: royal.gallery },
+  { key: "royal_reviews", label: "Reviews", make: royal.reviews },
+  { key: "royal_location", label: "Location", make: royal.location },
+  { key: "royal_cta", label: "Booking CTA", make: royal.ctaBanner },
+  {
+    key: "royal_contact_form",
+    label: "Contact form",
+    make: royal.contactForm,
+  },
+  { key: "royal_faq", label: "FAQ", make: royal.faq },
+  {
+    key: "royal_amenities",
+    label: "At the hotel",
+    make: royal.amenities,
+  },
+  { key: "royal_pricing", label: "Rates", make: royal.pricing },
+  { key: "royal_blog", label: "Journal", make: royal.blog },
+];
+
+const ROYAL_TEMPLATES: ThemeTemplate[] = [
+  {
+    key: "royal_home",
+    label: "Home",
+    description:
+      "Fullscreen hero, the story, what's on offer, rooms, gallery, reviews, location and a booking CTA.",
+    make: () => [
+      royal.heroFull(),
+      royal.story(),
+      royal.experiences(),
+      royal.rooms(),
+      royal.gallery(),
+      royal.reviews(),
+      royal.location(),
+      royal.ctaBanner(),
+    ],
+  },
+  {
+    key: "royal_about",
+    label: "About",
+    description:
+      "Page-header banner, your story, the stats band, your hosts, your values and a CTA.",
+    make: () => [
+      royal.aboutHero(),
+      royal.aboutStory(),
+      royal.aboutStats(),
+      royal.aboutHost(),
+      royal.aboutValues(),
+      royal.ctaBanner(),
+    ],
+  },
+  {
+    key: "royal_rooms",
+    label: "Rooms",
+    description:
+      "Page-header banner, what's included, your rooms as full-width showcases, rates and a CTA.",
+    make: () => [
+      royal.roomsHero(),
+      royal.roomsIncluded(),
+      royal.roomsShowcase(),
+      royal.pricing(),
+      royal.ctaBanner(),
+    ],
+  },
+  {
+    key: "royal_journal",
+    label: "Journal",
+    description:
+      "Page-header banner, your posts (featured + grid) and a newsletter sign-up.",
+    make: () => [
+      royal.journalHero(),
+      royal.journalPosts(),
+      royal.newsletterCta(),
+    ],
+  },
+  {
+    key: "royal_contact",
+    label: "Contact",
+    description:
+      "Page-header banner, message form + details, a map and the good-to-know FAQ.",
+    make: () => [
+      royal.contactHero(),
+      royal.contactForm(),
+      royal.contactMap(),
+      royal.faq(),
+    ],
+  },
+];
+
 // ── Registry (keyed by theme slug = SiteThemeConfig.preset) ───────────────
 const PRESETS: Record<string, ThemeSectionPreset[]> = {
   safari: SAFARI_PRESETS,
   hotel: HOTEL_PRESETS,
   oceansview: OCEANSVIEW_PRESETS,
   marmalade: MARMALADE_PRESETS,
+  royal: ROYAL_PRESETS,
 };
 const TEMPLATES: Record<string, ThemeTemplate[]> = {
   safari: SAFARI_TEMPLATES,
   hotel: HOTEL_TEMPLATES,
   oceansview: OCEANSVIEW_TEMPLATES,
   marmalade: MARMALADE_TEMPLATES,
+  royal: ROYAL_TEMPLATES,
 };
 
 // Themes currently ACTIVE in the system. Their designed building blocks (section
@@ -1673,6 +2059,7 @@ const ACTIVE_THEME_SLUGS = new Set<string>([
   "hotel",
   "oceansview",
   "marmalade",
+  "royal",
 ]);
 
 /** Designed section presets for the slug — only when that theme is active. */
@@ -1785,6 +2172,18 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     marmalade.reviews(),
     roomDetail.location(),
     marmalade.ctaBanner(),
+  ],
+  royal: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
+    roomDetail.policies(),
+    royal.reviews(),
+    roomDetail.location(),
+    royal.ctaBanner(),
   ],
 };
 
