@@ -1,7 +1,14 @@
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { getConsentVersion } from "@/lib/auth/consent";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import {
+  countryFromHeaders,
+  deviceFromUa,
+  funnelSessionId,
+  recordFunnelEvent,
+} from "@/lib/funnel/track";
 import { guestCan } from "@/lib/guests/permissions";
 import {
   CAP_REACHED_MESSAGE,
@@ -203,6 +210,36 @@ export async function createRequestPublic(
     } catch {
       // Couldn't mint — fall back to /login (they can sign in to see it).
     }
+  }
+
+  // WS-7 — the two conversion events, recorded SERVER-side (a browser beacon
+  // could be forged, and these are the numbers ad spend is judged on). The
+  // session hash uses the same formula the beacon does, so a published request
+  // joins the steps the visitor walked. Never allowed to fail the publish.
+  try {
+    const h = headers();
+    const sessionId = funnelSessionId(h);
+    const device = deviceFromUa(h.get("user-agent") ?? "");
+    const country = countryFromHeaders(h);
+    if (isLead) {
+      await recordFunnelEvent(admin, {
+        event: "account_created",
+        sessionId,
+        isLead,
+        device,
+        country,
+      });
+    }
+    await recordFunnelEvent(admin, {
+      event: "published",
+      sessionId,
+      postId,
+      isLead,
+      device,
+      country,
+    });
+  } catch {
+    // Instrumentation must never cost a published request.
   }
 
   return { ok: true, data: { postId, redirectTo, isLead } };

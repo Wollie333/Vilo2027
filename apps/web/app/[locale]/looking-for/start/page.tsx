@@ -17,6 +17,7 @@ import {
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { Badge } from "@/components/ui/badge";
+import { FunnelTracker } from "@/components/funnel/FunnelTracker";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { MAX_ACTIVE_LOOKING_FOR_POSTS } from "@/lib/looking-for/limits";
@@ -281,6 +282,8 @@ export default async function LookingForStartPage() {
 
   return (
     <div className="bg-brand-light text-brand-ink">
+      {/* WS-7 — the top of the funnel every ad lands on. */}
+      <FunnelTracker event="landing_view" />
       <SiteHeader />
 
       {/* Hero */}

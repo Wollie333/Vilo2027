@@ -1,7 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import {
+  countryFromHeaders,
+  deviceFromUa,
+  funnelSessionId,
+  recordFunnelEvent,
+} from "@/lib/funnel/track";
 import { guestCan } from "@/lib/guests/permissions";
 import { MAX_ACTIVE_LOOKING_FOR_POSTS } from "@/lib/looking-for/limits";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
@@ -125,6 +133,17 @@ export async function createRequestAction(input: CreateRequestInput) {
     return { success: false, error: result.error };
   }
   const post = { id: result.id };
+
+  // WS-7 — the signed-in half of the same funnel. isLead=false separates it from
+  // the ad-spend (signed-out) funnel in the admin read-out.
+  await recordFunnelEvent(createAdminClient(), {
+    event: "published",
+    sessionId: funnelSessionId(headers()),
+    postId: post.id,
+    isLead: false,
+    device: deviceFromUa(headers().get("user-agent") ?? ""),
+    country: countryFromHeaders(headers()),
+  });
 
   revalidatePath("/portal/looking-for");
   return { success: true, data: { id: post.id } };

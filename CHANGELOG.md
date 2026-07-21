@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-21 (pt47) — WS-7: Looking-For funnel instrumentation (cookieless; verified live end-to-end).
+
+Nothing measured Wielo's OWN funnel — `website_analytics_events` instruments host micro-sites only — so
+"what fraction of landers post a request" and "what does a request cost in ad spend" were unanswerable.
+WS-7 adds the minimum needed to decide guest ad spend. All green (build, lint, 381 tests incl. 18 new).
+
+- **`funnel_events` (`20260721120000`):** append-only, cookieless, **no PII** — `session_id` is a
+  daily-rotating sha256 of ip+ua+funnel+UTC-day, same shape as the host-site beacon. Columns: funnel,
+  event, step, session_id, post_id, is_lead, device, country, referrer_host. RLS: super-admin read only;
+  writes are service_role. Events are CHECK-constrained to the six the funnel defines.
+- **Beacon `/api/funnel-track`** — mirrors `/api/site-track`: honours DNT, always 204, never throws.
+  Accepts **only the browser-side events**; `account_created` and `published` are recorded server-side in
+  the publish path so a forged beacon cannot inflate the conversion numbers ad spend is judged on.
+- **Wired:** `landing_view` on `/looking-for/start`; `wizard_start` / `step_complete` / `review_reached`
+  in `RequestForm` (create mode only, **forward progress only**, deduped by furthest step reached, with a
+  ref guard so a React StrictMode remount can't double-count the funnel's denominator);
+  `account_created` + `published` in `createRequestPublic` (lead path) and `createRequestAction` (authed),
+  both using the same session-hash formula so a publish joins the steps that visitor walked.
+- **Admin read-out** `/admin/platform/looking-for/funnel` (new "LF funnel" sidebar item, `platform.settings`):
+  acquisition band with landing→start→review→published ratios, a per-step drop-off chart, and the launch
+  gate — share of posted requests with **2+ quotes inside 24h** (70% target) plus median time to first
+  quote. Quote metrics are derived from `looking_for_posts` vs `looking_for_responses`, not from events, so
+  they stay correct for requests posted before instrumentation existed.
+- **Verified live:** walked the whole signed-out funnel in a browser — landing → wizard → steps → review →
+  publish — and every event landed under **one session hash**, with `is_lead=true` and `post_id` set on the
+  publish row; the admin page rendered the real counts and ratios and the range switcher works. The
+  step-dedupe was proven by clicking backwards and re-entering steps (no double counts).
+  The 24h-quote maths has no live data to exercise (zero quote rows exist platform-wide), so it was
+  extracted into a pure `summariseQuoteLatency` with **9 tests** covering the 24h boundary, out-of-order
+  and pre-publish timestamps, and cross-request bleed. Dev-run rows were deleted afterwards so the
+  founder's instrumentation starts from zero.
+
+---
+
 ## 2026-07-21 (pt46) — WS-6b: signed affiliate agreement (immutable per-partner record; verified live).
 
 A partner "signing" the affiliate agreement previously left one mutable trace — `terms_version` +

@@ -3341,6 +3341,56 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device: string | null
+          event: string
+          funnel: string
+          id: string
+          is_lead: boolean | null
+          post_id: string | null
+          referrer_host: string | null
+          session_id: string | null
+          step: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event: string
+          funnel?: string
+          id?: string
+          is_lead?: boolean | null
+          post_id?: string | null
+          referrer_host?: string | null
+          session_id?: string | null
+          step?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          funnel?: string
+          id?: string
+          is_lead?: boolean | null
+          post_id?: string | null
+          referrer_host?: string | null
+          session_id?: string | null
+          step?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           base_currency: string

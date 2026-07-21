@@ -155,6 +155,12 @@ const PLATFORM: GmailNavItem[] = [
     href: "/admin/platform/looking-for",
     label: "Looking-For reqs",
     icon: ListChecks,
+    match: "exact",
+  },
+  {
+    href: "/admin/platform/looking-for/funnel",
+    label: "LF funnel",
+    icon: Activity,
     match: "prefix",
   },
   {
@@ -212,6 +218,7 @@ const NAV_PERM: Record<string, string> = {
   "/admin/platform/deal-categories": "platform.settings",
   "/admin/platform/amenities": "platform.settings",
   "/admin/platform/looking-for": "platform.settings",
+  "/admin/platform/looking-for/funnel": "platform.settings",
   "/admin/platform/staff": "platform.staff",
   "/admin/audit": "audit.view",
 };

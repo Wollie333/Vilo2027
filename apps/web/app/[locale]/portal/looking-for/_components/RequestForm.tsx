@@ -19,10 +19,18 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
+import { trackFunnel } from "@/components/funnel/FunnelTracker";
 import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
 import {
   LocationPicker,
@@ -204,6 +212,25 @@ export function RequestForm({
   const [honeypot, setHoneypot] = useState("");
   const [section, setSection] = useState<SectionKey>("basics");
   const sectionIdx = SECTIONS.findIndex((s) => s.key === section);
+
+  // WS-7 — funnel instrumentation. Create mode only (editing an existing request
+  // is not the acquisition funnel), and FORWARD progress only, deduped by the
+  // furthest step reached — so pacing back and forth cannot inflate the
+  // step-completion counts the ad spend is judged on.
+  const funnelStarted = useRef(false);
+  const furthestIdx = useRef(0);
+  useEffect(() => {
+    if (mode !== "create") return;
+    if (!funnelStarted.current) {
+      funnelStarted.current = true;
+      trackFunnel("wizard_start");
+      return;
+    }
+    if (sectionIdx <= furthestIdx.current) return;
+    trackFunnel("step_complete", SECTIONS[furthestIdx.current].key);
+    furthestIdx.current = sectionIdx;
+    if (section === "review") trackFunnel("review_reached");
+  }, [mode, section, sectionIdx]);
 
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
