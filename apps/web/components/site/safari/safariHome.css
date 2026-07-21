@@ -271,11 +271,15 @@
 }
 
 /* -- availability bar ---------------------------------------------------- */
+/* Float the search card up so it straddles the hero's lower edge (like the resort
+   themes) instead of sitting as a flat cream band below it. The BookingSearchSection
+   card (`.siteab-in`) carries its own surface bg + hairline + shadow, so the wrapper
+   needs no background — just the negative pull + a stacking context above the hero.
+   Overlap eases off on narrow screens (the card stacks taller there). */
 .sfhome .sf-availbar {
   position: relative;
   z-index: 3;
-  background: var(--site-surface, #fbf6ec);
-  border-bottom: 1px solid var(--site-line, #dbcfb8);
+  margin-top: clamp(-92px, -6.5vw, -40px);
 }
 
 /* ======================================================================
