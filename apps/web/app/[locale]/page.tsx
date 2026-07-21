@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { AppNewsletter } from "@/app/_components/home/AppNewsletter";
-import { BrowseByType } from "@/app/_components/home/BrowseByType";
 import { CategoryChips } from "@/app/_components/home/CategoryChips";
 import { DealsBanner } from "@/app/_components/home/DealsBanner";
 import { FeaturedListings } from "@/app/_components/home/FeaturedListings";
@@ -13,12 +11,17 @@ import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { TrendingDestinations } from "@/app/_components/home/TrendingDestinations";
 import { TrustPillars } from "@/app/_components/home/TrustPillars";
 import { getHomeData } from "@/app/_components/home/home-data";
+import { listedRegionPhrase } from "@/lib/geo/regionPhrase";
 
-export const metadata: Metadata = {
-  title: "South Africa's direct booking directory",
-  description:
-    "From a cottage in the Karoo to a lodge in the Drakensberg — every booking goes straight to the host. No middle-man, no booking fees, no fine print.",
-};
+/** Region wording follows the countries that actually have listings, so the
+ *  directory never claims a footprint it doesn't have — or hides one it does. */
+export async function generateMetadata(): Promise<Metadata> {
+  const region = await listedRegionPhrase();
+  return {
+    title: `Direct booking directory ${region.scope}`,
+    description: `Book verified stays ${region.scope} straight with the host. No middle-man, no booking fees, no fine print.`,
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -30,13 +33,11 @@ export default async function HomePage() {
       <SiteHeader />
       <Hero stats={data.stats} popularCities={data.popularCities} />
       <CategoryChips chips={data.chips} />
-      <TrendingDestinations destinations={data.destinations} />
       <FeaturedListings listings={data.featured} totalStays={data.totalStays} />
-      <TrustPillars />
-      <BrowseByType types={data.browseTypes} />
+      <TrendingDestinations destinations={data.destinations} />
       <DealsBanner />
+      <TrustPillars />
       <RecentReviews reviews={data.reviews} />
-      <AppNewsletter />
       <HostCTA />
       <SiteFooter />
     </div>

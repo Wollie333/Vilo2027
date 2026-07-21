@@ -1,9 +1,7 @@
 import { getBrandName } from "@/lib/brand";
-import { formatMoney } from "@/lib/format";
 import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
-import type { CategoryNode } from "@/lib/taxonomy/types";
 
 // ── Shared shapes the home sections render ────────────────────────────────
 
@@ -50,13 +48,6 @@ export type HomeChip = {
   icon: string;
 };
 
-export type HomeTypeCard = {
-  title: string;
-  meta: string;
-  href: string;
-  image: string | null;
-};
-
 export type HomeData = {
   featured: HomeListingCard[];
   totalStays: number;
@@ -65,7 +56,6 @@ export type HomeData = {
   reviews: HomeReview[];
   stats: HomeStats;
   chips: HomeChip[];
-  browseTypes: HomeTypeCard[];
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -224,11 +214,11 @@ export async function getHomeData(): Promise<HomeData> {
         .order("avg_rating", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(8),
-      // Aggregation pool — destinations, provinces, hosts, category rollup.
+      // Aggregation pool — destinations, provinces, hosts.
       supabase
         .from("properties")
         .select(
-          "city, province, category_id, base_price, vat_number, vat_rate, currency, booking_mode, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
+          "city, province, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order )",
         )
         .eq("is_published", true)
         .eq("property_type", "accommodation")
@@ -264,49 +254,16 @@ export async function getHomeData(): Promise<HomeData> {
   ].slice(0, 8);
   const featured = featuredPool.map(toListingCard);
 
-  // ── Destinations / provinces / hosts / categories (one pass) ─────────────
+  // ── Destinations / provinces / hosts (one pass) ──────────────────────────
   type AggRow = {
     city: string | null;
     province: string | null;
-    category_id: string | null;
-    base_price: number | null;
-    vat_number: string | null;
-    vat_rate: number | string | null;
-    currency: string;
-    booking_mode: string | null;
     host: { display_name: string } | null;
     photos: PhotoRow[] | null;
-    property_rooms: RoomRow[] | null;
   };
   const aggRows = (aggRes.data ?? []) as unknown as AggRow[];
 
-  // Map every category id (leaf incl. descendants) to its top-level "type"
-  // bucket so a listing categorised at any depth rolls up to the type card.
   const tree = await treePromise;
-  const idToBucket = new Map<string, string>(); // category_id -> bucket slug
-  const buckets = new Map<
-    string,
-    { label: string; image: string | null; count: number; from: number | null }
-  >();
-  const collectIds = (node: CategoryNode): string[] => [
-    node.id,
-    ...node.children.flatMap(collectIds),
-  ];
-  // Buckets are the leaf categories under each accommodation root (mirrors the
-  // explore type chips); fall back to roots if a root has no children.
-  for (const root of tree.accommodation) {
-    const leaves = root.children.length > 0 ? root.children : [root];
-    for (const leaf of leaves) {
-      buckets.set(leaf.slug, {
-        label: leaf.label,
-        image: leaf.hero_image_url,
-        count: 0,
-        from: null,
-      });
-      for (const id of collectIds(leaf)) idToBucket.set(id, leaf.slug);
-    }
-  }
-
   const cityMap = new Map<string, { count: number; image: string | null }>();
   const provinces = new Set<string>();
   const hosts = new Set<string>();
@@ -320,33 +277,7 @@ export async function getHomeData(): Promise<HomeData> {
       if (!entry.image) entry.image = heroPhoto(row.photos);
       cityMap.set(city, entry);
     }
-    // Category rollup.
-    const bucketSlug = row.category_id
-      ? idToBucket.get(row.category_id)
-      : undefined;
-    if (bucketSlug) {
-      const b = buckets.get(bucketSlug)!;
-      b.count += 1;
-      if (!b.image) b.image = heroPhoto(row.photos);
-      const amount = listingAmount(row);
-      if (amount != null && (b.from == null || amount < b.from))
-        b.from = amount;
-    }
   }
-
-  const browseTypes: HomeTypeCard[] = [...buckets.entries()]
-    .filter(([, b]) => b.count > 0)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 6)
-    .map(([slug, b]) => ({
-      title: b.label,
-      meta:
-        b.from != null
-          ? `${b.count} ${b.count === 1 ? "stay" : "stays"} from ${formatMoney(b.from, "ZAR")}`
-          : `${b.count} ${b.count === 1 ? "stay" : "stays"}`,
-      href: `/c/${slug}`,
-      image: b.image,
-    }));
 
   // Chips — every leaf category, newest-rooted order, linking into /explore.
   const chips: HomeChip[] = [
@@ -409,6 +340,5 @@ export async function getHomeData(): Promise<HomeData> {
     reviews,
     stats,
     chips,
-    browseTypes,
   };
 }

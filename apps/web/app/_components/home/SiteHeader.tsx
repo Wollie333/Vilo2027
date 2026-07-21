@@ -146,8 +146,9 @@ export function SiteHeader() {
             </div>
           </Link>
 
-          <button
-            type="button"
+          {/* Condensed search — a real link into /explore, not a dead control. */}
+          <Link
+            href="/explore"
             aria-label="Search stays"
             className={`hidden items-center gap-2 rounded-pill border border-brand-line bg-white py-1.5 pl-4 pr-1.5 text-sm text-brand-mute transition-shadow hover:shadow-card md:flex ${
               elevated ? "opacity-100" : "pointer-events-none opacity-0"
@@ -163,7 +164,7 @@ export function SiteHeader() {
             <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
               <Search className="h-4 w-4" />
             </span>
-          </button>
+          </Link>
 
           <nav className="ml-auto hidden items-center gap-6 text-sm text-brand-mute lg:flex">
             {NAV.map((item) => (

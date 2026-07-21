@@ -9,12 +9,12 @@ import { Link } from "@/i18n/navigation";
 
 import { VLogo } from "./VLogo";
 
+// Real destinations only — the anchors these used to point at are conditional
+// (or gone), and "#" links to features that don't exist read as filler.
 const EXPLORE = [
-  { href: "#destinations", key: "exploreDestinations" },
-  { href: "#types", key: "explorePropertyTypes" },
-  { href: "#deals", key: "exploreDeals" },
-  { href: "#", key: "exploreGroupStays" },
-  { href: "#", key: "exploreGiftCards" },
+  { href: "/explore", key: "exploreDestinations" },
+  { href: "/explore", key: "explorePropertyTypes" },
+  { href: "/deals", key: "exploreDeals" },
 ] as const;
 
 const GUESTS = [
@@ -58,19 +58,19 @@ export async function SiteFooter() {
     arr.map((l) => ({ href: l.href, label: t(l.key, { brand }) }));
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-12">
-          <div className="md:col-span-4">
+      <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-12 md:gap-10">
+          <div className="col-span-2 md:col-span-4">
             <div className="flex items-center gap-2.5">
               <VLogo size={32} gradientId="home-footer-logo" />
               <span className="font-display text-[17px] font-bold tracking-tight text-white">
                 {brand}
               </span>
             </div>
-            <p className="mt-5 max-w-xs text-sm leading-relaxed">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed">
               {t("tagline")}
             </p>
-            <div className="mt-6 flex items-center gap-3">
+            <div className="mt-5 flex items-center gap-3">
               <a
                 href="#"
                 aria-label="Instagram"
@@ -125,7 +125,7 @@ export async function SiteFooter() {
           <FooterColumn title={t("colCompany")} links={toLinks(COMPANY)} />
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
           <div>
             © {year} {companyName} · {companyLocation}
           </div>

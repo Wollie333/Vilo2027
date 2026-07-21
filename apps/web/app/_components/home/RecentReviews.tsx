@@ -3,14 +3,18 @@ import { getTranslations } from "next-intl/server";
 
 import type { HomeReview } from "./home-data";
 
+/** Three real reviews fill the grid; one or two read as a half-built section, so
+ *  we'd rather show nothing than pad it out. Never filled with invented copy. */
+const MIN_REVIEWS = 3;
+
 export async function RecentReviews({ reviews }: { reviews: HomeReview[] }) {
-  if (reviews.length === 0) return null;
+  if (reviews.length < MIN_REVIEWS) return null;
   const t = await getTranslations("home");
 
   return (
     <section className="border-b border-brand-line bg-white">
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
-        <div className="mb-10 flex items-end justify-between gap-6">
+      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+        <div className="mb-6 flex items-end justify-between gap-6">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
               {t("reviewsEyebrow")}
@@ -21,9 +25,13 @@ export async function RecentReviews({ reviews }: { reviews: HomeReview[] }) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 lg:gap-5">
+        {/* Same swipeable rail as the listings grid on mobile. */}
+        <div className="hscroll -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:gap-5">
           {reviews.map((r, i) => (
-            <div key={i} className="rounded-card border border-brand-line p-6">
+            <div
+              key={i}
+              className="w-[85%] shrink-0 snap-start rounded-card border border-brand-line p-5 md:w-auto md:p-6"
+            >
               <div className="mb-3 flex items-center gap-0.5 text-amber-400">
                 {[0, 1, 2, 3, 4].map((s) => (
                   <Star key={s} className="h-4 w-4 fill-current" />

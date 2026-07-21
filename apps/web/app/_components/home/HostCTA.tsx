@@ -20,7 +20,7 @@ export async function HostCTA() {
           backgroundSize: "22px 22px",
         }}
       />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 py-14 lg:grid-cols-12 lg:px-8 lg:py-16">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-6 px-5 py-10 lg:grid-cols-12 lg:px-8 lg:py-14">
         <div className="lg:col-span-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
             {t("hostEyebrow")}

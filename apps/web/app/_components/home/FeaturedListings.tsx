@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, MapPin, Star, Zap } from "lucide-react";
+import { ArrowRight, MapPin, Star, Zap } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
@@ -21,8 +21,8 @@ export async function FeaturedListings({
 
   return (
     <section id="deals" className="border-b border-brand-line bg-white">
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
-        <div className="mb-8 flex items-end justify-between gap-6">
+      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+        <div className="mb-6 flex items-end justify-between gap-6">
           <div className="max-w-xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
               {t("featuredEyebrow")}
@@ -30,34 +30,20 @@ export async function FeaturedListings({
             <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
               {t("featuredTitle")}
             </h2>
-            <p className="mt-3 max-w-lg text-sm leading-relaxed text-brand-mute md:text-base">
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-brand-mute md:text-base">
               {t("featuredBody")}
             </p>
           </div>
-          <div className="hidden shrink-0 items-center gap-2 md:flex">
-            <button
-              type="button"
-              aria-label={t("featuredPrev")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-line text-brand-ink hover:bg-brand-accent"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={t("featuredNext")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-line text-brand-ink hover:bg-brand-accent"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        {/* Mobile: a swipeable rail, so four stacked cards don't push the rest
+            of the page below the fold. Grid from the small breakpoint up. */}
+        <div className="hscroll -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4 lg:gap-6">
           {listings.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="group overflow-hidden rounded-card"
+              className="group w-[78%] shrink-0 snap-start overflow-hidden rounded-card sm:w-auto"
             >
               <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-brand-accent">
                 {l.image ? (
@@ -136,7 +122,7 @@ export async function FeaturedListings({
           ))}
         </div>
 
-        <div className="mt-10 flex justify-center">
+        <div className="mt-8 flex justify-center">
           <Link
             href="/explore"
             className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-5 py-3 font-medium text-brand-ink transition-colors hover:bg-brand-accent"

@@ -5,18 +5,23 @@ import { Link } from "@/i18n/navigation";
 
 import type { HomeDestination } from "./home-data";
 
+/** A destinations rail only reads as a rail when it fills its row. Below a full
+ *  six-card grid the towns are already covered by the hero's "Popular:" links,
+ *  so the section hides itself rather than padding a half-empty grid. */
+const MIN_DESTINATIONS = 6;
+
 export async function TrendingDestinations({
   destinations,
 }: {
   destinations: HomeDestination[];
 }) {
-  if (destinations.length === 0) return null;
+  if (destinations.length < MIN_DESTINATIONS) return null;
   const t = await getTranslations("home");
 
   return (
     <section id="destinations" className="border-b border-brand-line">
-      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
-        <div className="mb-8 flex items-end justify-between gap-6">
+      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+        <div className="mb-6 flex items-end justify-between gap-6">
           <div className="max-w-xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
               {t("destEyebrow")}
