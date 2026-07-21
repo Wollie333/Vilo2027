@@ -729,6 +729,23 @@ section[id^="sec-"] {
   outline-offset: 2px;
 }
 
+/* Placeholder legibility for tenant micro-sites (every theme). Without this,
+   fields fall back to the browser-default grey placeholder — fine on the light
+   themes but near-invisible on the DARK theme (Sabela/hotel), where the field
+   sits on an ebony surface. Pin every field's placeholder to the active theme's
+   `--site-mute` token at full opacity: `--site-mute` is each theme's "muted but
+   legible" foreground (a dark tone on light themes, a light tone on the dark
+   theme), so it always contrasts the field surface. `opacity:1` also overrides
+   Firefox's default placeholder opacity. Themes with their own placeholder rule
+   (e.g. Sabela contact) keep it — those are aligned to full opacity too. */
+.wielo-site-root input::placeholder,
+.wielo-site-root textarea::placeholder {
+  /* `--site-placeholder` lets a field on an atypical surface (e.g. a newsletter
+     input over a dark photo) override the tone; otherwise use the theme mute. */
+  color: var(--site-placeholder, var(--site-mute, #6b7280));
+  opacity: 1;
+}
+
 /* Sticky booking / summary card — the SINGLE rule shared by every right-hand card
    on a website's booking surfaces (checkout Summary + room-detail booking dock),
    so they behave IDENTICALLY: from desktop up they follow the scroll, clear the

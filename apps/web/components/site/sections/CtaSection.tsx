@@ -133,6 +133,11 @@ export function CtaSection({ props }: { props: Props }) {
                   : "var(--site-bg)",
                 border: `1px solid ${onImage ? "rgba(255,255,255,0.32)" : "var(--site-line)"}`,
                 color: onImage ? "#ffffff" : "var(--site-ink)",
+                // On a photo the field is dark: use a translucent-white placeholder
+                // so it reads (the theme --site-mute would be dark-on-dark here).
+                ...(onImage
+                  ? { "--site-placeholder": "rgba(255,255,255,0.72)" }
+                  : {}),
                 borderRadius: "var(--site-radius)",
               }}
               className="w-full px-4 py-3 text-sm outline-none"

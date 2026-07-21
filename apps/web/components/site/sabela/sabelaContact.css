@@ -247,11 +247,13 @@
   line-height: 1.6;
   resize: vertical;
 }
-/* muted-but-visible placeholder — never invisible on the dark field */
+/* muted-but-visible placeholder — never invisible on the dark field. Full
+   opacity: at 0.75 the muted tan on ebony fell to ~4.2:1 (under AA); at 1 it's
+   ~6.5:1 and reads clearly. */
 .sbcontact .field input::placeholder,
 .sbcontact .field textarea::placeholder {
   color: var(--site-mute, #a99b7f);
-  opacity: 0.75;
+  opacity: 1;
 }
 .sbcontact .field select {
   appearance: none;
