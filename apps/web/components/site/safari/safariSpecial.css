@@ -268,7 +268,10 @@
  * ==================================================================== */
 .sfspecial .sf-aside {
   position: sticky;
-  top: 96px;
+  /* Clear the 84px fixed site header with comfortable breathing room so the card
+     never tucks under it as it sticks; it still travels to the bottom of the
+     .sf-layout section on scroll. */
+  top: 112px;
 }
 .sfspecial .sf-bkcard {
   padding: clamp(24px, 3vw, 32px);
