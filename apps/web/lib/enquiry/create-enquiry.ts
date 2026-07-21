@@ -1,6 +1,9 @@
+import { headers } from "next/headers";
 import { z } from "zod";
 
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { isSelfRecipient } from "@/lib/host/self";
 import type { StayPricingResult } from "@/lib/pricing/quote";
@@ -124,6 +127,23 @@ export async function createEnquiry(
   // server-side caller decision, never client-supplied.
   opts?: { source?: string },
 ): Promise<RequestQuoteResult> {
+  // Anonymous, creates an account and sends mail on every call — so it needs a
+  // ceiling. Deliberately generous: South African mobile carriers put large
+  // numbers of users behind shared NAT addresses, so a tight per-IP limit would
+  // block real guests long before it inconvenienced a script. Fails open.
+  const rate = await checkRateLimit(
+    clientIpFromHeaders(headers()),
+    "enquiry",
+    20,
+    60,
+  );
+  if (!rate.ok) {
+    return {
+      ok: false,
+      error: "Too many requests from this network. Please try again later.",
+    };
+  }
+
   const parsed = guestQuoteRequestSchema.safeParse(input);
   if (!parsed.success) {
     return {

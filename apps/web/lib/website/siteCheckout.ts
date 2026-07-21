@@ -1,6 +1,10 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { z } from "zod";
+
+import { checkRateLimit } from "@/lib/auth/rateLimit";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 
 import {
   computeAddonSubtotal,
@@ -169,10 +173,40 @@ const siteBookingExtraSchema = z.object({
  * the shared booking core — so the on-site charge is priced and persisted exactly
  * like the app checkout. Returns the payment redirect target.
  */
+/**
+ * Ceiling on anonymous booking creation.
+ *
+ * Set HIGH on purpose. This is the revenue path, and South African mobile
+ * networks put very large numbers of real guests behind shared NAT addresses —
+ * ~95% of bookings arrive on mobile. A limit tuned to punish a script would
+ * silently cost real bookings from a whole carrier, which is a far worse outcome
+ * than the abuse it prevents. This stops runaway automation, nothing subtler,
+ * and (like every other limit here) fails OPEN.
+ */
+async function bookingRateLimit(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const rate = await checkRateLimit(
+    clientIpFromHeaders(headers()),
+    "site-booking",
+    40,
+    60,
+  );
+  if (rate.ok) return { ok: true };
+  return {
+    ok: false,
+    error:
+      "Too many booking attempts from this network. Please try again shortly.",
+  };
+}
+
 export async function createSiteBooking(
   body: unknown,
   ctx: { origin: string },
 ): Promise<CreateBookingCoreResult> {
+  const rate = await bookingRateLimit();
+  if (!rate.ok) return rate;
+
   const extra = siteBookingExtraSchema.safeParse(body);
   if (!extra.success) {
     return {
@@ -323,6 +357,9 @@ export async function createSiteSpecialBooking(
   body: unknown,
   ctx: { origin: string },
 ): Promise<CreateBookingCoreResult> {
+  const rate = await bookingRateLimit();
+  if (!rate.ok) return rate;
+
   const parsed = siteSpecialSchema.safeParse(body);
   if (!parsed.success) {
     return {

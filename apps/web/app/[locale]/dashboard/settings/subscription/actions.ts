@@ -82,15 +82,21 @@ function addMonths(date: Date, months: number): Date {
 }
 
 /**
- * Switch the current host's subscription to a different plan.
+ * Write the host's subscription onto a different plan.
  *
- * Pre-MVP: this records the state change only — no Paystack/PayPal call is
- * made. When real billing connects this is the place to initialise the
- * provider subscription and only flip status to 'trialing'/'active' on the
- * webhook callback. Until then the audit trail is enough to exercise the
- * gates.
+ * DELIBERATELY NOT EXPORTED. Every exported function in a "use server" module
+ * becomes an HTTP endpoint that any signed-in user can POST to directly — and
+ * this one grants a plan without taking a cent, because deciding whether money
+ * is owed is startPlanCheckoutAction's job, not this one's. Exported, it was a
+ * "give me the paid tier for free" button that no UI called but anyone could
+ * press.
+ *
+ * Callers must route through startPlanCheckoutAction (or switchToProductAction),
+ * which establish that a charge is either not due or already collected. If this
+ * ever needs to be reachable on its own, it needs its own payment check first —
+ * do not simply re-export it.
  */
-export async function switchPlanAction(input: {
+async function switchPlan(input: {
   plan: string;
   cycle: "monthly" | "annual" | null;
 }): Promise<ActionResult> {
@@ -232,7 +238,7 @@ export async function startPlanCheckoutAction(input: {
   }
   if (planDef.isFree) {
     // Free plans never charge — fall back to the normal switch.
-    return switchPlanAction({ plan: input.plan, cycle: null });
+    return switchPlan({ plan: input.plan, cycle: null });
   }
 
   const host = await getMyHostId();
@@ -254,7 +260,7 @@ export async function startPlanCheckoutAction(input: {
 
   // Trial start (no charge) or billing not wired yet → state-only switch.
   if (trialEligible || !(await isPlatformBillingConfigured())) {
-    return switchPlanAction({ plan: input.plan, cycle: input.cycle });
+    return switchPlan({ plan: input.plan, cycle: input.cycle });
   }
 
   // A charge is due now → Paystack checkout (platform key).

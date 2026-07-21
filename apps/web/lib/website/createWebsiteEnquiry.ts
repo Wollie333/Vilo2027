@@ -1,6 +1,9 @@
+import { headers } from "next/headers";
 import { z } from "zod";
 
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { isSelfRecipient } from "@/lib/host/self";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -44,6 +47,21 @@ const esc = (s: string) =>
 export async function createWebsiteEnquiry(
   input: unknown,
 ): Promise<WebsiteEnquiryResult> {
+  // Public contact form on every host website — anonymous, creates a lead and
+  // notifies the host. Generous ceiling (shared mobile NAT); fails open.
+  const rate = await checkRateLimit(
+    clientIpFromHeaders(headers()),
+    "site-enquiry",
+    20,
+    60,
+  );
+  if (!rate.ok) {
+    return {
+      ok: false,
+      error: "Too many messages from this network. Please try again later.",
+    };
+  }
+
   const parsed = websiteEnquirySchema.safeParse(input);
   if (!parsed.success) {
     return {

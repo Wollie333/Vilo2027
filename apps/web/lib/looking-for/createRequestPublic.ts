@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { getConsentVersion } from "@/lib/auth/consent";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import {
   countryFromHeaders,
   deviceFromUa,
@@ -91,6 +93,21 @@ export type CreateRequestPublicResult =
 export async function createRequestPublic(
   input: unknown,
 ): Promise<CreateRequestPublicResult> {
+  // Anonymous account creation + email. Generous ceiling: SA mobile carriers
+  // share NAT addresses across many real users. Fails open.
+  const rate = await checkRateLimit(
+    clientIpFromHeaders(headers()),
+    "lf-request",
+    15,
+    60,
+  );
+  if (!rate.ok) {
+    return {
+      ok: false,
+      error: "Too many requests from this network. Please try again later.",
+    };
+  }
+
   const parsed = publicRequestSchema.safeParse(input);
   if (!parsed.success) {
     return {
