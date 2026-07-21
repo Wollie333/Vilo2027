@@ -1,5 +1,9 @@
 # 🧭 Wizard → Professional Working Website — Implementation Plan (resume pointer)
 
+> **⏩ 2026-07-21: newest state is in `SAVEPOINT_2026-07-21.md` — READ THAT FIRST.** (Phases 1–4
+> done + a big polish/bugfix pass incl. the hydration fix; now testing the wizard end-to-end.)
+
+
 > **Created 2026-07-20.** Branch `feature/website-cms-10min-wizard`. Vercel auto-deploys on push.
 > **Founder goal:** a host **selects a theme → completes the wizard → ends up with a professional,
 > fully-functioning, MOBILE-READY business website that seamlessly integrates with the booking
