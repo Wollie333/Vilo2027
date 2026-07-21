@@ -177,20 +177,39 @@ export function CampaignsList({ campaigns }: { campaigns: Row[] }) {
                 >
                   {c.status}
                 </span>
-                <a
-                  href={`/competitions/${c.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={
-                    c.status === "active"
-                      ? "Open the public leaderboard in a new tab"
-                      : "Not live yet — visitors get a 404 until you launch"
-                  }
-                  className="inline-flex items-center gap-1 font-mono text-[12px] text-brand-mute hover:text-brand-primary hover:underline"
-                >
-                  /competitions/{c.slug}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+                {/* Public page on top, the partner signup link for the same
+                    competition directly beneath it — the two URLs that exist
+                    per campaign, always in the same order. */}
+                <span className="flex flex-col gap-0.5">
+                  <a
+                    href={`/competitions/${c.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={
+                      c.status === "active"
+                        ? "Open the public leaderboard in a new tab"
+                        : "Not live yet — visitors get a 404 until you launch"
+                    }
+                    className="inline-flex items-center gap-1 font-mono text-[12px] text-brand-mute hover:text-brand-primary hover:underline"
+                  >
+                    /competitions/{c.slug}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <a
+                    href={`/signup/partner/${c.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={
+                      c.status === "active"
+                        ? "Open this competition's partner signup page in a new tab"
+                        : "Works, but won't enter anyone in the race until you launch"
+                    }
+                    className="inline-flex items-center gap-1 font-mono text-[12px] text-brand-mute hover:text-brand-primary hover:underline"
+                  >
+                    /signup/partner/{c.slug}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </span>
                 <span className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] text-brand-mute">
                   <Users className="h-3.5 w-3.5" />
                   {c.capacity != null ? (

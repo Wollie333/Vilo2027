@@ -293,6 +293,19 @@ export default async function AdminCampaignPage({
               : "Preview public page (404 until launched)"}
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
+          {/* The link you send to recruit partners into THIS race. Always
+              works — a draft campaign just signs them up without entering. */}
+          <a
+            href={`/signup/partner/${campaign.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-primary hover:underline"
+          >
+            {campaign.status === "active"
+              ? "Open partner signup link"
+              : "Preview partner signup (no race entry yet)"}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
       </header>
 

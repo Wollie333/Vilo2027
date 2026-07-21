@@ -2,6 +2,8 @@
 
 import {
   AlertTriangle,
+  Check,
+  Copy,
   ExternalLink,
   Pause,
   Play,
@@ -129,6 +131,22 @@ export function CampaignBuilder({
   const [prizes, setPrizes] = useState<Prize[]>(comp.prizes ?? []);
 
   const isLive = status === "active";
+
+  // The signup link is meant to be SENT to people, so copy it as an absolute
+  // URL — a bare /signup/partner/x is useless once pasted into WhatsApp.
+  const [copiedSignup, setCopiedSignup] = useState(false);
+  async function copySignupLink(s: string) {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/signup/partner/${s}`,
+      );
+      setCopiedSignup(true);
+      toast.success("Signup link copied");
+      setTimeout(() => setCopiedSignup(false), 1500);
+    } catch {
+      toast.error("Couldn't copy — copy it from the link instead.");
+    }
+  }
 
   function buildInput(nextStatus = status): CampaignInput {
     return {
@@ -318,6 +336,41 @@ export function CampaignBuilder({
                   · visitors get a 404 until you launch
                 </span>
               )}
+            </span>
+            {/* The partner signup link for THIS competition — the one you
+                actually send to people you want in the race. Unlike the public
+                page it never 404s: while the campaign is a draft it still
+                renders, just as ordinary partner signup with no race entry. */}
+            <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
+              <a
+                href={`/signup/partner/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+              >
+                /signup/partner/{slug || "…"}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              <button
+                type="button"
+                onClick={() => copySignupLink(slug)}
+                className="inline-flex items-center gap-1 font-medium text-brand-mute hover:text-brand-primary hover:underline"
+              >
+                {copiedSignup ? (
+                  <>
+                    <Check className="h-3 w-3" /> copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" /> copy
+                  </>
+                )}
+              </button>
+              <span>
+                {isLive
+                  ? "· signup link — enters them in this race"
+                  : "· works, but won't enter anyone until you launch"}
+              </span>
             </span>
           </label>
           <label className="block">
