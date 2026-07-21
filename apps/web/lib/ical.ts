@@ -92,7 +92,12 @@ export function buildIcalFeed({
   for (const ev of events) {
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${ev.uid}@wieloplatform.com`,
+      // Deliberately a fixed literal, NOT SITE_DOMAIN from lib/contact: an iCal
+      // UID must stay stable for the life of the event. If this followed
+      // NEXT_PUBLIC_SITE_URL, changing that env var would re-issue every UID and
+      // the subscribing calendar (Airbnb, Booking.com, Google) would treat every
+      // existing booking as a brand-new event. Never make this dynamic.
+      `UID:${ev.uid}@wielo.co.za`,
       `DTSTAMP:${now}`,
       `SUMMARY:${escapeText(ev.summary)}`,
       `DTSTART;VALUE=DATE:${isoDateToCompact(ev.startDate)}`,

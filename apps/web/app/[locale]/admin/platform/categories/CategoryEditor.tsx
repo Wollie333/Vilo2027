@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { SITE_URL } from "@/lib/contact";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import type { CategoryKind, ListingCategoryRow } from "@/lib/taxonomy/types";
 
@@ -265,7 +266,7 @@ export function CategoryEditor({
             <input
               value={state.canonicalUrl}
               onChange={(e) => update("canonicalUrl", e.target.value)}
-              placeholder="https://wieloplatform.com/c/villa"
+              placeholder={`${SITE_URL}/c/villa`}
               className="input"
             />
           </Field>

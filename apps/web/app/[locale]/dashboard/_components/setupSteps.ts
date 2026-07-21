@@ -1,3 +1,4 @@
+import { SITE_DOMAIN } from "@/lib/contact";
 import type { GettingStartedState } from "@/lib/help/queries";
 
 export type SetupStepKey =
@@ -77,8 +78,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
     {
       key: "listing_published",
       title: "Publish your booking page",
-      description:
-        "Share wieloplatform.com/your-handle anywhere — Instagram bio, WhatsApp, email signature.",
+      description: `Share ${SITE_DOMAIN}/your-handle anywhere — Instagram bio, WhatsApp, email signature.`,
       meta: state.listing_published.meta,
       done: state.listing_published.done,
       href: "/dashboard/setup?step=review",

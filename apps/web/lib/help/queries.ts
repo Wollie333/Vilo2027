@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -417,7 +418,7 @@ export async function fetchGettingStartedState(
       meta:
         publishedCount > 0
           ? `${publishedCount} listing${publishedCount === 1 ? "" : "s"} live`
-          : "Share wieloplatform.com/your-handle",
+          : `Share ${SITE_DOMAIN}/your-handle`,
     };
 
     if (listingIds.length > 0) {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
+import { LEGAL_EMAIL } from "@/lib/contact";
 import { getLegalDocument } from "@/lib/legal";
 
 import {
@@ -95,7 +96,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "14. Contact",
-    body: "For questions about these Terms, contact legal@wieloplatform.com.",
+    body: `For questions about these Terms, contact ${LEGAL_EMAIL}.`,
   },
 ];
 
@@ -110,7 +111,7 @@ export default async function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      lastUpdated={LAST_UPDATED}
+      lastUpdated={doc.updatedAt ?? LAST_UPDATED}
       bodyHtml={doc.html}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />

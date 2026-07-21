@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 
 import type { SetupStep } from "./setupSteps";
@@ -124,7 +125,7 @@ export async function SetupSidePanel({
             </div>
             <p className="mt-0.5 text-[12px] leading-relaxed text-brand-mute">
               <span className="font-mono text-brand-ink">
-                wieloplatform.com/{handle}
+                {SITE_DOMAIN}/{handle}
               </span>{" "}
               is yours. Change it from Settings before you publish.
             </p>

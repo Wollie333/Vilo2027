@@ -70,13 +70,13 @@ describe("buildIcalFeed (RFC 5545 export)", () => {
   it("emits compact all-day DTSTART/DTEND (end exclusive)", () => {
     expect(feed).toContain("DTSTART;VALUE=DATE:20990612");
     expect(feed).toContain("DTEND;VALUE=DATE:20990615");
-    expect(feed).toContain("UID:abc-123@wieloplatform.com");
+    expect(feed).toContain("UID:abc-123@wielo.co.za");
     expect(feed).toContain("SUMMARY:Booked");
   });
 
   it("never leaks guest PII — summary is exactly what we pass", () => {
     // Generic summaries only; the export builder has no access to guest data.
-    expect(feed).not.toMatch(/@(?!wieloplatform)/); // no guest emails
+    expect(feed).not.toMatch(/@(?!wielo\.co\.za)/); // no guest emails
     expect(feed.match(/SUMMARY:/g)).toHaveLength(1);
   });
 

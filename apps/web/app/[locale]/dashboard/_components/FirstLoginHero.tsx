@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Link2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 
 import { type SetupStep, setupProgress } from "./setupSteps";
@@ -67,7 +68,7 @@ export async function FirstLoginHero({ firstName, handle, steps }: Props) {
             <div className="mt-5 inline-flex items-center gap-2 rounded-[10px] border border-white/15 bg-black/20 px-3 py-2 text-[12px] backdrop-blur">
               <Link2 className="h-3.5 w-3.5 text-brand-primary" />
               <span className="font-mono text-brand-accent/70">
-                wieloplatform.com/
+                {SITE_DOMAIN}/
               </span>
               <span className="font-mono font-semibold text-white">
                 {handle}

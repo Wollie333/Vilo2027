@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getBrandName } from "@/lib/brand";
+import { PRIVACY_EMAIL } from "@/lib/contact";
 
 import {
   LegalPage,
@@ -56,7 +57,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "7. Contact",
-    body: "For questions about how we use cookies, contact privacy@wieloplatform.com.",
+    body: `For questions about how we use cookies, contact ${PRIVACY_EMAIL}.`,
   },
 ];
 

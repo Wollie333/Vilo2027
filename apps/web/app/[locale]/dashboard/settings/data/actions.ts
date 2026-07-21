@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { PRIVACY_EMAIL } from "@/lib/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { softDeleteUserAccount } from "@/lib/users/accountLifecycle";
@@ -204,8 +205,7 @@ export async function deleteAccountAction(input: {
   } catch {
     return {
       ok: false,
-      error:
-        "We hit a snag closing your account. Try again or email privacy@wieloplatform.com.",
+      error: `We hit a snag closing your account. Try again or email ${PRIVACY_EMAIL}.`,
     };
   }
 

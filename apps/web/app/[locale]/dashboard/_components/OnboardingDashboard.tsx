@@ -17,6 +17,7 @@ import {
   Star,
   UserRound,
 } from "lucide-react";
+import { SITE_DOMAIN } from "@/lib/contact";
 import { Link } from "@/i18n/navigation";
 
 import { type SetupStep, setupProgress } from "./setupSteps";
@@ -90,7 +91,7 @@ export function OnboardingDashboard({
               <div className="mt-5 inline-flex items-center gap-2 rounded-pill border border-brand-line bg-brand-light px-3.5 py-2 text-[12.5px]">
                 <LinkIcon className="h-3.5 w-3.5 text-brand-primary" />
                 <span className="font-mono text-brand-mute">
-                  wieloplatform.com/
+                  {SITE_DOMAIN}/
                 </span>
                 <span className="font-mono font-semibold text-brand-ink">
                   {handle}

@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL, SITE_URL } from "../../contact";
+
 import {
   firstName,
   formatDateLong,
@@ -215,7 +217,7 @@ const welcomeHostResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || SITE_URL;
 
 const listingPublishedHostResolver: EmailResolver = async (refs, ctx) => {
   const listingId = refId(refs, "property_id");
@@ -296,7 +298,7 @@ const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
   const host = await loadHostUser(ctx.supabase, hostId);
   return {
     hostFirstName: firstName(host?.user_full_name ?? host?.display_name),
-    supportEmail: "support@wieloplatform.com",
+    supportEmail: CONTACT_EMAIL,
   };
 };
 

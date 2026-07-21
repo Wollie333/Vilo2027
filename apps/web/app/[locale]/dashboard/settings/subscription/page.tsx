@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { getPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
@@ -384,10 +385,10 @@ export default async function SettingsSubscriptionPage() {
       <p className="text-[12px] text-brand-mute">
         Need a custom arrangement? Email{" "}
         <a
-          href="mailto:hello@wieloplatform.com"
+          href={`mailto:${CONTACT_EMAIL}`}
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          hello@wieloplatform.com
+          {CONTACT_EMAIL}
         </a>
         .
       </p>

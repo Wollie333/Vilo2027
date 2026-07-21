@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -70,8 +71,7 @@ export async function submitArticleSuggestion(input: {
   if (!user) {
     return {
       ok: false,
-      error:
-        "Sign in to submit a suggestion, or email it to hello@wieloplatform.com.",
+      error: `Sign in to submit a suggestion, or email it to ${CONTACT_EMAIL}.`,
     };
   }
 

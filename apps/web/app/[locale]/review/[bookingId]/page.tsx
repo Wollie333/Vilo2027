@@ -4,6 +4,7 @@ import { CheckCircle2, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { getBrandName } from "@/lib/brand";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
@@ -51,9 +52,9 @@ export default async function ReviewSubmissionPage({
           email, get in touch at{" "}
           <a
             className="text-brand-primary underline-offset-2 hover:underline"
-            href="mailto:hello@wieloplatform.com"
+            href={`mailto:${CONTACT_EMAIL}`}
           >
-            hello@wieloplatform.com
+            {CONTACT_EMAIL}
           </a>
           .
         </p>
@@ -86,9 +87,9 @@ export default async function ReviewSubmissionPage({
           contact{" "}
           <a
             className="text-brand-primary underline-offset-2 hover:underline"
-            href="mailto:hello@wieloplatform.com"
+            href={`mailto:${CONTACT_EMAIL}`}
           >
-            hello@wieloplatform.com
+            {CONTACT_EMAIL}
           </a>
           .
         </p>

@@ -1,15 +1,13 @@
 import "server-only";
 
+import { SITE_URL as CANONICAL_SITE_URL } from "@/lib/contact";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { buildReviewPath, buildReviewUrl } from "@/lib/review-token";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  process.env.NEXT_PUBLIC_APP_URL ??
-  "https://wieloplatform.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || CANONICAL_SITE_URL;
 
 // The stay happened (completed) AND money was collected at some point. A refund
 // issued after a real stay still counts — the guest is entitled to review.

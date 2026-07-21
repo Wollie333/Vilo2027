@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 
 type Feature = {
@@ -26,7 +27,7 @@ const FEATURES: Feature[] = [
       <>
         Your own URL —{" "}
         <span className="font-mono text-xs text-brand-dark">
-          wieloplatform.com/your-handle
+          {SITE_DOMAIN}/your-handle
         </span>
         . Photos, policies, instant book toggle.
       </>

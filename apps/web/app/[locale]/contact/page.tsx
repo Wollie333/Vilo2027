@@ -6,6 +6,7 @@ import {
   getCompanyLegalName,
   getCompanyLocation,
 } from "@/lib/brand";
+import { CONTACT_EMAIL, PRIVACY_EMAIL } from "@/lib/contact";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -27,19 +28,19 @@ const CONTACTS: Array<{
   {
     label: "Support",
     description: "Help with your account, booking, payment, or listing.",
-    email: "hello@wieloplatform.com",
+    email: CONTACT_EMAIL,
     icon: MessageSquare,
   },
   {
     label: "Privacy / POPIA",
     description: "Data subject requests, deletion, anything privacy.",
-    email: "privacy@wieloplatform.com",
+    email: PRIVACY_EMAIL,
     icon: Building2,
   },
   {
     label: "Press & partnerships",
     description: "Brand collabs, journalists, integration partners.",
-    email: "hello@wieloplatform.com",
+    email: CONTACT_EMAIL,
     icon: Mail,
   },
 ];

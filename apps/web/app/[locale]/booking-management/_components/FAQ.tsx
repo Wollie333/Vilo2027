@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 
 type Item = {
@@ -48,10 +49,10 @@ export async function FAQ() {
             <p className="mt-5 leading-relaxed text-brand-mute">
               Can&rsquo;t find what you&rsquo;re looking for? Email{" "}
               <a
-                href="mailto:hello@wieloplatform.com"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="text-brand-primary underline underline-offset-2"
               >
-                hello@wieloplatform.com
+                {CONTACT_EMAIL}
               </a>{" "}
               — a real person replies in under an hour.
             </p>

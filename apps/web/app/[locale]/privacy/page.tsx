@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
+import { PRIVACY_EMAIL } from "@/lib/contact";
 import { getLegalDocument } from "@/lib/legal";
 
 import {
@@ -39,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const LAST_UPDATED = "2026-05-23";
+const LAST_UPDATED = "2026-07-21";
 
 const SECTIONS: ReadonlyArray<LegalSectionData> = [
   {
@@ -60,7 +61,10 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "5. International transfers",
-    body: "Our primary database is hosted in the European Union (Frankfurt) and will be migrated to South Africa (Cape Town) before public launch. Cross-border transfers are conducted under appropriate safeguards as required by POPIA.",
+    // Kept deliberately factual: this section previously promised a migration to
+    // Cape Town "before public launch" that was dropped. The live database is in
+    // Frankfurt — see `supabase projects list`. Re-verify this before editing.
+    body: "Your personal information is stored outside South Africa. Our database and file storage are hosted in Frankfurt, Germany, and some of our service providers (payment, email, and infrastructure providers) process personal information in other countries. POPIA permits these cross-border transfers because the recipients are subject to laws or binding agreements that uphold principles of lawful processing substantially similar to POPIA, and our contracts with them require a comparable standard of protection.",
   },
   {
     heading: "6. Security",
@@ -80,7 +84,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "10. Contact",
-    body: "For privacy questions or to exercise your rights under POPIA, contact privacy@wieloplatform.com.",
+    body: `For privacy questions or to exercise your rights under POPIA, contact ${PRIVACY_EMAIL}.`,
   },
 ];
 
@@ -93,7 +97,7 @@ export default async function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      lastUpdated={LAST_UPDATED}
+      lastUpdated={doc.updatedAt ?? LAST_UPDATED}
       bodyHtml={doc.html}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />

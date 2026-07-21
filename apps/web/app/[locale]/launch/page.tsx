@@ -37,6 +37,7 @@ import { Link } from "@/i18n/navigation";
 
 import { VLogo } from "@/app/_components/home/VLogo";
 import { getBrandName } from "@/lib/brand";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 import { CommissionCalculator } from "./_components/CommissionCalculator";
 
@@ -55,8 +56,6 @@ export async function generateMetadata(): Promise<Metadata> {
     description: `${brand} gives South African guesthouses, B&Bs and lodges a branded booking site, guest CRM, synced calendars, full accounting and commission-free payments — in one place. Zero booking commission, ever.`,
   };
 }
-
-const CONTACT_EMAIL = "hello@wieloplatform.com";
 
 const STACK = [
   {

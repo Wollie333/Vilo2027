@@ -26,6 +26,10 @@ This file documents every environment variable used across the platform, what it
 | `EMAIL_FROM_ADDRESS` | Server only | — | ✅ | ✅ |
 | `EMAIL_WORKER_SECRET` | Server only | — | — | Staging/Prod |
 | `NEXT_PUBLIC_APP_URL` | ✅ | — | ✅ | ✅ |
+| `NEXT_PUBLIC_SITE_URL` | ✅ | — | — | Optional (defaults to `https://wielo.co.za`) |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | ✅ | — | — | Optional (defaults to `hello@wielo.co.za`) |
+| `NEXT_PUBLIC_PRIVACY_EMAIL` | ✅ | — | — | Optional (defaults to `privacy@wielo.co.za`) |
+| `NEXT_PUBLIC_LEGAL_EMAIL` | ✅ | — | — | Optional (defaults to `legal@wielo.co.za`) |
 | `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ✅ | — | Staging/Prod |
 | `NEXT_PUBLIC_POSTHOG_KEY` | ✅ | ✅ | — | Staging/Prod |
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
@@ -280,9 +284,30 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 
 ### `NEXT_PUBLIC_APP_URL`
 - **What:** The full base URL of the web app (used for generating links in emails, callbacks)
-- **Format:** `https://wieloplatform.com` (production) | `https://staging.wieloplatform.com` | `http://localhost:3000`
+- **Format:** `https://wielo.co.za` (production) | `https://staging.wielo.co.za` | `http://localhost:3000`
 - **Used in:** Web, Edge Functions (for email links, OAuth redirects)
 - **Environments:** All
+
+### `NEXT_PUBLIC_SITE_URL`
+- **What:** Canonical public origin. Backs `SITE_URL` / `SITE_DOMAIN` in
+  `apps/web/lib/contact.ts`, plus `robots.txt`, `sitemap.xml` and the OG/canonical
+  tags on the public pages.
+- **Default when unset:** `https://wielo.co.za`
+- **Environments:** All (the default is correct for production, so this is only
+  needed to point a preview or staging deploy at itself)
+
+### `NEXT_PUBLIC_CONTACT_EMAIL` / `NEXT_PUBLIC_PRIVACY_EMAIL` / `NEXT_PUBLIC_LEGAL_EMAIL`
+- **What:** The addresses shown wherever the app tells a user to email us —
+  general support, POPIA/data-subject requests, and legal/terms respectively.
+  All three read from `apps/web/lib/contact.ts`; nothing hardcodes an address.
+- **Defaults when unset:** `hello@wielo.co.za`, `privacy@wielo.co.za`,
+  `legal@wielo.co.za`
+- **Environments:** All
+- ⚠️ **The mailbox has to actually exist.** POPIA requires a working channel for
+  data-subject requests, and the account-deletion screen points at
+  `NEXT_PUBLIC_PRIVACY_EMAIL`. If you only run one inbox, set all three to it
+  rather than leaving the defaults pointing at addresses nobody reads. Tracked as
+  blocker 0.6 in `docs/SMOKE_TESTS.md`.
 
 ### `NEXT_PUBLIC_APP_NAME`
 - **What:** The product name used in UI and emails

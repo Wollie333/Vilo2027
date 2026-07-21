@@ -24,6 +24,13 @@ export type LegalDocument = {
   kind: LegalKind;
   html: string | null;
   version: number;
+  /**
+   * ISO date (YYYY-MM-DD) the published document was last saved, or null when
+   * nothing is published. The public pages show this instead of their built-in
+   * constant — otherwise the "Last updated" line describes the static fallback
+   * copy while the body shows a DB document published on a different day.
+   */
+  updatedAt: string | null;
 };
 
 export const getLegalDocument = cache(
@@ -38,6 +45,7 @@ export const getLegalDocument = cache(
       const v = (data?.value ?? {}) as {
         html?: string | null;
         version?: number;
+        updated_at?: string | null;
       };
       // Sanitise on READ as well as write: historic rows are never
       // re-sanitised, so if the allowlist is ever tightened this keeps older
@@ -47,9 +55,15 @@ export const getLegalDocument = cache(
           ? sanitiseListingHtml(v.html)
           : null;
       const version = typeof v.version === "number" ? v.version : 1;
-      return { kind, html, version };
+      // Only meaningful alongside published html; a stored date with no body
+      // would date the static fallback, which is exactly the bug being fixed.
+      const stamp = html ? Date.parse(v.updated_at ?? "") : NaN;
+      const updatedAt = Number.isNaN(stamp)
+        ? null
+        : new Date(stamp).toISOString().slice(0, 10);
+      return { kind, html, version, updatedAt };
     } catch {
-      return { kind, html: null, version: 1 };
+      return { kind, html: null, version: 1, updatedAt: null };
     }
   },
 );

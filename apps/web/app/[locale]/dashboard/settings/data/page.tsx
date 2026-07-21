@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { History } from "lucide-react";
 
+import { PRIVACY_EMAIL } from "@/lib/contact";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { DeleteAccountSection } from "./DeleteAccountSection";
@@ -152,10 +153,10 @@ export default async function SettingsDataPage() {
         </Link>{" "}
         or email{" "}
         <a
-          href="mailto:privacy@wieloplatform.com"
+          href={`mailto:${PRIVACY_EMAIL}`}
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          privacy@wieloplatform.com
+          {PRIVACY_EMAIL}
         </a>
         .
       </p>

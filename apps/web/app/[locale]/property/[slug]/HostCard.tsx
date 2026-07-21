@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 import { Link } from "@/i18n/navigation";
 
@@ -86,7 +87,7 @@ export async function HostCard({
               {displayName}
             </div>
             <div className="font-mono text-xs text-brand-mute">
-              wieloplatform.com/{handle}
+              {SITE_DOMAIN}/{handle}
             </div>
           </div>
           <div className="mt-5 grid grid-cols-3 divide-x divide-brand-line border-y border-brand-line py-3 text-center">

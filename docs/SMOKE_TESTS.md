@@ -26,6 +26,8 @@ the list below is untestable until they are done.
 | 0.3 | Replace the `founding-race-rules` legal doc with the attorney copy | It currently contains a test sentence, and it is **snapshotted and hashed into every partner's signature**. |
 | 0.4 | Decide whether the Founding Race stays `status='active'` with both affiliates enrolled | It is live and publicly joinable the moment you deploy. |
 | 0.5 | Remove the seeded demo properties from the live directory | Real guests should not see test listings. |
+| 0.6 | **Create the mailboxes `hello@`, `privacy@` and `legal@` on `wielo.co.za`** (or point `NEXT_PUBLIC_CONTACT_EMAIL` / `NEXT_PUBLIC_PRIVACY_EMAIL` / `NEXT_PUBLIC_LEGAL_EMAIL` at whichever inbox you do have) | Every contact link in the app, the account-deletion screen and the published Privacy Notice now direct people to these addresses. **POPIA requires a working channel for data-subject requests** — if the mailbox does not exist, those requests bounce silently. The published notice also advertises `support@wielo.co.za`. |
+| 0.7 | **Decide how to disclose that the database is in Frankfurt** | Verified via `supabase projects list`: the live project is in Central EU (Frankfurt) and the planned Cape Town migration was dropped. The published Privacy Notice §8 only says "some of our service providers may be located outside South Africa", which understates it — the primary store of all personal information is offshore. See "Cross-border transfers" below. |
 
 ### Email — configured and sending ✅
 
@@ -41,6 +43,26 @@ Two notes:
   `RESEND_API_KEY`, so nothing sends when running locally. That is a
   dev-environment gap, not a production one — but it means any email step in
   this list must be tested against the deployed site, not localhost.
+
+### Cross-border transfers — needs your decision (POPIA s72)
+
+The database, file storage and every backup live in **Frankfurt, Germany**. That
+is lawful under POPIA s72, but it has to be *disclosed*, and right now the
+published Privacy Notice is thin on it.
+
+Three things to settle before launch, none of which an agent should decide:
+
+1. **§8 wording.** The published text says only that "some of our service
+   providers may be located outside South Africa." The stronger, accurate
+   statement is that the primary store of all personal information is in the EU.
+   The static fallback copy in `app/[locale]/privacy/page.tsx` §5 has already
+   been rewritten this way — reuse it, but have the attorney sign it off. Edit
+   the live text in Admin → Platform → Settings → Legal.
+2. **The entity name.** The notice is signed "Wielo (Pty) Ltd" while the site
+   footer says "Mana Marketing Pty(Ltd)". One of them is wrong.
+3. **The effective date.** The notice reads "effective as of 8 July 2025" but was
+   published 8 July **2026**. Probably a typo; it is the date the document claims
+   legal force from, so it should be right.
 
 ---
 

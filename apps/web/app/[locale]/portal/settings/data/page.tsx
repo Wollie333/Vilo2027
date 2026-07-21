@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 
 import { DeleteAccountSection } from "@/app/[locale]/dashboard/settings/data/DeleteAccountSection";
+import { PRIVACY_EMAIL } from "@/lib/contact";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -49,10 +50,10 @@ export default async function PortalDataSettingsPage() {
       <p className="text-[12px] text-brand-mute">
         Need a data export, or have a privacy question? Email{" "}
         <a
-          href="mailto:privacy@wieloplatform.com"
+          href={`mailto:${PRIVACY_EMAIL}`}
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          privacy@wieloplatform.com
+          {PRIVACY_EMAIL}
         </a>{" "}
         and we&rsquo;ll respond within 30 days.
       </p>

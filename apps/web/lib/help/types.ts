@@ -4,6 +4,8 @@
 // rest of apps/web — none of the existing query code imports the generated
 // Database type.
 
+import { CONTACT_EMAIL } from "@/lib/contact";
+
 export type Json =
   | string
   | number
@@ -167,7 +169,7 @@ export type HelpCommunityThread = {
 export const HELP_CONTACT_DEFAULTS: HelpContactSettings = {
   live_chat_online: false,
   callback_enabled: false,
-  support_email: "hello@wieloplatform.com",
+  support_email: CONTACT_EMAIL,
   median_response_minutes: 4,
   community_member_count: 0,
 };

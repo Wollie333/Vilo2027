@@ -12,6 +12,7 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -135,7 +136,7 @@ export async function Hero() {
             method="get"
           >
             <div className="flex shrink-0 items-center pl-3 pr-1 font-mono text-sm text-brand-mute">
-              wieloplatform.com/
+              {SITE_DOMAIN}/
             </div>
             <input
               type="text"
@@ -214,7 +215,7 @@ export async function Hero() {
               <div className="ml-4 flex h-6 max-w-[260px] flex-1 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3">
                 <Lock className="h-3 w-3 text-brand-mute" />
                 <span className="truncate font-mono text-[11px] text-brand-mute">
-                  wieloplatform.com/dashboard
+                  {SITE_DOMAIN}/dashboard
                 </span>
               </div>
             </div>

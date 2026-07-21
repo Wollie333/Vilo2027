@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Tag } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { resolveHelpIcon } from "@/lib/help/icon-map";
 import {
   fetchHelpArticleBySlug,
@@ -166,8 +167,8 @@ export default async function PublicHelpArticlePage({
                 Still stuck?
               </div>
               <p className="mt-2 text-sm text-white/80">
-                Email a human at hello@wieloplatform.com or open a chat from the
-                help home.
+                Email a human at {CONTACT_EMAIL} or open a chat from the help
+                home.
               </p>
               <Link
                 href="/help#contact"

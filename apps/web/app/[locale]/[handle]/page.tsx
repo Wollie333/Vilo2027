@@ -21,6 +21,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
+import { SITE_DOMAIN } from "@/lib/contact";
 import { getBrandName } from "@/lib/brand";
 import { Money } from "@/components/currency/Money";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -406,7 +407,7 @@ export default async function HostProfilePage({
                     </div>
                   ) : null}
                   <div className="mt-1 font-mono text-xs text-brand-mute">
-                    wieloplatform.com/{host.handle}
+                    {SITE_DOMAIN}/{host.handle}
                   </div>
 
                   {host.is_verified || hostExtra.is_superhost ? (

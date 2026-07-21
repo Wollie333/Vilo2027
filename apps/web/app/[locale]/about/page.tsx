@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 
 import { getBrandName } from "@/lib/brand";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -133,10 +134,10 @@ export default async function AboutPage() {
                 Questions, partnerships, or you want to be one of the first
                 hosts? Mail{" "}
                 <a
-                  href="mailto:hello@wieloplatform.com"
+                  href={`mailto:${CONTACT_EMAIL}`}
                   className="text-brand-primary underline-offset-2 hover:underline"
                 >
-                  hello@wieloplatform.com
+                  {CONTACT_EMAIL}
                 </a>{" "}
                 — replies within one working day.
               </p>

@@ -14,8 +14,8 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
   listing_published_host: {
     firstName: "Amara",
     listingName: "Sunbird Cottage, Hermanus",
-    listingUrl: "https://wieloplatform.com/property/sunbird-cottage-hermanus",
-    displayUrl: "wieloplatform.com/property/sunbird-cottage-hermanus",
+    listingUrl: "https://wielo.co.za/property/sunbird-cottage-hermanus",
+    displayUrl: "wielo.co.za/property/sunbird-cottage-hermanus",
     fromPrice: "R 1 600",
     location: "Hermanus, Western Cape",
     roomCount: 3,
@@ -200,7 +200,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",
     hostName: "Amara",
-    reviewUrl: "https://wieloplatform.com/review/abc/xyz",
+    reviewUrl: "https://wielo.co.za/review/abc/xyz",
   },
 
   stay_details_guest: {
@@ -265,7 +265,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
 
   account_suspended: {
     hostFirstName: "Amara",
-    supportEmail: "support@wieloplatform.com",
+    supportEmail: "hello@wielo.co.za",
   },
 
   refund_request_host: {
@@ -301,7 +301,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     policySummary:
       "Strict policy: no refund within 7 days of check-in. Your request arrived 4 days before check-in.",
     bookingId: "00000000-0000-0000-0000-000000000001",
-    supportEmail: "support@wieloplatform.com",
+    supportEmail: "hello@wielo.co.za",
   },
 
   refund_completed_guest: {
@@ -320,7 +320,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     refundAmount: "R 1,200.00",
     adminNote:
       "Booking dates fell during the platform outage on 2026-06-01. Compromise refund applied.",
-    supportEmail: "support@wieloplatform.com",
+    supportEmail: "hello@wielo.co.za",
   },
 
   eft_refund_sent_guest: {
