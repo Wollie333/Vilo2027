@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-21 (pt50) — Rules authoring in the campaign builder + accept-to-enter enforcement.
+
+Founder asked for a WYSIWYG rules editor inside the campaign builder that publishes a live URL, with every
+entry required to accept those terms. All green (build, lint, 406 tests).
+
+- **Author the rules in the builder** (`CampaignRulesEditor`): title, live URL slug, and the shared
+  `RichTextEditor`. Publishing reuses the WS-6a legal-documents pipeline — sanitise on write, **version
+  bumps only on a real body change** (the version is what entries are signed against, so a no-op save must
+  not drift it) — writes `legal_documents`, links `affiliate_campaigns.rules_doc_slug`, and revalidates
+  `/legal/<slug>`. Shows the live version, a "View live page" link, and how many partners have accepted.
+- **`affiliate_campaign_rule_acceptances` (`20260721160000`):** one INSERT-only row per (campaign, partner,
+  rules version) with the **full body snapshot + sha256 + IP + user agent** and a signatory snapshot. FKs
+  are `ON DELETE SET NULL`; an immutability trigger blocks DELETE always and UPDATE except the FK sever —
+  same posture as the affiliate agreement.
+- **Accept-to-enter is enforced SERVER-SIDE** in `enrollInCampaignAction`, not just by a disabled button:
+  if the campaign has a published rules document, entry without acceptance is refused and the signature is
+  written before enrolment. The portal card shows the rules link + version and disables Join until ticked.
+- **Admin read-out:** "Rules accepted on entry" table (partner · version · entered · IP) on the campaign
+  page, flagging anyone who signed an **older version** than the one now live.
+- **Verified live:** edited the rules in the WYSIWYG → published **v2** → `/legal/founding-race-rules`
+  served the new sentence immediately; entering as a partner recorded a v2 signature (299-char snapshot,
+  `body_sha256` re-verified by Postgres `digest()`, IP captured) and created the enrolment; then, with the
+  checkbox ticked in the UI, the request was **tampered in flight to send `accepted=false`** — the server
+  refused ("Read and accept the competition rules to enter"), **0 enrolments and no second signature**.
+  ⚠️ Founding Race was launched only to test entry and has been **returned to `draft`**; one immutable
+  test signature (wollie@, v2) remains by design.
+
+---
+
 ## 2026-07-21 (pt49) — Campaign builder in admin (WS-1i) + calculator footer link.
 
 Founder spotted that the affiliate programme's campaign settings were nowhere in admin. They were right:

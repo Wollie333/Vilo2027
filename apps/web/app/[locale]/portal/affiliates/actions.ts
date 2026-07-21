@@ -10,7 +10,8 @@ import {
   isValidSlug,
 } from "@/lib/affiliate/account";
 import { recordAcceptance } from "@/lib/affiliate/agreement";
-import { normaliseIp } from "@/lib/affiliate/agreement.crypto";
+import { agreementHash, normaliseIp } from "@/lib/affiliate/agreement.crypto";
+import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -411,6 +412,7 @@ export async function deletePayoutMethodAction(
 // 'invite'-only campaigns are admin-added).
 export async function enrollInCampaignAction(
   campaignId: string,
+  acceptedRules?: boolean,
 ): Promise<ActionResult> {
   const supabase = createServerClient();
   const {
@@ -427,7 +429,7 @@ export async function enrollInCampaignAction(
 
   const { data: campaign } = await admin
     .from("affiliate_campaigns")
-    .select("id, status, eligible_partners")
+    .select("id, status, eligible_partners, rules_doc_slug")
     .eq("id", campaignId)
     .maybeSingle();
   if (!campaign || campaign.status !== "active") {
@@ -435,6 +437,52 @@ export async function enrollInCampaignAction(
   }
   if (campaign.eligible_partners === "invite") {
     return { ok: false, error: "This competition is invite-only." };
+  }
+
+  // Rules acceptance is a CONDITION OF ENTRY, enforced here and not only in the
+  // UI: a campaign with a published rules document cannot be entered without a
+  // signature against the version live right now (WS-1i follow-up).
+  const rules = campaign.rules_doc_slug
+    ? await getPublishedLegalDocument(campaign.rules_doc_slug)
+    : null;
+  if (rules) {
+    if (!acceptedRules) {
+      return {
+        ok: false,
+        error: "Read and accept the competition rules to enter.",
+      };
+    }
+    const { data: profile } = await admin
+      .from("user_profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+    const h = headers();
+    const body = rules.bodyHtml ?? "";
+    const { error: signError } = await admin
+      .from("affiliate_campaign_rule_acceptances")
+      .insert({
+        campaign_id: campaign.id,
+        affiliate_id: acct.id,
+        user_id: user.id,
+        signatory_email: profile?.email ?? user.email ?? null,
+        signatory_name: profile?.full_name ?? null,
+        doc_slug: rules.slug,
+        doc_version: rules.version,
+        body_snapshot: body,
+        body_sha256: agreementHash(body),
+        ip:
+          normaliseIp(
+            h.get("cf-connecting-ip") ??
+              h.get("x-forwarded-for")?.split(",")[0] ??
+              h.get("x-real-ip"),
+          ) ?? null,
+        user_agent: h.get("user-agent")?.slice(0, 500) ?? null,
+      });
+    // 23505 = already signed this version — that IS the success state.
+    if (signError && signError.code !== "23505") {
+      return { ok: false, error: "Could not record your acceptance." };
+    }
   }
 
   // Idempotent: unique (affiliate_id, campaign_id) makes a repeat a no-op.

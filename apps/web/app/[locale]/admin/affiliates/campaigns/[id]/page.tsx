@@ -11,6 +11,7 @@ import { rateToPct } from "@/lib/affiliate/campaignConfig";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { CampaignBuilder } from "../_components/CampaignBuilder";
+import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,12 @@ export default async function AdminCampaignPage({
     { data: enrollments },
     { data: rawScores },
     { data: floors },
+    { data: ruleAcceptances },
   ] = await Promise.all([
-    service.from("legal_documents").select("slug, title").order("title"),
+    service
+      .from("legal_documents")
+      .select("slug, title, body_html, version, is_published")
+      .order("title"),
     service
       .from("affiliate_campaign_enrollments")
       .select("affiliate_id, status, enrolled_at")
@@ -52,6 +57,11 @@ export default async function AdminCampaignPage({
       .from("affiliate_campaign_floors")
       .select("affiliate_id, floor_rate, reason, awarded_at")
       .eq("campaign_id", campaign.id),
+    service
+      .from("affiliate_campaign_rule_acceptances")
+      .select("id, affiliate_id, doc_slug, doc_version, accepted_at, ip")
+      .eq("campaign_id", campaign.id)
+      .order("accepted_at", { ascending: false }),
   ]);
 
   const scores = (rawScores ?? []) as {
@@ -61,11 +71,14 @@ export default async function AdminCampaignPage({
 
   // Resolve partner names once for every panel below.
   const affiliateIds = Array.from(
-    new Set([
-      ...(enrollments ?? []).map((e) => e.affiliate_id),
-      ...scores.map((s) => s.affiliate_id),
-      ...(floors ?? []).map((f) => f.affiliate_id),
-    ]),
+    new Set(
+      [
+        ...(enrollments ?? []).map((e) => e.affiliate_id),
+        ...scores.map((s) => s.affiliate_id),
+        ...(floors ?? []).map((f) => f.affiliate_id),
+        ...(ruleAcceptances ?? []).map((a) => a.affiliate_id),
+      ].filter((id): id is string => Boolean(id)),
+    ),
   );
   const nameById = new Map<string, { name: string; slug: string }>();
   if (affiliateIds.length) {
@@ -122,6 +135,55 @@ export default async function AdminCampaignPage({
     reason: (f.reason as string | null) ?? "—",
     awarded_at: f.awarded_at as string | null,
   }));
+
+  // The rules document this campaign points at, if any, plus who has signed it.
+  const rulesDoc =
+    (legalDocs ?? []).find((d) => d.slug === campaign.rules_doc_slug) ?? null;
+  const acceptanceRows = (ruleAcceptances ?? []).map((a) => ({
+    id: a.id as string,
+    name: nameById.get(a.affiliate_id ?? "")?.name ?? "—",
+    version: a.doc_version as number,
+    stale: rulesDoc ? (a.doc_version as number) !== rulesDoc.version : false,
+    accepted_at: a.accepted_at as string,
+    ip: (a.ip as string | null) ?? "—",
+  }));
+
+  const acceptanceColumns: AdminColumn<(typeof acceptanceRows)[number]>[] = [
+    { header: "Partner", cell: (r) => <span>{r.name}</span> },
+    {
+      header: "Rules version",
+      cell: (r) => (
+        <span className="num font-medium text-brand-ink">
+          v{r.version}
+          {r.stale ? (
+            <span className="ml-2 rounded-pill bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              older version
+            </span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      header: "Entered",
+      cell: (r) => (
+        <span className="text-brand-mute">
+          {new Date(r.accepted_at).toLocaleString("en-ZA", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      ),
+    },
+    {
+      header: "IP",
+      cell: (r) => (
+        <span className="font-mono text-[11.5px] text-brand-mute">{r.ip}</span>
+      ),
+    },
+  ];
 
   const standingColumns: AdminColumn<(typeof standings)[number]>[] = [
     { header: "#", cell: (r) => <span className="num">{r.rank}</span> },
@@ -252,6 +314,41 @@ export default async function AdminCampaignPage({
           title: d.title as string,
         }))}
       />
+
+      <CampaignRulesEditor
+        campaignId={campaign.id}
+        campaignSlug={campaign.slug}
+        campaignName={campaign.name}
+        initial={{
+          slug: (campaign.rules_doc_slug as string | null) ?? null,
+          title: (rulesDoc?.title as string | undefined) ?? null,
+          html: (rulesDoc?.body_html as string | null | undefined) ?? null,
+          version: (rulesDoc?.version as number | undefined) ?? null,
+          isPublished: Boolean(rulesDoc?.is_published),
+          acceptedCount: acceptanceRows.length,
+        }}
+      />
+
+      <section>
+        <h2 className="mb-1 font-display text-lg font-semibold text-brand-ink">
+          Rules accepted on entry
+        </h2>
+        <p className="mb-3 text-[12.5px] text-brand-mute">
+          Nobody can enter this competition without accepting the rules. Each
+          row stores the exact text that partner agreed to — the records are
+          immutable.
+        </p>
+        <AdminTable
+          columns={acceptanceColumns}
+          rows={acceptanceRows}
+          getKey={(r) => r.id}
+          empty={
+            campaign.rules_doc_slug
+              ? "No entries yet."
+              : "No rules published — publish them above to require acceptance on entry."
+          }
+        />
+      </section>
 
       <section>
         <h2 className="mb-1 font-display text-lg font-semibold text-brand-ink">

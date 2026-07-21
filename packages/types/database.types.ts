@@ -780,6 +780,76 @@ export type Database = {
           },
         ]
       }
+      affiliate_campaign_rule_acceptances: {
+        Row: {
+          accepted_at: string
+          affiliate_id: string | null
+          body_sha256: string
+          body_snapshot: string
+          campaign_id: string | null
+          doc_slug: string
+          doc_version: number
+          id: string
+          ip: unknown
+          signatory_email: string | null
+          signatory_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          affiliate_id?: string | null
+          body_sha256: string
+          body_snapshot: string
+          campaign_id?: string | null
+          doc_slug: string
+          doc_version: number
+          id?: string
+          ip?: unknown
+          signatory_email?: string | null
+          signatory_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          affiliate_id?: string | null
+          body_sha256?: string
+          body_snapshot?: string
+          campaign_id?: string | null
+          doc_slug?: string
+          doc_version?: number
+          id?: string
+          ip?: unknown
+          signatory_email?: string | null
+          signatory_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_campaign_rule_acceptances_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_rule_acceptances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_rule_acceptances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_campaigns: {
         Row: {
           commission_structure: Json

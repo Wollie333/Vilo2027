@@ -8,6 +8,7 @@ import {
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
 import { findFreeSlug } from "@/lib/affiliate/account";
+import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 // WS-1i — the campaign builder's writes. Campaign config drives REAL commission
 // accrual, so every write is permission-gated, validated by the shared zod
@@ -155,6 +156,116 @@ export const updateCampaignAction = withAdminAudit<
     revalidatePath(`/competitions/${c.slug}`);
     revalidatePath("/portal/affiliates/competitions");
     return { result: { ok: true }, after: c };
+  },
+);
+
+/**
+ * Author the campaign's RULES document from the builder and publish it live at
+ * /legal/<slug>, then point the campaign at it. Reuses the WS-6a legal-documents
+ * pipeline (sanitise on write, version bumps only on a real body change) so the
+ * rules sit at the fixed retained URL the CPA requires — and so the version a
+ * partner accepts on entry is a real, addressable thing.
+ */
+export const saveCampaignRulesAction = withAdminAudit<
+  {
+    campaignId: string;
+    slug: string;
+    title: string;
+    html: string;
+    reason?: string;
+  },
+  ActionResult<{ slug: string; version: number }>
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_save_rules",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+    captureBefore: async (service, a) => {
+      const { data } = await service
+        .from("affiliate_campaigns")
+        .select("rules_doc_slug")
+        .eq("id", a.campaignId)
+        .maybeSingle();
+      return data;
+    },
+  },
+  async (args, service) => {
+    const slug = args.slug.trim().toLowerCase();
+    const title = args.title.trim();
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+      return {
+        result: {
+          ok: false,
+          error: "The rules link uses lowercase letters, numbers and dashes.",
+        },
+      };
+    }
+    if (title.length < 2) {
+      return { result: { ok: false, error: "Give the rules a title." } };
+    }
+    const cleaned =
+      args.html.trim().length > 0 ? sanitiseListingHtml(args.html) : null;
+    if (!cleaned) {
+      return {
+        result: {
+          ok: false,
+          error: "Write the rules before publishing them.",
+        },
+      };
+    }
+
+    const { data: existing } = await service
+      .from("legal_documents")
+      .select("body_html, version, is_published, published_at")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    // Version bumps ONLY on a real body change — the version number is what a
+    // partner's entry signature is keyed on, so it must not drift on a no-op save.
+    const prevVersion =
+      typeof existing?.version === "number" ? existing.version : 0;
+    const bodyChanged = cleaned !== (existing?.body_html ?? null);
+    const version = existing
+      ? bodyChanged
+        ? prevVersion + 1
+        : prevVersion
+      : 1;
+
+    const nowIso = new Date().toISOString();
+    const becamePublished = !existing?.is_published;
+    const publishedAt =
+      bodyChanged || becamePublished || !existing?.published_at
+        ? nowIso
+        : existing.published_at;
+
+    const { error: docError } = await service.from("legal_documents").upsert(
+      {
+        slug,
+        title,
+        body_html: cleaned,
+        version,
+        is_published: true,
+        published_at: publishedAt,
+        updated_at: nowIso,
+      },
+      { onConflict: "slug" },
+    );
+    if (docError) return { result: { ok: false, error: docError.message } };
+
+    const { error: linkError } = await service
+      .from("affiliate_campaigns")
+      .update({ rules_doc_slug: slug, updated_at: nowIso })
+      .eq("id", args.campaignId);
+    if (linkError) return { result: { ok: false, error: linkError.message } };
+
+    revalidatePath(`/legal/${slug}`);
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    revalidatePath("/portal/affiliates/competitions");
+    return {
+      result: { ok: true, data: { slug, version } },
+      after: { slug, version },
+    };
   },
 );
 

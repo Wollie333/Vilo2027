@@ -22,6 +22,7 @@ export function CampaignCard({
   rank,
   calculator,
   rulesHref,
+  rulesVersion,
 }: {
   campaignId: string;
   name: string;
@@ -40,11 +41,16 @@ export function CampaignCard({
     toNext: { amount: string; nextRatePct: number } | null;
   };
   rulesHref: string | null;
+  /** Published rules version, when this campaign has rules. Accepting them is a
+   *  condition of entry — the server refuses to enrol without it. */
+  rulesVersion?: number | null;
 }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [acceptedRules, setAcceptedRules] = useState(false);
   const display = campaignLink.replace(/^https?:\/\//, "");
+  const rulesRequired = Boolean(rulesHref && rulesVersion);
 
   async function copy() {
     try {
@@ -58,8 +64,9 @@ export function CampaignCard({
   }
 
   function join() {
+    if (rulesRequired && !acceptedRules) return;
     startTransition(async () => {
-      const res = await enrollInCampaignAction(campaignId);
+      const res = await enrollInCampaignAction(campaignId, acceptedRules);
       if (res.ok) {
         toast.success(`You've joined the ${name}.`);
         router.refresh();
@@ -132,9 +139,32 @@ export function CampaignCard({
               Join the competition to get your campaign link and appear on the
               leaderboard.
             </p>
+            {rulesRequired ? (
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-[11px] border border-brand-line bg-brand-light/40 p-3">
+                <input
+                  type="checkbox"
+                  checked={acceptedRules}
+                  onChange={(e) => setAcceptedRules(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+                />
+                <span className="text-[13px] leading-relaxed text-brand-ink">
+                  I have read and accept the{" "}
+                  <a
+                    href={rulesHref!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-brand-primary underline underline-offset-2"
+                  >
+                    {name} rules
+                  </a>{" "}
+                  (version {rulesVersion}). Your acceptance is recorded with the
+                  date and your IP address.
+                </span>
+              </label>
+            ) : null}
             <button
               onClick={join}
-              disabled={pending}
+              disabled={pending || (rulesRequired && !acceptedRules)}
               className="mt-2 inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
             >
               {pending ? "Joining…" : "Join competition"}

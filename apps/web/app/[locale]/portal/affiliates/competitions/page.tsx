@@ -9,6 +9,7 @@ import {
   type CommissionStructure,
   type LadderBand,
 } from "@/lib/affiliate/campaigns";
+import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -138,6 +139,12 @@ export default async function AffiliateCompetitionsPage() {
             : null,
         },
         rulesHref: c.rules_doc_slug ? `/legal/${c.rules_doc_slug}` : null,
+        // Accepting this exact version is a condition of entry (enforced in
+        // enrollInCampaignAction, not just here).
+        rulesVersion: c.rules_doc_slug
+          ? ((await getPublishedLegalDocument(c.rules_doc_slug))?.version ??
+            null)
+          : null,
       };
     }),
   );
