@@ -2887,6 +2887,51 @@ export type Database = {
           },
         ]
       }
+      error_events: {
+        Row: {
+          context: Json
+          fingerprint: string
+          first_seen: string
+          id: string
+          last_seen: string
+          message: string
+          occurrences: number
+          resolved_at: string | null
+          source: string
+          stack: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          message: string
+          occurrences?: number
+          resolved_at?: string | null
+          source?: string
+          stack?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          message?: string
+          occurrences?: number
+          resolved_at?: string | null
+          source?: string
+          stack?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       external_review_sources: {
         Row: {
           access_token: string | null
@@ -12772,6 +12817,18 @@ export type Database = {
         Returns: undefined
       }
       recompute_affiliate_campaign_rates: { Args: never; Returns: number }
+      record_error_event: {
+        Args: {
+          p_context?: Json
+          p_fingerprint: string
+          p_message: string
+          p_source: string
+          p_stack?: string
+          p_url?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       record_guest_post: {
         Args: { p_post_id: string; p_user_id: string }
         Returns: undefined
