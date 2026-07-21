@@ -14,6 +14,7 @@ import {
   type AdminColumn,
 } from "@/app/[locale]/admin/_components/AdminTable";
 import { requirePermission } from "@/lib/admin";
+import { listAcceptances } from "@/lib/affiliate/agreement";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -60,6 +61,7 @@ export default async function AdminAffiliateFunnelPage({
     { data: referrals },
     { data: commissions },
     { data: payouts },
+    acceptances,
   ] = await Promise.all([
     service
       .from("user_profiles")
@@ -88,6 +90,7 @@ export default async function AdminAffiliateFunnelPage({
       )
       .eq("affiliate_id", account.id)
       .order("requested_at", { ascending: false }),
+    listAcceptances(service, account.id),
   ]);
 
   const refs = referrals ?? [];
@@ -206,6 +209,50 @@ export default async function AdminAffiliateFunnelPage({
       cell: (r) => (
         <span className="font-medium text-brand-ink">
           {formatMoney(r.commission, account.currency)}
+        </span>
+      ),
+    },
+  ];
+
+  // WS-6b — the signed agreement trail. Rows are immutable at DB level, so this
+  // is the evidence a CPA dispute would be answered with.
+  const agreementColumns: AdminColumn<(typeof acceptances)[number]>[] = [
+    {
+      header: "Version",
+      cell: (a) => (
+        <span className="font-medium text-brand-ink">{a.version}</span>
+      ),
+    },
+    {
+      header: "Signed",
+      cell: (a) => (
+        <span className="text-brand-mute">
+          {new Date(a.accepted_at).toLocaleString("en-ZA", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      ),
+    },
+    {
+      header: "IP",
+      cell: (a) => (
+        <span className="font-mono text-[11.5px] text-brand-mute">
+          {a.ip ?? "—"}
+        </span>
+      ),
+    },
+    {
+      header: "Document hash",
+      cell: (a) => (
+        <span
+          className="font-mono text-[11px] text-brand-mute"
+          title={a.body_sha256}
+        >
+          {a.body_sha256.slice(0, 16)}…
         </span>
       ),
     },
@@ -338,6 +385,22 @@ export default async function AdminAffiliateFunnelPage({
           rows={rows}
           getKey={(r) => r.id}
           empty="No referrals yet."
+        />
+      </section>
+
+      <section>
+        <h2 className="mb-1 font-display text-lg font-semibold text-brand-ink">
+          Signed agreement
+        </h2>
+        <p className="mb-3 text-[12.5px] text-brand-mute">
+          Each acceptance stores a full snapshot of the agreement text signed.
+          Records are immutable and retained for three years.
+        </p>
+        <AdminTable
+          columns={agreementColumns}
+          rows={acceptances}
+          getKey={(a) => a.id}
+          empty="No signature on file — this partner signs on their next portal visit."
         />
       </section>
 

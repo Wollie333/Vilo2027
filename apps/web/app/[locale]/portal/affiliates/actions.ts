@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import {
@@ -8,6 +9,10 @@ import {
   getAffiliateForUser,
   isValidSlug,
 } from "@/lib/affiliate/account";
+import { recordAcceptance } from "@/lib/affiliate/agreement";
+import { normaliseIp } from "@/lib/affiliate/agreement.crypto";
+import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -24,8 +29,12 @@ const PAYOUT_ERROR_MESSAGES: Record<string, string> = {
   below_threshold: "Your cleared balance is below the payout threshold.",
 };
 
-// Accept the affiliate terms → create (or no-op return) the user's affiliate
-// account with a unique referral slug. Self-serve, no host required.
+// Accept the affiliate terms → create the user's affiliate account with a
+// unique referral slug (self-serve, no host required) AND record the signed
+// agreement (WS-6b): an immutable snapshot of the exact body agreed to, its
+// sha256, and the signing IP. Also the re-signing path — an existing partner
+// who has not signed the CURRENT terms version lands here from the gate, keeps
+// their account and slug, and adds a second signature.
 export async function acceptAffiliateTermsAction(): Promise<
   ActionResult<{ slug: string }>
 > {
@@ -37,41 +46,80 @@ export async function acceptAffiliateTermsAction(): Promise<
 
   const admin = createAdminClient();
 
-  const existing = await getAffiliateForUser(admin, user.id);
-  if (existing) return { ok: true, data: { slug: existing.slug } };
-
-  const [{ data: settings }, { data: profile }] = await Promise.all([
+  const [{ data: settings }, { data: profile }, brand] = await Promise.all([
     admin
       .from("affiliate_settings")
-      .select("terms_version, currency")
+      .select("terms_version, terms_content, currency")
       .eq("id", true)
       .maybeSingle(),
     admin
       .from("user_profiles")
-      .select("full_name")
+      .select("full_name, email")
       .eq("id", user.id)
       .maybeSingle(),
+    getBrandName(),
   ]);
 
-  const base = profile?.full_name || user.email?.split("@")[0] || "wielo";
-  const slug = await findFreeSlug(admin, base);
+  const version = settings?.terms_version ?? "v1";
+  const bodyText = renderAgreementBody(settings?.terms_content ?? "", brand);
 
-  const { error } = await admin.from("affiliate_accounts").insert({
-    user_id: user.id,
-    slug,
-    status: "active",
-    terms_version: settings?.terms_version ?? "v1",
-    currency: settings?.currency ?? "ZAR",
-  });
-  if (error) {
-    // A concurrent accept may have created it — return that one.
-    const created = await getAffiliateForUser(admin, user.id);
-    if (created) return { ok: true, data: { slug: created.slug } };
+  let account = await getAffiliateForUser(admin, user.id);
+
+  if (!account) {
+    const base = profile?.full_name || user.email?.split("@")[0] || "wielo";
+    const slug = await findFreeSlug(admin, base);
+
+    const { error } = await admin.from("affiliate_accounts").insert({
+      user_id: user.id,
+      slug,
+      status: "active",
+      terms_version: version,
+      currency: settings?.currency ?? "ZAR",
+    });
+    if (error) {
+      // A concurrent accept may have created it — carry on with that one.
+      account = await getAffiliateForUser(admin, user.id);
+      if (!account) {
+        return { ok: false, error: "Could not start your affiliate account." };
+      }
+    } else {
+      account = await getAffiliateForUser(admin, user.id);
+    }
+  } else if (account.terms_version !== version) {
+    // Re-signature: stamp the account with the version now on file. accepted_at
+    // is deliberately left alone — it is "member since", not "last signed".
+    await admin
+      .from("affiliate_accounts")
+      .update({ terms_version: version })
+      .eq("id", account.id);
+  }
+
+  if (!account) {
     return { ok: false, error: "Could not start your affiliate account." };
   }
 
+  const h = headers();
+  const signed = await recordAcceptance(admin, {
+    affiliateId: account.id,
+    userId: user.id,
+    signatoryEmail: profile?.email ?? user.email ?? null,
+    signatoryName: profile?.full_name ?? null,
+    version,
+    bodyText,
+    ip: normaliseIp(
+      h.get("cf-connecting-ip") ??
+        h.get("x-forwarded-for")?.split(",")[0] ??
+        h.get("x-real-ip"),
+    ),
+    userAgent: h.get("user-agent") ?? undefined,
+  });
+  if (!signed) {
+    return { ok: false, error: "Could not record your agreement. Try again." };
+  }
+
   revalidatePath("/portal/affiliates");
-  return { ok: true, data: { slug } };
+  revalidatePath("/dashboard/affiliates");
+  return { ok: true, data: { slug: account.slug } };
 }
 
 // Customise the referral slug. 3–32 chars, lowercase alnum + dashes, unique.

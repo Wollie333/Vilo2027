@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { AffiliateNav } from "@/app/[locale]/portal/affiliates/_components/AffiliateNav";
 import { AffiliateTermsGate } from "@/app/[locale]/portal/affiliates/_components/AffiliateTermsGate";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import { hasSignedVersion } from "@/lib/affiliate/agreement";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -31,20 +32,27 @@ export async function AffiliateShell({
   const admin = createAdminClient();
   const account = await getAffiliateForUser(admin, user.id);
 
-  if (!account) {
-    const [{ data: settings }, brand] = await Promise.all([
-      admin
-        .from("affiliate_settings")
-        .select("terms_version, terms_content")
-        .eq("id", true)
-        .maybeSingle(),
-      getBrandName(),
-    ]);
+  // WS-6b — the gate is keyed off a SIGNED agreement for the version currently
+  // on file, not off the existence of an account. So a partner who joined before
+  // signatures were recorded, or one whose terms have since been re-versioned,
+  // signs again before reaching the portal.
+  const { data: settings } = await admin
+    .from("affiliate_settings")
+    .select("terms_version, terms_content")
+    .eq("id", true)
+    .maybeSingle();
+  const termsVersion = settings?.terms_version ?? "v1";
+  const signed = account
+    ? await hasSignedVersion(admin, account.id, termsVersion)
+    : false;
+
+  if (!account || !signed) {
     return (
       <AffiliateTermsGate
-        brand={brand}
-        termsVersion={settings?.terms_version ?? "v1"}
+        brand={await getBrandName()}
+        termsVersion={termsVersion}
         termsContent={settings?.terms_content ?? ""}
+        mode={account ? "resign" : "join"}
       />
     );
   }

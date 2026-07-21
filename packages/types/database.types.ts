@@ -584,6 +584,63 @@ export type Database = {
           },
         ]
       }
+      affiliate_agreement_acceptances: {
+        Row: {
+          accepted_at: string
+          affiliate_id: string | null
+          body_sha256: string
+          body_snapshot: string
+          id: string
+          ip: unknown
+          signatory_email: string | null
+          signatory_name: string | null
+          user_agent: string | null
+          user_id: string | null
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          affiliate_id?: string | null
+          body_sha256: string
+          body_snapshot: string
+          id?: string
+          ip?: unknown
+          signatory_email?: string | null
+          signatory_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          affiliate_id?: string | null
+          body_sha256?: string
+          body_snapshot?: string
+          id?: string
+          ip?: unknown
+          signatory_email?: string | null
+          signatory_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_agreement_acceptances_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_agreement_acceptances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_campaign_daily_scores: {
         Row: {
           active_listings: number

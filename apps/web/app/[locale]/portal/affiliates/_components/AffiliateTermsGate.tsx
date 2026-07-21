@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  agreementParagraphs,
+  renderAgreementBody,
+} from "@/lib/affiliate/agreement.shared";
 
 import { acceptAffiliateTermsAction } from "../actions";
 
@@ -31,28 +35,36 @@ export function AffiliateTermsGate({
   brand,
   termsVersion,
   termsContent,
+  mode = "join",
 }: {
   brand: string;
   termsVersion: string;
   termsContent: string;
+  // "resign" = the partner already has an account but has not signed the terms
+  // version currently on file (WS-6b). Same document, different framing.
+  mode?: "join" | "resign";
 }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [pending, startTransition] = useTransition();
+  const resigning = mode === "resign";
 
-  // Admin-authored terms: blank lines → paragraphs, {brand} → live brand name.
-  const paragraphs = termsContent
-    .replace(/\{brand\}/g, brand)
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  // The body must render through the SHARED helper — the acceptance snapshot is
+  // taken from the same function, so what is stored is what was read.
+  const paragraphs = agreementParagraphs(
+    renderAgreementBody(termsContent, brand),
+  );
 
   function handleAccept() {
     if (!agreed) return;
     startTransition(async () => {
       const res = await acceptAffiliateTermsAction();
       if (res.ok) {
-        toast.success("You're in — welcome to the affiliate programme.");
+        toast.success(
+          resigning
+            ? "Thanks — your agreement is signed."
+            : "You're in — welcome to the affiliate programme.",
+        );
         router.refresh();
       } else {
         toast.error(res.error);
@@ -71,18 +83,20 @@ export function AffiliateTermsGate({
       >
         <div className="p-7 sm:p-9">
           <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/80">
-            Affiliate programme
+            {resigning ? "Updated agreement" : "Affiliate programme"}
           </span>
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Earn with {brand}.
+            {resigning ? `Sign the ${brand} agreement.` : `Earn with ${brand}.`}
           </h1>
           <p className="mt-2 max-w-xl text-sm text-white/70">
-            Refer hosts and travellers to {brand} and earn commission on the
-            products they buy. Accept the affiliate terms to unlock your
-            dashboard, links and marketing material.
+            {resigning
+              ? `The affiliate agreement is now at version ${termsVersion}. Sign it to carry on — your account, referral link and earnings are untouched.`
+              : `Refer hosts and travellers to ${brand} and earn commission on the products they buy. Accept the affiliate terms to unlock your dashboard, links and marketing material.`}
           </p>
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-3">
+          <div
+            className={resigning ? "hidden" : "mt-7 grid gap-4 sm:grid-cols-3"}
+          >
             {PERKS.map((p) => (
               <div
                 key={p.title}
@@ -101,14 +115,15 @@ export function AffiliateTermsGate({
 
       <div className="mt-5 rounded-card border border-brand-line bg-white p-6 shadow-card">
         <h2 className="font-display text-lg font-semibold text-brand-ink">
-          Affiliate terms
+          Affiliate agreement
         </h2>
         <div className="mt-3 space-y-3 text-sm leading-relaxed text-brand-mute">
           {paragraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
           <p className="text-xs text-brand-mute/70">
-            Terms version {termsVersion}
+            Agreement version {termsVersion}. Your acceptance is recorded with
+            the date and your IP address, and kept as your signed copy.
           </p>
         </div>
 
@@ -120,7 +135,8 @@ export function AffiliateTermsGate({
             className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
           />
           <span className="text-sm text-brand-ink">
-            I have read and agree to the {brand} affiliate terms.
+            I have read and agree to the {brand} affiliate agreement (version{" "}
+            {termsVersion}).
           </span>
         </label>
 
@@ -131,7 +147,13 @@ export function AffiliateTermsGate({
             className="gap-1.5"
           >
             <Check className="h-4 w-4" />
-            {pending ? "Setting up…" : "Join the programme"}
+            {pending
+              ? resigning
+                ? "Signing…"
+                : "Setting up…"
+              : resigning
+                ? "Sign agreement"
+                : "Join the programme"}
           </Button>
         </div>
       </div>

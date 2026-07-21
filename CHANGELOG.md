@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-07-21 (pt46) — WS-6b: signed affiliate agreement (immutable per-partner record; verified live).
+
+A partner "signing" the affiliate agreement previously left one mutable trace — `terms_version` +
+`accepted_at` on their account row — while the body text itself lives in `affiliate_settings.terms_content`,
+which the admin editor overwrites in place. So there was no way to prove what any partner agreed to, and a
+version bump silently applied to people who never saw it. WS-6b closes both gaps. All green (build, lint,
+10 new unit tests).
+
+- **`affiliate_agreement_acceptances` (`20260721090000`):** one INSERT-only row per (affiliate, version)
+  carrying a **full snapshot of the body signed**, its sha256, `accepted_at`, signing IP (`inet`) and user
+  agent, plus a `signatory_email`/`signatory_name` snapshot. Unique index makes a double-submit a no-op.
+  RLS: a partner reads their own rows; writes are service_role-only.
+- **Immutable at DB level:** `trg_affiliate_agreement_acceptances_immutable` blocks DELETE always and UPDATE
+  except the FK `SET NULL` that severs `affiliate_id`/`user_id` — so purging a user cannot erase the
+  evidence (3-year retention). Mirrors the `policy_snapshots` pattern.
+- **Gate keys off the signature, not the account:** `AffiliateShell` now shows the terms gate whenever there
+  is no acceptance for the version currently on file — so partners who joined before signatures existed, and
+  anyone whose terms have been re-versioned, sign again (account, slug and earnings untouched). The gate
+  renders in `resign` mode with its own copy.
+- **One rendering path:** `agreement.shared.ts` renders `{brand}` for both the gate and the snapshot, so what
+  is stored is exactly what was read. `agreement.crypto.ts` holds the hash + IP normalisation (strips the
+  port some proxies append; rejects a spoofed hostname rather than poisoning an `inet` write).
+- **Admin read-out:** a "Signed agreement" table (version · signed · IP · document hash) on each partner's
+  admin record, and a "Signatures on version X — n / m partners" panel on Admin → Affiliates → Terms that
+  warns a version bump re-gates the portal.
+- **Verified live:** existing partner re-gated → signed → portal unlocked; DB row carries the 928-char
+  snapshot with `body_sha256` re-verified against it by Postgres `digest()`; admin record + terms counter
+  both render the signature; bumping to v2 re-gates and reverting to v1 unlocks again with no duplicate row.
+  DB probes (rolled back) proved tamper-UPDATE blocked, DELETE blocked, duplicate version rejected (23505),
+  and the purge `SET NULL` path still allowed.
+
+---
+
 ## 2026-07-20 (pt44c) — WS-5: beta→Founding auto-conversion (flag-gated; admin toggle; verified live).
 
 The last WS-5 piece: hosts now convert to Founding pricing automatically instead of an admin
