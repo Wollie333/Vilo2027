@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-21 — Remove "no booking fees" messaging from tenant direct sites (`4c05103`).
+
+Founder directive: on a host's OWN direct website, touting "no booking fees / 0%
+fees" is redundant (no marketplace fee to contrast against) and it was repeated
+everywhere. Stripped every such mention from the tenant sites (48 files):
+
+- **Booking card** "No booking fees, ever" tick row removed (all 5 themes, via the
+  shared OceansBookCard). **Checkout** intro + **thank-you** footnote reworded.
+  **Room-detail** seasonal line "…includes every tax, with no booking fees." →
+  "…includes every tax." (5 themes).
+- **Theme pages** (home/about/specials/rooms/journal/contact/footer × 5): removed
+  "0% booking fees" stats/pills/promise items + whole "No booking fees" value tiles,
+  and fee clauses from body/eyebrow/footer copy. Kept the good direct-booking
+  language ("book direct", "the price you see is the price you pay", "best-rate",
+  "no agents").
+- **Tenant content generators** (themeSections/standardPages/sectionDefaults/
+  sampleSite/widgets registry) cleaned too.
+- **Left untouched:** Wielo's OWN marketing (landing, signup, marketplace property
+  pages, portal, Hero/TrustPillars, en.json) — "0% fees" is Wielo's legit pitch there.
+- **Live-verified**: 0 fee mentions across booking card / room / home (royal+sabela) /
+  specials / checkout; no broken stat bands, no overflow, no empty leftover boxes.
+  tsc + lint clean.
+
 ## 2026-07-21 — Fix: booking-field polish — date card + guests select + sabela footer CTA.
 
 - **Guests `<select>` now matches the themed date-picker card on every theme**
