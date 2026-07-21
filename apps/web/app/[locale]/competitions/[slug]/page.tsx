@@ -12,12 +12,8 @@ import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
-import {
-  LINE,
-  Medal,
-  Podium,
-  StandingsTable,
-} from "@/components/affiliate/race/RaceBits";
+import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
+import { LINE, Medal, Podium } from "@/components/affiliate/race/RaceBits";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { loadCampaignLeaderboard } from "@/lib/affiliate/leaderboard";
@@ -182,7 +178,11 @@ export default async function CompetitionLeaderboardPage({
               Season total
             </div>
           </div>
-          <StandingsTable rows={rows} usePublicNames />
+          <LiveStandings
+            slug={campaign.slug}
+            initialRows={rows}
+            usePublicNames
+          />
         </div>
 
         {/* ── Scoring + prizes ────────────────────────────────── */}

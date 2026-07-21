@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { activateAffiliateIfReady } from "@/lib/affiliate/activation";
 import { notifyAffiliatePayoutPaid } from "@/lib/affiliate/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -34,6 +35,63 @@ export const setAffiliateStatusAction = withAdminAudit<
     if (error) return { result: { ok: false, error: error.message } };
     revalidatePath("/admin/affiliates");
     return { result: { ok: true }, after: { status: args.status } };
+  },
+);
+
+// ─── Activate a pending affiliate by hand ───────────────────────────────────
+//
+// The manual half of the activation model: a partner who signed up through the
+// public form normally activates themselves by clearing every gate (agreement,
+// platform terms, email confirmation, campaign rules). An admin can activate
+// them anyway — for someone onboarded over the phone, or stuck on a bounced
+// confirmation email. The override deliberately SKIPS the gate check; which
+// gates were unmet is recorded so a bypass is never invisible.
+export const activateAffiliateAction = withAdminAudit<
+  { affiliateId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.activate",
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+
+    const { activated, checklist } = await activateAffiliateIfReady(
+      service,
+      args.affiliateId,
+      admin.userId,
+    );
+    if (!checklist) {
+      return { result: { ok: false, error: "Affiliate not found." } };
+    }
+    if (!activated) {
+      return {
+        result: {
+          ok: false,
+          error: "That partner isn't pending activation.",
+        },
+      };
+    }
+
+    const unmet = [
+      !checklist.agreementSigned && "agreement",
+      !checklist.platformTermsAccepted && "platform terms",
+      !checklist.emailConfirmed && "email confirmation",
+      !checklist.campaignRulesAccepted && "campaign rules",
+    ].filter((v): v is string => typeof v === "string");
+
+    revalidatePath("/admin/affiliates");
+    return {
+      result: { ok: true },
+      after: {
+        status: "active",
+        manual_override: unmet.length > 0,
+        unmet_gates: unmet,
+      },
+    };
   },
 );
 

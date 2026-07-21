@@ -9,11 +9,8 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import {
-  LINE,
-  NetPill,
-  StandingsTable,
-} from "@/components/affiliate/race/RaceBits";
+import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
+import { LINE, NetPill } from "@/components/affiliate/race/RaceBits";
 import { Link } from "@/i18n/navigation";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import {
@@ -212,8 +209,9 @@ export default async function PartnerRacePage({
             </a>
           ) : null}
         </div>
-        <StandingsTable
-          rows={rows}
+        <LiveStandings
+          slug={campaign.slug}
+          initialRows={rows}
           highlightAffiliateId={me.id}
           usePublicNames={false}
         />

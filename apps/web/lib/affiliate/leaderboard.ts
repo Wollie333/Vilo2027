@@ -31,6 +31,39 @@ export type LeaderboardRow = {
   netThisMonth: number;
 };
 
+/**
+ * The standings as the PUBLIC page renders them. `name` (the real full name)
+ * and `slug` never cross this line — the poll endpoint is unauthenticated, so
+ * it may only carry what a visitor can already read off the page.
+ */
+export type PublicLeaderboardRow = Omit<LeaderboardRow, "name" | "slug">;
+
+export function toPublicRows(rows: LeaderboardRow[]): PublicLeaderboardRow[] {
+  return rows.map(
+    ({
+      affiliateId,
+      rank,
+      publicName,
+      photoUrl,
+      communityName,
+      communityMembers,
+      region,
+      listings,
+      netThisMonth,
+    }) => ({
+      affiliateId,
+      rank,
+      publicName,
+      photoUrl,
+      communityName,
+      communityMembers,
+      region,
+      listings,
+      netThisMonth,
+    }),
+  );
+}
+
 export type CampaignPrize = {
   placing?: number;
   cash?: number;

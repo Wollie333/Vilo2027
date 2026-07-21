@@ -3,7 +3,12 @@ import { ChevronRight } from "lucide-react";
 import { AffiliateNav } from "@/app/[locale]/portal/affiliates/_components/AffiliateNav";
 import { AffiliateTermsGate } from "@/app/[locale]/portal/affiliates/_components/AffiliateTermsGate";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import {
+  activateAffiliateIfReady,
+  evaluateAffiliateActivation,
+} from "@/lib/affiliate/activation";
 import { hasSignedVersion } from "@/lib/affiliate/agreement";
+import { AffiliateActivationChecklist } from "@/components/affiliate/AffiliateActivationChecklist";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -57,6 +62,15 @@ export async function AffiliateShell({
     );
   }
 
+  // A partner who signed up through the public form is PENDING until every gate
+  // closes. Re-check on every portal open: the last gate is usually the email
+  // confirmation, which may have been clicked in another tab or on their phone.
+  let status = account.status;
+  if (status === "pending") {
+    const { activated } = await activateAffiliateIfReady(admin, account.id);
+    if (activated) status = "active";
+  }
+
   const { count: productCount } = await admin
     .from("products")
     .select("id", { count: "exact", head: true })
@@ -69,7 +83,13 @@ export async function AffiliateShell({
         year: "numeric",
       })
     : null;
-  const isActive = account.status === "active";
+  const isActive = status === "active";
+  const isPending = status === "pending";
+  const statusLabel = isActive
+    ? "Active partner"
+    : isPending
+      ? "Finishing setup"
+      : "Suspended";
 
   return (
     <div>
@@ -98,7 +118,7 @@ export async function AffiliateShell({
                 isActive ? "bg-brand-primary" : "bg-status-pending"
               }`}
             />
-            {isActive ? "Active partner" : "Suspended"}
+            {statusLabel}
           </span>
           {memberSince ? (
             <span className="text-[12px] text-brand-mute">
@@ -108,8 +128,20 @@ export async function AffiliateShell({
         </div>
       </div>
 
-      <AffiliateNav productCount={productCount ?? 0} basePath={basePath} />
-      <div className="pt-6">{children}</div>
+      {/* A pending partner sees the remaining steps rather than the portal — the
+          tabs would offer referral links and payouts that cannot work yet. */}
+      {isPending ? (
+        <div className="pt-6">
+          <AffiliateActivationChecklist
+            checklist={await evaluateAffiliateActivation(admin, account.id)}
+          />
+        </div>
+      ) : (
+        <>
+          <AffiliateNav productCount={productCount ?? 0} basePath={basePath} />
+          <div className="pt-6">{children}</div>
+        </>
+      )}
     </div>
   );
 }

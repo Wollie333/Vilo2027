@@ -118,15 +118,23 @@ function Avatar({
   );
 }
 
+/** A row that has just changed rank — drives the brief direction cue. */
+export type RowCue = "up" | "down";
+
 export function StandingsTable({
   rows,
   highlightAffiliateId,
   usePublicNames,
+  rowRef,
+  cues,
 }: {
   rows: LeaderboardRow[];
   highlightAffiliateId?: string | null;
   /** Public page shows "Marié v." — the portal shows full names. */
   usePublicNames: boolean;
+  /** Set by LiveStandings so it can measure rows for the FLIP animation. */
+  rowRef?: (id: string, el: HTMLTableRowElement | null) => void;
+  cues?: Record<string, RowCue>;
 }) {
   return (
     <div className="thin-scroll overflow-x-auto">
@@ -156,18 +164,36 @@ export function StandingsTable({
         <tbody className="tabular-nums">
           {rows.map((r) => {
             const you = highlightAffiliateId === r.affiliateId;
+            const cue = cues?.[r.affiliateId];
             return (
               <tr
                 key={r.affiliateId}
-                className={`border-b transition-colors last:border-0 ${
-                  you
-                    ? "bg-brand-light hover:bg-[#EAFBF1]"
-                    : "hover:bg-[#F7FBF8]"
+                ref={rowRef ? (el) => rowRef(r.affiliateId, el) : undefined}
+                className={`border-b transition-colors duration-700 last:border-0 ${
+                  cue === "up"
+                    ? "bg-[#ECFDF5]"
+                    : cue === "down"
+                      ? "bg-[#FFFBEB]"
+                      : you
+                        ? "bg-brand-light hover:bg-[#EAFBF1]"
+                        : "hover:bg-[#F7FBF8]"
                 }`}
                 style={{ borderColor: LINE }}
               >
                 <td className="py-3 pl-5 pr-2">
-                  <RankChip rank={r.rank} />
+                  <span className="inline-flex items-center gap-1">
+                    <RankChip rank={r.rank} />
+                    {cue ? (
+                      <span
+                        aria-hidden
+                        className={`text-[11px] font-bold leading-none ${
+                          cue === "up" ? "text-[#047857]" : "text-[#B45309]"
+                        }`}
+                      >
+                        {cue === "up" ? "▲" : "▼"}
+                      </span>
+                    ) : null}
+                  </span>
                 </td>
                 <td className="px-2 py-3">
                   <div className="flex items-center gap-3">

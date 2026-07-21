@@ -11,7 +11,7 @@ export type AffiliateAccount = {
   id: string;
   user_id: string;
   slug: string;
-  status: "active" | "suspended";
+  status: "pending" | "active" | "suspended";
   terms_version: string;
   accepted_at: string;
   payout_threshold: number | null;

@@ -11,15 +11,65 @@ import {
 } from "@/lib/affiliate/account";
 import { recordAcceptance } from "@/lib/affiliate/agreement";
 import { agreementHash, normaliseIp } from "@/lib/affiliate/agreement.crypto";
+import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
+import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
 import { getBrandName } from "@/lib/brand";
+import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
+
+/**
+ * Re-send the confirmation email for the signed-in user — the last activation
+ * gate for a partner who signed up through the public form.
+ *
+ * Rate limited on IP: this sends mail on demand to an address we already hold,
+ * so an unthrottled button is a way to bomb someone's inbox. Always reports
+ * success to the caller once past the limit — whether the send itself worked is
+ * not the caller's business to probe.
+ */
+export async function resendVerificationEmailAction(): Promise<ActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in." };
+
+  const h = headers();
+  const limit = await checkSignupRateLimit(clientIpFromHeaders(h));
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many attempts — please wait a few minutes and try again.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("user_profiles")
+    .select("email, full_name, email_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Already confirmed → nothing to send; the portal will activate on next open.
+  if (profile?.email_verified_at) return { ok: true };
+
+  const email = profile?.email ?? user.email;
+  if (!email) return { ok: false, error: "No email address on file." };
+
+  await sendVerificationEmail({
+    userId: user.id,
+    email,
+    origin: h.get("origin") ?? "",
+    firstName: profile?.full_name?.split(" ")[0] ?? undefined,
+  });
+  return { ok: true };
+}
 
 const PAYOUT_ERROR_MESSAGES: Record<string, string> = {
   not_found: "Accept the affiliate terms first.",

@@ -512,6 +512,8 @@ export type Database = {
       affiliate_accounts: {
         Row: {
           accepted_at: string
+          activated_at: string | null
+          activated_by: string | null
           bio: string | null
           community_members: number | null
           community_name: string | null
@@ -523,6 +525,7 @@ export type Database = {
           payout_threshold: number | null
           photo_url: string | null
           region: string | null
+          signup_campaign_id: string | null
           slug: string
           status: string
           suspended_at: string | null
@@ -534,6 +537,8 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
+          activated_at?: string | null
+          activated_by?: string | null
           bio?: string | null
           community_members?: number | null
           community_name?: string | null
@@ -545,6 +550,7 @@ export type Database = {
           payout_threshold?: number | null
           photo_url?: string | null
           region?: string | null
+          signup_campaign_id?: string | null
           slug: string
           status?: string
           suspended_at?: string | null
@@ -556,6 +562,8 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
+          activated_at?: string | null
+          activated_by?: string | null
           bio?: string | null
           community_members?: number | null
           community_name?: string | null
@@ -567,6 +575,7 @@ export type Database = {
           payout_threshold?: number | null
           photo_url?: string | null
           region?: string | null
+          signup_campaign_id?: string | null
           slug?: string
           status?: string
           suspended_at?: string | null
@@ -577,6 +586,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "affiliate_accounts_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_accounts_signup_campaign_id_fkey"
+            columns: ["signup_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "affiliate_accounts_suspended_by_fkey"
             columns: ["suspended_by"]
