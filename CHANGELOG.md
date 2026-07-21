@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-21 — Fix: Safari room-detail booking card unstyled + Phase 5 mobile fixes.
+
+- **Safari room-detail booking card had NO styling (`fe69550`).** `SafariRoomDetail`
+  reuses the shared `<OceansBookCard>` (`.bkcard`/`.field`/`.bkrate`/`.btn`…), whose CSS is
+  defined PER THEME scoped to the room wrapper (`.ovroom .bkcard`, `.rroom .bkcard`, …).
+  `safariRoom.css` never got its copy, so under `.sfroom` the card rendered as raw unstyled
+  HTML (default inputs, no card chrome, "squashed"). Same class of bug as the room-detail
+  gallery fix (`317992f`). Added the warm-lodge skin scoped to `.sfroom`: cream surface
+  (#fbf6ec), tan hairlines, sharp 3px radius, Fraunces figures, terracotta "Reserve" CTA
+  (≥46px tap target). Dates picker is `<ThemedDateRange>` (token-driven, no styling needed).
+  **Verified live on all 5 themes' room-detail booking cards** (safari fixed; oceansview/royal/
+  marmalade/hotel-sabela already had their per-theme skins) — every card renders styled
+  (bg + border + padding + radius + shadow, themed Reserve button, bordered select). NB the
+  sabela theme's preview slug is **`hotel`** (internal preset name), not `sabela` — `?theme=sabela`
+  is an invalid slug that falls back to the generic dock.
+- **Phase 5 mobile audit (`c1e2765`).** Per-theme CSS audit at 360–414px (all 5 themes). Themes
+  were broadly well-built; genuine fixes: **marmalade** long host brand name (nowrap in the fixed
+  pill) could force a horizontal page scrollbar → clip + cap `brand-name` at 46vw (≤860px);
+  **sabela** thank-you EFT rows (account number/reference) could overflow the card → `flex-wrap`
+  the row + `overflow-wrap` the value; **tap targets <44px** → footer social icons (marmalade/
+  sabela 42px, oceansview 38px) → 44px, marmalade room-gallery count pill (~35px) → min-height 44px.
+- tsc + lint clean. (Env limit: real 360–414px rendering isn't reachable here — authenticated
+  browser resize is a viewport no-op, in-app browser can't reach the SSO deploy — so the mobile
+  fixes are CSS-audit-verified + desktop-regression-checked, not seen at phone width.)
+
 ## 2026-07-20 — Phase 4 nearby: data source PROVEN + category-diversity fix.
 
 **Verified the OSM nearby-experiences pipeline end-to-end where it's reachable, and fixed a

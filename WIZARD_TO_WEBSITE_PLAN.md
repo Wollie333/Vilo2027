@@ -39,9 +39,16 @@
 >    this session to a client component inside `SiteChrome` (dev-repro proved SiteThemeRoot/fonts are
 >    clean). Needs a dev build to name the exact node → needs `SUPABASE_SERVICE_ROLE_KEY` in
 >    `apps/web/.env.local`. See the dedicated section at the very bottom.
-> 3. **Phase 5** — per-theme differentiation polish + explicit mobile pass (not started). Mobile-viewport
->    QA is tooling-limited here (authenticated browser can't resize; in-app browser can't reach the SSO
->    deploy) — use CSS media-query audit + the in-app browser at mobile width on mirrored components.
+> 3. **Phase 5 — mobile pass DONE (`c1e2765`); differentiation polish still open.** Ran a per-theme
+>    mobile CSS audit at 360–414px across all 5 themes (5 parallel Explore agents). Verdict: themes are
+>    broadly well-built for phones (grids collapse, `clamp()` type, images constrained, drawers work).
+>    Fixed the genuine issues: marmalade brand-name overflow (horizontal scroll), sabela thank-you EFT-row
+>    overflow, and sub-44px tap targets (footer socials ×3, marmalade gallery count pill). Also fixed the
+>    **Safari room-detail booking card** which had NO CSS (`fe69550`, live-verified on all 5 themes). STILL
+>    OPEN: the per-theme *differentiation* polish (own layout/motion/type per the "genuinely unique" bar —
+>    Safari was done a prior session; the other 4 not audited for differentiation). Mobile-viewport QA
+>    remains tooling-limited (authenticated-browser resize is a viewport no-op; in-app browser can't reach
+>    the SSO deploy) — mobile fixes are CSS-audit-verified, not seen at 390px.
 >
 > **⚠️ Phase-1 AMENDMENT (`b6be166`):** the render-path derived-content merge (`mergeDerivedProfile`)
 > originally filled `about.story`/`home.intro.body` from the account `propertyDescription`. Bespoke
