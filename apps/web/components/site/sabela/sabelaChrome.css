@@ -411,8 +411,8 @@
   gap: 10px;
 }
 .sbchrome .foot-socials a {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--site-social-radius, 9999px);
   border: 1px solid var(--site-social-border, rgba(255, 255, 255, 0.16));
   background: var(--site-social-bg, rgba(255, 255, 255, 0.05));

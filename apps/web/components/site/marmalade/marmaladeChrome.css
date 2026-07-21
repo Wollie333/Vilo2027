@@ -135,6 +135,14 @@
   flex-direction: column;
   line-height: 1.05;
   min-width: 0;
+  /* Clip a long host brand name instead of letting the nowrap text spill out of
+     the fixed-position pill and force a horizontal page scrollbar on phones. */
+  overflow: hidden;
+}
+@media (max-width: 860px) {
+  .mmchrome .pill .brand-name {
+    max-width: 46vw;
+  }
 }
 .mmchrome .brand-name small {
   font-family: var(--site-font-body, "Karla", system-ui, sans-serif);
@@ -403,8 +411,8 @@
   gap: 11px;
 }
 .mmchrome .foot-soc a {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.18);
   display: flex;

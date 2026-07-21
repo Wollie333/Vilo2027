@@ -294,6 +294,9 @@
   border-bottom: 1px solid var(--site-line, #2b2618);
   font-size: 15px;
   color: var(--site-mute, #a99b7f);
+  /* Long EFT values (account number, reference) must wrap under the label on a
+     narrow card rather than overflow the row and scroll the page. */
+  flex-wrap: wrap;
 }
 .sbty .tyrow:last-child {
   border-bottom: 0;
@@ -302,6 +305,8 @@
   color: var(--site-ink, #f1eadb);
   font-weight: 600;
   text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .sbty .tyrow.tytotal {
   border-top: 1px solid var(--site-line, #2b2618);
