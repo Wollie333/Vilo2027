@@ -97,6 +97,17 @@ export default async function WebsiteWizardPage({
   ]);
   const name = target.trading_name?.trim() || t("metaTitle");
 
+  // The business logo lives in the `host-logos` bucket, so resolve it to its
+  // public URL and pass THAT as the prefill. websiteAssetUrl() passes absolute
+  // URLs through unchanged, so it renders in the wizard preview and, once stored
+  // on brand.logo_path, on the live site — without copying buckets. (Passing the
+  // bare host-logos path made websiteAssetUrl build a website-assets URL, which
+  // 404s: the broken-logo bug on Step 1, the preview and the published site.)
+  const logoUrl = target.logo_path
+    ? (supabase.storage.from("host-logos").getPublicUrl(target.logo_path).data
+        ?.publicUrl ?? null)
+    : null;
+
   return (
     <div className="space-y-5">
       <div>
@@ -111,7 +122,7 @@ export default async function WebsiteWizardPage({
         businessId={target.id}
         defaultName={name}
         defaultSubdomain={deriveSubdomain(name)}
-        logoPath={target.logo_path}
+        logoPath={logoUrl}
         themes={themes}
         paymentMethods={paymentMethods}
         policies={policies}
