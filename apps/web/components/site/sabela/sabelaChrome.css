@@ -391,6 +391,14 @@
 .sbchrome .foot-cta {
   margin-top: 16px;
 }
+/* The footer CTA is an <a> styled as a button, so the muted `.footer a` link
+   colour (cream @0.56) was overriding the button's own text colour — leaving a
+   washed-out label on the gold fill (~2:1). Restore the button ink (dark on the
+   gold accent, ~7:1). Specificity (0,3,1) beats `.footer a` (0,2,1). */
+.sbchrome .footer a.btn-primary {
+  color: var(--site-btn-primary-color, var(--site-accent-ink, #15120b));
+  opacity: 1;
+}
 .sbchrome .footer-bottom {
   display: flex;
   align-items: center;
