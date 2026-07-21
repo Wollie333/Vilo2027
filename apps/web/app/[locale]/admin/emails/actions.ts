@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
 import { EMAIL_REGISTRY } from "@/lib/email/registry";
+import { emailFrom } from "@/lib/email/sender";
 
 const previewSchema = z.object({
   type: z.string().min(1),
@@ -70,8 +71,7 @@ const sendTestInner = withAdminAudit<SendTestArgs, { id: string | null }>(
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) throw new Error("RESEND_API_KEY is not set");
 
-    const from =
-      process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
+    const from = emailFrom();
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({

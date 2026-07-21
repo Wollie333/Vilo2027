@@ -3,6 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 
 import { getBrandName } from "@/lib/brand";
+import { emailFrom } from "@/lib/email/sender";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Broadcast send — invoked from the sendBroadcastAction Server Action. Mirrors
@@ -11,7 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // deduped by email, and only status='ok' guests are emailed. Every message
 // carries a one-click unsubscribe footer + List-Unsubscribe header (POPIA).
 
-const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
+const FROM = emailFrom();
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wielo.co.za";
 
 // Extract the bare address from a "Name <addr>" or "addr" FROM string.

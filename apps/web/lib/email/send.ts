@@ -1,9 +1,7 @@
 import type { ReactElement } from "react";
 import { Resend } from "resend";
 
-// `||` (not `??`) so a defined-but-EMPTY EMAIL_FROM_ADDRESS still falls back to
-// the default sender — an empty from-address makes Resend reject every send.
-const FROM = process.env.EMAIL_FROM_ADDRESS || "Wielo <onboarding@resend.dev>";
+import { emailFrom } from "@/lib/email/sender";
 
 /**
  * Send a one-off transactional email directly via Resend (outside the
@@ -22,7 +20,7 @@ export async function sendTransactionalEmail(input: {
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: emailFrom(),
       to: input.to,
       subject: input.subject,
       html: input.html,
@@ -50,7 +48,7 @@ export async function sendReactEmail(input: {
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: emailFrom(),
       to: input.to,
       subject: input.subject,
       react: input.react,

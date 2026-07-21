@@ -2,13 +2,11 @@ import { createElement } from "react";
 import { Resend } from "resend";
 
 import { getBrandName } from "@/lib/brand";
+import { emailFrom } from "@/lib/email/sender";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { EMAIL_REGISTRY, type EmailRegistryEntry } from "./registry";
 import { RESOLVERS } from "./resolvers";
-
-const FROM_ADDRESS =
-  process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
 
 const BATCH_SIZE = 50;
 
@@ -159,7 +157,7 @@ export async function drainEmailQueue(): Promise<DrainResult> {
 
     try {
       const { error: sendError } = await resend.emails.send({
-        from: FROM_ADDRESS,
+        from: emailFrom(),
         to: recipientEmail,
         subject: entry.subject(payload),
         react: createElement(entry.Template, payload),

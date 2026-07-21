@@ -1,9 +1,10 @@
 import { Link } from "@/i18n/navigation";
-import { ChevronRight, Mail } from "lucide-react";
+import { AlertTriangle, ChevronRight, Mail, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EMAIL_REGISTRY } from "@/lib/email/registry";
+import { emailConfigStatus } from "@/lib/email/sender";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ async function loadStats(): Promise<QueueStats> {
 export default async function AdminEmailsPage() {
   await requireAdmin();
   const stats = await loadStats();
+  const email = emailConfigStatus();
 
   const types = Object.keys(EMAIL_REGISTRY).sort();
 
@@ -59,6 +61,35 @@ export default async function AdminEmailsPage() {
           and the worker at /api/email-worker.
         </p>
       </header>
+
+      {/* Delivery health. Every send path in the app swallows failures so a
+          booking or signup never dies over an email — which means a broken
+          sender produces no bounce, no error and no complaint. Nothing tells
+          you except this. */}
+      {email.deliveryBroken ? (
+        <section className="flex items-start gap-3 rounded-card border border-[#F3C2C2] bg-[#FEF2F2] p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#B42318]" />
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-semibold text-[#B42318]">
+              Email is not reaching customers
+            </h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-[#912018]">
+              {email.reason}
+            </p>
+            <p className="mt-1.5 font-mono text-[12px] text-[#912018]">
+              Sending as: {email.from}
+            </p>
+          </div>
+        </section>
+      ) : (
+        <section className="flex items-center gap-3 rounded-card border border-[#C7F0DC] bg-[#ECFDF5] p-4">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-[#047857]" />
+          <p className="text-[13px] text-[#047857]">
+            Email is configured — sending as{" "}
+            <span className="font-mono">{email.from}</span>.
+          </p>
+        </section>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Stat
