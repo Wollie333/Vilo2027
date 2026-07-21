@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-07-21 (pt53) — MONEY: refunds no longer claim to have paid a guest who was never paid.
+
+Launch-blocker #1 from the audit. Approving a refund on the Paystack or PayPal rail marked it
+**completed**, bumped `payments.refunded_amount`, minted a credit note, posted "a refund has been issued"
+into the guest's thread and emailed them — while **no provider call was ever made**. The note stored on
+the row said it out loud: *"provider integration pending (pre-MVP); recorded as paid."* On a real booking
+that is a guest who has been told they were refunded and hasn't been.
+
+The correct model was already true in the architecture and just wasn't reflected in the code: **Wielo
+never holds booking money.** The guest pays the host's own Paystack/PayPal/bank account (Model 2), so the
+platform has no funds to return and no authority over the host's. A refund here can only ever be a
+RECORD of what the host did.
+
+- **`completionPatch` now treats every rail as host-sent** (`is_manual = true` on all four), and the note
+  names the rail: *"Paystack refund — sent by the host (ref …)"*. The "recorded as paid" fiction is gone.
+- **`confirmSent` is required** by the zod schema on `approveRefundAction`, so completing a refund is a
+  deliberate assertion by the host, never a side effect of approving an amount. Enforced server-side, not
+  just by the disabled button.
+- **Optional reference** captured and stored on the row, so the host has proof if the guest says the money
+  never arrived.
+- **Honest copy everywhere it mattered:** the method picker changed from "Paystack (card) — automatic" to
+  "refunded in your Paystack account"; the helper text reads *"the guest paid you directly, so Wielo can't
+  move that money"*; the button is now "Record refund as sent"; the guest's thread card says *"The host
+  has sent a refund of R X via Paystack"* plus a 3–10 working day note on card rails; and the completed
+  email says *"Your host has sent a refund…"* instead of "has been processed".
+- **Verified live against a real R32 715 pending refund** — without completing it. The picker, helper
+  text, reference field, confirmation checkbox and disabled button all render; then the request was
+  **tampered in flight to send `confirmSent: false`** and the server refused with *"Confirm you have sent
+  the refund before marking it complete."* The refund row was re-read afterwards and is **untouched**
+  (`status = pending`, `approved_amount = null`). Build, lint and 406 tests green.
+
+**Still open (deliberate):** actually calling Paystack/PayPal refund APIs with the host's stored gateway
+credentials is a real build, not a one-day fix. Recording is now truthful; automation can come later.
+
+---
+
 ## 2026-07-21 (pt52) — SECURITY: close the anonymous account-takeover via returned magic links.
 
 **Live, exploitable, now fixed.** Three public entry points returned a Supabase magic-link `hashed_token`

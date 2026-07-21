@@ -26,9 +26,8 @@ export default function RefundCompletedGuest({
       <Heading>Your refund is on its way</Heading>
       <Text>Hi {guestFirstName},</Text>
       <Text>
-        Your refund of <strong>{refundAmount}</strong> for booking{" "}
-        <strong>{bookingReference}</strong> has been processed back to{" "}
-        {paymentMethod}.
+        Your host has sent a refund of <strong>{refundAmount}</strong> for
+        booking <strong>{bookingReference}</strong> back to {paymentMethod}.
       </Text>
       <Text>{processingNote}</Text>
     </Layout>

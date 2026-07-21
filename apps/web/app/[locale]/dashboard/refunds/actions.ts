@@ -32,24 +32,38 @@ const METHOD_LABELS: Record<RefundMethod, string> = {
 };
 
 /**
- * Completion fields for a refund, given the host's chosen payout rail.
- * Paystack/PayPal are provider-automated (is_manual = false); EFT/Manual are
- * sent by the host outside the platform (is_manual = true). Pre-MVP the real
- * provider calls aren't wired, so everything still completes optimistically —
- * but the chosen rail is recorded and drives is_manual + the note.
+ * Completion fields for a refund.
+ *
+ * EVERY refund is sent by the HOST, on every rail. Wielo never holds booking
+ * money — the guest pays the host's own Paystack/PayPal/bank account (Model 2),
+ * so the platform has no funds to return and no authority to move the host's.
+ * Recording a refund here is therefore the host ASSERTING they have sent it;
+ * `is_manual` is true regardless of rail, and the note names the rail they used.
+ *
+ * This previously marked Paystack/PayPal refunds complete with the note
+ * "provider integration pending — recorded as paid", which told the guest (by
+ * card and by email) that money was on its way when nothing had moved.
  */
-function completionPatch(method: RefundMethod) {
-  const isManual = method === "eft" || method === "manual";
+function completionPatch(method: RefundMethod, reference?: string | null) {
   const label = METHOD_LABELS[method];
+  const ref = reference?.trim();
   return {
     status: "completed" as const,
     refund_method: method,
-    is_manual: isManual,
-    manual_sent_at: isManual ? new Date().toISOString() : null,
-    manual_note: isManual
-      ? `${label} refund — sent by the host outside the platform.`
-      : `${label} — provider integration pending (pre-MVP); recorded as paid.`,
+    is_manual: true,
+    manual_sent_at: new Date().toISOString(),
+    manual_note: ref
+      ? `${label} refund — sent by the host (ref ${ref}).`
+      : `${label} refund — sent by the host.`,
+    ...(ref ? { reference: ref } : {}),
   };
+}
+
+/** How long the guest should expect to wait, by rail — used in their card. */
+function settlementNote(method: RefundMethod): string {
+  return method === "paystack" || method === "paypal"
+    ? " Card and PayPal refunds usually take 3–10 working days to appear."
+    : "";
 }
 
 const approveSchema = z.object({
@@ -57,6 +71,16 @@ const approveSchema = z.object({
   amount: z.number().positive(),
   method: z.enum(refundMethods),
   note: z.string().max(1000).optional().nullable(),
+  // The host's own reference from their gateway/bank, so the guest can be
+  // pointed at something real if they say the money never arrived.
+  reference: z.string().max(120).optional().nullable(),
+  // Explicit assertion that the money has actually been sent. Enforced here and
+  // not only in the UI: completing a refund tells the guest they have been paid,
+  // so it must be a deliberate statement of fact, never a side effect of
+  // approving an amount.
+  confirmSent: z.literal(true, {
+    message: "Confirm you have sent the refund before marking it complete.",
+  }),
 });
 
 const declineSchema = z.object({
@@ -75,19 +99,28 @@ const requestSchema = z.object({
 });
 
 /**
- * Host approves a refund. Status flips to 'approved', then we immediately
- * move to 'processing' and 'completed' since real provider calls aren't
- * wired yet. When Paystack/PayPal go live, replace the optimistic transition
- * with a provider-call + webhook callback.
+ * Host records a refund they have SENT. Status flips approved → completed, which
+ * updates payments.refunded_amount, mints the credit note and tells the guest.
+ *
+ * The platform does not move the money (see completionPatch) — the host sends it
+ * from their own gateway or bank, then confirms here. `confirmSent` is required
+ * so that confirmation is explicit.
  */
 export async function approveRefundAction(input: {
   refundId: string;
   amount: number;
   method: RefundMethod;
   note?: string | null;
+  reference?: string | null;
+  confirmSent: true;
 }): Promise<ActionResult> {
   const parsed = approveSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid request.",
+    };
+  }
 
   const host = await getMyHostId();
   if (!host.ok) return host;
@@ -150,12 +183,12 @@ export async function approveRefundAction(input: {
 
   if (approveErr) return { ok: false, error: approveErr.message };
 
-  // Optimistic completion — flag it as completed so payments.refunded_amount
-  // updates via the existing v11 trigger. The chosen payout rail drives
-  // is_manual + the audit note (see completionPatch).
+  // Completion — the host has confirmed the money is sent, so flag it complete
+  // and let the existing v11 trigger update payments.refunded_amount and mint
+  // the credit note.
   const { error: completeErr } = await supabase
     .from("refund_requests")
-    .update(completionPatch(parsed.data.method))
+    .update(completionPatch(parsed.data.method, parsed.data.reference))
     .eq("id", refund.id);
 
   if (completeErr) return { ok: false, error: completeErr.message };
@@ -163,7 +196,11 @@ export async function approveRefundAction(input: {
   // Rich "refund issued" card into the guest's thread (with the credit note the
   // completion trigger just minted). Best-effort — never fails the refund.
   if (refund.booking_id) {
-    await postBookingRefundCard(refund.booking_id, parsed.data.amount);
+    await postBookingRefundCard(
+      refund.booking_id,
+      parsed.data.amount,
+      parsed.data.method,
+    );
   }
 
   revalidatePath("/dashboard/refunds");
@@ -176,6 +213,7 @@ export async function approveRefundAction(input: {
 async function postBookingRefundCard(
   bookingId: string,
   amount: number,
+  method?: RefundMethod,
 ): Promise<void> {
   const admin = createAdminClient();
   const { data: bk } = await admin
@@ -184,9 +222,13 @@ async function postBookingRefundCard(
     .eq("id", bookingId)
     .maybeSingle();
   if (!bk || !bk.guest_id) return;
+  // Say who sent it and how long it takes. The host moved this money from their
+  // own account, so promising an instant platform refund would be wrong.
+  const via = method ? ` via ${METHOD_LABELS[method]}` : "";
+  const wait = method ? settlementNote(method) : "";
   await postGuestSystemCard(admin, bk, {
     systemEvent: "payment_refunded",
-    body: `A refund of ${formatMoney(amount, bk.currency)} has been issued on booking ${bk.reference}.`,
+    body: `The host has sent a refund of ${formatMoney(amount, bk.currency)}${via} on booking ${bk.reference}.${wait}`,
     readByHost: true,
     readByGuest: false,
   });
@@ -349,9 +391,12 @@ export async function hostInitiatedRefundAction(input: {
     };
   }
 
+  // Host-initiated refunds are recorded AFTER the host has sent the money from
+  // their own account — the form states that (see RefundForm) — so completing
+  // here is a record of their action, not a platform transfer.
   const { error: completeErr } = await admin
     .from("refund_requests")
-    .update(completionPatch(parsed.data.method))
+    .update(completionPatch(parsed.data.method, parsed.data.reference))
     .eq("id", inserted.id);
 
   if (completeErr) return { ok: false, error: completeErr.message };
