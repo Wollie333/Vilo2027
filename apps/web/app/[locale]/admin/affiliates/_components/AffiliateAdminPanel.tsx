@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 
 import {
+  activateAffiliateAction,
   setAffiliateStatusAction,
   settleAffiliatePayoutAction,
 } from "../actions";
@@ -18,7 +19,7 @@ type Affiliate = {
   id: string;
   userId: string;
   slug: string;
-  status: "active" | "suspended";
+  status: "pending" | "active" | "suspended";
   currency: string;
   name: string;
   email: string | null;
@@ -56,6 +57,25 @@ export function AffiliateAdminPanel({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  // Manual activation for a partner stuck in `pending` — typically because a
+  // confirmation email never arrived. Deliberately separate from the
+  // suspend/reactivate toggle: this one BYPASSES the self-serve gates, and the
+  // action records which gates were unmet so the override is never invisible.
+  function activate(a: Affiliate) {
+    startTransition(async () => {
+      const res = await activateAffiliateAction({
+        affiliateId: a.id,
+        reason: "Activated by hand from the admin affiliates panel.",
+      });
+      if (res.ok) {
+        toast.success("Partner activated.");
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
 
   function toggleStatus(a: Affiliate) {
     const next = a.status === "active" ? "suspended" : "active";
@@ -245,21 +265,35 @@ export function AffiliateAdminPanel({
                           className={
                             a.status === "active"
                               ? "bg-emerald-100 text-emerald-700"
-                              : "bg-rose-100 text-rose-700"
+                              : a.status === "pending"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-rose-100 text-rose-700"
                           }
                         >
-                          {a.status}
+                          {a.status === "pending" ? "awaiting setup" : a.status}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant={a.status === "active" ? "ghost" : "outline"}
-                          disabled={pending}
-                          onClick={() => toggleStatus(a)}
-                        >
-                          {a.status === "active" ? "Suspend" : "Reactivate"}
-                        </Button>
+                        {a.status === "pending" ? (
+                          <Button
+                            size="sm"
+                            disabled={pending}
+                            onClick={() => activate(a)}
+                          >
+                            Activate
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={
+                              a.status === "active" ? "ghost" : "outline"
+                            }
+                            disabled={pending}
+                            onClick={() => toggleStatus(a)}
+                          >
+                            {a.status === "active" ? "Suspend" : "Reactivate"}
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

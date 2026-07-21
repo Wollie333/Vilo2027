@@ -79,7 +79,7 @@ export default async function AdminAffiliatesPage() {
       id: a.id,
       userId: a.user_id,
       slug: a.slug,
-      status: a.status as "active" | "suspended",
+      status: a.status as "pending" | "active" | "suspended",
       currency: a.currency,
       name: profile?.full_name || "Unnamed",
       email: profile?.email ?? null,
