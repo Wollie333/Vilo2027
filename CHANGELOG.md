@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-21 — Fix: legible form-field placeholders on every theme (`44565d9`).
+
+Founder-reported: on the dark **Sabela/hotel** theme the field placeholders were
+too faint to read. Root cause: fields sit on an ebony surface, and (a) the sabela
+contact placeholder was set at `opacity: 0.75` → the muted tan fell to ~4.2:1
+(under WCAG AA), while (b) any dark-theme field *without* an explicit placeholder
+rule (checkout, popup, search) fell back to the browser-default **dark-grey**
+placeholder — near-invisible on ebony.
+
+- **Global rule** (`app/globals.css`, scoped to every site's `.wielo-site-root`):
+  pin every `input`/`textarea` `::placeholder` to the active theme's `--site-mute`
+  token at `opacity: 1`. `--site-mute` is each theme's "muted but legible"
+  foreground — a dark tone on the light themes, a light tone on the dark theme —
+  so it always contrasts the field surface. Covers contact, checkout, popup and
+  search fields (all render under `SiteThemeRoot`).
+- **Escape hatch `--site-placeholder`:** `CtaSection`'s newsletter input, when it
+  sits over a photo (white text on a translucent-dark field), sets a
+  translucent-white placeholder so the global dark `--site-mute` isn't dark-on-dark.
+- **Sabela contact** `::placeholder` `opacity` 0.75 → 1.
+- **Verified live** (computed-contrast, screenshots flaky on this deploy): Sabela
+  (dark) placeholder `#a99b7f` on `#1c1913` = **6.41:1** (was ~4.2:1); Safari
+  (light) `#6e6048` on `#f4ede0` = **5.26:1** — no light-theme regression. Both
+  above WCAG AA. tsc + lint clean.
+
 ## 2026-07-21 — Fix: Safari room-detail booking card unstyled + Phase 5 mobile fixes.
 
 - **Safari room-detail booking card had NO styling (`fe69550`).** `SafariRoomDetail`
