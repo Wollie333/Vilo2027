@@ -1,6 +1,6 @@
 # 🧭 SAVEPOINT — 2026-07-22 (read this FIRST in a new session)
 
-> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `2e96026` · tree clean, **all pushed**.
+> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `2ecfef2` · tree clean, **all pushed**.
 > Do NOT merge to `main` yet — founder wants the feature fully working on the branch first.
 > Then read `WIZARD_TO_WEBSITE_PLAN.md` + `CHANGELOG.md`. Supersedes `SAVEPOINT_2026-07-21.md`.
 
@@ -11,7 +11,15 @@
 Iterating on the wizard → published tenant-site feature on the branch, driven by the
 founder's live testing on the **branch preview** (they run the wizard, screenshot issues,
 I fix + push). The Royal theme is the active test theme. **mana** is a **published Royal
-site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8-…`).
+site** — CURRENT website_id `00fd5e51-8883-4ed1-a88d-2cb70d314d42` (the founder deletes +
+re-runs the wizard, so the id changes — look it up by subdomain `mana`, not by a hard-coded id).
+host_id `7b4c377e-…`, business_id `3e471597-…`.
+
+### 🎯 NEXT UP — the currency switcher (#11). Founder said "build it now"; DECISION PENDING on
+whether to do a **Royal MVP first** (foundation + Royal prices → a working switcher to test, then
+sweep the other themes) **or the full feature in one go**. Ask the founder, then execute the detailed
+plan in "OPEN / NOT DONE" §3 below. Everything the founder flagged before this (A logo, B centering)
+is resolved/done.
 
 **Preview URL (behind Wielo login + Vercel SSO):**
 `https://vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`
@@ -58,7 +66,7 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
 
 ---
 
-## ✅ DONE THIS SESSION (11 commits, `9921209`→`32562db`, all pushed + branch-verified)
+## ✅ DONE THIS SESSION (15 commits, `9921209`→`2ecfef2`, all pushed + branch-verified)
 
 - **`b118cd8` fix(wizard): logo → URL.** Wizard page passed the bare `host-logos` path;
   `websiteAssetUrl` treated it as a website-assets path → 404. Now resolved to its public URL.
@@ -86,14 +94,19 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
   `lib/site/defaultImages.ts` (`defaultCardImage`) — free Unsplash photos keyword-matched to each
   card's copy (safari/dining/nature/stars/pool/spa/wine/sunset/water…), rotating within a category by
   index. Host image ALWAYS wins. Wired into all 9 `experiences` mappings in `SitePageView.tsx`.
+- **`1aa4827` fix(royal) + `2e96026` fix(site): centre the stats + feature grids** (issue B). Were
+  `repeat(4,1fr)` → 3 items left an empty column / stats left-hung. Now `repeat(auto-fit, minmax());
+  justify-content: center` (+ `text-align:center` on stats). Royal (verified symmetric), OceansView
+  `.stats`/`.tiles`, Safari `.sf-stats`/`.sf-promise-row`, Sabela `.feature-grid`. Marmalade N/A.
+- **`ff7f4ed`/`2ecfef2` docs(savepoint)** — this file.
 
 ---
 
 ## ⏳ OPEN / NOT DONE (priority order for next session)
 
-1. **(A) Logo — show the host's real logo** (see top). Investigate the logo-capture path.
-2. **(B) Highlights "tiles" grid — centre the cards** on all themes (see top; root cause known).
-3. **#11 Currency switcher on tenant sites** — founder approved "build it now"; it's LARGER than a
+> (A) logo + (B) centering are DONE/resolved — see "RESOLVED since flagged" above. Remaining:
+
+1. **#11 Currency switcher on tenant sites** — founder approved "build it now"; it's LARGER than a
    wire-up (scoped this session). The currency *system* exists but is **flag-locked** and tenant
    prices don't use it. Exact plan:
    - **(a) Lift the ZAR lock for tenant sites.** `lib/frontendFlags.ts` `CURRENCY_SWITCHER_ENABLED=false`
@@ -116,10 +129,10 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
      switcher flips prices live, then sweep the other 4 themes.
    - Verify: switch currency in the header → room/special/booking prices re-render converted; ZAR stays
      exact; no layout breakage in the styled price spans.
-4. **#6 Logo in the wizard THEME-PREVIEW** (minor) — `/theme-preview/[slug]` passes `brand={{name}}`
+2. **#6 Logo in the wizard THEME-PREVIEW** (minor) — `/theme-preview/[slug]` passes `brand={{name}}`
    only (sample brand), so the host's logo doesn't show in the theme step preview. Pass the logo through.
-5. **Full wizard end-to-end + a real test booking** on the branch preview (founder-driven; needs their login).
-6. **Merge to `main` eventually** — branch & main have DIVERGED (main +223 / branch +184 commits since
+3. **Full wizard end-to-end + a real test booking** on the branch preview (founder-driven; needs their login).
+4. **Merge to `main` eventually** — branch & main have DIVERGED (main +223 / branch +184 commits since
    base `c0eb519`; main +89 migrations, branch +7). Trial-merge showed only ~1 real code conflict
    (`themeSections.ts`) + 2 docs; real risk is the 96-migration ordering + build. Do it as an isolated
    git-worktree trial merge (build+verify) before touching main. `main` is VERY active (2FA, security,
