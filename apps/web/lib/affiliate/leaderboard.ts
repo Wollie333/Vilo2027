@@ -86,7 +86,17 @@ export type LeaderboardData = {
     structure: CommissionStructure | null;
   };
   rows: LeaderboardRow[];
-  /** Sum of every partner's live listings — the hero's "hosts live right now". */
+  /**
+   * Partners paused out of the race, with their real (still-accruing) score and
+   * `rank: 0`. Never rendered in the standings — this is here so a paused
+   * partner's OWN panel can show them the truth instead of a zero.
+   */
+  pausedRows: LeaderboardRow[];
+  /**
+   * Sum of the RACING partners' live listings — the hero's "hosts live right
+   * now". Deliberately excludes paused partners so this always equals the sum
+   * of the rows on screen.
+   */
   totalListings: number;
   /** Places in the race: the cap when set, else the number taking part. */
   partnerSlots: number;
@@ -96,6 +106,50 @@ export type LeaderboardData = {
   monthsElapsed: number | null;
   monthsTotal: number | null;
 };
+
+/**
+ * Who is in the race, and who is paused out of it.
+ *
+ * Pulled out as a pure function because this is the single easiest place in the
+ * feature to get wrong. The candidate set is a UNION of two sources that
+ * disagree about pausing:
+ *
+ *   * `scoreIds` — from campaign_active_listings(), which filters on the
+ *     ACCOUNT status and knows nothing about enrollment. A paused partner who
+ *     already has live hosts still comes back from it.
+ *   * enrollments — the only place the pause is recorded.
+ *
+ * So it is not enough to select the active enrollments: without subtracting the
+ * paused ids at the end, a paused partner sails straight back onto the
+ * leaderboard through the scores half of the union.
+ */
+export function partitionRaceIds(
+  scoreIds: readonly string[],
+  enrollments: ReadonlyArray<{ affiliate_id: string; status: string }>,
+): { racing: string[]; paused: string[] } {
+  const paused = new Set<string>();
+  const enrolled = new Set<string>();
+  for (const e of enrollments) {
+    if (e.status === "paused") paused.add(e.affiliate_id);
+    else if (e.status === "active") enrolled.add(e.affiliate_id);
+  }
+  // 'withdrawn' and 'removed' are terminal: they never race, and they are not
+  // "paused" either — nothing about them is shown or resumable.
+  const terminal = new Set(
+    enrollments
+      .filter((e) => e.status !== "active" && e.status !== "paused")
+      .map((e) => e.affiliate_id),
+  );
+
+  const candidates = new Set([...scoreIds, ...enrolled, ...paused]);
+  const racing: string[] = [];
+  const pausedOut: string[] = [];
+  for (const id of candidates) {
+    if (terminal.has(id)) continue;
+    (paused.has(id) ? pausedOut : racing).push(id);
+  }
+  return { racing, paused: pausedOut };
+}
 
 /** First name + last initial — the public page never shows a full surname. */
 export function anonName(full: string | null, fallback: string): string {
@@ -162,18 +216,25 @@ export async function loadCampaignLeaderboard(
   // who has just joined can see themselves in the race.
   const { data: enrollments } = await admin
     .from("affiliate_campaign_enrollments")
-    .select("affiliate_id")
-    .eq("campaign_id", campaign.id)
-    .eq("status", "active");
+    .select("affiliate_id, status")
+    .eq("campaign_id", campaign.id);
 
-  const ids = Array.from(
-    new Set([
-      ...scores.map((s) => s.affiliate_id),
-      ...(enrollments ?? []).map((e) => e.affiliate_id as string),
-    ]),
+  // Paused partners are still built into a row below — their score genuinely
+  // keeps accruing while paused, and their own portal panel has to show the
+  // true number rather than a demoralising zero. They are split out of the
+  // ranked standings, not dropped.
+  const { racing, paused: pausedList } = partitionRaceIds(
+    scores.map((s) => s.affiliate_id),
+    (enrollments ?? []).map((e) => ({
+      affiliate_id: e.affiliate_id as string,
+      status: e.status as string,
+    })),
   );
+  const pausedIds = new Set(pausedList);
+  const ids = [...racing, ...pausedList];
 
   const rows: LeaderboardRow[] = [];
+  const pausedRows: LeaderboardRow[] = [];
   if (ids.length) {
     const { data: accounts } = await admin
       .from("affiliate_accounts")
@@ -199,7 +260,7 @@ export async function loadCampaignLeaderboard(
       const listings = scoreById.get(a.id as string) ?? 0;
       const started = startOfMonthByAffiliate.get(a.id as string);
       const full = nameByUser.get(a.user_id as string) ?? null;
-      rows.push({
+      (pausedIds.has(a.id as string) ? pausedRows : rows).push({
         affiliateId: a.id as string,
         rank: 0,
         name: full || "Partner",
@@ -248,6 +309,7 @@ export async function loadCampaignLeaderboard(
         null) as CommissionStructure | null,
     },
     rows,
+    pausedRows,
     totalListings: rows.reduce((s, r) => s + r.listings, 0),
     partnerSlots: (campaign.max_participants as number | null) ?? rows.length,
     prizes,
@@ -262,7 +324,10 @@ export async function loadCampaignLeaderboard(
 
 /** The partner's own panel on the Race tab. */
 export type MyRaceStats = {
+  /** null when the partner is paused — they hold no place in the standings. */
   rank: number | null;
+  /** Paused out of the race. Their listings/book below are still real. */
+  paused: boolean;
   listings: number;
   netThisMonth: number;
   /** Trailing monthly subscription book, in rand (campaign_ladder_book). */
@@ -280,9 +345,14 @@ export async function loadMyRaceStats(
   affiliateId: string,
   structure: CommissionStructure | null,
   rows: LeaderboardRow[],
+  pausedRows: LeaderboardRow[] = [],
 ): Promise<MyRaceStats> {
   const admin = createAdminClient();
-  const mine = rows.find((r) => r.affiliateId === affiliateId);
+  const ranked = rows.find((r) => r.affiliateId === affiliateId);
+  const paused = pausedRows.find((r) => r.affiliateId === affiliateId);
+  // A paused partner still has a real score and a real commission book — only
+  // their PLACE in the race is withheld.
+  const mine = ranked ?? paused;
 
   let book = 0;
   try {
@@ -322,7 +392,8 @@ export async function loadMyRaceStats(
   }
 
   return {
-    rank: mine?.rank ?? null,
+    rank: ranked?.rank ?? null,
+    paused: Boolean(paused),
     listings: mine?.listings ?? 0,
     netThisMonth: mine?.netThisMonth ?? 0,
     book,

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { withAdminAudit } from "@/lib/admin";
+import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { notifyCampaignPauseChanged } from "@/lib/affiliate/notify";
 import {
   campaignInputSchema,
   type CampaignInput,
@@ -338,6 +339,113 @@ export const setCampaignStatusAction = withAdminAudit<
     if (data?.slug) revalidatePath(`/competitions/${data.slug}`);
     revalidatePath("/portal/affiliates/competitions");
     return { result: { ok: true }, after: { status: args.status } };
+  },
+);
+
+// ─── Pause / resume a partner in a competition ─────────────────────────────
+//
+// Competition-scoped only, and deliberately narrower than the global
+// `setAffiliateStatusAction` suspend in ../actions.ts. A paused partner:
+//
+//   * drops off the leaderboard and out of prize contention;
+//   * KEEPS their referral links and their lifetime commission ladder — a
+//     pause must never cost a partner money they have already earned;
+//   * keeps accruing score quietly, so resuming shows their true standing.
+//
+// Reversible by design. 'withdrawn' (they left) and 'removed' (disqualified)
+// are the terminal states and are not set from here.
+export const setCampaignEnrollmentStatusAction = withAdminAudit<
+  {
+    campaignId: string;
+    affiliateId: string;
+    status: "active" | "paused";
+    reason?: string;
+  },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_enrollment_status",
+    targetType: "affiliate_campaign_enrollment",
+    // admin_audit_log.target_id is a uuid column — a composite "campaign:
+    // affiliate" key silently lands as NULL. Key on the partner (the subject of
+    // the action); the campaign id travels in the audited args either way.
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const pausing = args.status === "paused";
+    const reason = args.reason?.trim() || null;
+
+    if (pausing && !reason) {
+      // The reason is shown to the partner verbatim, so it is not optional.
+      return {
+        result: {
+          ok: false,
+          error: "Give a reason — the partner is shown it.",
+        },
+      };
+    }
+
+    const { data: before } = await service
+      .from("affiliate_campaign_enrollments")
+      .select("status")
+      .eq("campaign_id", args.campaignId)
+      .eq("affiliate_id", args.affiliateId)
+      .maybeSingle();
+
+    if (before && before.status !== "active" && before.status !== "paused") {
+      // Don't quietly resurrect someone who withdrew or was disqualified.
+      return {
+        result: {
+          ok: false,
+          error: `That partner is ${before.status}, not taking part — pausing doesn't apply.`,
+        },
+      };
+    }
+
+    // Upsert rather than update: on an `eligible_partners = 'all'` campaign a
+    // partner can be scoring on the leaderboard without ever having had an
+    // enrollment row, and those are exactly the ones you may need to pause.
+    const { error } = await service
+      .from("affiliate_campaign_enrollments")
+      .upsert(
+        {
+          campaign_id: args.campaignId,
+          affiliate_id: args.affiliateId,
+          status: args.status,
+          paused_at: pausing ? new Date().toISOString() : null,
+          paused_by: pausing ? admin.userId : null,
+          paused_reason: pausing ? reason : null,
+        },
+        { onConflict: "affiliate_id,campaign_id" },
+      );
+    if (error) return { result: { ok: false, error: error.message } };
+
+    await notifyCampaignPauseChanged(service, {
+      campaignId: args.campaignId,
+      affiliateId: args.affiliateId,
+      paused: pausing,
+      reason,
+    });
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    revalidatePath("/portal/affiliates/competitions");
+    const { data: camp } = await service
+      .from("affiliate_campaigns")
+      .select("slug")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    if (camp?.slug) {
+      revalidatePath(`/competitions/${camp.slug}`);
+      revalidatePath(`/portal/affiliates/race/${camp.slug}`);
+    }
+
+    return {
+      result: { ok: true },
+      before: { status: before?.status ?? null },
+      after: { status: args.status, reason },
+    };
   },
 );
 

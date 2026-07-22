@@ -4,8 +4,7 @@ import * as React from "react";
 import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+import { APP_URL } from "../lib/appUrl";
 
 type Props = {
   guestFirstName?: string;
@@ -24,7 +23,7 @@ export default function RefundDeclinedGuest({
   declineReasonLabel = "Outside the cancellation policy window",
   policySummary = "",
   bookingId = "",
-  supportEmail = "support@wieloplatform.com",
+  supportEmail = "hello@wielo.co.za",
 }: Props) {
   return (
     <Layout

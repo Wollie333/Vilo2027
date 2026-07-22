@@ -725,6 +725,9 @@ export type Database = {
           created_at: string
           enrolled_at: string
           id: string
+          paused_at: string | null
+          paused_by: string | null
+          paused_reason: string | null
           status: string
         }
         Insert: {
@@ -733,6 +736,9 @@ export type Database = {
           created_at?: string
           enrolled_at?: string
           id?: string
+          paused_at?: string | null
+          paused_by?: string | null
+          paused_reason?: string | null
           status?: string
         }
         Update: {
@@ -741,6 +747,9 @@ export type Database = {
           created_at?: string
           enrolled_at?: string
           id?: string
+          paused_at?: string | null
+          paused_by?: string | null
+          paused_reason?: string | null
           status?: string
         }
         Relationships: [
@@ -756,6 +765,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_campaign_enrollments_paused_by_fkey"
+            columns: ["paused_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]

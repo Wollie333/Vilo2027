@@ -20,6 +20,8 @@ export function CampaignCard({
   ladderText,
   campaignLink,
   enrolled,
+  paused = false,
+  pausedReason = null,
   score,
   rank,
   calculator,
@@ -34,6 +36,9 @@ export function CampaignCard({
   ladderText: string[];
   campaignLink: string;
   enrolled: boolean;
+  /** Paused out of the race by an admin. Score still counts; rank is withheld. */
+  paused?: boolean;
+  pausedReason?: string | null;
   score: number;
   rank: number | null;
   calculator: {
@@ -104,24 +109,50 @@ export function CampaignCard({
         </div>
         <div className="text-right">
           <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-            My rank
+            {paused ? "Paused" : "My rank"}
           </div>
           <div className="num text-2xl font-extrabold text-brand-ink">
-            {rank
-              ? rank === 1
-                ? "🥇"
-                : rank === 2
-                  ? "🥈"
-                  : rank === 3
-                    ? "🥉"
-                    : `#${rank}`
-              : "—"}
+            {paused
+              ? "—"
+              : rank
+                ? rank === 1
+                  ? "🥇"
+                  : rank === 2
+                    ? "🥈"
+                    : rank === 3
+                      ? "🥉"
+                      : `#${rank}`
+                : "—"}
           </div>
           <div className="text-[12px] text-brand-mute">
             {score} live {score === 1 ? "listing" : "listings"}
           </div>
         </div>
       </div>
+
+      {/* Paused notice. Leads with what is NOT affected — a partner who sees
+          they have dropped off the leaderboard will assume the worst about
+          their commission, and the worst is not true. */}
+      {paused ? (
+        <div className="border-t border-amber-200 bg-amber-50 px-5 py-4">
+          <div className="text-[13px] font-semibold text-amber-900">
+            You&rsquo;re paused in this competition
+          </div>
+          {pausedReason ? (
+            <p className="mt-1 text-[12.5px] leading-relaxed text-amber-900/90">
+              {pausedReason}
+            </p>
+          ) : null}
+          <p className="mt-2 text-[12.5px] leading-relaxed text-amber-900/90">
+            You won&rsquo;t appear on the leaderboard or be in the running for
+            prizes for now.{" "}
+            <strong>Your commission isn&rsquo;t affected</strong> — your links
+            keep working and every host you&rsquo;ve referred still earns you
+            your usual rate. Your score also keeps counting, so if you&rsquo;re
+            resumed you pick up where you actually are.
+          </p>
+        </div>
+      ) : null}
 
       {/* Campaign link */}
       <div className="p-5">

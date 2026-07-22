@@ -340,6 +340,17 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     inviteToken: "preview-token-only",
     expiresAt: "7 days",
   },
+
+  // Previews the PAUSED variant — the one worth eyeballing, since it has to
+  // reassure the partner their commission is untouched. Flip `paused` to
+  // "false" in the previewer to see the resumed version.
+  campaign_pause_changed: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "Founding Race",
+    paused: "true",
+    reason: "Under review following a referral-quality query.",
+  },
 };
 
 export function getSamplePayload(type: string): Record<string, unknown> {

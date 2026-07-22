@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { CampaignBuilder } from "../_components/CampaignBuilder";
 import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
+import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function AdminCampaignPage({
       .order("title"),
     service
       .from("affiliate_campaign_enrollments")
-      .select("affiliate_id, status, enrolled_at")
+      .select("affiliate_id, status, enrolled_at, paused_at, paused_reason")
       .eq("campaign_id", campaign.id),
     service.rpc("campaign_active_listings", { p_campaign_id: campaign.id }),
     service
@@ -109,6 +110,17 @@ export default async function AdminCampaignPage({
     }
   }
 
+  // Enrollment status by partner. On an `eligible_partners = 'all'' campaign a
+  // partner can be scoring without ever having had an enrollment row, so the
+  // standings default to 'active' — they ARE racing, and pausing them upserts
+  // the row that was missing.
+  const enrollmentStatusById = new Map(
+    (enrollments ?? []).map((e) => [
+      e.affiliate_id as string,
+      e.status as string,
+    ]),
+  );
+
   const standings = scores
     .slice()
     .sort((a, b) => b.active_listings - a.active_listings)
@@ -118,6 +130,7 @@ export default async function AdminCampaignPage({
       name: nameById.get(s.affiliate_id)?.name ?? "—",
       slug: nameById.get(s.affiliate_id)?.slug ?? "",
       listings: s.active_listings,
+      status: enrollmentStatusById.get(s.affiliate_id) ?? "active",
     }));
 
   const enrolledRows = (enrollments ?? []).map((e) => ({
@@ -126,6 +139,7 @@ export default async function AdminCampaignPage({
     slug: nameById.get(e.affiliate_id)?.slug ?? "",
     status: e.status as string,
     enrolled_at: e.enrolled_at as string | null,
+    paused_reason: (e.paused_reason as string | null) ?? null,
   }));
 
   const floorRows = (floors ?? []).map((f) => ({
@@ -201,7 +215,28 @@ export default async function AdminCampaignPage({
     {
       header: "Live listings",
       align: "right",
-      cell: (r) => <span className="num font-medium">{r.listings}</span>,
+      cell: (r) => (
+        <span className="num font-medium">
+          {r.listings}
+          {r.status === "paused" ? (
+            <span className="ml-2 rounded-pill border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+              paused
+            </span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (r) => (
+        <EnrollmentPauseButton
+          campaignId={campaign.id}
+          affiliateId={r.id}
+          name={r.name}
+          status={r.status}
+        />
+      ),
     },
   ];
 
@@ -220,9 +255,22 @@ export default async function AdminCampaignPage({
     {
       header: "Status",
       cell: (r) => (
-        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium capitalize text-brand-mute">
-          {r.status}
-        </span>
+        <div className="min-w-0">
+          <span
+            className={
+              r.status === "paused"
+                ? "inline-flex items-center rounded-pill border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-medium capitalize text-amber-800"
+                : "inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium capitalize text-brand-mute"
+            }
+          >
+            {r.status}
+          </span>
+          {r.paused_reason ? (
+            <div className="mt-1 max-w-[22rem] text-[11px] leading-snug text-brand-mute">
+              {r.paused_reason}
+            </div>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -237,6 +285,18 @@ export default async function AdminCampaignPage({
               })
             : "—"}
         </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (r) => (
+        <EnrollmentPauseButton
+          campaignId={campaign.id}
+          affiliateId={r.id}
+          name={r.name}
+          status={r.status}
+        />
       ),
     },
   ];

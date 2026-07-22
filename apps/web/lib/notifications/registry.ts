@@ -205,6 +205,14 @@ export type LookingForRefs = {
 export type AffiliateRefs = {
   /** Formatted money string, e.g. "R 89.90". */
   amount?: string;
+  /** Partner's first name, for the pause/resume email greeting. */
+  firstName?: string;
+  /** Competition this refers to. */
+  campaignName?: string;
+  /** "true" when the partner has been paused out of a competition. */
+  paused?: string;
+  /** Why they were paused — written for the partner to read. */
+  reason?: string;
   /** What the commission was for (product name) or the payout method. */
   detail?: string;
   /** The affiliate's email — routes the "custom" email recipient. */
@@ -1145,6 +1153,38 @@ export const NOTIFICATION_REGISTRY = {
         ? `Via ${r.detail}`
         : "Your affiliate payout has been sent.",
       link: "/portal/affiliates/payouts",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_pause_changed: {
+    category: "account_security",
+    feature: "subscription",
+    severity: "high",
+    emailTemplate: "campaign_pause_changed",
+    push: (r) => ({
+      title:
+        r.paused === "true"
+          ? "You've been paused in the competition"
+          : "You're back in the competition 🎉",
+      body: clip(
+        r.paused === "true"
+          ? `${r.campaignName ?? "The competition"} — ${r.reason ?? "tap for details"}. Your commission is unaffected.`
+          : `You're back on the ${r.campaignName ?? "competition"} leaderboard.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title:
+        r.paused === "true"
+          ? `Paused in ${r.campaignName ?? "the competition"}`
+          : `Back in ${r.campaignName ?? "the competition"}`,
+      body:
+        r.paused === "true"
+          ? `${r.reason ?? "You've been paused."} Your commission and referral links are unaffected.`
+          : "You're back on the leaderboard and in the running for prizes.",
+      link: "/portal/affiliates/competitions",
     }),
   } satisfies EventBuilder<AffiliateRefs>,
 } as const;

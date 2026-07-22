@@ -55,11 +55,13 @@ export default async function AffiliateCompetitionsPage() {
         )
         .eq("status", "active")
         .order("created_at", { ascending: true }),
+      // Not filtered to 'active': a PAUSED partner is still enrolled, and
+      // treating them as un-enrolled would offer them a "Join" button for a
+      // race they are already in.
       admin
         .from("affiliate_campaign_enrollments")
-        .select("campaign_id, status")
-        .eq("affiliate_id", me.id)
-        .eq("status", "active"),
+        .select("campaign_id, status, paused_reason")
+        .eq("affiliate_id", me.id),
       admin
         .from("products")
         .select("price")
@@ -70,7 +72,17 @@ export default async function AffiliateCompetitionsPage() {
 
   const perHostPrice = Number(planProduct?.price ?? 599);
   const enrolledIds = new Set(
-    (enrollments ?? []).map((e) => e.campaign_id as string),
+    (enrollments ?? [])
+      .filter((e) => e.status === "active" || e.status === "paused")
+      .map((e) => e.campaign_id as string),
+  );
+  const myPauseByCampaign = new Map(
+    (enrollments ?? [])
+      .filter((e) => e.status === "paused")
+      .map((e) => [
+        e.campaign_id as string,
+        (e.paused_reason as string | null) ?? null,
+      ]),
   );
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -87,20 +99,39 @@ export default async function AffiliateCompetitionsPage() {
       }) as CommissionStructure;
       const bands: LadderBand[] = cs.model === "ladder" ? (cs.bands ?? []) : [];
 
-      const { data: scores } = await admin.rpc("campaign_active_listings", {
-        p_campaign_id: c.id,
-      });
-      const rows = (
+      const [{ data: scores }, { data: pausedHere }] = await Promise.all([
+        admin.rpc("campaign_active_listings", { p_campaign_id: c.id }),
+        admin
+          .from("affiliate_campaign_enrollments")
+          .select("affiliate_id")
+          .eq("campaign_id", c.id)
+          .eq("status", "paused"),
+      ]);
+      // Paused partners are out of the standings, exactly as on the public
+      // leaderboard — the two must never disagree about a rank.
+      const pausedIds = new Set(
+        (pausedHere ?? []).map((p) => p.affiliate_id as string),
+      );
+      const allRows = (
         (scores ?? []) as {
           affiliate_id: string;
           active_listings: number;
         }[]
-      )
-        .filter((s) => s.active_listings > 0)
+      ).filter((s) => s.active_listings > 0);
+      const rows = allRows
+        .filter((s) => !pausedIds.has(s.affiliate_id))
         .sort((a, b) => b.active_listings - a.active_listings);
+
+      const iAmPaused = pausedIds.has(me.id);
       const myIdx = rows.findIndex((s) => s.affiliate_id === me.id);
-      const myScore = myIdx >= 0 ? rows[myIdx].active_listings : 0;
-      const rank = myIdx >= 0 ? myIdx + 1 : null;
+      // A paused partner's score keeps accruing — read it from the unfiltered
+      // list so we show them the truth, just without a place in the race.
+      const myScore = iAmPaused
+        ? (allRows.find((s) => s.affiliate_id === me.id)?.active_listings ?? 0)
+        : myIdx >= 0
+          ? rows[myIdx].active_listings
+          : 0;
+      const rank = iAmPaused || myIdx < 0 ? null : myIdx + 1;
 
       // Projection calculator (potential, CPA-safe).
       const potentialBook = myScore * perHostPrice;
@@ -136,6 +167,8 @@ export default async function AffiliateCompetitionsPage() {
         // The campaign link is shown only once the partner has opted in (joined),
         // so appearing on the leaderboard is a deliberate act.
         enrolled: enrolledIds.has(c.id),
+        paused: iAmPaused,
+        pausedReason: myPauseByCampaign.get(c.id) ?? null,
         score: myScore,
         rank,
         calculator: {

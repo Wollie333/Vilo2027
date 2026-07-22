@@ -46,13 +46,14 @@ export default async function PartnerRacePage({
 
   const data = await loadCampaignLeaderboard(params.slug);
   if (!data) notFound();
-  const { campaign, rows, prizes } = data;
+  const { campaign, rows, pausedRows, prizes } = data;
 
   const mine = await loadMyRaceStats(
     campaign.id,
     me.id,
     campaign.structure,
     rows,
+    pausedRows,
   );
 
   const monthsLeft =
@@ -100,6 +101,26 @@ export default async function PartnerRacePage({
           ) : null}
         </div>
       </div>
+
+      {/* Paused out of the race. Shown before the stat strip so the "—" rank
+          below is explained rather than alarming. */}
+      {mine.paused ? (
+        <div className="mt-5 rounded-card border border-amber-200 bg-amber-50 px-5 py-4">
+          <div className="text-[13.5px] font-semibold text-amber-900">
+            You&rsquo;re paused in this competition
+          </div>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-amber-900/90">
+            You won&rsquo;t appear on the leaderboard or be in the running for
+            prizes for now.{" "}
+            <strong>Your commission isn&rsquo;t affected</strong> — your links
+            keep working and every host you&rsquo;ve referred still earns you
+            your usual rate. Your listings below keep counting, so if
+            you&rsquo;re resumed you pick up where you actually are. Check your
+            email for the reason, or reply to it if you think it&rsquo;s a
+            mistake.
+          </p>
+        </div>
+      ) : null}
 
       {/* ── Personal stat strip ─────────────────────────────── */}
       <div className="mb-5 mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

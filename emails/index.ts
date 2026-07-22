@@ -43,6 +43,7 @@ export { default as SubscriptionWelcome } from "./templates/SubscriptionWelcome"
 export { default as WelcomeHost } from "./templates/WelcomeHost";
 export { default as AffiliateCommissionEarned } from "./templates/AffiliateCommissionEarned";
 export { default as AffiliatePayoutPaid } from "./templates/AffiliatePayoutPaid";
+export { default as CampaignPauseChanged } from "./templates/CampaignPauseChanged";
 export { default as PasswordReset } from "./templates/PasswordReset";
 export { default as ClaimAccount } from "./templates/ClaimAccount";
 export { default as ConfirmEmail } from "./templates/ConfirmEmail";

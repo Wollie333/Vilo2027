@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-20
+> **Last generated:** 2026-07-22
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,8 +16,8 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **190** (190 with RLS) |
-| Functions | **176** (140 SECURITY DEFINER, 64 trigger fns) |
+| Tables | **195** (195 with RLS) |
+| Functions | **181** (141 SECURITY DEFINER, 67 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -26,9 +26,11 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 1 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
+### 3 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
+- `current_user_has_password`
 - `get_listing_policy_summary`
+- `record_error_event`
 
 ### 1 × SECURITY INVOKER trigger writing to a DIFFERENT RLS table — if the target's policy excludes the user who fired the trigger, the write matches **zero rows and says nothing** (this is the `view_count` bug). VERIFY each hit: it is safe if every writer reaches it through a SECURITY DEFINER function.
 
@@ -123,9 +125,11 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `compute_addon_subtotal` | — | — | callable |
 | `count_broadcast_recipients` | **yes** | yes | callable |
 | `create_affiliate_payout` | **yes** | yes | callable |
+| `current_user_has_password` | **yes** | yes | callable |
 | `effective_vat_rate` | **yes** | yes | callable |
 | `emit_affiliate_commission_ledger` | **yes** | yes | trigger |
 | `emit_affiliate_payout_ledger` | **yes** | yes | trigger |
+| `enforce_campaign_capacity` | — | — | trigger |
 | `enforce_listing_requires_bank` | **yes** | yes | trigger |
 | `enforce_looking_for_post_cap` | **yes** | yes | trigger |
 | `enforce_one_active_membership` | — | — | trigger |
@@ -155,6 +159,8 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `fetch_seasonality_heatmap` | **yes** | yes | callable |
 | `fetch_secondary_metrics` | **yes** | yes | callable |
 | `fetch_time_to_book` | **yes** | yes | callable |
+| `forbid_affiliate_agreement_mutation` | — | — | trigger |
+| `forbid_campaign_rule_acceptance_mutation` | — | — | trigger |
 | `forbid_forfeit_statement_mutation` | — | — | trigger |
 | `forbid_policy_snapshot_mutation` | — | — | trigger |
 | `forbid_second_active_membership` | — | — | trigger |
@@ -212,8 +218,9 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `on_subscription_insert` | **yes** | yes | trigger |
 | `product_units_sold` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
-| `recalculate_listing_ranking` | **yes** | yes | callable |
+| `recalculate_listing_ranking` | — | — | callable |
 | `recompute_affiliate_campaign_rates` | **yes** | yes | callable |
+| `record_error_event` | **yes** | yes | callable |
 | `record_guest_post` | **yes** | yes | callable |
 | `redeem_coupon` | **yes** | yes | callable |
 | `redeem_platform_coupon` | **yes** | yes | callable |
@@ -360,7 +367,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text, 'changelog_entry'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text, 'changelog_entry'::text])))`
 
 **RLS policies:**
 - `admin_read_audit` (SELECT) — `USING is_super_admin()`
@@ -528,8 +535,16 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `display_headline` | text | yes | — |
 | `bio` | text | yes | — |
 | `photo_url` | text | yes | — |
+| `community_name` | text | yes | — |
+| `community_members` | integer | yes | — |
+| `region` | text | yes | — |
+| `activated_at` | timestamp with time zone | yes | — |
+| `activated_by` | uuid | yes | — |
+| `signup_campaign_id` | uuid | yes | — |
 
 **Foreign keys:**
+- `FOREIGN KEY (activated_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+- `FOREIGN KEY (signup_campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE SET NULL`
 - `FOREIGN KEY (suspended_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
 
@@ -538,11 +553,44 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `UNIQUE (user_id)`
 
 **Checks:**
+- `CHECK (((community_members IS NULL) OR ((community_members >= 0) AND (community_members <= 10000000))))`
 - `CHECK ((default_payout_method = ANY (ARRAY['eft'::text, 'paystack'::text, 'paypal'::text])))`
-- `CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text])))`
+- `CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'suspended'::text])))`
 
 **RLS policies:**
 - `affiliate_accounts_own_read` (SELECT) — `USING (user_id = auth.uid())`
+
+### `affiliate_agreement_acceptances`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `affiliate_id` | uuid | yes | — |
+| `user_id` | uuid | yes | — |
+| `signatory_email` | text | yes | — |
+| `signatory_name` | text | yes | — |
+| `version` | text | — | — |
+| `body_snapshot` | text | — | — |
+| `body_sha256` | text | — | — |
+| `accepted_at` | timestamp with time zone | — | `now()` |
+| `ip` | inet | yes | — |
+| `user_agent` | text | yes | — |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE SET NULL`
+- `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK ((body_sha256 ~ '^[0-9a-f]{64}$'::text))`
+- `CHECK (((char_length(version) >= 1) AND (char_length(version) <= 32)))`
+
+**Triggers:**
+- `trg_affiliate_agreement_acceptances_immutable` → `forbid_affiliate_agreement_mutation()`
+
+**RLS policies:**
+- `affiliate reads own agreement acceptances` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
+   FROM affiliate_accounts
+  WHERE (affiliate_accounts.user_id = auth.uid())))`
 
 ### `affiliate_campaign_daily_scores`
 
@@ -576,16 +624,23 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `status` | text | — | `'active'::text` |
 | `enrolled_at` | timestamp with time zone | — | `now()` |
 | `created_at` | timestamp with time zone | — | `now()` |
+| `paused_at` | timestamp with time zone | yes | — |
+| `paused_by` | uuid | yes | — |
+| `paused_reason` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
 - `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
+- `FOREIGN KEY (paused_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Unique:**
 - `UNIQUE (affiliate_id, campaign_id)`
 
 **Checks:**
-- `CHECK ((status = ANY (ARRAY['active'::text, 'withdrawn'::text, 'removed'::text])))`
+- `CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'withdrawn'::text, 'removed'::text])))`
+
+**Triggers:**
+- `trg_campaign_capacity` → `enforce_campaign_capacity()`
 
 **RLS policies:**
 - `affiliate_campaign_enrollments_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
@@ -620,6 +675,41 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
    FROM affiliate_accounts
   WHERE (affiliate_accounts.user_id = auth.uid())))`
 
+### `affiliate_campaign_rule_acceptances`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `campaign_id` | uuid | yes | — |
+| `affiliate_id` | uuid | yes | — |
+| `user_id` | uuid | yes | — |
+| `signatory_email` | text | yes | — |
+| `signatory_name` | text | yes | — |
+| `doc_slug` | text | — | — |
+| `doc_version` | integer | — | — |
+| `body_snapshot` | text | — | — |
+| `body_sha256` | text | — | — |
+| `accepted_at` | timestamp with time zone | — | `now()` |
+| `ip` | inet | yes | — |
+| `user_agent` | text | yes | — |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE SET NULL`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE SET NULL`
+- `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK ((body_sha256 ~ '^[0-9a-f]{64}$'::text))`
+- `CHECK ((doc_version > 0))`
+
+**Triggers:**
+- `trg_campaign_rule_acceptances_immutable` → `forbid_campaign_rule_acceptance_mutation()`
+
+**RLS policies:**
+- `affiliate reads own campaign rule acceptances` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
+   FROM affiliate_accounts
+  WHERE (affiliate_accounts.user_id = auth.uid())))`
+
 ### `affiliate_campaigns`
 
 | column | type | null | default |
@@ -638,6 +728,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `created_by` | uuid | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
+| `max_participants` | integer | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -648,6 +739,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 **Checks:**
 - `CHECK ((eligible_partners = ANY (ARRAY['all'::text, 'tagged'::text, 'invite'::text])))`
 - `CHECK ((eligible_referrals = ANY (ARRAY['all_time'::text, 'referred_in_window'::text, 'activated_in_window'::text])))`
+- `CHECK (((max_participants IS NULL) OR (max_participants > 0)))`
 - `CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'ended'::text, 'archived'::text])))`
 - `CHECK (((commission_structure ->> 'model'::text) = ANY (ARRAY['ladder'::text, 'flat'::text, 'inherit'::text])))`
 
@@ -1628,6 +1720,26 @@ CASE
   WHERE (hosts.user_id = auth.uid())))`
 - `host_manage_eft` (ALL) — `USING (host_id = get_my_host_id())`
 
+### `error_events`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `source` | text | — | `'server'::text` |
+| `fingerprint` | text | — | — |
+| `message` | text | — | — |
+| `stack` | text | yes | — |
+| `url` | text | yes | — |
+| `user_id` | uuid | yes | — |
+| `context` | jsonb | — | `'{}'::jsonb` |
+| `occurrences` | integer | — | `1` |
+| `first_seen` | timestamp with time zone | — | `now()` |
+| `last_seen` | timestamp with time zone | — | `now()` |
+| `resolved_at` | timestamp with time zone | yes | — |
+
+**Foreign keys:**
+- `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL`
+
 ### `external_review_sources`
 
 | column | type | null | default |
@@ -1922,6 +2034,32 @@ CASE
 - `form_drafts_owner_insert` (INSERT) — `CHECK (auth.uid() = user_id)`
 - `form_drafts_owner_select` (SELECT) — `USING (auth.uid() = user_id)`
 - `form_drafts_owner_update` (UPDATE) — `USING (auth.uid() = user_id) CHECK (auth.uid() = user_id)`
+
+### `funnel_events`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `funnel` | text | — | `'looking_for'::text` |
+| `event` | text | — | — |
+| `step` | text | yes | — |
+| `session_id` | text | yes | — |
+| `post_id` | uuid | yes | — |
+| `is_lead` | boolean | yes | — |
+| `device` | text | yes | — |
+| `country` | text | yes | — |
+| `referrer_host` | text | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (post_id) REFERENCES looking_for_posts(id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK (((device IS NULL) OR (device = ANY (ARRAY['desktop'::text, 'mobile'::text]))))`
+- `CHECK ((event = ANY (ARRAY['landing_view'::text, 'wizard_start'::text, 'step_complete'::text, 'review_reached'::text, 'account_created'::text, 'published'::text])))`
+
+**RLS policies:**
+- `funnel_events_admin_read` (SELECT) — `USING is_super_admin()`
 
 ### `fx_rates`
 
@@ -3753,6 +3891,7 @@ CASE
 | `eft_swift_code` | text | yes | — |
 | `paystack_recurring_enabled` | boolean | — | `false` |
 | `paypal_recurring_enabled` | boolean | — | `false` |
+| `founding_offers_open` | boolean | — | `false` |
 
 **Checks:**
 - `CHECK (id)`
@@ -4063,12 +4202,15 @@ CASE
 | `coupon_id` | uuid | yes | — |
 | `discount_amount` | numeric | — | `0` |
 | `billing_cycle` | text | yes | — |
+| `upgrade_subscription_id` | uuid | yes | — |
+| `upgrade_plan_key` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE SET NULL`
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (payer_user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL`
+- `FOREIGN KEY (upgrade_subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL`
 
 **Unique:**
 - `UNIQUE (pay_token)`
@@ -4119,6 +4261,10 @@ CASE
 | `max_quantity` | integer | yes | — |
 | `annual_price` | numeric | yes | — |
 | `account_kind` | text | — | `'host'::text` |
+| `per_listing_amount` | numeric | — | `0` |
+| `founding_price` | numeric | yes | — |
+| `founding_annual_price` | numeric | yes | — |
+| `founding_per_listing_amount` | numeric | yes | — |
 
 **Checks:**
 - `CHECK ((account_kind = ANY (ARRAY['host'::text, 'quote_only'::text])))`
@@ -4209,6 +4355,7 @@ CASE
 | `vat_rate` | numeric | — | `15` |
 | `featured_review_id` | uuid | yes | — |
 | `business_id` | uuid | — | — |
+| `ranking_score` | numeric | — | `0` |
 
 **Foreign keys:**
 - `FOREIGN KEY (business_id) REFERENCES businesses(id)`
@@ -5767,6 +5914,11 @@ CASE
 | `paystack_card_last4` | text | yes | — |
 | `paystack_card_brand` | text | yes | — |
 | `paystack_card_exp` | text | yes | — |
+| `is_founding` | boolean | — | `false` |
+| `locked_base_amount` | numeric | yes | — |
+| `locked_per_listing_amount` | numeric | yes | — |
+| `locked_currency` | text | yes | — |
+| `price_locked_at` | timestamp with time zone | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
@@ -5775,6 +5927,7 @@ CASE
 
 **Checks:**
 - `CHECK ((billing_cycle = ANY (ARRAY['monthly'::text, 'annual'::text])))`
+- `CHECK (((locked_currency IS NULL) OR (locked_currency = 'ZAR'::text)))`
 - `CHECK ((status = ANY (ARRAY['trialing'::text, 'active'::text, 'past_due'::text, 'restricted'::text, 'paused'::text, 'cancelled'::text, 'expired'::text])))`
 
 **Triggers:**
@@ -5786,6 +5939,22 @@ CASE
 **RLS policies:**
 - `admin_full_sub` (ALL) — `USING is_super_admin()`
 - `host_manage_own_sub` (ALL) — `USING (host_id = get_my_host_id())`
+
+### `user_mfa_backup_codes`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `user_id` | uuid | — | — |
+| `code_hash` | text | — | — |
+| `used_at` | timestamp with time zone | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((code_hash ~ '^[0-9a-f]{64}$'::text))`
 
 ### `user_notification_preferences`
 
@@ -5859,6 +6028,7 @@ CASE
 | `email_verified_at` | timestamp with time zone | yes | — |
 | `first_booking_celebrated_at` | timestamp with time zone | yes | — |
 | `owns_accommodation` | boolean | yes | — |
+| `mfa_prompt_dismissed_at` | timestamp with time zone | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE`

@@ -21,7 +21,7 @@ export default function RefundAdminOverrideHost({
   bookingReference = "—",
   refundAmount = "—",
   adminNote = "",
-  supportEmail = "support@wieloplatform.com",
+  supportEmail = "hello@wielo.co.za",
 }: Props) {
   return (
     <Layout

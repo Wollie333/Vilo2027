@@ -5,6 +5,7 @@ import {
   AdminMessageGeneric,
   AffiliateCommissionEarned,
   AffiliatePayoutPaid,
+  CampaignPauseChanged,
   BookingCancelledGuest,
   BroadcastCritical,
   NotificationDigest,
@@ -65,6 +66,15 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "custom",
     subject: (p) =>
       `Your affiliate payout of ${str(p.amount, "money")} is on its way`,
+  },
+
+  campaign_pause_changed: {
+    Template: CampaignPauseChanged as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      p.paused === "true"
+        ? `You've been paused in ${str(p.campaignName, "the competition")}`
+        : `You're back in ${str(p.campaignName, "the competition")}`,
   },
 
   welcome_host: {

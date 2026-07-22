@@ -11,7 +11,7 @@ type Props = {
 
 export default function AccountSuspended({
   hostFirstName = "there",
-  supportEmail = "support@wieloplatform.com",
+  supportEmail = "hello@wielo.co.za",
 }: Props) {
   return (
     <Layout preview="Your Wielo account has been suspended following a review.">
