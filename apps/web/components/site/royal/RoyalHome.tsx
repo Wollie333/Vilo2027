@@ -260,8 +260,8 @@ export function RoyalHome({
 
   return (
     <div className="rhome">
-      {/* HERO — centred, formal */}
-      <section className="hero center">
+      {/* HERO — left-aligned, formal (matches the reference Royal design) */}
+      <section className="hero">
         <div className="hero-bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={siteImageUrl(heroImg, { width: 2560 })} alt={brandName} />
