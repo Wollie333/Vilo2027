@@ -206,45 +206,69 @@
 }
 
 /* ======================================================================
- * PAGE HEAD — centred, champagne-ruled
+ * PAGE HEAD — dark image hero (keeps the transparent header legible),
+ * champagne-ruled. Mirrors the .phead pattern used across the Royal pages.
  * ==================================================================== */
-.rjournal .rj-phead {
-  padding: clamp(64px, 9vw, 120px) 0 clamp(30px, 4vw, 48px);
-  text-align: center;
-}
-.rjournal .rj-phead .wrap {
-  max-width: 860px;
+.rjournal .phead {
+  position: relative;
+  min-height: clamp(380px, 52vh, 520px);
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.rjournal .phead img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 114%;
+  object-fit: cover;
+  z-index: 0;
+}
+.rjournal .phead::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 28, 40, 0.32),
+    rgba(8, 28, 40, 0.66)
+  );
+}
+.rjournal .phead .wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding-bottom: clamp(44px, 6vw, 72px);
+  color: #fff;
 }
 .rjournal .crumbs {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--site-mute, #6b655b);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .rjournal .crumbs a {
   color: inherit;
   text-decoration: none;
 }
-.rjournal .crumbs a:hover {
-  color: var(--site-accent-deep, #8c6b34);
+.rjournal .phead .crumbs {
+  color: rgba(255, 255, 255, 0.82);
 }
-.rjournal .rj-phead h1 {
-  max-width: 18ch;
+.rjournal .phead h1 {
+  color: #fff;
+  max-width: 20ch;
 }
-.rjournal .rj-phead .rj-rule {
-  margin: 30px 0;
+.rjournal .phead .rj-rule {
+  margin: 22px 0;
 }
-.rjournal .rj-phead .lead {
-  max-width: 56ch;
+.rjournal .phead .lead {
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 60ch;
 }
 
 /* ======================================================================

@@ -92,10 +92,23 @@ export function RoyalJournal({
     intro?.trim() ||
     "Guides, stories and notes from the house — written by the people who look after every stay.";
 
+  // Dark image hero (matches the reference Journal + the other Royal pages) so
+  // the transparent, light-text header stays legible. Prefer a real post cover,
+  // else a warm fallback.
+  const heroImg =
+    (featured ? cover(featured) : null) ||
+    list.map(cover).find(Boolean) ||
+    "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=2200&q=80";
+
   return (
     <div className="rjournal">
-      {/* PAGE HEAD — centred, champagne-ruled */}
-      <section className="rj-phead">
+      {/* PAGE HEAD — dark image hero, champagne-ruled */}
+      <section className="phead">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={siteImageUrl(heroImg, { width: 2560 })}
+          alt={heading?.trim() || "The journal"}
+        />
         <div className="wrap">
           <nav className="crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
