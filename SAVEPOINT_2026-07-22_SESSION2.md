@@ -99,10 +99,22 @@ other section heading is `<h2>`/`<h3>`. Verified home = 1 h1. Check each page as
   is `section` vs reference `section sand` (tinted bg); optional "AS FEATURED IN" press strip above welcome
   (reference has it; ours doesn't — decide add-static vs drop). These are minor; the big divergences are done.
 
-**NEXT: conform the OTHER pages** the same way (reference `docs/themes/royalhotel/pages/*.html` vs live
-`?site=mana`): Rooms, Room detail, About, Experiences, Gallery, Contact. Journal + Specials index heroes
-already done this session. Per page: match section order/layout, keep ONE h1, source real host data, port
-any missing theme.css component classes into that page's `royal*.css`, verify live.
+**PAGES CONFORMED this session (verified live on mana):**
+- ✅ **Home** — hero left-aligned (`59a7809`), welcome two-column (`7615d71`).
+- ✅ **Rooms** — dropped the champagne rule under room names (`c933436`); meaningful per-amenity icons
+  (`4342fdd`, new `royalAmenityIcon.tsx` keyword→icon matcher, check fallback). NOTE: the founder
+  DELIBERATELY omitted the `section-sm sand` intro band the reference has after the phead — leave it out.
+- ✅ **Room detail** — amenity icons via the same helper (`eeef3d3`).
+- ✅ **About** — story rebuilt as the reference two-column `.split.w-left` (`26c2853`).
+- ✅ **Journal + Specials** index heroes (`353d841`, `7994015`).
+- **Font is correct** — Royal renders Archivo (heading) + Manrope (body), Google Fonts `<link>` emitted;
+  only the sandbox's blocked font network makes local screenshots fall back. Don't "fix" the font.
+
+**REMAINING pages to conform:** Experiences, Gallery, Contact. Apply the amenity-icon helper anywhere a
+Royal section lists facts with a single check. Per page: match section order/layout, keep ONE h1, source
+real host data, verify live. `royalAmenityIcon.tsx` `amenityIcon(fact)` is reusable theme-wide.
+Reference-comparison rig: re-run the `cp … public/_royalref` command (still present locally this session —
+DELETE before any merge), force-reveal, compare vs `?site=mana`.
 - **Stats band** (90 / 2 / 24 / 4.9 in the reference; 3 / 4.7 / 3 / 4 in ours) — layout matches; ours is
   live data, fine.
 - Continue DOWN the home page + then each other page (Rooms/RoomDetail/About/Experiences/Gallery/Contact/
