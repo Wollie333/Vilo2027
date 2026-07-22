@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-07-22 — Wizard atoms: finish StepStory + remove dead WizardSidebar.
+
+Final fidelity pass. Routed the rest of **StepStory** through the shared atoms: the
+three questions now use `WField` + `WInput`/`WTextArea`, and the AI review/edit fields
+(`ReviewField`) use `WInput`/`WTextArea` (keeping their muted section labels). Removed
+the now-unused local `field`/`fieldLabel` constants. Deleted the dead
+`WizardSidebar.tsx` (the sticky ProgressRail replaced it; no importers remained).
+Verified via DOM: Story labels `text-sm font-medium`, inputs `px-3.5 py-2.5`,
+textareas `resize-none`. No native `<select>` remains in the steps (`WSelect` is
+available for future use). tsc + lint clean. The wizard's step internals now all run
+through the design atom set.
+
 ## 2026-07-22 — Wizard step internals: shared design form atoms.
 
 Second fidelity pass — shared form atoms matching the setup-flow design

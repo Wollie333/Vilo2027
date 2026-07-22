@@ -12,15 +12,13 @@ import { RefreshCw, Sparkles } from "lucide-react";
 import type { ContentProfile } from "@/lib/website/contentProfile.schema";
 
 import { generateWizardContentAction } from "../aiActions";
+import { WField, WInput, WTextArea } from "../WizardFields";
 import type { WizardState } from "../wizardState";
 
 const btnPrimary =
   "rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:opacity-60";
 const btnGhost =
   "rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light";
-const field =
-  "w-full rounded-[10px] border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink outline-none transition placeholder:text-brand-mute";
-const fieldLabel = "mb-1.5 block text-sm font-medium text-brand-ink";
 
 export function StepStory({
   state,
@@ -98,49 +96,37 @@ export function StepStory({
 
       {/* Questions */}
       <div className="space-y-4">
-        <div>
-          <label className={fieldLabel}>
-            In one line, what makes your place special?
-          </label>
-          <input
+        <WField label="In one line, what makes your place special?">
+          <WInput
             type="text"
             value={answers.special ?? ""}
             onChange={(e) => setAnswer({ special: e.target.value })}
             placeholder="e.g. A restored beach house steps from the sand"
-            className={field}
           />
-        </div>
+        </WField>
 
-        <div>
-          <label className={fieldLabel}>
-            Tell us the story of your place — why do you host?
-          </label>
-          <textarea
+        <WField label="Tell us the story of your place — why do you host?">
+          <WTextArea
             value={answers.story ?? ""}
             onChange={(e) => setAnswer({ story: e.target.value })}
             placeholder="A sentence or two in your own words — we'll polish it."
             rows={3}
-            className={field}
           />
-        </div>
+        </WField>
 
-        <div>
-          <label className={fieldLabel}>
-            Up to 3 things guests love to do nearby
-          </label>
+        <WField label="Up to 3 things guests love to do nearby">
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <input
+              <WInput
                 key={i}
                 type="text"
                 value={thingsToDo[i] ?? ""}
                 onChange={(e) => setThing(i, e.target.value)}
                 placeholder={`Thing ${i + 1} (optional)`}
-                className={field}
               />
             ))}
           </div>
-        </div>
+        </WField>
       </div>
 
       <div className="flex items-center gap-3">
@@ -278,18 +264,16 @@ function ReviewField({
         {label}
       </label>
       {multiline ? (
-        <textarea
+        <WTextArea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className={field}
         />
       ) : (
-        <input
+        <WInput
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={field}
         />
       )}
     </div>
