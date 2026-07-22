@@ -1,4 +1,10 @@
 export {
+  type AuditRow,
+  normalizeIp,
+  requestAuditMeta,
+  writeAuditRow,
+} from "./auditWrite";
+export {
   AdminAccessDenied,
   AdminMfaRequired,
   AdminPermissionDenied,

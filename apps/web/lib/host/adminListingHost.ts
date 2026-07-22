@@ -1,7 +1,6 @@
 import "server-only";
 
-import { headers } from "next/headers";
-
+import { writeAuditRow } from "@/lib/admin/auditWrite";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -61,19 +60,16 @@ export async function resolveListingHostContext(
   }
 
   try {
-    const h = headers();
-    await admin.from("admin_audit_log").insert({
-      admin_id: user.id,
-      action: auditAction,
-      target_type: "listing",
-      target_id: listingId,
-      payload: { owner_user_id: ownerUserId },
-      ip_address:
-        h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-        h.get("x-real-ip") ??
-        null,
-      user_agent: h.get("user-agent"),
-    });
+    await writeAuditRow(
+      {
+        admin_id: user.id,
+        action: auditAction,
+        target_type: "listing",
+        target_id: listingId,
+        payload: { owner_user_id: ownerUserId },
+      },
+      admin,
+    );
   } catch {
     // Never let an audit failure block the edit.
   }

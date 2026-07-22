@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { writeAuditRow } from "@/lib/admin/auditWrite";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
@@ -235,15 +236,13 @@ export async function resetPasswordAction(
   // admin_audit_log for target_id = this user). Actor is the user themselves.
   // Best-effort — never block the reset on an audit write.
   try {
-    await createAdminClient()
-      .from("admin_audit_log")
-      .insert({
-        admin_id: user.id,
-        target_type: "user",
-        target_id: user.id,
-        action: "user.password_reset_self",
-        payload: { self: true },
-      });
+    await writeAuditRow({
+      admin_id: user.id,
+      target_type: "user",
+      target_id: user.id,
+      action: "user.password_reset_self",
+      payload: { self: true },
+    });
   } catch {
     // Non-fatal: the password is already changed.
   }

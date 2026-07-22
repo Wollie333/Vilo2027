@@ -1,11 +1,10 @@
 import "server-only";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { writeAuditRow } from "./auditWrite";
 import { AdminAccessDenied } from "./errors";
 import { type AdminContext, requireAdmin } from "./requireAdmin";
 
@@ -117,21 +116,15 @@ export async function hasPermission(
 
 async function logDeniedAttempt(adminId: string, permissionKey: string) {
   try {
-    const h = headers();
-    const ip =
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip");
-    const userAgent = h.get("user-agent");
-
-    const service = createAdminClient();
-    await service.from("admin_audit_log").insert({
+    await writeAuditRow({
       admin_id: adminId,
       action: "permission_denied",
       target_type: "permission_denied",
       payload: { permission_key: permissionKey },
-      ip_address: ip,
-      user_agent: userAgent,
     });
   } catch {
     // Swallow — never let an audit-log failure mask the underlying denial.
+    // (writeAuditRow only throws outside production, and a denial redirect
+    // matters more than the record of it.)
   }
 }

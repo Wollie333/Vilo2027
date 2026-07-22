@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
+import { writeAuditRow } from "@/lib/admin/auditWrite";
 import { hostHasValidEft } from "@/lib/payments/eft";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -106,19 +106,16 @@ async function logAdminListingEdit(
   listingId: string,
 ): Promise<void> {
   try {
-    const h = headers();
-    await admin.from("admin_audit_log").insert({
-      admin_id: adminId,
-      action: "listing.edit",
-      target_type: "listing",
-      target_id: listingId,
-      payload: { owner_user_id: ownerUserId },
-      ip_address:
-        h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-        h.get("x-real-ip") ??
-        null,
-      user_agent: h.get("user-agent"),
-    });
+    await writeAuditRow(
+      {
+        admin_id: adminId,
+        action: "listing.edit",
+        target_type: "listing",
+        target_id: listingId,
+        payload: { owner_user_id: ownerUserId },
+      },
+      admin,
+    );
   } catch {
     // Never let an audit-log failure block the edit itself.
   }
