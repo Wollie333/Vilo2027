@@ -12,18 +12,39 @@ import "server-only";
  * Reports PRESENCE ONLY — never a value, never a prefix, never a length that
  * could narrow a secret. A page that helps you audit secrets must not become a
  * way to read them.
+ *
+ * ONE deliberate exception: `NEXT_PUBLIC_*` URL settings also report their
+ * VALUE. They are not secrets — Next.js inlines them into the browser bundle,
+ * so anyone can already read them from the page source. And presence alone is
+ * useless for a URL: it can be set and still be WRONG (a preview deployment
+ * URL, a stale domain, a trailing slash), which is exactly the failure that put
+ * a dead `wieloplatform.com` on every button in every email. Only keys listed
+ * in PUBLIC_URL_KEYS ever expose a value.
  */
 export type ConfigCheck = {
   key: string;
   label: string;
   present: boolean;
+  /**
+   * The configured value — populated ONLY for the non-secret NEXT_PUBLIC_ URL
+   * keys. Undefined for every secret, always.
+   */
+  value?: string;
   /** What breaks while it is missing. */
   impact: string;
   severity: "critical" | "warning";
 };
 
+/** The only keys whose value may be shown. Both are already public. */
+const PUBLIC_URL_KEYS = new Set([
+  "NEXT_PUBLIC_SITE_URL",
+  "NEXT_PUBLIC_APP_URL",
+]);
+
 export function configHealth(): ConfigCheck[] {
   const has = (k: string) => !!process.env[k]?.trim();
+  const publicValue = (k: string) =>
+    PUBLIC_URL_KEYS.has(k) ? (process.env[k]?.trim() ?? undefined) : undefined;
 
   return [
     {
@@ -83,8 +104,19 @@ export function configHealth(): ConfigCheck[] {
       key: "NEXT_PUBLIC_SITE_URL",
       label: "Canonical site URL",
       present: has("NEXT_PUBLIC_SITE_URL"),
-      impact: "robots.txt and sitemap fall back to a hardcoded default.",
+      value: publicValue("NEXT_PUBLIC_SITE_URL"),
+      impact:
+        "robots.txt, the sitemap and the canonical/OG tags fall back to https://wielo.co.za. Harmless in production; wrong on a preview deployment.",
       severity: "warning",
+    },
+    {
+      key: "NEXT_PUBLIC_APP_URL",
+      label: "App URL used in emails",
+      present: has("NEXT_PUBLIC_APP_URL"),
+      value: publicValue("NEXT_PUBLIC_APP_URL"),
+      impact:
+        "Every link and button in every email is built from this. Check the VALUE, not just that it is set — a wrong or stale URL still sends, it just sends people nowhere.",
+      severity: "critical",
     },
     {
       key: "EMAIL_VERIFY_SECRET",

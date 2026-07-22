@@ -91,6 +91,14 @@ export default async function AdminErrorsPage() {
                 <span className="ml-1.5 font-mono text-[11px] text-brand-mute">
                   {c.key}
                 </span>
+                {/* Non-secret NEXT_PUBLIC_ URLs show their VALUE — "set" is not
+                    the same as "correct" for a URL, and a wrong one still
+                    sends. Everything else reports presence only. */}
+                {c.value ? (
+                  <p className="break-all font-mono text-[11.5px] leading-snug text-brand-ink">
+                    {c.value}
+                  </p>
+                ) : null}
                 {!c.present ? (
                   <p className="text-[11.5px] leading-snug text-brand-mute">
                     {c.impact}
