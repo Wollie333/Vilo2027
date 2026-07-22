@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **195** (195 with RLS) |
-| Functions | **182** (141 SECURITY DEFINER, 68 trigger fns) |
+| Functions | **182** (142 SECURITY DEFINER, 68 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -31,10 +31,6 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 - `current_user_has_password`
 - `get_listing_policy_summary`
 - `record_error_event`
-
-### 1 × SECURITY INVOKER trigger writing to a DIFFERENT RLS table — if the target's policy excludes the user who fired the trigger, the write matches **zero rows and says nothing** (this is the `view_count` bug). VERIFY each hit: it is safe if every writer reaches it through a SECURITY DEFINER function.
-
-- `tr_help_article_feedback_counters` on `help_article_feedback` → writes `help_articles`
 
 
 ## Cron jobs
@@ -252,7 +248,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `special_dates_available` | — | — | callable |
 | `sync_booking_refund_flag` | **yes** | yes | trigger |
 | `sync_feature_request_votes` | **yes** | yes | trigger |
-| `sync_help_article_feedback_counters` | — | — | trigger |
+| `sync_help_article_feedback_counters` | **yes** | yes | trigger |
 | `sync_listing_location` | — | — | trigger |
 | `sync_listing_policy_label` | **yes** | yes | trigger |
 | `sync_looking_for_quote_count` | **yes** | yes | trigger |
@@ -2316,7 +2312,7 @@ CASE
 - `CHECK ((vote = ANY (ARRAY['up'::text, 'down'::text])))`
 
 **Triggers:**
-- `tr_help_article_feedback_counters` → `sync_help_article_feedback_counters()`
+- `tr_help_article_feedback_counters` → `sync_help_article_feedback_counters()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `admin_full_help_feedback` (ALL) — `USING (is_super_admin() OR has_admin_permission('help.manage'::text))`
