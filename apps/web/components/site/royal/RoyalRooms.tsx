@@ -4,26 +4,7 @@ import { Money } from "@/components/currency/Money";
 import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
 
-// A single, consistent fact icon — our live facts are plain strings ("Sleeps 4",
-// "2 beds", "Ensuite"), so we don't fabricate a bespoke icon per fact.
-const FactIcon = (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.9"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <path d="M5 12.5 10 17l9-9" />
-  </svg>
-);
-
-// Direct-booking truths — brand-agnostic, always true for a Wielo host, so the
-// "what you get" bar never fabricates a property-specific inclusion.
+import { amenityIcon } from "./royalAmenityIcon";
 
 /**
  * Royal Hotel ROOMS page (preset `royal`) — Royal's own component + stylesheet
@@ -161,7 +142,7 @@ export function RoyalRooms({
                 <div className="amen">
                   {amen.map((a, j) => (
                     <div className="a" key={j}>
-                      {FactIcon}
+                      {amenityIcon(a)}
                       {a}
                     </div>
                   ))}
