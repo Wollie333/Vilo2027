@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-22 — Launch gate: Royal is the SOLE theme offered to hosts.
+
+Founder directive — pivot to getting ONE theme working 100% end-to-end (wizard →
+published booking-integrated site) before expanding. Until Royal is signed off, hosts
+must see only Royal in every theme picker; the other four themes
+(oceansview/safari/sabela/marmalade) stay fully built in the codebase but hidden.
+
+Implementation — a single reversible allowlist, no DB migration (the `site_themes`
+rows/RLS have drifted before, so a code lever is the robust SSOT):
+- **`lib/frontendFlags.ts`** — new `LAUNCH_THEME_SLUGS = ["royal"]` (well-commented;
+  add a slug to bring a theme back, empty array disables the gate).
+- **`lib/site/themes.server.ts`** — `loadActiveThemes()` now filters its result to the
+  allowlist (`gateToLaunchThemes`), and the preset fallback (`presetThemes()`) builds
+  from the allowlist too — so even a DB-read failure still yields Royal, never "warm".
+  Every host-facing picker funnels through `loadActiveThemes()` (wizard theme step,
+  editor theme gallery, brand page), so this one change covers them all.
+- Already-published sites on another theme still RENDER (the render path is untouched);
+  only the picker is gated. The wizard already preselects `themes[0]` → now Royal.
+
+Verified on the local dev server (`/en/dev/wizard`): the DB catalogue returns 5 themes
+but `loadActiveThemes()` returns exactly `(1): royal`, and the wizard's live sidebar
+shows "Skin: Royal Hotel" as the default. Typecheck + lint clean.
+
 ## 2026-07-21 — Fix: wizard theme picker was missing Royal + showed stale "Sabela".
 
 Founder testing the wizard saw the wrong/incomplete theme set. Root cause: the

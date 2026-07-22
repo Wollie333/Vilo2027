@@ -9,3 +9,16 @@
 // See CHANGELOG 2026-07-02.
 export const CURRENCY_SWITCHER_ENABLED = false;
 export const LANGUAGE_SWITCHER_ENABLED = false;
+
+// LAUNCH THEME GATE (2026-07) — while we get ONE theme working 100% end-to-end
+// (wizard → published booking-integrated site), Royal is the SOLE theme offered
+// to hosts. The other themes (oceansview/safari/sabela/marmalade) stay fully
+// built in the codebase but are HIDDEN from every host-facing picker (wizard
+// theme step, editor theme gallery, brand page) — they're filtered out of
+// `loadActiveThemes()`, so nothing else needs to change. Already-published sites
+// on another theme still render; only the PICKER is gated.
+//
+// To bring a theme back: add its slug here. An empty array disables the gate
+// (every active site_themes row is offered again). Founder directive — expand
+// only once Royal is signed off.
+export const LAUNCH_THEME_SLUGS: readonly string[] = ["royal"];

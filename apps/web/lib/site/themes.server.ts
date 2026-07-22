@@ -4,7 +4,21 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { websiteAssetUrl } from "@/lib/website/assets";
 
+import { LAUNCH_THEME_SLUGS } from "@/lib/frontendFlags";
+
 import { SITE_PRESETS, DEFAULT_PRESET, type SitePreset } from "./themes";
+
+/**
+ * Restrict a loaded catalogue to the launch allowlist (Royal only, for now — see
+ * frontendFlags.LAUNCH_THEME_SLUGS). Keeps the catalogue's own ordering. An empty
+ * allowlist disables the gate (returns the list unchanged). If the filter removes
+ * everything (e.g. no Royal row in the catalogue) the caller falls back to the
+ * preset themes, which are themselves gated to the same allowlist.
+ */
+function gateToLaunchThemes(themes: ThemeOption[]): ThemeOption[] {
+  if (LAUNCH_THEME_SLUGS.length === 0) return themes;
+  return themes.filter((t) => LAUNCH_THEME_SLUGS.includes(t.slug));
+}
 
 /**
  * A cookieless Supabase client for reading the PUBLIC theme catalogue.
@@ -60,23 +74,31 @@ type ThemeRow = {
   price: number | null;
 };
 
-/** The default preset as the sole theme — used as a safety fallback when the
- * site_themes catalogue is empty/unavailable. Only the default theme is offered;
- * other themes were removed from the system. */
+/** Built-in presets as a safety fallback when the site_themes catalogue is
+ * empty/unavailable. Offers the launch allowlist (Royal only, for now — see
+ * frontendFlags.LAUNCH_THEME_SLUGS) built from the in-code presets, so the host
+ * still gets the launch theme even if the DB read fails. Falls back to the
+ * default preset when the allowlist is empty or names no known preset. */
 function presetThemes(): ThemeOption[] {
-  const slug = DEFAULT_PRESET;
-  return [
-    {
+  const toOption = (slug: string): ThemeOption | null => {
+    const preset = SITE_PRESETS[slug as keyof typeof SITE_PRESETS];
+    if (!preset) return null;
+    return {
       id: `preset:${slug}`,
       slug,
-      name: SITE_PRESETS[slug].label,
+      name: preset.label,
       description: null,
       previewUrl: null,
-      base: SITE_PRESETS[slug],
+      base: preset,
       isPremium: false,
       price: null,
-    },
-  ];
+    };
+  };
+  const gated = LAUNCH_THEME_SLUGS.map(toOption).filter(
+    (o): o is ThemeOption => o !== null,
+  );
+  if (gated.length > 0) return gated;
+  return [toOption(DEFAULT_PRESET)].filter((o): o is ThemeOption => o !== null);
 }
 
 /**
@@ -139,7 +161,7 @@ export async function loadActiveThemes(
         continue;
       }
       console.info(`[themes-load] ${label} key → ${rows.length} themes`);
-      return rows.map((r) => ({
+      const mapped: ThemeOption[] = rows.map((r) => ({
         id: r.id,
         slug: r.slug,
         name: r.name,
@@ -149,6 +171,17 @@ export async function loadActiveThemes(
         isPremium: !!r.is_premium,
         price: r.price ?? null,
       }));
+      // Launch gate: offer only the allowlisted theme(s) to hosts (Royal only,
+      // for now). If the catalogue has no allowlisted row, fall through to the
+      // preset fallback (which is gated the same way) rather than returning [].
+      const gated = gateToLaunchThemes(mapped);
+      if (gated.length === 0) {
+        console.warn(
+          `[themes-load] ${label} key returned ${mapped.length} themes but none matched the launch allowlist`,
+        );
+        continue;
+      }
+      return gated;
     } catch (e) {
       console.warn(
         `[themes-load] ${label} key threw: ${(e as Error)?.message ?? e}`,

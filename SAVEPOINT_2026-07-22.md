@@ -15,6 +15,16 @@ site** — CURRENT website_id `00fd5e51-8883-4ed1-a88d-2cb70d314d42` (the founde
 re-runs the wizard, so the id changes — look it up by subdomain `mana`, not by a hard-coded id).
 host_id `7b4c377e-…`, business_id `3e471597-…`.
 
+### 🔒 ROYAL IS THE SOLE LAUNCH THEME (founder directive, 2026-07-22)
+Get ONE theme working 100% end-to-end (wizard → published booking-integrated site)
+before touching the others. Hosts now see **only Royal** in every theme picker; the
+other four (oceansview/safari/sabela/marmalade) stay fully built but HIDDEN via
+`lib/frontendFlags.ts` → `LAUNCH_THEME_SLUGS = ["royal"]` (filtered in
+`loadActiveThemes()`; render path untouched). **All new tenant-site work is Royal-only**
+until the founder signs Royal off — then add slugs back to `LAUNCH_THEME_SLUGS` and sweep.
+Committed `HEAD` (see below). Any "sweep the other themes" note elsewhere in this file is
+DEFERRED behind this gate.
+
 ### 🎯 NEXT UP — the currency switcher (#11). Founder said "build it now"; DECISION PENDING on
 whether to do a **Royal MVP first** (foundation + Royal prices → a working switcher to test, then
 sweep the other themes) **or the full feature in one go**. Ask the founder, then execute the detailed
