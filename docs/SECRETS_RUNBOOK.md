@@ -289,6 +289,37 @@ A Vercel sync still needs a **redeploy** to reach the running deployment, exactl
 as a manual edit does. Then confirm on both sides — `supabase secrets list` and
 the Configuration panel. Checking only one side is the original bug.
 
+### ⚠️ Vault is a THIRD place, and Doppler cannot reach it
+
+Doppler's Supabase integration syncs **Edge Function secrets** only. It does not
+touch **Supabase Vault** — and Vault is where `pg_cron` reads the secret it sends
+to each worker:
+
+| Vault secret | Cron job it authorises |
+|---|---|
+| `email_worker_secret` | `drain-email-queue` |
+| `ical_sync_worker_secret` | `sync-ical-feeds` |
+| `external_reviews_worker_secret` | `sync-external-reviews` |
+
+So a `*_WORKER_SECRET` lives in **three** places: Doppler → Vercel (the route
+that checks it) and Vault (the cron that sends it). Change it in two of them and
+the job fails **silently** — the cron still runs, the route just answers 401, and
+nothing surfaces an error.
+
+This is not hypothetical: rotating `EXTERNAL_REVIEWS_WORKER_SECRET` without
+Vault broke `sync-external-reviews` during the very session this section was
+written.
+
+```sql
+-- after changing any *_WORKER_SECRET, update Vault to match:
+SELECT vault.update_secret('<secret_id>'::uuid, '<the new value>');
+
+-- and prove it, without printing either value:
+SELECT name, encode(digest(decrypted_secret,'sha256'),'hex')
+  FROM vault.decrypted_secrets WHERE name = '<name>';
+-- compare against:  doppler secrets get <KEY> -p wielo -c prd_vercel --plain | sha256sum
+```
+
 ### Proving two runtimes hold the SAME value
 
 Presence is not equality. A wrong-but-present key fails exactly like a missing

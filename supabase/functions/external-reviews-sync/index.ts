@@ -21,16 +21,52 @@ function timingSafeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-// Check if request is authorized (cron secret or valid JWT)
+/**
+ * Authorize a caller. FAILS CLOSED.
+ *
+ * This previously ended in `return true` — "Supabase will verify JWT" — which
+ * made the secret check above it unreachable and the whole function a no-op.
+ * The platform gateway only proves the JWT was signed by this project, and
+ * EVERY signed-in guest holds one of those, so any logged-in user could drive a
+ * function that runs with the service-role key.
+ *
+ * Two callers are legitimate, and both send a service-role bearer rather than
+ * the secret header (api/external-reviews-worker and lib/external-reviews
+ * actions), so the bearer branch is what actually admits real traffic. The
+ * secret branch stays for cron/worker callers that set the header instead.
+ */
 function isAuthorized(req: Request): boolean {
-  // Check for cron secret header
-  const cronSecret = env.get("EXTERNAL_REVIEWS_WORKER_SECRET");
+  const cronSecret = env.get("EXTERNAL_REVIEWS_WORKER_SECRET") ?? "";
   const providedSecret = req.headers.get("x-external-reviews-secret") ?? "";
-  if (cronSecret && timingSafeEqual(providedSecret, cronSecret)) {
+  if (
+    cronSecret &&
+    providedSecret &&
+    timingSafeEqual(providedSecret, cronSecret)
+  ) {
     return true;
   }
-  // JWT auth will be handled by Supabase client
-  return true; // Allow through, Supabase will verify JWT
+
+  // Accept a service-role bearer. Compare the ROLE CLAIM, not the string: the
+  // key Vercel holds and the one Supabase injects here are different values
+  // (both valid service_role JWTs), so string equality never matches. The
+  // platform gateway has already verified the signature — it rejects anything
+  // not signed by this project — so the payload can be trusted; what it does
+  // NOT do is distinguish service_role from an ordinary signed-in user, which
+  // is exactly the gap this function has to close itself.
+  const auth = req.headers.get("Authorization") ?? "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  const parts = bearer.split(".");
+  if (parts.length === 3) {
+    try {
+      const pad = "=".repeat((4 - (parts[1].length % 4)) % 4);
+      const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/") + pad);
+      if (JSON.parse(json)?.role === "service_role") return true;
+    } catch {
+      // Malformed token — fall through to the refusal below.
+    }
+  }
+
+  return false;
 }
 
 interface ExternalReviewSource {
