@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import { requireAdmin } from "@/lib/admin";
-import { configHealth } from "@/lib/observability/configHealth";
+import { CONFIG_GROUPS, configHealth } from "@/lib/observability/configHealth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ResolveButton } from "./ResolveButton";
@@ -76,42 +76,59 @@ export default async function AdminErrorsPage() {
           payment webhooks) live in a different runtime and cannot be checked
           from here.
         </p>
-        <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-          {checks.map((c) => (
-            <li key={c.key} className="flex items-start gap-2">
-              <span
-                className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                  c.present
-                    ? "bg-[#047857]"
-                    : c.severity === "critical"
-                      ? "bg-[#B42318]"
-                      : "bg-[#B45309]"
-                }`}
-              />
-              <div className="min-w-0">
-                <span className="text-[13px] font-medium text-brand-ink">
-                  {c.label}
+        {CONFIG_GROUPS.map((group) => {
+          const groupRows = checks.filter((c) => c.group === group);
+          if (groupRows.length === 0) return null;
+          const missing = groupRows.filter((r) => !r.present).length;
+          return (
+            <div key={group} className="mt-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                  {group}
+                </h3>
+                <span className="text-[11px] text-brand-mute">
+                  {groupRows.length - missing}/{groupRows.length} set
                 </span>
-                <span className="ml-1.5 font-mono text-[11px] text-brand-mute">
-                  {c.key}
-                </span>
-                {/* Non-secret NEXT_PUBLIC_ URLs show their VALUE — "set" is not
+              </div>
+              <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                {groupRows.map((c) => (
+                  <li key={c.key} className="flex items-start gap-2">
+                    <span
+                      className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                        c.present
+                          ? "bg-[#047857]"
+                          : c.severity === "critical"
+                            ? "bg-[#B42318]"
+                            : "bg-[#B45309]"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-medium text-brand-ink">
+                        {c.label}
+                      </span>
+                      <span className="ml-1.5 font-mono text-[11px] text-brand-mute">
+                        {c.key}
+                      </span>
+                      {/* Non-secret NEXT_PUBLIC_ URLs show their VALUE — "set" is not
                     the same as "correct" for a URL, and a wrong one still
                     sends. Everything else reports presence only. */}
-                {c.value ? (
-                  <p className="break-all font-mono text-[11.5px] leading-snug text-brand-ink">
-                    {c.value}
-                  </p>
-                ) : null}
-                {!c.present ? (
-                  <p className="text-[11.5px] leading-snug text-brand-mute">
-                    {c.impact}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
+                      {c.value ? (
+                        <p className="break-all font-mono text-[11.5px] leading-snug text-brand-ink">
+                          {c.value}
+                        </p>
+                      ) : null}
+                      {!c.present ? (
+                        <p className="text-[11.5px] leading-snug text-brand-mute">
+                          {c.impact}
+                        </p>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </section>
 
       {open.length === 0 ? (
