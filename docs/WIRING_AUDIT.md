@@ -84,8 +84,12 @@ abandoned — these are probably *not yet* wired rather than dead. The
 **external-reviews layer** is similarly built-ahead-of-approval.
 
 By contrast, single orphans in shipped areas — `markNoShowBookingAction`,
-`deletePolicyAction`, `assignCancellationPresetAction` — read as genuine gaps: a
-host-facing capability that exists server-side with no way to trigger it.
+`deletePolicyAction`, `assignCancellationPresetAction` — *look* like genuine gaps:
+a host-facing capability that exists server-side with no way to trigger it.
+**Tracing showed they are not** (see below). Every one turned out to be superseded
+by a wired, richer implementation. A symbol having no caller says nothing about
+whether the CAPABILITY is missing — check for a replacement before concluding
+anything.
 
 **Nothing was deleted on the strength of this list.** Each entry needs the §3
 proof and its own commit.
@@ -106,27 +110,40 @@ The question asked was whether these are *crucial*, since several sit near money
 
 | Symbol | Verdict | Money? |
 |---|---|---|
-| **`markNoShowBookingAction`** | 🔴 **REAL GAP — wire it** | **YES** |
+| **`markNoShowBookingAction`** | ⚫ **DELETED — dangerous duplicate** (`2026-07-22`) | it would have been |
 | `deletePolicyAction` | 🟢 superseded by `retirePolicyAction` (wired) | no |
 | `assignCancellationPresetAction` | 🟢 redundant shortcut | no |
 | `fetchScheduledReportsAction` | 🟢 redundant | no |
 | `passOnPostAction` | 🟡 incomplete feature, skews one stat | no |
 
-**🔴 `markNoShowBookingAction` — the only financial one.**
-The backend is complete and deliberately designed: `TRANSITIONS.noShow` moves
-`confirmed → no_show`, the `bookings.status` CHECK constraint already permits
-`'no_show'`, and the code carries the policy decision — *dates stay blocked (the
-stay was reserved and the host may retain payment per policy — no calendar
-release, no auto-refund), and the guest is not notified.*
+**⚫ `markNoShowBookingAction` — deleted, and worth reading why.**
 
-The only missing piece is the UI: `noShow` is absent from the `run()` union and
-the action map in `bookings/[id]/BookingActions.tsx`, while its two siblings
-(`checkInBookingAction`, `checkOutBookingAction`) are both wired there.
+My first pass here claimed this was a *real gap* — "a host cannot record a
+no-show at all" — and proposed wiring the button. **That was wrong**, and §4 of
+this very document had already said so on 2026-07-16. Believe §4.
 
-**Consequence today:** a host cannot record a no-show at all. The booking stays
-`confirmed` indefinitely, so no-show forfeiture / retained revenue can never be
-applied. This is a money path that exists in the database and is unreachable from
-the product.
+**No-show already works.** `BookingActions.tsx` shows a **"No-show"** button
+(`UserX` icon) for `status === "confirmed"`. It calls `forfeitBookingAction` →
+`lib/bookings/forfeit.ts`, which sets:
+
+```
+status: "no_show",  payment_status: "forfeited",  balance_due: 0,
+cancelled_by: "host",  cancellation_reason: "No-show / abandoned"
+```
+
+…plus the FRF statement, the guest notification, and the `on_booking_cancelled`
+trigger releasing blocked dates. The `no_show` filter on the bookings board is
+live; it reads 0 only because no test booking has been forfeited yet.
+
+`markNoShowBookingAction` was a **superseded, simpler duplicate** that set
+`status: 'no_show'` and **nothing else** — no `payment_status`, no `balance_due`
+reset, no statement, no notification. Wiring it (as very nearly happened) would
+have produced bookings marked `no_show` while the payment records still showed
+money outstanding: **two divergent money paths writing conflicting state.**
+
+That is exactly the "money is the spine — never fork it" rule, and it is why this
+particular dead code was worth deleting rather than annotating — it existed only
+to be mis-wired, and it nearly was.
 
 **🟢 The three redundant ones** — capability is NOT missing, so nothing is broken:
 - `deletePolicyAction`: policies are **retired**, not deleted, because they are
