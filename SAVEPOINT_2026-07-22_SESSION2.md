@@ -64,6 +64,49 @@ Founder ran the wizard + browsed the Royal site live and fired a punch-list. Ove
   null-deref I caught LIVE before commit). Verified live + screenshotted.
 - **`7994015` Specials hero** (offers INDEX): merged white `.rhead` + separate `.rhero` band into one dark
   `.phead` hero (matches reference). Verified live.
+- **`59a7809` Home hero left-aligned** to match the reference (dropped the `hero center` modifier). Rating
+  pill top-left, headline wraps 2 lines on the left, left CTAs. Verified live vs the reference render.
+
+## 🎨 PIXEL-PERFECT CONFORM TO THE ROYAL REFERENCE (founder's ACTIVE focus)
+Founder: "make the website look like the actual theme design I provided… still not pixel perfect." The
+reference is `docs/themes/royalhotel/` (header.html, footer.html, theme.css, pages/*.html). The app does
+NOT load theme.css — Royal parity is carried by the `royal` preset palette + `.wielo-royal` skin +
+per-page `royal*.css`, so divergences are per-section CSS/markup differences that must be conformed one by
+one against the reference pages.
+
+**Comparison workflow (reproduce it):**
+1. Serve the reference in the dev server: `cp -r docs/themes/royalhotel apps/web/public/_royalref &&
+   cp apps/web/public/_royalref/theme.css apps/web/public/_royalref/pages/theme.css` → open
+   `http://localhost:3000/_royalref/pages/Home.html` (etc.). **DELETE `apps/web/public/_royalref` before
+   any commit** (temp; must never ship).
+2. The reference pages use scroll-reveal JS (royal.js, NOT copied) so lower sections start hidden —
+   force them visible: inject `.reveal,[data-reveal]{opacity:1!important;transform:none!important}` via
+   `javascript_tool`, then screenshot.
+3. Compare against the live render `http://localhost:3000/en/site/<page>?site=mana`. Google Fonts fail in
+   the sandbox on BOTH, so ignore font rendering; compare layout/structure/spacing/colour/alignment.
+
+**SEO RULE (founder, applies to EVERY page): exactly ONE `<h1>` per page** — the hero/page title. Every
+other section heading is `<h2>`/`<h3>`. Verified home = 1 h1. Check each page as you conform it.
+
+**HOME page — DONE + verified (structure now matches the reference):**
+- ✅ **Hero** left-aligned (`59a7809`).
+- ✅ **Welcome** rebuilt to the reference two-column `.split.w-left` (`7615d71`): eyebrow + DISTINCT heading
+  (host tagline when distinct, else theme default — never the hero h1) + story paras + Our story/View rooms
+  on the left; framed 2nd image + "Direct · best rate" float badge on the right. Ported
+  `.split/.w-left/.frame-wrap/.float-badge` into royalHome.css.
+- **Section order now matches the reference** (hero → availbar → promise → welcome → stats → rooms →
+  experiences → value-tiles → gallery → reviews → CTA). Remaining home nits (LOW): gallery "A look inside"
+  is `section` vs reference `section sand` (tinted bg); optional "AS FEATURED IN" press strip above welcome
+  (reference has it; ours doesn't — decide add-static vs drop). These are minor; the big divergences are done.
+
+**NEXT: conform the OTHER pages** the same way (reference `docs/themes/royalhotel/pages/*.html` vs live
+`?site=mana`): Rooms, Room detail, About, Experiences, Gallery, Contact. Journal + Specials index heroes
+already done this session. Per page: match section order/layout, keep ONE h1, source real host data, port
+any missing theme.css component classes into that page's `royal*.css`, verify live.
+- **Stats band** (90 / 2 / 24 / 4.9 in the reference; 3 / 4.7 / 3 / 4 in ours) — layout matches; ours is
+  live data, fine.
+- Continue DOWN the home page + then each other page (Rooms/RoomDetail/About/Experiences/Gallery/Contact/
+  Journal/Specials) section-by-section against the reference. This is ITERATIVE and spans sessions.
 
 ## 📋 PUNCH-LIST / TASK STATE (see also the harness task list #1–#5)
 - [DONE] **Hero/menu legibility (task #5) RESOLVED.** Only the two INDEX pages were actually broken
