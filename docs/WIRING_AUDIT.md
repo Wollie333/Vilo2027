@@ -1,9 +1,94 @@
-# Wielo — Wiring Audit (2026-07-16)
+# Wielo — Wiring Audit (2026-07-16, re-run 2026-07-22)
 
 > **The question this answers:** *"Which features exist in the code but have never actually run?"*
 >
 > Not "does it compile" — everything compiles. Not "does it lint" — everything lints.
 > **Does anything call it?**
+
+---
+
+## 🔄 Re-run 2026-07-22 — current inventory
+
+`node scripts/audit-wiring.mjs` flagged **74** exported symbols across 1601 files.
+Each was then re-checked by hand: **70 genuinely have no source caller, 4 were
+audit false positives.**
+
+### ⚠️ Read this before believing any wiring result
+
+Three things make a naive grep lie, and all three bit during this re-run:
+
+1. **`.next/` webpack cache is binary and contains every symbol name.**
+   `markNoShowBookingAction` looked like it had 4 references; all four were build
+   cache. Use `grep -I` and exclude `/.next/`.
+2. **There are git worktrees INSIDE the repo** —
+   `.claude/worktrees/mystifying-nightingale-a746a8/` and
+   `worktrees/vilo-integration/` (see `git worktree list`). They hold full copies,
+   so every symbol appears "defined twice". Exclude them.
+3. **Use word boundaries.** `toggleProductActive` matched
+   `toggleProductActiveAction` on a substring search and looked wired. It is not —
+   it is a wrapper whose only "caller" was its own body.
+
+The check that is actually trustworthy:
+
+```bash
+grep -rnI "\bSYMBOL\b" apps supabase packages emails scripts \
+  | grep -v node_modules | grep -v "/\.next/" | grep -v "\.claude/worktrees" \
+  | grep -vE "export (async )?(function|const|default|type|interface) SYMBOL\b"
+```
+
+**The audit script is a lead list, not a kill list** — it produced a ~5% false
+positive rate (`loadBuildBoard` is imported and called in `build/page.tsx`).
+Per `RULES.md` §3, prove each one individually before deleting.
+
+### A. Unwired server actions — 22 (highest signal: features with no caller)
+
+| Area | Symbols |
+|---|---|
+| **Website builder** (9) | `saveSavedSectionAction`, `deleteSavedSectionAction`, `savePageSeoAction`, `saveWebsiteRoomsAction`, `setWebsiteLayoutAction`, `saveRoomDetailOverrideAction`, `checkSubdomainAvailabilityAction`, `listWebsiteBookablePropertiesAction`, `getWebsiteFormForEditorAction` |
+| **Admin toggles** | `toggleProductActive`, `togglePlanActiveAction`, `toggleServiceActiveAction` |
+| **Host features** | `markNoShowBookingAction`, `deletePolicyAction`, `assignCancellationPresetAction`, `passOnPostAction` |
+| **Admin misc** | `suggestCampaignSlugAction`, `markComplete` (data-requests), `adminSendPlatformMessageByEmailAction`, `previewDealCategoryKey` |
+| **Reports** | `fetchScheduledReportsAction` |
+| **External reviews** | `replyToExternalReviewAction` |
+
+### B. Unwired React components — 20
+`AcademyCards`, `ComingSoon`, `CompletedSetupHeader`, `FirstLoginHero`,
+`SetupSidePanel`, `RoomsGroupCard`, `CurrencyInput`, `PickCard`, `RadioCard`,
+`VisibilityChips`, `HeaderInspector`, `FooterInspector`, `NavHeaderPreview`,
+`LiveNote`, `CopyLinkButton`, `RangeRow`, `ColorField`, `CreateWebsiteCard`,
+`FALLBACK_CHIP_ICONS`, `SettingsHero`.
+
+### C. Unwired lib helpers — 28
+Notable clusters rather than the full list:
+
+- **The entire external-reviews fetch/reply layer**: `fetchGoogleReviews`,
+  `postGoogleReviewReply`, `refreshGoogleToken`, `fetchFacebookReviews`,
+  `postFacebookReviewReply`, `decryptFacebookToken`. Consistent with the
+  integration being blocked on Google/Meta approval — built ahead of access.
+- **Website analysis**: `analyzeSeo`, `extractSectionsText`, `analyzeA11y` — a
+  whole SEO/accessibility analyser with no entry point.
+- Others: `computeRefundForDays`, `getCreditWallets`, `loadWizardContext`,
+  `loadSampleRoomDetail`, `loadRoomEditorData`, `roomPriceLabel`, `ORIGIN_META`,
+  `FEATURE_BY_KEY`, `NEW_TYPE_SCHEMAS`, `SITE_PRESET_NAMES`, `QUOTES_ONLY_HOME`,
+  `isTourDone`, `isRegisteredType`, `isFormTemplateKey`, `isAutoPopulate`,
+  `pageKeyFromHref`, `resolveButtonStyle`, `getTemplateById`, `EMAIL_FIELD_TYPE`.
+
+### D. Orphan DB function — 1 of 114 project-owned
+`get_listing_availability` — no caller in app, cron or migrations.
+
+### What the shape suggests
+
+The **website builder accounts for ~15 of the 70** (9 actions, 5 components,
+plus the analysers). That is consistent with Phase 6b being mid-build rather than
+abandoned — these are probably *not yet* wired rather than dead. The
+**external-reviews layer** is similarly built-ahead-of-approval.
+
+By contrast, single orphans in shipped areas — `markNoShowBookingAction`,
+`deletePolicyAction`, `assignCancellationPresetAction` — read as genuine gaps: a
+host-facing capability that exists server-side with no way to trigger it.
+
+**Nothing was deleted on the strength of this list.** Each entry needs the §3
+proof and its own commit.
 
 ## Why this exists
 
