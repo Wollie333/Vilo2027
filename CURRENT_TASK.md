@@ -2,7 +2,71 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt17) — **START HERE** (supersedes pt16 below)
+## 🟢×12 SAVE POINT (2026-07-22 pt66) — **START HERE** (supersedes pt17 below)
+
+**Pushed `0fe0cc94`. Build + lint + tsc + 446 tests green. Tree clean. 0 node procs.**
+Session = `SECURITY_CHECKLIST.md` **§9 (Admin Panel)**, now *verified* rather than assumed,
+plus a portable guardrails doc for sub-branch agents.
+
+> ⚠️ **The living resume anchor is the memory save point, not this file.** The chain runs to
+> **pt66** there; this file had been left at pt17 (2026-07-17). Read the memory entry first.
+
+### ✅ DONE THIS BATCH (both defects verified live, allow AND deny path)
+1. **📄 `docs/AGENT_GUARDRAILS_BRIEF.md`** `e22d9028` — one self-contained doc to hand a separate
+   Claude Code session working a **sub-branch**: the four rules that matter most, anti-wipe git
+   rules, security/DB guardrails, definition of done, environment traps, and a "don't touch on a
+   sub-branch" list. Condensed from `RULES.md`/`AGENT_RULES.md`/`CLAUDE.md`/`BUSINESS_PRINCIPLES.md`;
+   **source files win on conflict.**
+2. **🔴 Admin audit writes could SILENTLY DROP** `3bf34091` — five call sites hand-rolled their own
+   `admin_audit_log` insert with a **raw `x-forwarded-for`** and **discarded the returned `{error}`**.
+   `ip_address` is a Postgres `inet`; **proven live** that `'unknown'` (proxies send this literal),
+   `'102.65.1.1:443'` and `'fe80::1%eth0'` all fail **`22P02`**. Proven end-to-end in a rollback txn:
+   old path REJECTED-and-swallowed, normalised path INSERTS. 🔑 Corroborating: prod holds an
+   `impersonation.end` row with **no matching `.start`**, though that insert exists since 2026-06-11.
+   → ONE home **`lib/admin/auditWrite.ts`** (normalise ip → retry without it → log → **throw outside
+   production**). All six writers funnel through it. Regression test uses the exact live-cast values.
+3. **🔴 Six moderation actions wrote NO audit row** `0fe0cc94` — flag/unflag/remove/suspend/resume/
+   reinstate on `/admin/looking-for/posts` take a **guest's** content offline with no record of who.
+   **There was no `target_type` that fitted — that is *why* the wrapper was never applied.**
+   Migration `20260722213000` adds `looking_for_post` (proven: new value ACCEPTED, bogus still
+   `23514` — constraint intact, not merely loosened).
+   - **…and two reported SUCCESS after changing nothing** — `suspend`/`resume` carry
+     `.eq("status", …)` → could match **0 rows** → still returned `{success:true}`. Now RETURNING +
+     empty result = failure.
+   - **…and the UI threw every result away** — `PostActions.tsx` awaited each action and ignored the
+     return value, so even the pre-existing error path said nothing (`RULES.md` §4). Now toasts.
+
+### ✅ §9 CONFIRMED — checked, don't re-litigate
+- **The admin gate is NOT in middleware** (`middleware.ts` has no admin branch — stop looking). It is
+  `requireAdmin()` in `app/[locale]/admin/layout.tsx` for pages **plus** a `requirePermission` key in
+  **all 42** admin `actions.ts*` files. Server actions don't inherit a layout — both layers matter.
+  The gate is *active `platform_staff` + per-role permission*, **not** literally `role='super_admin'`.
+- **Empty `impersonation_sessions` + a surviving `impersonation` audit row is CORRECT** —
+  `app_purge_user_account` DELETEs sessions but only NULLs the audit log. Nearly filed as a bug.
+- Banner not dismissible · mobile app has **zero** admin refs (source is `apps/mobile/**src**`) ·
+  221 audit rows in prod.
+
+### ⚠️ FLAGGED, NOT GUESSED
+- **`/admin/platform/errors` is gated by `requireAdmin()` only** — no permission key, so ANY active
+  staff of ANY role can resolve error events. Deviates from `AGENT_RULES.md` §6.4. Page + action are
+  at least consistent. **Founder call:** pick a key or document it as intentionally all-staff.
+- `withAdminAudit` writes the row **after** the mutation commits; `AGENT_RULES.md` §6.8 still wants
+  finance/moderation routed through an Edge Function for a shared transaction.
+- Admin **inbox** actions (sending messages as the platform) are gated but **unaudited** — needs a
+  `conversation` target type. Deliberately out of scope this batch.
+
+### ▶️ NEXT
+1. `SECURITY_CHECKLIST.md` remaining long tail — **§2 RLS-by-role** and **§5 sensitive data**
+   (§9 is done; §5's "audit inserts happening in production" is already ✅).
+2. `no_show` is reachable but **0 bookings have it** — worth a real forfeit smoke test.
+3. Go-live flips deferred **on purpose** → `docs/SMOKE_TESTS.md` **§0.5 G1–G4**. **Test keys stay
+   active until launch day.**
+4. Still open: `PAYPAL_WEBHOOK_ID` set but `paypal_recurring_enabled=false` · seed properties in the
+   live directory · campaign `host_offer`.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt17) — ⚠️ SUPERSEDED by pt66 above
 
 **Pushed `bcee7b3a`. `apps/web` build/tsc/lint green. Machine clean (0 node procs).**
 This batch = the founder's "fix these 4" open-items list. **All 4 done + verified.** (No new commit
