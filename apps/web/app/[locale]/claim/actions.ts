@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { isBreachedPassword } from "@/lib/auth/password";
 import { markEmailVerified } from "@/lib/auth/verifyEmail";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -33,6 +34,17 @@ export async function claimGuestAccountAction(input: {
     return {
       ok: false,
       error: "Your sign-in link expired — request a new one from your email.",
+    };
+  }
+
+  // This is a first password, so there is no signup wizard upstream to have
+  // screened it — without this check the one account type that never passes
+  // through a signup form is also the only one allowed a breached password.
+  if (await isBreachedPassword(parsed.data.password)) {
+    return {
+      ok: false,
+      error:
+        "That password has appeared in a known data breach. Please choose a different one.",
     };
   }
 

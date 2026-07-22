@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
+import { isBreachedPassword } from "@/lib/auth/password";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
 import { requireReauth } from "@/lib/auth/reauth";
@@ -244,6 +245,18 @@ export async function changePasswordAction(
       });
     }
     return { ok: false, error: reauth.error };
+  }
+
+  // Same breach check the signup wizards run. Supabase can enforce this itself,
+  // but only on the Pro plan — and without it a user could sign up with a strong
+  // password and immediately change to a known-breached one, which is the whole
+  // point of screening at signup.
+  if (await isBreachedPassword(parsed.data.new_password)) {
+    return {
+      ok: false,
+      error:
+        "That password has appeared in a known data breach. Please choose a different one.",
+    };
   }
 
   const { error } = await supabase.auth.updateUser({
