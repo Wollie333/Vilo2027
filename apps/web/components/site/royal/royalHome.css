@@ -411,7 +411,11 @@
 /* -- stats strip --------------------------------------------------------- */
 .rhome .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Centre the row (so 3 stats don't leave an empty 4th column) AND centre each
+     stat's number+label in its cell — a stats strip reads best balanced, not left-hung. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  justify-content: center;
+  text-align: center;
   gap: 24px;
 }
 .rhome .stat b {
@@ -574,7 +578,10 @@
 /* -- amenity / feature tiles --------------------------------------------- */
 .rhome .tiles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Centre the row so a 3-card set doesn't leave an empty 4th column on the right.
+     Card CONTENT stays left-aligned (the tile's own design). */
+  grid-template-columns: repeat(auto-fit, minmax(230px, 300px));
+  justify-content: center;
   gap: 18px;
 }
 .rhome .tile {
