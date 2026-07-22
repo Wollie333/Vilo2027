@@ -352,7 +352,10 @@
 }
 .sfhome .sf-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Centre the row + each stat's content (see royalHome.css). */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  justify-content: center;
+  text-align: center;
   gap: clamp(20px, 3vw, 48px);
 }
 .sfhome .sf-stat {
@@ -551,7 +554,9 @@
 }
 .sfhome .sf-promise-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Centre the row so a 3-item set doesn't leave an empty column. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 280px));
+  justify-content: center;
   gap: clamp(24px, 3vw, 52px);
 }
 .sfhome .sf-promise-item {

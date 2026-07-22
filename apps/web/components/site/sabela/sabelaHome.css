@@ -317,7 +317,9 @@
 /* -- HIGHLIGHTS / features ---------------------------------------------- */
 .sbhome .feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Centre the row so a short set doesn't sit left-hung. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 300px));
+  justify-content: center;
   gap: clamp(20px, 2.4vw, 36px);
   margin-top: clamp(40px, 5vw, 64px);
 }
