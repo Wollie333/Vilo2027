@@ -69,8 +69,12 @@ export default async function AdminErrorsPage() {
           Configuration
         </h2>
         <p className="mt-0.5 text-[12px] text-brand-mute">
-          Whether each setting is present on this server. Values are never
-          shown.
+          Whether each setting is present on <strong>this</strong> server —
+          secrets show presence only, never a value. The two public URLs show
+          theirs, because &ldquo;set&rdquo; and &ldquo;correct&rdquo; are not
+          the same thing for a URL. Secrets used by Supabase Edge Functions (the
+          payment webhooks) live in a different runtime and cannot be checked
+          from here.
         </p>
         <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
           {checks.map((c) => (

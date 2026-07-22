@@ -52,7 +52,7 @@ the bearer.)
 **👤 You must confirm these are set in Vercel (Production) — I can't read them:**
 | Secret | Why it blocks beta |
 |---|---|
-| `PAYSTACK_SECRET_KEY` / `PAYSTACK_WEBHOOK_SECRET` | card payments + webhook verify (🔴 gate) |
+| `PAYSTACK_SECRET_KEY` | card payments **and** webhook verify (🔴 gate) — the same key does both. Paystack signs with your secret key, so there is no separate webhook secret; `paystack-webhook` HMACs against it and falls back to `platform_payment_settings`. |
 | `PAYPAL_CLIENT_SECRET` | PayPal payments (🔴 gate). *No `PAYPAL_WEBHOOK_ID` needed for beta — the booking path uses the return redirect + `booking-reconcile-worker`, not a webhook.* |
 | `PAYMENT_CIPHER_KEY` | encrypts each host's own gateway secret |
 | `BANKING_CIPHER_KEY` | encrypts EFT account numbers |
@@ -77,7 +77,7 @@ prefix** (older pre-key rows stay plaintext, which the decrypt path reads transp
 (address-picker suggestions; maps still render), external-reviews OAuth keys.
 
 **Supabase Edge Function secrets (Dashboard → Edge Functions → Secrets):** confirm
-`PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `PAYPAL_CLIENT_SECRET`,
+`PAYSTACK_SECRET_KEY`, `PAYPAL_CLIENT_SECRET`,
 `PAYPAL_WEBHOOK_ID`, `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `BANKING_CIPHER_KEY`
 are present (the deployed functions read them via `Deno.env`).
 

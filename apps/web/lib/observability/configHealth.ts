@@ -78,13 +78,19 @@ export function configHealth(): ConfigCheck[] {
         "Bank account numbers are stored in plain text. Existing rows need the backfill script.",
       severity: "critical",
     },
-    {
-      key: "PAYSTACK_WEBHOOK_SECRET",
-      label: "Paystack webhook signature",
-      present: has("PAYSTACK_WEBHOOK_SECRET"),
-      impact: "Paystack webhooks cannot be verified and are refused.",
-      severity: "critical",
-    },
+    // NO Paystack row here, deliberately — do not add one back.
+    //
+    // This panel reported a red, critical "Paystack webhooks cannot be verified
+    // and are refused" on production, which was false. It checked
+    // PAYSTACK_WEBHOOK_SECRET, a name NO code reads: signatures are verified in
+    // the paystack-webhook EDGE FUNCTION using PAYSTACK_SECRET_KEY from the
+    // SUPABASE environment (falling back to platform_payment_settings). That is
+    // a different runtime, so this server can never see it and the check could
+    // only ever fail.
+    //
+    // A monitoring panel that cries wolf is worse than no panel: it sends you
+    // chasing a non-problem and teaches you to ignore the red dots that matter.
+    // Anything living in Supabase or an Edge Function does not belong here.
     {
       key: "PAYPAL_WEBHOOK_ID",
       label: "PayPal webhook verification",
