@@ -211,17 +211,32 @@ nothing notices when only one of them gets a value. Doppler syncs natively to
 
 ### Which variables belong where
 
-Vercel holds all 42. Supabase Edge Functions need **exactly six** — everything
-else would be noise in that runtime:
+Vercel holds 29 (Doppler manages all of them). Supabase Edge Functions need
+**exactly four** — everything else would be noise in that runtime, and a secret
+sitting in a runtime that does not read it is exposure for nothing:
 
 | Variable | Read by | Also on Vercel? |
 |---|---|---|
 | `PAYMENT_CIPHER_KEY` | `paystack-webhook` | ⚠️ yes — must match |
-| `BANKING_CIPHER_KEY` | `eft-banking-details` | ⚠️ yes — must match |
 | `OAUTH_CIPHER_KEY` | `external-review-*` | ⚠️ yes — must match |
-| `REPORT_SCHEDULER_SECRET` | `report-scheduler` | ⚠️ yes — caller/callee pair |
-| `EXTERNAL_REVIEWS_WORKER_SECRET` | `external-reviews-sync` | ⚠️ yes — caller/callee pair |
-| `PAYSTACK_SECRET_KEY` | `paystack-webhook` | optional — falls back to the DB |
+| `REPORT_SCHEDULER_SECRET` | `report-scheduler` | ⚠️ yes — the cron sends it from **Vault** |
+| `EXTERNAL_REVIEWS_WORKER_SECRET` | `external-reviews-sync` | ⚠️ yes — caller/callee pair, also in **Vault** |
+
+Plus **`BANKING_CIPHER_KEY`**, which is in `prd` and therefore also reaches
+Supabase, where **nothing reads it** — its only Edge-Function reader was
+`eft-banking-details`, deleted 2026-07-22 (never deployed, nothing called it).
+Moving it to `prd_vercel` was attempted and **deliberately abandoned**: see the
+"Moving a secret between Doppler configs" warning below. Leaving it shared is mild
+over-exposure; getting the move wrong destroys the key that decrypts every stored
+bank account number.
+
+One that used to be on this list and no longer belongs:
+
+- **`PAYSTACK_SECRET_KEY`** — removed from Vercel entirely. The platform key
+  lives in the DATABASE (`platform_payment_settings`), which
+  `getPlatformPaystackSecret()` reads first; the env var was an unread fallback
+  that could have hidden a misconfiguration. The Edge Function still falls back
+  to the same DB row, so nothing is lost.
 
 **Never put `SUPABASE_URL`, `SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY`
 into the Supabase config.** That runtime injects them itself and reserves the
@@ -319,6 +334,62 @@ SELECT name, encode(digest(decrypted_secret,'sha256'),'hex')
   FROM vault.decrypted_secrets WHERE name = '<name>';
 -- compare against:  doppler secrets get <KEY> -p wielo -c prd_vercel --plain | sha256sum
 ```
+
+### 🚨 Moving a secret between Doppler configs — READ THIS FIRST
+
+**A branch config CANNOT override an inherited secret.** Inheritance is total, and
+`doppler secrets get -c prd_vercel NAME` happily returns the value **inherited from
+`prd`**. So the obvious safe-looking sequence is a trap:
+
+```bash
+# ☠️ DO NOT DO THIS — it destroys the secret
+V=$(doppler secrets get KEY -p wielo -c prd --plain)
+printf '%s' "$V" | doppler secrets set KEY -p wielo -c prd_vercel   # silently a no-op
+doppler secrets get KEY -p wielo -c prd_vercel                      # "verified" — but this is the INHERITED value
+doppler secrets delete KEY -p wielo -c prd --yes                    # the only copy is now gone
+```
+
+Verify-before-delete does not protect you here, because the read you verify with
+is answered by the very copy you are about to delete. This destroyed
+`BANKING_CIPHER_KEY` twice on 2026-07-22 before the mechanism was understood.
+
+Two further traps in the same area:
+
+- **`doppler secrets set` fed by a pipe can silently store an EMPTY value.**
+  Always assert the length afterwards; never trust the exit code alone.
+- **A secret can be unrecoverable.** Vercel returns empty strings on `env pull`,
+  and `supabase secrets list` gives only a digest. If Doppler held the last
+  readable copy and it is wiped, the data encrypted with it is gone.
+
+**Recovery — this works, and is the reason nothing was lost:**
+
+```bash
+doppler configs logs -p wielo -c prd -n 8          # find the change
+doppler configs logs rollback <LOG_ID> -p wielo -c prd
+```
+
+⚠️ Roll back the **"Modified secrets and saved to vault"** entry, *not* the
+**"Dismissed secrets: …"** one — the latter answers
+`This config log cannot be rolled back.` The two are written milliseconds apart,
+so take the one immediately ABOVE the dismissal in the listing.
+
+**If you must move a secret anyway**, the only correct order is delete-then-set,
+holding the value in ONE shell so a failure can restore it:
+
+```bash
+V=$(doppler secrets get KEY -p wielo -c prd --plain | tr -d '\r\n')
+[ ${#V} -eq 44 ] || { echo ABORT; exit 1; }              # assert BEFORE touching anything
+doppler secrets delete KEY -p wielo -c prd --yes
+printf '%s' "$V" | doppler secrets set KEY -p wielo -c prd_vercel
+C=$(doppler secrets get KEY -p wielo -c prd_vercel --plain | tr -d '\r\n')
+[ "$C" = "$V" ] || printf '%s' "$V" | doppler secrets set KEY -p wielo -c prd   # restore
+```
+
+**Better still: don't move it.** A secret sitting in a runtime that never reads it
+is mild over-exposure; losing it loses the data it encrypts. `BANKING_CIPHER_KEY`
+was deliberately LEFT in `prd` for exactly this reason after two failed attempts —
+the hygiene gain did not justify risking the only readable copy of the key that
+decrypts every stored bank account number.
 
 ### Proving two runtimes hold the SAME value
 

@@ -91,10 +91,10 @@ All Supabase Edge Functions return errors in this format:
 | `DUPLICATE_WEBHOOK_EVENT` | 409 | This `provider_reference` has already been processed |
 | `EFT_PROOF_MISSING` | 400 | Host tried to confirm EFT booking but no proof has been uploaded |
 | `EFT_BANKING_DETAILS_MISSING` | 400 | Host has no EFT banking details configured |
-| `EFT_NOT_APPLICABLE` | 409 | `eft-banking-details` called for a booking that isn't on EFT or isn't in `pending_eft` / `pending_eft_review` |
-| `NOT_BOOKING_GUEST` | 403 | Caller is authenticated but isn't the guest on the booking they're querying |
-| `NO_DEFAULT_BANK_ACCOUNT` | 404 | Host has no default non-archived bank account; EFT instructions cannot be served |
-| `DECRYPT_FAILED` | 500 | Stored banking ciphertext failed to decrypt (key mismatch or corruption) — not surfaced to user verbatim |
+| ~~`EFT_NOT_APPLICABLE`~~ | — | **Retired 2026-07-22.** Belonged to the `eft-banking-details` Edge Function, which was deleted: it had never been deployed and nothing called it. EFT lives entirely in Next.js — `lib/payments/eft.ts` gates availability, `lib/finance/doc-party.ts` decrypts for invoices/quotes, `lib/email/resolvers/booking.ts` masks for email. |
+| ~~`NOT_BOOKING_GUEST`~~ | — | Retired with the same function. |
+| ~~`NO_DEFAULT_BANK_ACCOUNT`~~ | — | Retired with the same function. |
+| ~~`DECRYPT_FAILED`~~ | — | Retired with the same function. |
 | `PAYPAL_AUTHORIZATION_EXPIRED` | 410 | PayPal authorization has expired (>3 days for most currencies) |
 
 ---

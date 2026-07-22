@@ -18,7 +18,7 @@ Wielo gives hosts a professional, branded booking website and a private dashboar
 | Web app | Next.js 14.2 (App Router), TypeScript (strict), Tailwind CSS, shadcn/ui, Zustand, React Hook Form + Zod |
 | Mobile app | Expo (SDK 51+) — scaffolded, screens not yet built |
 | Backend | Supabase (PostgreSQL 15, Auth, Realtime, Storage) |
-| Server logic | **Next.js Server Actions** + API-route workers (the bulk of business logic); Supabase **Edge Functions** (Deno) only where a non-Next runtime is required — `paystack-webhook`, `eft-banking-details`, `report-scheduler`, `track-listing-view`, `external-reviews-sync`, `external-review-reply` |
+| Server logic | **Next.js Server Actions** + API-route workers (the bulk of business logic); Supabase **Edge Functions** (Deno) only where a non-Next runtime is required — `paystack-webhook`, `report-scheduler`, `track-listing-view`, `external-reviews-sync`, `external-review-reply` |
 | Payments | **Paystack (ZAR)** — hosts connect their **own** Paystack (test **and** live keys + a mode switch); guest booking + on-site website checkout settle directly to the host (Wielo 0%). Platform billing uses the platform Paystack. **Manual EFT** — live. **Free products skip payment** (auto-provision). PayPal — host config only, not in guest checkout |
 | Email / notifications | Resend + React Email, dispatched via an in-app / email / push notification queue drained by pg_cron (atomic claim — see below) |
 | Calendar sync | RFC 5545 iCal **import** (external feeds → blocked dates) + **export** (public per-listing feed) |
@@ -40,8 +40,8 @@ wielo/
 │   ├── schemas/      # Shared Zod validation schemas
 │   └── utils/        # Shared pure utilities
 ├── supabase/
-│   ├── functions/    # Edge Functions (Deno) — paystack-webhook, eft-banking-details,
-│   │                 #   report-scheduler, track-listing-view, external-reviews-sync,
+│   ├── functions/    # Edge Functions (Deno) — paystack-webhook, report-scheduler,
+│   │                 #   track-listing-view, external-reviews-sync,
 │   │                 #   external-review-reply
 │   └── migrations/   # SQL migrations (timestamped, append-only — never edited)
 └── *.md              # Project docs (see Documentation below)
