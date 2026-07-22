@@ -28,14 +28,18 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
    upload / where host logos are captured (host Settings vs wizard Step 1), and make the site show
    the real one. (The path→URL *resolution* is already fixed — commit `b118cd8`; this is a
    which-image / data-capture issue, not a broken URL.)
-2. **(B) Highlights/"tiles" cards render LEFT-shifted, want CENTER.** Root cause found:
-   `.rhome .tiles { grid-template-columns: repeat(4, 1fr) }` (royalHome.css:577) is a **hardcoded
-   4-column grid**, but the "Everything taken care of" section has **3** cards → they fill cols 1–3
-   and leave an empty 4th column on the right, reading as left-aligned. FIX across every theme's
-   equivalent grid (`.tiles` / highlights / features): make columns adapt to the item count or
-   centre the row — e.g. `grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
-   justify-content: center;` (verify 3 AND 4 items look right). Same pattern likely in
-   oceansview/marmalade/sabela/safari `*Home.css` + the token skins — grep `grid-template-columns: repeat(4`.
+2. **(B) LEFT-shifted grids → CENTRE them, on ALL themes.** A whole family of `repeat(4, 1fr)`
+   grids read left-heavy. Confirmed cases in `royalHome.css`:
+   - **`.tiles`** (highlights/features, line 577): 4-col grid but the "Everything taken care of"
+     section has **3** cards → empty 4th column on the right → looks left-aligned.
+   - **`.stats`** (line 412): 4-col grid; the stats row (e.g. "3 Rooms · 4.7 rating · 3 reviews ·
+     4 sleeps") sits left because each cell's content is left-aligned (and short rows leave gaps).
+   FIX pattern (apply to every theme's equivalents — grep `grid-template-columns: repeat(4` across
+   `components/site/*/`): centre the row when items < columns (e.g.
+   `grid-template-columns: repeat(auto-fit, minmax(200px, 240px)); justify-content: center;`) AND
+   centre each item's content (`text-align: center` / center the stat number+label). Verify with
+   3 AND 4 items. Same `.tiles`/`.stats`/features grids exist in oceansview/marmalade/sabela/safari
+   `*Home.css` + the token skins — do a sweep, not just Royal.
 
 ---
 
