@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { SiteCurrencyProvider } from "@/components/site/SiteCurrencyProvider";
 import { SiteRoomView } from "@/components/site/SiteRoomView";
 import { resolveSiteRef } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
@@ -45,12 +46,14 @@ export default async function SiteRoomPage({
   if (!ref) notFound();
 
   return (
-    <SiteRoomView
-      siteRef={ref}
-      roomSlug={roomSlug}
-      preview={sp?.preview === "1"}
-      siteParam={sp?.site}
-      themeSlug={sp?.theme}
-    />
+    <SiteCurrencyProvider>
+      <SiteRoomView
+        siteRef={ref}
+        roomSlug={roomSlug}
+        preview={sp?.preview === "1"}
+        siteParam={sp?.site}
+        themeSlug={sp?.theme}
+      />
+    </SiteCurrencyProvider>
   );
 }

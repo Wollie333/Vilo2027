@@ -23,6 +23,9 @@ import { CURRENCY_SWITCHER_ENABLED } from "@/lib/frontendFlags";
 type CurrencyCtx = {
   currency: DisplayCurrency;
   rates: RateMap;
+  /** Whether switching is live in this subtree (global flag OR a scoped enable,
+   *  e.g. tenant micro-sites). Consumers (the switcher) hide themselves when off. */
+  enabled: boolean;
   setCurrency: (c: DisplayCurrency) => void;
   /** Convert a base-ZAR amount into the selected display currency. */
   convert: (amountZar: number) => number;
@@ -42,26 +45,35 @@ const CurrencyContext = createContext<CurrencyCtx | null>(null);
 export function CurrencyProvider({
   initialCurrency,
   rates,
+  enabled,
   children,
 }: {
   initialCurrency: string | null | undefined;
   rates: RateMap;
+  /** Scoped override for whether switching is live. Undefined → the global flag
+   *  (`CURRENCY_SWITCHER_ENABLED`) decides, preserving the app default. Tenant
+   *  micro-sites pass `true` to unlock the switcher for their subtree without
+   *  flipping the global flag (which would also surface the main-app UtilityBar).
+   */
+  enabled?: boolean;
   children: React.ReactNode;
 }) {
+  const on = enabled ?? CURRENCY_SWITCHER_ENABLED;
   const [currency, setState] = useState<DisplayCurrency>(
-    // While the currency switcher is disabled the frontend is locked to ZAR —
-    // ignore any saved cookie so every <Money> renders the base rand amount.
-    CURRENCY_SWITCHER_ENABLED && isDisplayCurrency(initialCurrency)
-      ? initialCurrency
-      : "ZAR",
+    // While switching is disabled the frontend is locked to ZAR — ignore any
+    // saved cookie so every <Money> renders the base rand amount.
+    on && isDisplayCurrency(initialCurrency) ? initialCurrency : "ZAR",
   );
 
-  const setCurrency = useCallback((c: DisplayCurrency) => {
-    if (!CURRENCY_SWITCHER_ENABLED) return; // locked to ZAR for now
-    setState(c);
-    // Persist for a year so the choice follows the guest across visits.
-    document.cookie = `${COOKIE}=${c}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-  }, []);
+  const setCurrency = useCallback(
+    (c: DisplayCurrency) => {
+      if (!on) return; // locked to ZAR while switching is disabled
+      setState(c);
+      // Persist for a year so the choice follows the guest across visits.
+      document.cookie = `${COOKIE}=${c}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    },
+    [on],
+  );
 
   const convert = useCallback(
     (amountZar: number) => convertFromZar(amountZar, currency, rates),
@@ -87,7 +99,15 @@ export function CurrencyProvider({
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, rates, setCurrency, convert, format, formatFrom }}
+      value={{
+        currency,
+        rates,
+        enabled: on,
+        setCurrency,
+        convert,
+        format,
+        formatFrom,
+      }}
     >
       {children}
     </CurrencyContext.Provider>
@@ -102,6 +122,7 @@ export function useCurrency(): CurrencyCtx {
   return {
     currency: "ZAR",
     rates: { ZAR: 1 },
+    enabled: false,
     setCurrency: () => {},
     convert: (z) => z,
     format: (z) => formatCurrency(z, "ZAR"),

@@ -1,24 +1,8 @@
 import "./royalRooms.css";
 
+import { Money } from "@/components/currency/Money";
 import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, RoomCard } from "@/lib/site/types";
-
-// ── helpers (server-rendered) ────────────────────────────────────────────────
-function commas(n: number): string {
-  const s = String(Math.round(n));
-  let out = "";
-  for (let i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 === 0) out += ",";
-    out += s[i];
-  }
-  return out;
-}
-function money(n?: number | null, currency?: string | null): string | null {
-  if (n == null) return null;
-  const ccy = currency ?? "ZAR";
-  const sym = ccy === "ZAR" ? "R" : `${ccy} `;
-  return `${sym}${commas(n)}`;
-}
 
 // A single, consistent fact icon — our live facts are plain strings ("Sleeps 4",
 // "2 beds", "Ensuite"), so we don't fabricate a bespoke icon per fact.
@@ -122,7 +106,7 @@ export function RoyalRooms({
       ) : (
         list.map((r, i) => {
           const reversed = i % 2 === 1;
-          const price = money(r.price, r.currency);
+          const hasPrice = r.price != null;
           const facts = (r.facts ?? []).filter(Boolean);
           const badge = r.badge?.trim();
           const tag = badge || facts[0] || null;
@@ -143,7 +127,7 @@ export function RoyalRooms({
                   decoding="async"
                 />
               </div>
-              {price ? (
+              {hasPrice ? (
                 <div
                   className="float-badge"
                   style={
@@ -152,7 +136,9 @@ export function RoyalRooms({
                       : { right: -14, bottom: -20 }
                   }
                 >
-                  <b>{price}</b>
+                  <b>
+                    <Money amount={r.price} currency={r.currency} />
+                  </b>
                   <span>Per night</span>
                 </div>
               ) : null}
@@ -192,7 +178,18 @@ export function RoyalRooms({
                   data-wielo-book
                   className="btn btn-primary"
                 >
-                  {price ? `Book · ${price}` : "Book now"}
+                  {hasPrice ? (
+                    <>
+                      Book ·{" "}
+                      <Money
+                        amount={r.price}
+                        currency={r.currency}
+                        approx={false}
+                      />
+                    </>
+                  ) : (
+                    "Book now"
+                  )}
                 </a>
               </div>
             </div>

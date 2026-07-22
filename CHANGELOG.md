@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-07-22 — Currency switcher live on Royal tenant sites (browsing estimates).
+
+Guests browsing a Royal micro-site can now switch the DISPLAY currency (ZAR / USD /
+EUR / GBP) and every browsing price re-renders converted, client-side, instantly. The
+actual charge stays in the host's settlement currency (ZAR) — converted amounts carry
+the "≈" estimate marker, and the checkout is deliberately left in ZAR (transactional).
+Royal-first per the launch focus; the other themes reuse the same primitives when they
+come back.
+
+Foundation (theme-agnostic — unlocks any theme later):
+- **`CurrencyProvider`** gained an `enabled?` prop + `enabled` in context. `undefined`
+  → the global `CURRENCY_SWITCHER_ENABLED` flag (app default, still OFF); tenant sites
+  pass `true` to unlock switching for their subtree WITHOUT flipping the global (which
+  would also surface the main-app UtilityBar).
+- **`CurrencySwitcher`** now hides on `!enabled` from context (not the global flag), so
+  a tenant provider can light it up.
+- **`Money`** `currency` prop widened to `string | null` (card fields are nullable).
+- **`SiteCurrencyProvider`** (new, server) — fetches `getDisplayRates()` + the display-
+  currency cookie and wraps a tenant subtree in an ENABLED provider. Nests inside the
+  disabled app-root provider; its context wins for the tenant tree.
+- Wrapped the tenant browsing routes in it: `site/page`, `site/[...slug]`,
+  `site/rooms/[roomSlug]`, `site/specials/[specialSlug]`. The `book` (checkout) route is
+  intentionally NOT wrapped → switcher self-hides there, prices stay ZAR (the real charge).
+
+Royal price renders swapped from the local server `money()` string helper to the client
+`<Money>` (client island inside the server components): `RoyalHome`, `RoyalRooms`,
+`RoyalRoomDetail`, `RoyalSpecials`, `RoyalSpecialDetail`, plus the shared `OceansBookCard`
+(Royal's room-detail booking card) and the `CurrencySwitcher` added to `OceansViewHeader`
+(Royal's chrome). Percentage savings ("Save 34%") stay literal; compact CTAs ("Book · …")
+drop the ≈ marker.
+
+Verified live on **mana** (published Royal site) at every browsing surface, flipping
+ZAR→USD/GBP/EUR: home room cards R 4 850 → ≈ $294.63; rooms index float badges + Book
+CTAs; room detail booking card + related cards; specials index R 18 500 → ≈ €985.50;
+special detail → ≈ £839.92. Checkout confirmed switcher-less and ZAR. tsc + lint clean.
+NOTE: cross-page persistence (cookie → server-seeded initial currency) uses the same
+cookie the app-root provider already reads and is correct in code, but the in-app test
+browser does not forward the JS-set cookie to the server, so it could not be observed
+here — worth a quick confirm on the real branch preview.
+
 ## 2026-07-22 — Launch gate: Royal is the SOLE theme offered to hosts.
 
 Founder directive — pivot to getting ONE theme working 100% end-to-end (wizard →

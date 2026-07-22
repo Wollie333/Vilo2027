@@ -2,6 +2,7 @@ import "./royalHome.css";
 
 import type { CSSProperties } from "react";
 
+import { Money } from "@/components/currency/Money";
 import { siteImageUrl } from "@/lib/site/image";
 import type {
   GalleryImage,
@@ -27,12 +28,6 @@ function commas(n: number): string {
     out += s[i];
   }
   return out;
-}
-function money(n?: number | null, currency?: string | null): string | null {
-  if (n == null) return null;
-  const ccy = currency ?? "ZAR";
-  const sym = ccy === "ZAR" ? "R" : `${ccy} `;
-  return `${sym}${commas(n)}`;
 }
 function initials(name: string): string {
   const p = name.trim().split(/\s+/).filter(Boolean);
@@ -386,9 +381,9 @@ export function RoyalHome({
                   style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
                 >
                   <div className="room-img">
-                    {money(r.price, r.currency) ? (
+                    {r.price != null ? (
                       <span className="room-price">
-                        {money(r.price, r.currency)}
+                        <Money amount={r.price} currency={r.currency} />
                         <small>/night</small>
                       </span>
                     ) : null}

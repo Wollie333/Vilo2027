@@ -2,19 +2,10 @@
 
 import { useState } from "react";
 
+import { Money } from "@/components/currency/Money";
+
 import { SiteLoadingOverlay } from "../SiteLoadingOverlay";
 import { ThemedDateRange } from "../ThemedDateRange";
-
-/** Thousands-space an integer WITHOUT Intl (SSR/client hydration-safe). */
-function groupThousands(n: number): string {
-  const s = String(Math.round(n));
-  let out = "";
-  for (let i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 === 0) out += " ";
-    out += s[i];
-  }
-  return out;
-}
 
 /**
  * Oceans View sticky booking card — the reference `.bkcard`: trust line, big
@@ -42,9 +33,7 @@ export function OceansBookCard({
   const [navigating, setNavigating] = useState(false);
 
   const ccy = currency ?? "ZAR";
-  const sym = ccy === "ZAR" ? "R" : `${ccy} `;
   const rate = price ?? null;
-  const rateLabel = rate != null ? `${sym}${groupThousands(rate)}` : null;
 
   const nights = (() => {
     if (!from || !to) return 0;
@@ -82,9 +71,9 @@ export function OceansBookCard({
         </div>
       ) : null}
 
-      {rateLabel ? (
+      {rate != null ? (
         <div className="bkrate">
-          <span className="amt">{rateLabel}</span>
+          <Money className="amt" amount={rate} currency={ccy} />
           <span className="muted">/ night</span>
         </div>
       ) : null}
@@ -129,11 +118,11 @@ export function OceansBookCard({
             style={{ borderTop: "1px solid var(--site-line)", paddingTop: 14 }}
           >
             <span>
-              {rateLabel} × {nights} night{nights === 1 ? "" : "s"}
+              <Money amount={rate} currency={ccy} approx={false} /> × {nights}{" "}
+              night{nights === 1 ? "" : "s"}
             </span>
             <b>
-              {sym}
-              {groupThousands(subtotal)}
+              <Money amount={subtotal} currency={ccy} />
             </b>
           </div>
           <div className="sline">
@@ -142,10 +131,7 @@ export function OceansBookCard({
           </div>
           <div className="stotal" style={{ marginTop: 2 }}>
             <span className="l">Total</span>
-            <span className="amt">
-              {sym}
-              {groupThousands(subtotal)}
-            </span>
+            <Money className="amt" amount={subtotal} currency={ccy} />
           </div>
         </>
       ) : null}

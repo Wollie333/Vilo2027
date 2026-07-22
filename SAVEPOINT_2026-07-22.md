@@ -25,11 +25,21 @@ until the founder signs Royal off — then add slugs back to `LAUNCH_THEME_SLUGS
 Committed `HEAD` (see below). Any "sweep the other themes" note elsewhere in this file is
 DEFERRED behind this gate.
 
-### 🎯 NEXT UP — the currency switcher (#11). Founder said "build it now"; DECISION PENDING on
-whether to do a **Royal MVP first** (foundation + Royal prices → a working switcher to test, then
-sweep the other themes) **or the full feature in one go**. Ask the founder, then execute the detailed
-plan in "OPEN / NOT DONE" §3 below. Everything the founder flagged before this (A logo, B centering)
-is resolved/done.
+### ✅ DONE — the currency switcher (#11), Royal MVP. Founder chose "Royal first". Foundation
+(enabled-scoped `CurrencyProvider` + `SiteCurrencyProvider` wrap on tenant browsing routes +
+`CurrencySwitcher` in `OceansViewHeader`) + all Royal browsing price renders swapped to client
+`<Money>` (home/rooms/roomdetail+OceansBookCard/specials/specialdetail). Verified live on mana
+flipping ZAR→USD/GBP/EUR at every browsing surface; checkout intentionally stays ZAR (switcher
+self-hides there — transactional). See CHANGELOG 2026-07-22. **To extend to the other themes when
+they come back:** repeat the `money()`→`<Money>` swap in each theme's price components (they already
+render inside the tenant provider). ⚠️ Cross-page cookie persistence is correct in code but was NOT
+observable in the in-app test browser (it doesn't forward the JS-set cookie) — confirm on the real
+branch preview.
+
+### 🎯 NEXT UP — founder-driven. Options: (a) full wizard→publish→booking end-to-end on Royal
+(the launch goal — needs founder login on the branch preview); (b) confirm currency cross-page
+persistence on the real preview; (c) #6 logo in the wizard theme-preview (minor). Everything the
+founder flagged before this (A logo, B centering, theme-gate to Royal) is resolved/done.
 
 **Preview URL (behind Wielo login + Vercel SSO):**
 `https://vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`

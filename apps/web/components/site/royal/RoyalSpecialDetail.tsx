@@ -2,26 +2,10 @@ import "./royalSpecial.css";
 
 import type { CSSProperties } from "react";
 
+import { Money } from "@/components/currency/Money";
 import { siteImageUrl } from "@/lib/site/image";
 import type { SiteSpecialDetail } from "@/lib/site/loadSitePage";
 import type { SpecialCard } from "@/lib/site/types";
-
-// ── formatting helpers (server-rendered — Intl-free, deterministic) ──────────
-function commas(n: number): string {
-  const s = String(Math.round(n));
-  let out = "";
-  for (let i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 === 0) out += ",";
-    out += s[i];
-  }
-  return out;
-}
-function money(n?: number | null, currency?: string | null): string | null {
-  if (n == null) return null;
-  const ccy = currency ?? "ZAR";
-  const sym = ccy === "ZAR" ? "R" : `${ccy} `;
-  return `${sym}${commas(n)}`;
-}
 
 const Check = () => (
   <svg
@@ -149,15 +133,19 @@ export function RoyalSpecialDetail({
     : null;
 
   // Price bits (reuse the listing's now/was/save treatment).
-  const now = money(special.price, special.currency);
-  const was = money(special.wasPrice, special.currency);
+  const hasNow = special.price != null;
+  const hasWas = special.wasPrice != null;
   const per = special.priceMode === "flat" ? "package" : "/ night";
-  const save =
+  const savePct =
     special.savingsPct != null && special.savingsPct > 0
-      ? `Save ${special.savingsPct}%`
-      : special.savingsAmount != null && special.savingsAmount > 0
-        ? `Save ${money(special.savingsAmount, special.currency)}`
-        : null;
+      ? special.savingsPct
+      : null;
+  const saveAmt =
+    savePct == null &&
+    special.savingsAmount != null &&
+    special.savingsAmount > 0
+      ? special.savingsAmount
+      : null;
 
   // Description → paragraphs (first is the lead, the rest is body prose).
   const desc = (special.description ?? "").trim();
@@ -318,18 +306,39 @@ export function RoyalSpecialDetail({
                 {scarce ? (
                   <div className="bkleft">Only {special.remaining} left</div>
                 ) : null}
-                {now ? (
+                {hasNow ? (
                   <div className="bkrate">
-                    <span className="amt">{now}</span>
+                    <Money
+                      className="amt"
+                      amount={special.price}
+                      currency={special.currency}
+                    />
                     <span className="per">{per}</span>
                   </div>
                 ) : null}
-                {(was && special.savingsAmount) || save ? (
+                {(hasWas && special.savingsAmount) ||
+                savePct != null ||
+                saveAmt != null ? (
                   <div className="bksave">
-                    {was && special.savingsAmount ? (
-                      <span className="was">{was}</span>
+                    {hasWas && special.savingsAmount ? (
+                      <Money
+                        className="was"
+                        amount={special.wasPrice}
+                        currency={special.currency}
+                      />
                     ) : null}
-                    {save ? <span className="save">{save}</span> : null}
+                    {savePct != null ? (
+                      <span className="save">Save {savePct}%</span>
+                    ) : saveAmt != null ? (
+                      <span className="save">
+                        Save{" "}
+                        <Money
+                          amount={saveAmt}
+                          currency={special.currency}
+                          approx={false}
+                        />
+                      </span>
+                    ) : null}
                   </div>
                 ) : null}
                 <a
@@ -365,15 +374,19 @@ export function RoyalSpecialDetail({
             </div>
             <div className="spx">
               {others.map((s, i) => {
-                const cNow = money(s.price, s.currency);
-                const cWas = money(s.wasPrice, s.currency);
+                const cHasNow = s.price != null;
+                const cHasWas = s.wasPrice != null;
                 const cPer = s.priceMode === "flat" ? "package" : "/ night";
-                const cSave =
+                const cSavePct =
                   s.savingsPct != null && s.savingsPct > 0
-                    ? `Save ${s.savingsPct}%`
-                    : s.savingsAmount != null && s.savingsAmount > 0
-                      ? `Save ${money(s.savingsAmount, s.currency)}`
-                      : null;
+                    ? s.savingsPct
+                    : null;
+                const cSaveAmt =
+                  cSavePct == null &&
+                  s.savingsAmount != null &&
+                  s.savingsAmount > 0
+                    ? s.savingsAmount
+                    : null;
                 const img = s.imageUrl
                   ? (asset(s.imageUrl) ?? s.imageUrl)
                   : null;
@@ -409,15 +422,32 @@ export function RoyalSpecialDetail({
                       {s.description ? (
                         <p className="spd">{s.description}</p>
                       ) : null}
-                      {cNow ? (
+                      {cHasNow ? (
                         <div className="sp-px">
-                          <span className="sp-now">{cNow}</span>
+                          <Money
+                            className="sp-now"
+                            amount={s.price}
+                            currency={s.currency}
+                          />
                           <span className="sp-per">{cPer}</span>
-                          {cWas && s.savingsAmount ? (
-                            <span className="sp-was">{cWas}</span>
+                          {cHasWas && s.savingsAmount ? (
+                            <Money
+                              className="sp-was"
+                              amount={s.wasPrice}
+                              currency={s.currency}
+                            />
                           ) : null}
-                          {cSave ? (
-                            <span className="sp-save">{cSave}</span>
+                          {cSavePct != null ? (
+                            <span className="sp-save">Save {cSavePct}%</span>
+                          ) : cSaveAmt != null ? (
+                            <span className="sp-save">
+                              Save{" "}
+                              <Money
+                                amount={cSaveAmt}
+                                currency={s.currency}
+                                approx={false}
+                              />
+                            </span>
                           ) : null}
                         </div>
                       ) : null}

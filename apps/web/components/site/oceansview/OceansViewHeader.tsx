@@ -4,6 +4,7 @@ import "./oceansChrome.css";
 
 import { useEffect, useState } from "react";
 
+import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
 import { siteImageUrl } from "@/lib/site/image";
 import { buildNavHref, hrefToPageKey } from "@/lib/site/navHref";
 import type { SiteBrand, SiteMenuItem } from "@/lib/site/types";
@@ -220,6 +221,10 @@ export function OceansViewHeader({
             </nav>
 
             <div className="nav-right">
+              {/* Display-currency picker — self-hides unless the tenant currency
+                  provider is enabled (guests browse prices in their own currency;
+                  the charge stays in the host's ZAR). */}
+              <CurrencySwitcher className="ovcurrency" />
               {bookHref ? (
                 <a href={bookHref} className="btn btn-coral btn-sm">
                   {cta}
@@ -265,6 +270,7 @@ export function OceansViewHeader({
             </a>
           ))}
         </nav>
+        <CurrencySwitcher className="ovcurrency ovcurrency-mobile" />
         {bookHref ? (
           <a href={bookHref} className="btn btn-coral btn-lg btn-block">
             {cta}

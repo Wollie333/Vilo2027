@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { SiteCurrencyProvider } from "@/components/site/SiteCurrencyProvider";
 import { SiteSpecialView } from "@/components/site/SiteSpecialView";
 import { resolveSiteRef } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
@@ -45,12 +46,14 @@ export default async function SiteSpecialPage({
   if (!ref) notFound();
 
   return (
-    <SiteSpecialView
-      siteRef={ref}
-      specialSlug={specialSlug}
-      preview={sp?.preview === "1"}
-      siteParam={sp?.site}
-      themeSlug={sp?.theme}
-    />
+    <SiteCurrencyProvider>
+      <SiteSpecialView
+        siteRef={ref}
+        specialSlug={specialSlug}
+        preview={sp?.preview === "1"}
+        siteParam={sp?.site}
+        themeSlug={sp?.theme}
+      />
+    </SiteCurrencyProvider>
   );
 }

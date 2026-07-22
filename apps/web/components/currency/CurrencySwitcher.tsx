@@ -5,13 +5,16 @@ import {
   DISPLAY_CURRENCIES,
   type DisplayCurrency,
 } from "@/lib/currency";
-import { CURRENCY_SWITCHER_ENABLED } from "@/lib/frontendFlags";
 
 import { useCurrency } from "./CurrencyProvider";
 
 // Compact display-currency picker. Changing it re-renders every <Money>
 // instantly (client-side conversion) and persists the choice. `variant="dark"`
 // suits the dark utility bar; "light" (default) suits a white surface.
+//
+// Hides itself when switching is disabled in the current subtree — driven by
+// the provider's `enabled` (global flag OR a scoped enable, e.g. tenant sites),
+// NOT the global flag directly, so a tenant provider can unlock it.
 export function CurrencySwitcher({
   className,
   variant = "light",
@@ -19,8 +22,8 @@ export function CurrencySwitcher({
   className?: string;
   variant?: "light" | "dark";
 }) {
-  // Temporarily locked to ZAR (see lib/frontendFlags).
-  if (!CURRENCY_SWITCHER_ENABLED) return null;
+  const { enabled } = useCurrency();
+  if (!enabled) return null;
   return <CurrencySwitcherInner className={className} variant={variant} />;
 }
 

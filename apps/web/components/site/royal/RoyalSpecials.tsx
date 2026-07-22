@@ -2,25 +2,9 @@ import "./royalSpecials.css";
 
 import type { CSSProperties } from "react";
 
+import { Money } from "@/components/currency/Money";
 import { siteImageUrl } from "@/lib/site/image";
 import type { GalleryImage, SpecialCard } from "@/lib/site/types";
-
-// ── helpers (server-rendered) ────────────────────────────────────────────────
-function commas(n: number): string {
-  const s = String(Math.round(n));
-  let out = "";
-  for (let i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 === 0) out += ",";
-    out += s[i];
-  }
-  return out;
-}
-function money(n?: number | null, currency?: string | null): string | null {
-  if (n == null) return null;
-  const ccy = currency ?? "ZAR";
-  const sym = ccy === "ZAR" ? "R" : `${ccy} `;
-  return `${sym}${commas(n)}`;
-}
 
 /**
  * Royal Hotel OFFERS page (preset `royal`) — the founder's bespoke GRAND-HOTEL
@@ -116,15 +100,19 @@ export function RoyalSpecials({
           ) : (
             <div className="spx">
               {list.map((s, i) => {
-                const now = money(s.price, s.currency);
-                const was = money(s.wasPrice, s.currency);
+                const hasNow = s.price != null;
+                const hasWas = s.wasPrice != null;
                 const per = s.priceMode === "flat" ? "package" : "/ night";
-                const save =
+                const savePct =
                   s.savingsPct != null && s.savingsPct > 0
-                    ? `Save ${s.savingsPct}%`
-                    : s.savingsAmount != null && s.savingsAmount > 0
-                      ? `Save ${money(s.savingsAmount, s.currency)}`
-                      : null;
+                    ? s.savingsPct
+                    : null;
+                const saveAmt =
+                  savePct == null &&
+                  s.savingsAmount != null &&
+                  s.savingsAmount > 0
+                    ? s.savingsAmount
+                    : null;
                 const img =
                   s.imageUrl ||
                   shots[0]?.url ||
@@ -158,15 +146,32 @@ export function RoyalSpecials({
                       {s.description ? (
                         <p className="spd">{s.description}</p>
                       ) : null}
-                      {now ? (
+                      {hasNow ? (
                         <div className="sp-px">
-                          <span className="sp-now">{now}</span>
+                          <Money
+                            className="sp-now"
+                            amount={s.price}
+                            currency={s.currency}
+                          />
                           <span className="sp-per">{per}</span>
-                          {was && s.savingsAmount ? (
-                            <span className="sp-was">{was}</span>
+                          {hasWas && s.savingsAmount ? (
+                            <Money
+                              className="sp-was"
+                              amount={s.wasPrice}
+                              currency={s.currency}
+                            />
                           ) : null}
-                          {save ? (
-                            <span className="sp-save">{save}</span>
+                          {savePct != null ? (
+                            <span className="sp-save">Save {savePct}%</span>
+                          ) : saveAmt != null ? (
+                            <span className="sp-save">
+                              Save{" "}
+                              <Money
+                                amount={saveAmt}
+                                currency={s.currency}
+                                approx={false}
+                              />
+                            </span>
                           ) : null}
                         </div>
                       ) : null}
