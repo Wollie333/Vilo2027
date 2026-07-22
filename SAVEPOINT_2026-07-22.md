@@ -1,6 +1,6 @@
 # 🧭 SAVEPOINT — 2026-07-22 (read this FIRST in a new session)
 
-> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `32562db` · tree clean, **all pushed**.
+> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `2e96026` · tree clean, **all pushed**.
 > Do NOT merge to `main` yet — founder wants the feature fully working on the branch first.
 > Then read `WIZARD_TO_WEBSITE_PLAN.md` + `CHANGELOG.md`. Supersedes `SAVEPOINT_2026-07-21.md`.
 
@@ -19,7 +19,20 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
 - To run the wizard fresh: on `/dashboard/website`, use **"Delete this website & start over
   (testing)"** on Mana's card first (one-site-per-business; bounce is OFF pre-launch), then run it.
 
-### ⚠️ TWO OPEN ISSUES the founder just flagged (fix on ALL themes + pages)
+### ✅ RESOLVED since flagged (A logo, B centering) — kept for context
+
+1. **(A) Logo — RESOLVED, no code bug.** The CURRENT mana site (`00fd5e51-…`, the old `823789d8`
+   was deleted) has `brand.logo_path` correctly set (live + snapshot) to the business logo URL. The
+   wizard prefilled + persisted it end-to-end; the header renders it. The pinwheel is simply Mana's
+   stored `businesses.logo_path` — a **19KB placeholder** the host never replaced (`host.avatar_url`
+   is a separate profile photo). **Fix = upload a real logo** (wizard Step 1 / business settings);
+   it replaces the placeholder everywhere. Nothing to code.
+2. **(B) Left-shifted stats/feature grids — DONE, all themes.** Commits `1aa4827` (Royal
+   `.stats`+`.tiles`, verified symmetric) + `2e96026` (OceansView `.stats`/`.tiles`, Safari
+   `.sf-stats`/`.sf-promise-row`, Sabela `.feature-grid`). Pattern: `repeat(auto-fit, minmax());
+   justify-content: center` (+ `text-align: center` on stats). Marmalade already centres its postcards.
+
+<details><summary>Original flagged text (superseded)</summary>
 
 1. **(A) Logo pulls through WRONG.** Header renders the business logo from the `host-logos`
    bucket and it *loads* (naturalWidth 120) — but it's the colourful **Wielo default/placeholder**
@@ -40,6 +53,8 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
    centre each item's content (`text-align: center` / center the stat number+label). Verify with
    3 AND 4 items. Same `.tiles`/`.stats`/features grids exist in oceansview/marmalade/sabela/safari
    `*Home.css` + the token skins — do a sweep, not just Royal.
+
+</details>
 
 ---
 
@@ -78,10 +93,29 @@ site** (host_id `7b4c377e-…`, business_id `3e471597-…`, website_id `823789d8
 
 1. **(A) Logo — show the host's real logo** (see top). Investigate the logo-capture path.
 2. **(B) Highlights "tiles" grid — centre the cards** on all themes (see top; root cause known).
-3. **#11 Currency switcher on tenant sites** — founder: important, infra EXISTS. Reuse
-   `components/currency/CurrencySwitcher.tsx` + `lib/currency.ts` + `lib/fx.ts` (already used by
-   `app/_components/home/UtilityBar.tsx`). Wire into the tenant site chrome/header + convert displayed
-   prices (rooms, specials, booking). NOT started.
+3. **#11 Currency switcher on tenant sites** — founder approved "build it now"; it's LARGER than a
+   wire-up (scoped this session). The currency *system* exists but is **flag-locked** and tenant
+   prices don't use it. Exact plan:
+   - **(a) Lift the ZAR lock for tenant sites.** `lib/frontendFlags.ts` `CURRENCY_SWITCHER_ENABLED=false`
+     hard-gates EVERYTHING (CurrencyProvider ignores the cookie + locks to ZAR; `setCurrency` no-ops;
+     `CurrencySwitcher` returns null). Flipping it globally also enables the main-app UtilityBar — a
+     product call. Prefer a **tenant-scoped enable** (e.g. a `enabled` prop threaded through
+     CurrencyProvider/Money/CurrencySwitcher, or a second flag) so tenant sites unlock without touching
+     the app. Confirm fx rates are production-ready first (`lib/fx.ts` `getDisplayRates()`).
+   - **(b) Wrap the tenant site in `CurrencyProvider`** (in `components/site/SitePageView.tsx` or
+     SiteChrome), seeded server-side with `await getDisplayRates()` + the cookie's initial currency.
+   - **(c) Add `CurrencySwitcher` to each theme's header** (SiteChrome / the bespoke chrome).
+   - **(d) THE BIG PART — convert ~30 bespoke price renders** from the local server `money()` helper to
+     the client `<Money amount currency>` (components/currency/Money.tsx). Files: every
+     `components/site/{royal,oceansview,safari,sabela,marmalade}/*Home|Rooms|RoomDetail|Specials|
+     SpecialDetail|Suite*.tsx` + `RoomBookingForm.tsx` + `sections/{RatesBlocks,RateTableSection,
+     SearchResultsSection}.tsx` + `v2/NewLeaves.tsx` (grep `function money(`). Suggest a shared
+     `<SitePrice amount currency>` wrapper (wraps `<Money>` with the site's price styling) so it's ONE
+     swap-per-usage + consistent. Money already prefixes converted amounts with "≈" (browsing estimate;
+     the guest is still charged in ZAR — keep that wording). Do Royal first as the reference, verify the
+     switcher flips prices live, then sweep the other 4 themes.
+   - Verify: switch currency in the header → room/special/booking prices re-render converted; ZAR stays
+     exact; no layout breakage in the styled price spans.
 4. **#6 Logo in the wizard THEME-PREVIEW** (minor) — `/theme-preview/[slug]` passes `brand={{name}}`
    only (sample brand), so the host's logo doesn't show in the theme step preview. Pass the logo through.
 5. **Full wizard end-to-end + a real test booking** on the branch preview (founder-driven; needs their login).
