@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-07-22 — Website wizard redesigned to the single-page "setup flow" pattern.
+
+Reworked the website setup wizard from a step-at-a-time conversational flow into
+the single-page-scroll design the founder commissioned (Claude-design handoff
+`design_handoff_setup_flow`), mapped onto our REAL wizard steps and keeping the
+live site preview. All existing logic (state, AI copy, subdomain, finalize/build,
+readiness gate) is preserved — only the shell changed.
+
+New shell (`WizardChrome.tsx` + `wizard.css`):
+- Page intro: "Let's build your website" eyebrow + "Set up {business}" heading + a
+  **completion ring** (SVG donut) showing overall %.
+- **Sticky left progress rail** with scroll-spy (IntersectionObserver): per-section
+  status discs (done = green check, active, todo = number), a gradient progress bar,
+  amber dots on required-but-incomplete steps, and a gated **Build** button.
+- Seven numbered **SectionCards** (01–07) — Basics, Theme, Colours, Your story,
+  Payments, Pages, Review & publish — each with a numbered/Done badge, Required/
+  Optional pill, and a warm one-line hint. The active card pulses (reduced-motion safe).
+- Finale card: summary tiles + "what gets built" checklist + the **live site preview**
+  in a browser frame with a **Desktop/Mobile device toggle** + a publish bar.
+- Build/publish → building overlay → confetti + the existing published/draft outcome
+  (StepDone) in a modal.
+
+Each step component gained an `embedded` prop that hides its own title + Back/Next
+nav so it renders only its controls inside a SectionCard (7 steps). `WizardLivePreview`
+gained a `device` prop (mobile constrains to a phone width) and a polished frame.
+`wizard/page.tsx` drops its now-redundant H1; the dev harness widened to max-w-6xl.
+
+Completion rules: basics (name+subdomain) and theme are REQUIRED (gate the build);
+colours/payments/pages are prefilled-optional; story is "done" once AI copy is
+generated. Verified live on `/en/dev/wizard`: 83% ring at start (story the only
+incomplete step), all 7 cards + rail render, clearing the site name drops the ring to
+67% + shows the amber dot + gates the button ("1 required step left"), scroll-spy
+highlights the active card, and the device toggle constrains the finale preview.
+tsc + lint clean. Did NOT fire a real build in the harness (fake business) — that path
+reuses the unchanged finalize/StepBuilding/StepDone logic; founder to test end-to-end.
+
 ## 2026-07-22 — Currency switcher live on Royal tenant sites (browsing estimates).
 
 Guests browsing a Royal micro-site can now switch the DISPLAY currency (ZAR / USD /

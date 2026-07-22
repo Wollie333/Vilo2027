@@ -16,12 +16,15 @@ export function StepTheme({
   update,
   onNext,
   onBack,
+  embedded = false,
 }: {
   themes: ThemeOption[];
   state: WizardState;
   update: (patch: Partial<WizardState>) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  /** Single-page-scroll shell: hide the step's own title + nav. */
+  embedded?: boolean;
 }) {
   const t = useTranslations("website");
   const logoUrl = websiteAssetUrl(state.logoPath ?? undefined);
@@ -29,14 +32,16 @@ export function StepTheme({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          {t("wizardThemeTitle")}
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          {t("wizardThemeBody")}
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            {t("wizardThemeTitle")}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            {t("wizardThemeBody")}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid max-w-lg grid-cols-2 gap-3">
         {themes.map((theme) => {
@@ -100,23 +105,25 @@ export function StepTheme({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          {t("wizardBack")}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!state.themeId}
-          className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:opacity-50"
-        >
-          {t("wizardNext")}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            {t("wizardBack")}
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!state.themeId}
+            className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:opacity-50"
+          >
+            {t("wizardNext")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

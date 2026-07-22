@@ -14,10 +14,14 @@ export function StepBasics({
   state,
   update,
   onNext,
+  embedded = false,
 }: {
   state: WizardState;
   update: (patch: Partial<WizardState>) => void;
-  onNext: () => void;
+  onNext?: () => void;
+  /** Single-page-scroll shell: hide the step's own title + nav; the SectionCard
+   *  provides the header and the sticky rail drives navigation. */
+  embedded?: boolean;
 }) {
   const t = useTranslations("website");
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
@@ -72,14 +76,16 @@ export function StepBasics({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          {t("wizardBasicsTitle")}
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          {t("wizardBasicsBody")}
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            {t("wizardBasicsTitle")}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            {t("wizardBasicsBody")}
+          </p>
+        </div>
+      ) : null}
 
       {/* Logo — prefilled from the business if it has one; upload or change here */}
       <div>
@@ -216,16 +222,18 @@ export function StepBasics({
         </div>
       </div>
 
-      <div className="flex justify-end pt-1">
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canNext}
-          className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {t("wizardNext")}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!canNext}
+            className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t("wizardNext")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -36,13 +36,16 @@ export function StepPayments({
   update,
   onNext,
   onBack,
+  embedded = false,
 }: {
   paymentMethods: WizardPaymentMethod[];
   policies: WizardPolicy[];
   state: WizardState;
   update: (patch: Partial<WizardState>) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  /** Single-page-scroll shell: hide the step's own title + nav. */
+  embedded?: boolean;
 }) {
   const t = useTranslations("website");
 
@@ -64,14 +67,16 @@ export function StepPayments({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          {t("wizardPaymentsTitle")}
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          {t("wizardPaymentsBody")}
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            {t("wizardPaymentsTitle")}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            {t("wizardPaymentsBody")}
+          </p>
+        </div>
+      ) : null}
 
       {/* Scope warning — edits here apply account-wide, not just to this site. */}
       <div className="flex items-start gap-2 rounded-card border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-800">
@@ -184,22 +189,24 @@ export function StepPayments({
         </ul>
       </section>
 
-      <div className="flex items-center justify-between pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          {t("wizardBack")}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
-        >
-          {t("wizardNext")}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            {t("wizardBack")}
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+          >
+            {t("wizardNext")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

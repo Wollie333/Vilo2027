@@ -9,9 +9,7 @@ import type { WizardProps } from "../../dashboard/website/_wizard/wizardState";
 export function WizardHarness(props: WizardProps) {
   return (
     <div className="min-h-screen bg-brand-light/30 p-6">
-      <div className="mx-auto max-w-5xl">
-        <WebsiteWizard {...props} />
-      </div>
+      <WebsiteWizard {...props} />
     </div>
   );
 }

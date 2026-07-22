@@ -1,16 +1,16 @@
 "use client";
 
-import { Sparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import "./wizard.css";
+
+import { Monitor, Smartphone, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
+import { generatePalettes, isHexColor } from "@/lib/site/palettes";
 import type { ReadinessItem } from "@/lib/website/readiness";
 
-import {
-  createDraftWebsiteAction,
-  createWebsiteWithWizardAction,
-} from "../actions";
+import { createWebsiteWithWizardAction } from "../actions";
 import { StepBasics } from "./steps/StepBasics";
 import { StepBuilding } from "./steps/StepBuilding";
 import { StepColors } from "./steps/StepColors";
@@ -20,33 +20,20 @@ import { StepPayments } from "./steps/StepPayments";
 import { StepReview } from "./steps/StepReview";
 import { StepStory } from "./steps/StepStory";
 import { StepTheme } from "./steps/StepTheme";
-import { WizardSidebar } from "./WizardSidebar";
+import { WizardLivePreview } from "./WizardLivePreview";
+import {
+  CompletionRing,
+  Confetti,
+  ProgressRail,
+  PublishBar,
+  SectionCard,
+  type WizardSectionMeta,
+} from "./WizardChrome";
 import {
   initialWizardState,
   type WizardProps,
   type WizardState,
 } from "./wizardState";
-
-type Step =
-  | "basics"
-  | "theme"
-  | "colors"
-  | "story"
-  | "payments"
-  | "pages"
-  | "review"
-  | "building"
-  | "done";
-/** The user-facing steps shown as progress dots (build/done are the go-live tail). */
-const NAV_STEPS: Step[] = [
-  "basics",
-  "theme",
-  "colors",
-  "story",
-  "payments",
-  "pages",
-  "review",
-];
 
 const ERROR_KEY: Record<string, string> = {
   too_short: "errTooShort",
@@ -58,55 +45,82 @@ const ERROR_KEY: Record<string, string> = {
   business_not_found: "errBusinessNotFound",
 };
 
-/** Per-step chrome for the conversational shell: a short progress label and a
- *  warm assistant line that frames the step above the controls (the "answer
- *  card"). Kept in English (wizard is English-first); the step controls keep
- *  their own i18n labels. */
-const STEP_INTRO: Partial<Record<Step, { label: string; message: string }>> = {
-  basics: {
+// The seven setup sections — numbered cards down the page, mirrored in the
+// sticky rail. `hint` is the warm one-line framing shown under each card title.
+// `required` drives the build/publish gate (basics + theme are the essentials;
+// everything else is prefilled/optional and can be refined after launch).
+const SECTIONS: WizardSectionMeta[] = [
+  {
+    id: "basics",
+    n: "01",
     label: "Basics",
-    message:
-      "Hi! Let's get your website live in a few minutes. First, the basics — your site name and how guests reach you.",
+    rail: "Basics",
+    required: true,
+    hint: "Your site name, address and how guests reach you.",
   },
-  theme: {
+  {
+    id: "theme",
+    n: "02",
     label: "Theme",
-    message:
-      "Great. Now pick a look — choose the theme that feels most like your place.",
+    rail: "Theme",
+    required: true,
+    hint: "Pick the look that feels most like your place.",
   },
-  colors: {
+  {
+    id: "colors",
+    n: "03",
     label: "Colours",
-    message:
-      "Nice choice. Let's set your colours — pick a palette or drop in your own.",
+    rail: "Colours",
+    required: false,
+    hint: "Choose a palette or drop in your own accent.",
   },
-  story: {
+  {
+    id: "story",
+    n: "04",
     label: "Your story",
-    message:
-      "Now the fun part: tell me a little about your place and I'll write your website copy for you. You can edit everything after.",
+    rail: "Story",
+    required: false,
+    hint: "Tell us about your place and we'll write your copy.",
   },
-  payments: {
+  {
+    id: "payments",
+    n: "05",
     label: "Payments",
-    message:
-      "Almost there. How should guests pay, and which policies should show on your site?",
+    rail: "Payments",
+    required: false,
+    hint: "How guests pay, and which policies show on your site.",
   },
-  pages: {
+  {
+    id: "pages",
+    n: "06",
     label: "Pages",
-    message:
-      "Here are the pages I'll build for you. Keep them all, or toggle any off.",
+    rail: "Pages",
+    required: false,
+    hint: "The pages we'll build — keep them all or toggle any off.",
   },
-  review: {
-    label: "Review",
-    message:
-      "That's everything — here's a quick summary. Ready to build your site?",
+  {
+    id: "preview",
+    n: "07",
+    label: "Review & publish",
+    rail: "Publish",
+    required: false,
+    hint: "This is your site. Review it, then build when you're happy.",
   },
-};
+];
+
+const EDITABLE = SECTIONS.filter((s) => s.id !== "preview");
+
+type Phase = "edit" | "building" | "done";
 
 export function WebsiteWizard(props: WizardProps) {
   const t = useTranslations("website");
   const router = useRouter();
-  const [step, setStep] = useState<Step>("basics");
   const [state, setState] = useState<WizardState>(() =>
     initialWizardState(props),
   );
+  const [phase, setPhase] = useState<Phase>("edit");
+  const [active, setActive] = useState<string>("basics");
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
   // Whether the auto-publish went live, + what's left if it didn't (the go-live
@@ -115,14 +129,8 @@ export function WebsiteWizard(props: WizardProps) {
   const [missing, setMissing] = useState<ReadinessItem[]>([]);
 
   // If a site ALREADY existed for this business when the wizard opened, bounce to
-  // its editor — once, on mount only. Captured in a ref so the re-render a server
-  // action triggers right after THIS wizard creates a site (which repopulates
-  // existingWebsiteId) can't fire it again and skip the success screen.
-  //
-  // Gated behind NEXT_PUBLIC_WIZARD_ENFORCE_ONE_SITE (default OFF). Pre-launch the
-  // bounce stays off so the wizard can be re-run to test the flow (paired with the
-  // landing page's disabled auto-redirect + the "Delete & start over" card); flip
-  // the flag ON at launch to enforce one site per business (existing site → edit it).
+  // its editor — once, on mount only (gated behind the enforce-one-site flag;
+  // default OFF pre-launch so the flow can be re-run for testing).
   const bounceId = useRef(props.existingWebsiteId ?? null);
   useEffect(() => {
     if (
@@ -134,39 +142,82 @@ export function WebsiteWizard(props: WizardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Leaving the wizard returns to the website landing (the create surface).
   const close = () => router.push("/dashboard/website");
-
   const update = (patch: Partial<WizardState>) =>
     setState((prev) => ({ ...prev, ...patch }));
 
-  // Phase B — create (or resume) the draft site when the host leaves Basics, so
-  // the row exists during the wizard and finalize UPDATES it. Non-blocking: if
-  // draft creation fails (e.g. a taken subdomain), we still advance — finalize
-  // falls back to the one-shot insert and surfaces the same error there, so the
-  // wizard behaves exactly as before when the draft can't be created.
-  async function advanceFromBasics() {
-    if (!state.draftWebsiteId) {
-      const res = await createDraftWebsiteAction({
-        businessId: props.businessId,
-        siteName: state.siteName,
-        subdomain: state.subdomain,
-        logoPath: state.logoPath ?? undefined,
-      });
-      if (res.ok) {
-        setState((prev) => ({ ...prev, draftWebsiteId: res.id }));
-      }
-    }
-    setStep("theme");
-  }
+  // The selected theme + the accent actually in effect (same resolution the
+  // colours step uses), so the finale preview reflects the host's choices.
+  const theme =
+    props.themes.find((x) => x.id === state.themeId) ?? props.themes[0];
+  const baseAccent = theme?.base?.palette?.accent ?? "#0a7d4b";
+  const effectiveAccent = useMemo(() => {
+    if (state.useCustom && isHexColor(state.customAccent))
+      return state.customAccent;
+    const palettes = generatePalettes(baseAccent);
+    return palettes[state.paletteIndex]?.accent ?? baseAccent;
+  }, [state.useCustom, state.customAccent, state.paletteIndex, baseAccent]);
+
+  // Per-section completion — drives the ring %, rail status discs and the gate.
+  const completion = useMemo<Record<string, boolean>>(
+    () => ({
+      basics: state.siteName.trim().length > 2 && state.subdomain.length >= 3,
+      theme: !!state.themeId,
+      colors: true, // a palette is always selected (index 0 by default)
+      story: !!state.contentProfile, // "done" once the AI copy is generated
+      payments: true, // methods are prefilled from the account
+      pages: state.pages.some((p) => p.include),
+      preview: phase === "done",
+    }),
+    [state, phase],
+  );
+
+  const pct = useMemo(() => {
+    const done = EDITABLE.filter((s) => completion[s.id]).length;
+    return Math.round((done / EDITABLE.length) * 100);
+  }, [completion]);
+
+  const requiredMissing = useMemo(
+    () => SECTIONS.filter((s) => s.required && !completion[s.id]),
+    [completion],
+  );
+  const ready = requiredMissing.length === 0;
+
+  const jump = (id: string) => {
+    document
+      .getElementById(`sec-${id}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Scroll-spy: highlight the section the reader is in.
+  useEffect(() => {
+    if (phase !== "edit") return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const vis = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const id = vis[0]?.target.getAttribute("data-section");
+        if (id) setActive(id);
+      },
+      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(`sec-${s.id}`);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, [phase]);
 
   async function build() {
+    if (!ready) {
+      jump(requiredMissing[0].id);
+      return;
+    }
     setError(null);
-    setStep("building");
-    // A policy TYPE is hidden only when the host has configured policies of that
-    // type AND turned them all off (opt-out — never hides property-column
-    // policies the host has no library entry for). The site's "things to know"
-    // block drops those types.
+    setPhase("building");
+    // A policy TYPE is hidden only when the host configured policies of that type
+    // AND turned them all off (opt-out). The site's "things to know" drops those.
     const byType = new Map<string, { any: boolean; shown: boolean }>();
     for (const p of props.policies) {
       if (!p.configured) continue;
@@ -197,180 +248,194 @@ export function WebsiteWizard(props: WizardProps) {
       hiddenPolicyTypes,
       pages: state.pages.map((p) => ({ kind: p.kind, include: p.include })),
       contentProfile: state.contentProfile ?? undefined,
-      // Phase B — finalize the draft created after Basics (UPDATE instead of
-      // INSERT). Undefined → legacy one-shot insert path.
       draftWebsiteId: state.draftWebsiteId ?? undefined,
     });
     if (res.ok) {
       setCreatedId(res.id);
       setPublished(res.published ?? true);
       setMissing(res.missing ?? []);
-      setStep("done");
+      setPhase("done");
     } else {
       setError(t(ERROR_KEY[res.error] ?? "errGeneric"));
     }
   }
 
-  // Highlight dots up to the current nav step; during the build/done tail every
-  // nav step reads as complete.
-  const navIndex = NAV_STEPS.includes(step)
-    ? NAV_STEPS.indexOf(step)
-    : NAV_STEPS.length;
-  const dismissable = step !== "building" && step !== "done";
-  const intro = STEP_INTRO[step];
-  const stepNumber = NAV_STEPS.includes(step)
-    ? NAV_STEPS.indexOf(step) + 1
-    : NAV_STEPS.length;
-  const statusLine =
-    step === "done"
-      ? "All done"
-      : step === "building"
-        ? "Building your site…"
-        : `Step ${stepNumber} of ${NAV_STEPS.length}${intro ? ` · ${intro.label}` : ""}`;
+  const renderers: Record<string, React.ReactNode> = {
+    basics: <StepBasics state={state} update={update} embedded />,
+    theme: (
+      <StepTheme themes={props.themes} state={state} update={update} embedded />
+    ),
+    colors: (
+      <StepColors
+        themes={props.themes}
+        state={state}
+        update={update}
+        embedded
+      />
+    ),
+    story: <StepStory state={state} update={update} embedded />,
+    payments: (
+      <StepPayments
+        paymentMethods={props.paymentMethods}
+        policies={props.policies}
+        state={state}
+        update={update}
+        embedded
+      />
+    ),
+    pages: (
+      <StepPages state={state} rooms={props.rooms} update={update} embedded />
+    ),
+  };
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="flex w-full flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {/* header — assistant identity + progress + close */}
-        <div className="flex items-center justify-between gap-3 border-b border-brand-line px-5 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
-              <Sparkles className="h-4 w-4" />
-            </span>
-            <div className="leading-tight">
-              <p className="text-[13px] font-semibold text-brand-ink">
-                Website setup
-              </p>
-              <p className="text-[11px] text-brand-mute">{statusLine}</p>
-            </div>
+    <div className="mx-auto max-w-6xl">
+      {/* page intro + completion ring */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+            <Sparkles className="h-3.5 w-3.5" /> Let&apos;s build your website
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-1 sm:flex">
-              {NAV_STEPS.map((s, i) => (
-                <span
-                  key={s}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === navIndex
-                      ? "w-6 bg-brand-primary"
-                      : i < navIndex
-                        ? "w-1.5 bg-brand-primary"
-                        : "w-1.5 bg-brand-line"
-                  }`}
-                />
-              ))}
-            </div>
-            {dismissable ? (
-              <button
-                type="button"
-                onClick={close}
-                aria-label={t("cancel")}
-                className="rounded-full p-1 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : (
-              <span className="h-6 w-6" />
-            )}
-          </div>
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+            Set up {props.defaultName}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-brand-mute">
+            Work through the steps below — everything you enter builds the live
+            preview at the bottom. The required steps unlock the build button.
+          </p>
         </div>
-
-        {/* conversation body — assistant bubble, then the step controls as the reply */}
-        <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
-          {intro ? (
-            <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-              </span>
-              <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-brand-line bg-brand-light px-4 py-2.5 text-[13px] leading-relaxed text-brand-ink">
-                {intro.message}
-              </div>
+        <div className="flex items-center gap-4 rounded-card border border-brand-line bg-white px-5 py-4 shadow-card">
+          <CompletionRing pct={pct} />
+          <div className="leading-tight">
+            <div className="text-sm font-semibold text-brand-ink">
+              Setup progress
             </div>
-          ) : null}
-
-          {step === "basics" ? (
-            <StepBasics
-              state={state}
-              update={update}
-              onNext={advanceFromBasics}
-            />
-          ) : null}
-          {step === "theme" ? (
-            <StepTheme
-              themes={props.themes}
-              state={state}
-              update={update}
-              onNext={() => setStep("colors")}
-              onBack={() => setStep("basics")}
-            />
-          ) : null}
-          {step === "colors" ? (
-            <StepColors
-              themes={props.themes}
-              state={state}
-              update={update}
-              onNext={() => setStep("story")}
-              onBack={() => setStep("theme")}
-            />
-          ) : null}
-          {step === "story" ? (
-            <StepStory
-              state={state}
-              update={update}
-              onNext={() => setStep("payments")}
-              onBack={() => setStep("colors")}
-            />
-          ) : null}
-          {step === "payments" ? (
-            <StepPayments
-              paymentMethods={props.paymentMethods}
-              policies={props.policies}
-              state={state}
-              update={update}
-              onNext={() => setStep("pages")}
-              onBack={() => setStep("story")}
-            />
-          ) : null}
-          {step === "pages" ? (
-            <StepPages
-              state={state}
-              rooms={props.rooms}
-              update={update}
-              onNext={() => setStep("review")}
-              onBack={() => setStep("payments")}
-            />
-          ) : null}
-          {step === "review" ? (
-            <StepReview
-              themes={props.themes}
-              paymentMethods={props.paymentMethods}
-              policies={props.policies}
-              state={state}
-              onBuild={build}
-              onBack={() => setStep("pages")}
-            />
-          ) : null}
-          {step === "building" ? (
-            <StepBuilding error={error} onRetry={build} />
-          ) : null}
-          {step === "done" && createdId ? (
-            <StepDone
-              websiteId={createdId}
-              subdomain={state.subdomain}
-              published={published}
-              missing={missing}
-              onClose={close}
-            />
-          ) : null}
+            <div className="text-xs text-brand-mute">
+              {ready
+                ? "Ready to build"
+                : `${requiredMissing.length} required step${
+                    requiredMissing.length === 1 ? "" : "s"
+                  } left`}
+            </div>
+          </div>
         </div>
       </div>
 
-      {dismissable ? (
-        <WizardSidebar
-          themes={props.themes}
-          paymentMethods={props.paymentMethods}
-          policies={props.policies}
-          state={state}
-        />
+      {/* rail + section cards */}
+      <div className="mt-7 grid grid-cols-12 gap-6">
+        <div className="col-span-12 lg:col-span-3">
+          <ProgressRail
+            sections={SECTIONS}
+            active={active}
+            completion={completion}
+            pct={pct}
+            onJump={jump}
+            ready={ready}
+            onPublish={build}
+          />
+        </div>
+
+        <div className="col-span-12 space-y-5 lg:col-span-9">
+          {EDITABLE.map((s) => (
+            <SectionCard
+              key={s.id}
+              meta={s}
+              complete={!!completion[s.id]}
+              active={active === s.id}
+            >
+              {renderers[s.id]}
+            </SectionCard>
+          ))}
+
+          {/* 07 — Review & publish: summary + framed live preview + publish bar */}
+          <SectionCard
+            meta={SECTIONS[SECTIONS.length - 1]}
+            complete={phase === "done"}
+            active={active === "preview"}
+          >
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="-mt-1 max-w-xl text-sm text-brand-mute">
+                  This is exactly what guests will see. It updates live as you
+                  edit the steps above — review it, then build when you&apos;re
+                  happy.
+                </p>
+                <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
+                  {(
+                    [
+                      { id: "desktop", icon: Monitor, label: "Desktop" },
+                      { id: "mobile", icon: Smartphone, label: "Mobile" },
+                    ] as const
+                  ).map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDevice(d.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
+                        device === d.id
+                          ? "bg-brand-primary text-white"
+                          : "text-brand-mute hover:text-brand-ink"
+                      }`}
+                    >
+                      <d.icon className="h-3.5 w-3.5" /> {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <StepReview
+                themes={props.themes}
+                paymentMethods={props.paymentMethods}
+                policies={props.policies}
+                state={state}
+                embedded
+              />
+
+              {theme?.slug ? (
+                <WizardLivePreview
+                  slug={theme.slug}
+                  accent={effectiveAccent}
+                  siteName={state.siteName}
+                  device={device}
+                />
+              ) : null}
+
+              <PublishBar
+                ready={ready}
+                missing={requiredMissing}
+                onPublish={build}
+                onJump={jump}
+              />
+            </div>
+          </SectionCard>
+        </div>
+      </div>
+
+      {/* Building overlay */}
+      {phase === "building" ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-brand-dark/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-card bg-white p-6 shadow-peek">
+            <StepBuilding error={error} onRetry={build} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Published / draft outcome */}
+      {phase === "done" && createdId ? (
+        <>
+          {published ? <Confetti /> : null}
+          <div className="fixed inset-0 z-[75] flex items-center justify-center overflow-y-auto bg-brand-dark/40 p-4 backdrop-blur-sm">
+            <div className="my-auto w-full max-w-md rounded-card bg-white p-6 shadow-peek">
+              <StepDone
+                websiteId={createdId}
+                subdomain={state.subdomain}
+                published={published}
+                missing={missing}
+                onClose={close}
+              />
+            </div>
+          </div>
+        </>
       ) : null}
     </div>
   );

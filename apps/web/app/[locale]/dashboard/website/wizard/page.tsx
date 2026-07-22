@@ -108,27 +108,19 @@ export default async function WebsiteWizardPage({
         ?.publicUrl ?? null)
     : null;
 
+  // The wizard renders its own page intro (eyebrow + heading + completion ring),
+  // so no separate page header here.
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          {t("wizardPageTitle")}
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          {t("wizardPageSubtitle", { business: name })}
-        </p>
-      </div>
-      <WebsiteWizard
-        businessId={target.id}
-        defaultName={name}
-        defaultSubdomain={deriveSubdomain(name)}
-        logoPath={logoUrl}
-        themes={themes}
-        paymentMethods={paymentMethods}
-        policies={policies}
-        rooms={rooms}
-        existingWebsiteId={bounceWebsiteId}
-      />
-    </div>
+    <WebsiteWizard
+      businessId={target.id}
+      defaultName={name}
+      defaultSubdomain={deriveSubdomain(name)}
+      logoPath={logoUrl}
+      themes={themes}
+      paymentMethods={paymentMethods}
+      policies={policies}
+      rooms={rooms}
+      existingWebsiteId={bounceWebsiteId}
+    />
   );
 }

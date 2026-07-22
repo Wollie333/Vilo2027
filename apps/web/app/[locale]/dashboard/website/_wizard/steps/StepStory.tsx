@@ -26,11 +26,14 @@ export function StepStory({
   update,
   onNext,
   onBack,
+  embedded = false,
 }: {
   state: WizardState;
   update: (patch: Partial<WizardState>) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  /** Single-page-scroll shell: hide the step's own title + nav. */
+  embedded?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -79,16 +82,18 @@ export function StepStory({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          Your story
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          Answer a few quick questions and we&apos;ll write your website copy.
-          Your rooms, rates and photos come from your account automatically —
-          this is just the words only you can write. You can edit all of it.
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            Your story
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            Answer a few quick questions and we&apos;ll write your website copy.
+            Your rooms, rates and photos come from your account automatically —
+            this is just the words only you can write. You can edit all of it.
+          </p>
+        </div>
+      ) : null}
 
       {/* Questions */}
       <div className="space-y-4">
@@ -241,14 +246,16 @@ export function StepStory({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between pt-1">
-        <button type="button" onClick={onBack} className={btnGhost}>
-          Back
-        </button>
-        <button type="button" onClick={onNext} className={btnPrimary}>
-          {generated ? "Next" : "Skip for now"}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex items-center justify-between pt-1">
+          <button type="button" onClick={onBack} className={btnGhost}>
+            Back
+          </button>
+          <button type="button" onClick={onNext} className={btnPrimary}>
+            {generated ? "Next" : "Skip for now"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,63 @@
+/* ==========================================================================
+   Website setup wizard — scoped chrome styles for the single-page-scroll
+   design (design_handoff_setup_flow). Everything is prefixed `wz-` / scoped
+   under `.wz-root` so nothing leaks into the rest of the dashboard. Colours,
+   radii, shadows and fonts all come from the Tailwind brand tokens; this file
+   only carries the few things Tailwind utilities can't express.
+   ========================================================================== */
+
+/* Tabular figures for percentages / step numbers so they don't jitter. */
+.wz-num {
+  font-feature-settings: "tnum" 1;
+}
+
+/* Soft focus ring on the shell's own inputs/controls. */
+.wz-focus:focus {
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+
+/* Gentle pulse on the section the reader is currently in (scroll-spy). */
+@keyframes wzStepGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1);
+  }
+}
+.wz-section.is-active {
+  animation: wzStepGlow 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wz-section.is-active {
+    animation: none;
+  }
+}
+
+/* Publish celebration confetti. */
+@keyframes wzConfetti {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--wz-dx), 110vh, 0) rotate(720deg);
+    opacity: 1;
+  }
+}
+.wz-confetti {
+  position: fixed;
+  top: 0;
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  z-index: 90;
+  will-change: transform, opacity;
+  animation: wzConfetti var(--wz-d) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: var(--wz-delay);
+}

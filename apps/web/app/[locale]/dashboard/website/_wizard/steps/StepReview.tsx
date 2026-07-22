@@ -22,13 +22,18 @@ export function StepReview({
   state,
   onBuild,
   onBack,
+  embedded = false,
 }: {
   themes: ThemeOption[];
   paymentMethods: WizardPaymentMethod[];
   policies: WizardPolicy[];
   state: WizardState;
-  onBuild: () => void;
-  onBack: () => void;
+  onBuild?: () => void;
+  onBack?: () => void;
+  /** Single-page-scroll shell: hide the title, the internal preview (the shell
+   *  frames its own with a device toggle) and the nav (the shell's publish bar
+   *  drives the build). Leaves the summary tiles + "what gets built" checklist. */
+  embedded?: boolean;
 }) {
   const t = useTranslations("website");
   const theme = themes.find((x) => x.id === state.themeId) ?? themes[0];
@@ -51,14 +56,16 @@ export function StepReview({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          {t("wizardReviewTitle")}
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          {t("wizardReviewBody")}
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            {t("wizardReviewTitle")}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            {t("wizardReviewBody")}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-card border border-brand-line px-4 py-3.5">
@@ -122,8 +129,9 @@ export function StepReview({
       </div>
 
       {/* Final look — the real renderer + skin + chosen accent, so "ready to
-          build?" is answered by seeing the actual site. */}
-      {theme?.slug ? (
+          build?" is answered by seeing the actual site. In the single-page shell
+          the framed preview (with device toggle) is rendered by the shell. */}
+      {!embedded && theme?.slug ? (
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
             {t("wizardReviewSkin")} — {theme.name}
@@ -136,22 +144,24 @@ export function StepReview({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          {t("wizardBack")}
-        </button>
-        <button
-          type="button"
-          onClick={onBuild}
-          className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
-        >
-          {t("wizardBuild")}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            {t("wizardBack")}
+          </button>
+          <button
+            type="button"
+            onClick={onBuild}
+            className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+          >
+            {t("wizardBuild")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

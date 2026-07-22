@@ -17,12 +17,15 @@ export function StepPages({
   update,
   onNext,
   onBack,
+  embedded = false,
 }: {
   state: WizardState;
   rooms: WizardRoom[];
   update: (patch: Partial<WizardState>) => void;
-  onNext: () => void;
-  onBack: () => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  /** Single-page-scroll shell: hide the step's own title + nav. */
+  embedded?: boolean;
 }) {
   const t = useTranslations("website");
   const [dragKind, setDragKind] = useState<string | null>(null);
@@ -62,14 +65,16 @@ export function StepPages({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="font-display text-lg font-bold text-brand-ink">
-          {t("wizardPagesTitle")}
-        </h3>
-        <p className="mt-0.5 text-[13px] text-brand-mute">
-          {t("wizardPagesBody")}
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h3 className="font-display text-lg font-bold text-brand-ink">
+            {t("wizardPagesTitle")}
+          </h3>
+          <p className="mt-0.5 text-[13px] text-brand-mute">
+            {t("wizardPagesBody")}
+          </p>
+        </div>
+      ) : null}
 
       <ul className="overflow-hidden rounded-card border border-brand-line">
         {state.pages.map((p) => {
@@ -189,22 +194,24 @@ export function StepPages({
       {/* Live nav preview */}
       <NavPreview pages={state.pages} rooms={rooms} t={t} />
 
-      <div className="flex items-center justify-between pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          {t("wizardBack")}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
-        >
-          {t("wizardNext")}
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            {t("wizardBack")}
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+          >
+            {t("wizardNext")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

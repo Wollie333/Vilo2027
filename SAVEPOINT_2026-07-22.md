@@ -36,10 +36,23 @@ render inside the tenant provider). ⚠️ Cross-page cookie persistence is corr
 observable in the in-app test browser (it doesn't forward the JS-set cookie) — confirm on the real
 branch preview.
 
+### ✅ DONE — Website wizard redesigned to the single-page "setup flow" pattern (Claude-design
+handoff `design_handoff_setup_flow`, applied to OUR real steps). New shell: `WizardChrome.tsx`
+(SectionCard, ProgressRail w/ scroll-spy, CompletionRing, PublishBar, Confetti) + `wizard.css`;
+each step got an `embedded` prop; `WizardLivePreview` got a `device` toggle; `WebsiteWizard.tsx`
+fully rewritten (phase=edit|building|done, completion rules, gating). Verified on `/en/dev/wizard`
+(ring reactivity, rail, gating, device toggle). NOT fired a real build in the harness (fake
+business) — founder to test wizard→publish end-to-end on the branch preview. See CHANGELOG 2026-07-22.
+Follow-ups: (i) step INTERNALS still use the old input styling — a later pass can restyle them to the
+design's atoms (Field/TextInput/Select/Stepper/Toggle) for full fidelity; (ii) `WizardSidebar.tsx`
+is now unused (safe to delete); (iii) StepTheme embedded still renders its own live-preview iframe
+(second iframe) — could hide in embedded mode.
+
 ### 🎯 NEXT UP — founder-driven. Options: (a) full wizard→publish→booking end-to-end on Royal
-(the launch goal — needs founder login on the branch preview); (b) confirm currency cross-page
-persistence on the real preview; (c) #6 logo in the wizard theme-preview (minor). Everything the
-founder flagged before this (A logo, B centering, theme-gate to Royal) is resolved/done.
+(the launch goal — needs founder login on the branch preview); (b) restyle the wizard step internals
+to the design atoms for full fidelity; (c) confirm currency cross-page persistence on the real
+preview; (d) #6 logo in the wizard theme-preview (minor). Everything the founder flagged before this
+(A logo, B centering, theme-gate to Royal, currency) is resolved/done.
 
 **Preview URL (behind Wielo login + Vercel SSO):**
 `https://vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`
