@@ -1059,47 +1059,87 @@
 }
 
 /* WELCOME — centred editorial statement */
-.rhome .rintro {
-  max-width: 780px;
-  margin: 0 auto;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
+/* WELCOME — two-column editorial (matches the reference .split / .w-left) */
+.rhome .split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(36px, 5vw, 80px);
   align-items: center;
 }
-.rhome .rintro .tag {
-  justify-content: center;
+.rhome .split.w-left {
+  grid-template-columns: 1.1fr 0.9fr;
 }
-.rhome .rintro h2 {
-  font-size: clamp(2.2rem, 5vw, 3.6rem);
+.rhome .wintro .tag {
+  justify-content: flex-start;
+}
+.rhome .wintro h2 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
   line-height: 1.04;
   margin-top: 20px;
-  max-width: 20ch;
+  max-width: 18ch;
 }
-.rhome .rintro h2::after {
+.rhome .wintro h2::after {
   content: "";
   display: block;
   width: 54px;
   height: 2px;
-  margin: 24px auto 0;
+  margin: 24px 0 0;
   background: var(--site-accent, #b08948);
   border-radius: 2px;
 }
-.rhome .rintro .lead {
-  margin-top: 26px;
-  max-width: 60ch;
+.rhome .wintro .lead {
+  margin-top: 24px;
+  max-width: 54ch;
 }
-.rhome .rintro .muted {
+.rhome .wintro .muted {
   margin-top: 16px;
-  max-width: 58ch;
+  max-width: 54ch;
 }
 .rhome .rintro-cta {
-  margin-top: 34px;
+  margin-top: 32px;
   display: flex;
   gap: 18px;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: center;
+}
+.rhome .frame-wrap {
+  position: relative;
+}
+.rhome .float-badge {
+  position: absolute;
+  right: -14px;
+  bottom: -20px;
+  background: var(--site-surface, #fff);
+  border-radius: var(--site-radius, 12px);
+  padding: 18px 22px;
+  box-shadow: 0 24px 50px -22px rgba(22, 19, 14, 0.4);
+}
+.rhome .float-badge b {
+  display: block;
+  font-family: var(--site-font-heading, "Archivo", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--site-ink, #1b1915);
+}
+.rhome .float-badge span {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-mute, #6b655b);
+}
+@media (max-width: 860px) {
+  .rhome .split,
+  .rhome .split.w-left {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+  .rhome .float-badge {
+    right: 14px;
+    bottom: -16px;
+    padding: 14px 18px;
+  }
 }
 
 /* ROOMS — centred "all rooms" affordance under the grid */

@@ -248,6 +248,16 @@ export function RoyalHome({
     heroImg ||
     "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=2000&q=80";
 
+  // The welcome (intro) block gets its OWN heading — never the hero H1 (there must
+  // be exactly one H1 per page, and repeating the hero line reads poorly). Use the
+  // host's tagline when it's genuinely distinct, else a warm theme default.
+  const introHeading =
+    tagline?.trim() && tagline.trim() !== h1 && tagline.trim() !== sub
+      ? tagline.trim()
+      : "A calm, considered stay";
+  // A second, distinct image for the framed intro (falls back to what's available).
+  const introImg = shots[1]?.url || shots[0]?.url || ctaImg;
+
   // A grand-hotel mosaic (static grid — no lightbox), the reference's w2/h2 lead.
   const mosaic = shots.slice(0, 6);
   const mCls = ["w2 h2", "", "", "", "", "w2"];
@@ -314,25 +324,40 @@ export function RoyalHome({
         </div>
       </section>
 
-      {/* WELCOME — centred editorial statement */}
+      {/* WELCOME — two-column editorial (text left, framed image + badge right) */}
       <section className="section">
         <div className="wrap">
-          <div className="rintro" data-reveal>
-            <span className="tag">Welcome to {brandName}</span>
-            <h2 className="xl">{h1}</h2>
-            <p className="lead">{lead}</p>
-            {leadRest ? (
-              <p className="muted" style={{ whiteSpace: "pre-line" }}>
-                {leadRest}
-              </p>
-            ) : null}
-            <div className="rintro-cta">
-              <a href="/about" className="btn btn-ghost">
-                Our story
-              </a>
-              <a href={roomsHref} className="alink">
-                View rooms {Arrow}
-              </a>
+          <div className="split w-left" data-reveal>
+            <div className="wintro">
+              <span className="tag">Welcome to {brandName}</span>
+              <h2>{introHeading}</h2>
+              <p className="lead">{lead}</p>
+              {leadRest ? (
+                <p className="muted" style={{ whiteSpace: "pre-line" }}>
+                  {leadRest}
+                </p>
+              ) : null}
+              <div className="rintro-cta">
+                <a href="/about" className="btn btn-ghost">
+                  Our story
+                </a>
+                <a href={roomsHref} className="alink">
+                  View rooms {Arrow}
+                </a>
+              </div>
+            </div>
+            <div className="frame-wrap">
+              <div className="frame ar-45">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={siteImageUrl(introImg, { width: 1200 })}
+                  alt={brandName}
+                />
+              </div>
+              <div className="float-badge">
+                <b>Direct</b>
+                <span>Best rate, always</span>
+              </div>
             </div>
           </div>
         </div>
