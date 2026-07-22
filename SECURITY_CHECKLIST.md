@@ -214,6 +214,14 @@ Verified 2026-07-22 against the real code and the live database.
   🔑 **Redeploying this function without `--no-verify-jwt` silently breaks it
   again.** Same for any other webhook endpoint.
 
+  ✅ **And it is no longer a single point of failure** — `/api/product-order-reconcile-worker`
+  + cron `reconcile-product-orders` (migration `20260723000500`) added 2026-07-22.
+  Bookings had `reconcile-host-card-payments` and subscriptions had
+  `subscription-reconcile-worker`, but `product_orders` had **nothing**, so for
+  Wielo's own revenue the webhook was the only net. It settles through the
+  canonical `confirmProductOrderByReference`, so an unpaid reference is left
+  alone rather than force-settled.
+
   ⚖️ **Severity, corrected 2026-07-22 — the webhook is a BACKSTOP, not the
   primary settle path.** `confirmProductOrderByReference` says so in as many
   words: *"This is the PRIMARY settle path (the webhook is an idempotent

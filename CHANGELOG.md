@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-22 (pt72) — product-order reconciler: the webhook is no longer a single point of failure.
+
+Closes the coverage gap pt71 surfaced. Bookings have had `reconcile-host-card-payments` since
+`20260717001100` and subscriptions have `subscription-reconcile-worker`, but **`product_orders` had
+no reconciler at all** — so for Wielo's *own* revenue the webhook was the only backstop.
+
+- **New `/api/product-order-reconcile-worker`** + cron `reconcile-product-orders` (every 5 min,
+  Vault-gated, migration `20260723000500`). Fixes the case where a buyer pays, closes the tab **and**
+  the webhook doesn't land: money captured, order `pending` forever, host paid and got nothing.
+- **Reuses the canonical settle path** rather than re-implementing it (`RULES.md` §3):
+  `confirmProductOrderByReference` verifies against the platform key, flips the order + its pending
+  `platform_ledger` row, activates any mapped plan, and is idempotent via a pending→paid
+  compare-and-set. **An unpaid reference simply returns "not confirmed yet" and is left alone**, so
+  this can never settle something Paystack didn't capture.
+- **Mirrors the booking worker exactly** — shared `EMAIL_WORKER_SECRET` bearer with a constant-time
+  compare, 3-minute floor (so the buyer's own return verify gets a head start), 24-hour ceiling,
+  batch of 50, per-row error isolation so one stuck order can't abort the batch. Orders with no
+  `provider_reference` are skipped: they never reached Paystack, so there's nothing to verify.
+- The cron pre-counts pending work, so a quiet tick costs no HTTP round-trip. The Vault URL secret is
+  created idempotently by the migration.
+- ⚠️ Standing reminder written into the migration: **a Vault-gated cron dies silently at three
+  layers** — the Vault secret, the Vercel env var (needs a REDEPLOY or the worker 401s), and the route
+  being deployed at all. Verify via `net._http_response`, don't assume.
+
 ## 2026-07-22 (pt71) — ✅ the webhook is PROVEN delivering, and now permanently observable.
 
 Founder: *"I want it fixed and know exactly if the webhook fires."* Rather than keep inferring, made
