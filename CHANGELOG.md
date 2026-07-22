@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-22 (pt70) — tried to prove the webhook fires. Couldn't. Corrected pt69's severity.
+
+Three real test transactions against production (test mode) to verify the pt69 fix. **The endpoint
+is reachable and fails closed — but delivery cannot be proven from the database, and I'm recording
+that rather than implying it was verified.**
+
+- **⚖️ pt69 overstated the severity — corrected.** The webhook is an **idempotent backstop**, not
+  the primary settle path. `confirmProductOrderByReference` says so outright: *"This is the PRIMARY
+  settle path (the webhook is an idempotent backstop)"*; bookings mirror it with
+  `confirmHostCardPaymentByReference` + `booking-reconcile-worker`. So this was **a missing safety
+  net, not a payments outage** — which is why card payments always worked. What was genuinely lost:
+  the buyer who **closes the tab before redirecting back** never fires the callback, so their order
+  sat `pending` with money taken.
+- **⚠️ `docs/SMOKE_TESTS.md` §0.5 G3 is wrong** where it calls the webhook *"the ONLY settle path for
+  card money"*. The code contradicts it. Flagged, not silently rewritten — G3 is founder-owned.
+- **Why the DB can't verify it** (so nobody re-burns the time): both settle paths write *identical*
+  state (`status='paid'`, `paid_at`, `method='paystack'`) and whichever loses the compare-and-set
+  exits silently, so a successful webhook leaves **no trace** · `payments.provider_response` doesn't
+  apply to product orders (no `payments` row) · only the webhook sets `product_orders.status='failed'`,
+  but a declined test charge stayed `pending` through 6 polls, so Paystack doesn't reliably emit
+  `charge.failed` · abandoning the checkout settled the order, but the ~2s window means the callback
+  could have won — not proof.
+- **👤 The only definitive check is the Paystack dashboard's webhook delivery log** (attempts +
+  response codes) for one of today's transactions.
+- **Test data left in production** (all `environment='test'`, so the ledger's Test/Live filter hides
+  it from live figures): 3 `Wielo Quotes` orders — 2 paid R99, 1 pending — for `host2@wielostarter.com`.
+
 ## 2026-07-22 (pt69) — 🔴 the Paystack webhook had never once fired.
 
 Started as a small hardening (constant-time HMAC compare) and turned up a dead money path.

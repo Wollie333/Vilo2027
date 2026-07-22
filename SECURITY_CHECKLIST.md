@@ -214,12 +214,42 @@ Verified 2026-07-22 against the real code and the live database.
   🔑 **Redeploying this function without `--no-verify-jwt` silently breaks it
   again.** Same for any other webhook endpoint.
 
-  📌 **Still yours to confirm:** the webhook URL registered in the Paystack
-  dashboard must point at
-  `<SUPABASE_URL>/functions/v1/paystack-webhook`. The endpoint is now reachable,
-  but I can't see your Paystack dashboard to confirm it is pointed here — and
-  until a real event lands, `provider_response` staying NULL is the signal to
-  watch. Fold this into `docs/SMOKE_TESTS.md` §0.5 **G3**.
+  ⚖️ **Severity, corrected 2026-07-22 — the webhook is a BACKSTOP, not the
+  primary settle path.** `confirmProductOrderByReference` says so in as many
+  words: *"This is the PRIMARY settle path (the webhook is an idempotent
+  backstop)"*, and bookings mirror it via `confirmHostCardPaymentByReference` +
+  `booking-reconcile-worker`. So this was **a missing safety net, not a payments
+  outage** — which is exactly why card payments have always worked. ⚠️ Note this
+  **contradicts `docs/SMOKE_TESTS.md` §0.5 G3**, which calls the webhook *"the
+  ONLY settle path for card money"*. The code is right; G3's wording is wrong.
+  What was actually lost: the buyer who **closes the tab before redirecting
+  back** never triggers the callback, so their order sat `pending` with their
+  money taken. That is the case the backstop exists for.
+
+### ⚠️ Why you CANNOT verify this webhook from the database
+
+Attempted 2026-07-22 with three real test transactions; recording it so nobody
+burns the time again:
+- **A successful payment proves nothing.** Both settle paths write *identical*
+  state (`status='paid'`, `paid_at`, `method='paystack'`), and whichever loses
+  the compare-and-set exits silently. The webhook leaves **no trace** when the
+  order is already paid.
+- **`payments.provider_response` does not help for product orders** — that write
+  is scoped to a `payments` row, and a product order has none.
+- **A declined card proves nothing either.** Only the webhook sets
+  `product_orders.status='failed'` (verified: no app code ever does), but a
+  declined test charge stayed `pending` through 6 polls — Paystack does not
+  reliably emit `charge.failed` for it.
+- **Abandoning the checkout is the right idea but not conclusive** — the order
+  settled, yet the ~2s before navigating away is enough for the callback to have
+  won. Not proof.
+
+📌 **The only definitive check is the Paystack dashboard** → the transaction →
+its **webhook / event delivery log** (attempts, response codes). A `200` there
+means delivery works. Confirm the registered URL is
+`https://zlcivjgvtyeaszikqleu.supabase.co/functions/v1/paystack-webhook`, on the
+**Test** and **Live** webhook fields (not the Callback URL field — the app sends
+its own `callback_url` per transaction).
 
 ---
 
