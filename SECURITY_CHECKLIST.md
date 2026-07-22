@@ -22,6 +22,15 @@ sessions. A tick here means a request was actually made and the response checked
 | Cross-host IDOR (write) | ✅ UPDATE + DELETE on another host's property affect **0 rows**; row verified unchanged |
 | Client-supplied price | ✅ impossible — the checkout schema accepts no money field at all |
 
+### The `docs/SCHEMA.md` red flags — all four judged
+
+| Flagged | Verdict |
+|---|---|
+| `record_error_event` | 🔴 **vulnerable → fixed** (below) |
+| `get_listing_policy_summary` | 🔴 **leaked draft listings → fixed**, migration `20260722163030`. Anon could read the policies of an unpublished listing (proven: "Mela Lodge"). Now gated on visibility / ownership / staff / super-admin / service_role, and returns `{}` for *both* hidden and nonexistent so no existence oracle remains. |
+| `current_user_has_password` | ✅ **benign.** No parameters, scoped to `u.id = auth.uid()`. Probed: anon `false`, own session `true`, passing any argument gives `PGRST202`. It cannot be asked about another user. |
+| `tr_help_article_feedback_counters` | 🔴 **silently broken → fixed**, migration `20260722163751`. SECURITY INVOKER updating a different RLS table: guests may insert feedback, but `help_articles` has no update policy for them, so the counter UPDATE matched zero rows with no error. Only an admin voting ever moved the numbers — the sole people who could test it were the sole people it worked for. Now SECURITY DEFINER with a pinned search_path. |
+
 **🔴 Found and fixed: user-enumeration oracle** in `record_error_event`
 (migration `20260722161500`). It is anon-executable by design, but wrote the
 caller's `p_user_id` into a foreign-keyed column, so the response differed by
