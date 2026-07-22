@@ -112,8 +112,51 @@ Before writing a new function, ask: does this already exist in the codebase, in 
 ### Prefer composition over abstraction
 Don't over-engineer. Build the thing that works for the current use case. Abstract only when you see the same pattern appear three or more times.
 
-### Delete unused code
-If you're touching a file and spot unused imports, dead functions, or commented-out blocks — remove them in the same commit. Leave the codebase cleaner than you found it.
+### Delete dead code — but PROVE it is dead first
+
+If you're touching a file and spot unused imports, dead functions, or
+commented-out blocks — remove them in the same commit. Leave the codebase cleaner
+than you found it.
+
+> **Founder directive:** dead code gets deleted, **always**. But be *doubly* sure
+> it is genuinely dead, keep a fast way back, and only once nothing has broken is
+> it gone for good.
+
+**Step 1 — prove it is dead. One grep is not proof.**
+
+- Search for the symbol's **own name**, not just what it calls. *(I nearly
+  deleted `trackArticleView` as unused because my grep matched the RPC name
+  inside it and not the export itself — it is called from `ArticleView.tsx`.)*
+- Search the **whole repo**, not just `apps/web` — `emails/`, `supabase/`,
+  `scripts/`, `packages/` and the docs all call things.
+- For an Edge Function, also check it is actually **deployed**
+  (`supabase functions list`); for a DB object, check `cron.job`, triggers and
+  RLS policies — a function used by an RLS policy has no code call site at all.
+- Run **`node scripts/audit-wiring.mjs`**, and remember it answers "what calls
+  this?" — not "does it work?" (see §8.1).
+- Confirm the **live/deployed** reality, not just the repo (§2).
+
+**Step 2 — delete it in its OWN commit.** Not mixed with a feature change. Git is
+the archive; the restore path must be one command, so put it in the commit
+message:
+
+```
+git revert <sha>                          # whole change back
+git checkout <sha>^ -- path/to/file.ts    # one file back
+```
+
+**Step 3 — verify nothing broke.** Build, lint, tests, **and** exercise the
+surface it belonged to on the live/deployed app (§8). A green build does not
+prove a deleted thing was unused — it proves nothing imported it.
+
+**Step 4 — only then is it gone.** "Completely removed" means no commented-out
+carcass, no `.bak` or `-old` file, no orphaned export, no dead error codes or doc
+lines describing it. *(Deleting `eft-banking-details` also meant fixing two README
+lines and retiring four `ERROR_CODES.md` rows that could no longer be emitted —
+docs that vouch for deleted code are worse than the code.)*
+
+If you cannot prove it is dead, **say so and leave it**. An unproven deletion is
+a worse bug than the dead code.
 
 ### Don't add packages for things you can do natively
 Before installing a new dependency, ask: can this be done with what's already in the stack? A 200-line utility library that does what 5 lines of native code can do is not worth the dependency.
