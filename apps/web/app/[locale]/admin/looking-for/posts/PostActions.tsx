@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   MoreHorizontal,
   Flag,
@@ -9,6 +10,7 @@ import {
   PauseCircle,
   PlayCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,49 +35,41 @@ interface PostActionsProps {
   status: string;
 }
 
+type ModerationAction = (
+  postId: string,
+) => Promise<{ success: true } | { success: false; error: string }>;
+
 export function PostActions({ postId, status }: PostActionsProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const isFlagged = status === "flagged";
   const isCancelled = status === "cancelled";
   const isActive = status === "active";
   const isSuspended = status === "suspended";
 
-  function handleFlag() {
+  // Every moderation result is surfaced (RULES.md §4 — no click may feel dead).
+  // These handlers used to discard the action's return value entirely, so a
+  // failure — including an update that matched zero rows — looked exactly like a
+  // success: nothing happened and nothing was said.
+  function run(action: ModerationAction, successMessage: string) {
     startTransition(async () => {
-      await flagPostAction(postId);
+      const res = await action(postId);
+      if (res.success) {
+        toast.success(successMessage);
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
     });
   }
 
-  function handleUnflag() {
-    startTransition(async () => {
-      await unflagPostAction(postId);
-    });
-  }
-
-  function handleRemove() {
-    startTransition(async () => {
-      await removePostAction(postId);
-    });
-  }
-
-  function handleReinstate() {
-    startTransition(async () => {
-      await reinstatePostAction(postId);
-    });
-  }
-
-  function handleSuspend() {
-    startTransition(async () => {
-      await suspendPostAction(postId);
-    });
-  }
-
-  function handleResume() {
-    startTransition(async () => {
-      await resumePostAction(postId);
-    });
-  }
+  const handleFlag = () => run(flagPostAction, "Post flagged for review.");
+  const handleUnflag = () => run(unflagPostAction, "Post approved.");
+  const handleRemove = () => run(removePostAction, "Post removed.");
+  const handleReinstate = () => run(reinstatePostAction, "Post reinstated.");
+  const handleSuspend = () => run(suspendPostAction, "Post paused.");
+  const handleResume = () => run(resumePostAction, "Post resumed.");
 
   return (
     <DropdownMenu>

@@ -267,11 +267,57 @@ grep -r "re_" apps/
 
 ## 9. Admin Panel
 
-- [ ] Admin panel accessible only to `super_admin` role — middleware check confirmed
-- [ ] Impersonation sessions always create an `impersonation_sessions` record
-- [ ] All admin mutations write to `admin_audit_log` before completing
-- [ ] Impersonation banner is not dismissible and always visible during an active session
-- [ ] Admin panel is not accessible from the mobile app
+Verified 2026-07-22 against the real code and the live database.
+
+- [x] **Admin panel gated** — but **NOT in middleware** (`middleware.ts` has no admin
+  branch; don't go looking for one). The gate is `requireAdmin()` in
+  `app/[locale]/admin/layout.tsx`, which covers every admin *page*, plus a
+  `requirePermission(key)` in every admin *server action* — server actions do not
+  inherit a layout, so the layout alone would not protect them. Checked all **42**
+  files under `app/[locale]/admin/**/actions.ts*`: every one calls
+  `requirePermission` / `withAdminAudit` / `requireAdmin`.
+  ⚠️ The gate is **active `platform_staff` + per-role permission**, not literally
+  `role = 'super_admin'`; super_admin inherits every key. Re-check with:
+  ```bash
+  for f in $(find "app/[locale]/admin" -name "actions.ts*"); do
+    grep -qE "requirePermission|withAdminAudit|requireAdmin" "$f" || echo "NO-GATE: $f"
+  done
+  ```
+- [x] **Impersonation always creates an `impersonation_sessions` record** —
+  `openImpersonationSession()` inserts before the signed cookie is set, and it is
+  the only path. Session id, target and expiry are HMAC-signed; expiry is enforced
+  **server-side** (a copied cookie would otherwise verify forever).
+  ⚠️ `impersonation_sessions` reading **empty** while an `impersonation` audit row
+  survives is **correct, not a bug**: `app_purge_user_account` DELETEs sessions but
+  only NULLs `admin_audit_log.admin_id` / `impersonating` (anonymise, never delete).
+- [x] **All admin mutations write to `admin_audit_log`** — fixed 2026-07-22. The six
+  Looking-For moderation actions (flag/unflag/remove/suspend/resume/reinstate) wrote
+  **no audit row at all**; there was no `target_type` that fitted, so migration
+  `20260722213000` added `looking_for_post` and all six now run through
+  `withAdminAudit`. Confirmed no DB trigger was auditing them behind the app's back —
+  only `app_purge_user_account` and `forbid_admin_audit_log_mutation` reference the
+  table.
+  🔴 **And the writes themselves could vanish.** Five call sites hand-rolled the
+  insert with a RAW `x-forwarded-for` and **discarded `{ error }`**. `ip_address` is
+  a Postgres `inet` — proven live that `'unknown'` (proxies send this literal),
+  `'102.65.1.1:443'` and `'fe80::1%eth0'` all fail `22P02`, so the row was dropped in
+  silence. Every writer now goes through **`lib/admin/auditWrite.ts`**, which
+  normalises the ip, retries without it, logs, and throws outside production.
+  🔑 Note the ordering caveat: `withAdminAudit` writes the row **after** the mutation
+  commits (eventual consistency), not before. `AGENT_RULES.md` §6.8 still requires
+  finance/moderation actions to route through an Edge Function so the audit insert
+  shares the transaction.
+- [x] **Impersonation banner is not dismissible** — `ImpersonationBanner` renders in
+  the admin layout's `banner` slot whenever the cookie verifies, and its only control
+  is "End session". There is no dismiss affordance and no client state to hide it.
+- [x] **Admin panel is not accessible from the mobile app** — `grep -rIn "admin"
+  apps/mobile/src` returns **zero** matches. (Note: mobile source lives in
+  `apps/mobile/src`, not `apps/mobile/app`.)
+- [ ] ⚠️ **`/admin/platform/errors` is gated by `requireAdmin()` only** — no
+  permission key, so ANY active staff member of ANY role can resolve error events.
+  That deviates from `AGENT_RULES.md` §6.4 (RBAC via the DB, not an `is_active`-only
+  check). Page and action are at least consistent with each other. Founder call:
+  pick a key (`platform.settings`?) or document it as intentionally all-staff.
 
 ---
 

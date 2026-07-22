@@ -5,6 +5,52 @@
 
 ---
 
+## 2026-07-22 (pt66) — SECURITY_CHECKLIST §9: the admin audit log was lying by omission.
+
+Working the checklist long tail. §9 (Admin Panel) is now verified rather than assumed, and two real
+defects came out of it. All green (build, lint, typecheck, 446 tests — 4 new).
+
+- **`docs/AGENT_GUARDRAILS_BRIEF.md` (new)** — one portable document to hand a Claude Code session
+  working a sub-branch: the four rules that carry the most weight, the anti-wipe git rules, security
+  and DB guardrails, the definition of done, and the environment traps. Condensed from `RULES.md`,
+  `AGENT_RULES.md`, `CLAUDE.md`, `BUSINESS_PRINCIPLES.md`.
+- **🔴 Audit writes could silently drop.** Five call sites hand-rolled their own `admin_audit_log`
+  insert with a RAW `x-forwarded-for` value and **discarded the returned `{ error }`** — the silent
+  no-op pattern (`RULES.md` §8.1) applied to the one table whose purpose is to be trustworthy.
+  `ip_address` is a Postgres `inet`; proven against the live DB that `'unknown'` (proxies really send
+  this), `'102.65.1.1:443'` and `'fe80::1%eth0'` all fail `22P02`. Proven end-to-end in a rollback
+  transaction: the old path is REJECTED and swallowed, the normalised path INSERTS. Corroborating:
+  production holds an `impersonation.end` row with **no matching `impersonation.start`**, though that
+  insert has existed since 2026-06-11.
+  → New canonical home `lib/admin/auditWrite.ts` (`RULES.md` §3) normalises the ip, retries without
+  it, logs, and **throws outside production** so a `target_type`/CHECK/RLS mismatch can never hide.
+  All six writers funnel through it. Regression test covers the exact values cast against the live DB.
+- **🔴 Six admin moderation actions wrote no audit row at all.** Flag / unflag / remove / suspend /
+  resume / reinstate on `/admin/looking-for/posts` take a **guest's** content offline with no record
+  of who did it. There was no `target_type` that fitted, so migration `20260722213000` adds
+  `looking_for_post` (proven: the new value is accepted, a bogus one still `23514`). All six now go
+  through `withAdminAudit`, tagged with the post owner so it lands on their History tab.
+- **🔴 …and two of them reported success after changing nothing.** `suspend`/`resume` carry an
+  `.eq("status", …)` guard, so they could match **zero rows** — not an error in Postgres — and still
+  return `{ success: true }`. They now use RETURNING and treat an empty result as a failure.
+- **🔴 The UI discarded every result.** `PostActions.tsx` did `await flagPostAction(postId)` and
+  ignored the return value, so even the pre-existing error path showed the admin nothing
+  (`RULES.md` §4). Now toasts success/error and refreshes.
+- **Verified live, both paths** (`RULES.md` §8): suspended a real post → status flipped, audit row
+  landed with correct target, owner and a normalised `::1/128` ip. Then made the page stale behind
+  itself and clicked Pause → DOM shows `data-type=error` "Only a live post can be paused." and the DB
+  row was untouched. Before this change that exact click reported success and did nothing. Test data
+  restored to `active`.
+- **Also confirmed ✅ (not changed):** admin panel gated by `requireAdmin` in the admin layout plus a
+  `requirePermission` key in **all 42** admin action files · impersonation always creates an
+  `impersonation_sessions` row · the banner is not dismissible · the mobile app has **zero** admin
+  references · audit inserts are genuinely happening in production (221 rows). The
+  `impersonation_sessions` table reading empty while an audit row survives is **correct** —
+  `app_purge_user_account` deletes sessions but only anonymises the audit log.
+- **Left alone deliberately:** `/admin/platform/errors` is gated by `requireAdmin()` only (no
+  permission key), which deviates from `AGENT_RULES.md` §6.4. Page and action are at least
+  consistent, and picking the right key is a founder call — flagged, not guessed.
+
 ## 2026-07-22 (pt61) — Principle #16 sweep: competitor names out of live sales prose.
 
 Finished the sweep left open at pt60. `/launch` is **publicly live** (unlike `/booking-management`,
