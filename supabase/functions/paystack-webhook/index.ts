@@ -229,6 +229,33 @@ Deno.serve(async (req: Request) => {
 
   const event = JSON.parse(rawBody) as PaystackEvent;
 
+  // Record the delivery BEFORE any business logic, so "did Paystack actually
+  // call us?" is answerable independently of whether the handler had anything
+  // left to do. This webhook is an idempotent BACKSTOP — the pay-page return is
+  // the primary settle path, and when it wins the race this handler exits
+  // silently, writing nothing anywhere. That made a working webhook and a
+  // completely dead one indistinguishable, which is exactly how it went
+  // unnoticed that it had NEVER fired (RULES.md §8.1). Best-effort: a logging
+  // failure must never cost us a settlement.
+  let deliveryId: string | null = null;
+  try {
+    const { data: logged } = await supabase
+      .from("webhook_deliveries")
+      .insert({
+        provider: "paystack",
+        event_type: event.event ?? null,
+        reference: event.data?.reference ?? null,
+        environment,
+        outcome: "received",
+        payload: JSON.parse(rawBody),
+      })
+      .select("id")
+      .single();
+    deliveryId = logged?.id ?? null;
+  } catch (err) {
+    console.error("paystack-webhook: could not log delivery", err);
+  }
+
   // Process synchronously and let the HTTP status drive Paystack's retry.
   //
   // The old code fired processEvent and returned 200 unconditionally with a
@@ -245,17 +272,34 @@ Deno.serve(async (req: Request) => {
       "paystack-webhook: processEvent failed, asking for retry",
       err,
     );
+    await markDelivery(supabase, deliveryId, "error");
     return new Response(JSON.stringify({ ok: false }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 
+  // "processed" only means the handler ran to completion — it may legitimately
+  // have done nothing because the pay-page return had already settled the order.
+  // An outcome left on 'received' means the handler never got this far.
+  await markDelivery(supabase, deliveryId, "processed");
+
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
 });
+
+// Best-effort outcome stamp — never let it mask or fail the delivery itself.
+// deno-lint-ignore no-explicit-any
+async function markDelivery(supabase: any, id: string | null, outcome: string) {
+  if (!id) return;
+  try {
+    await supabase.from("webhook_deliveries").update({ outcome }).eq("id", id);
+  } catch (err) {
+    console.error("paystack-webhook: could not stamp delivery outcome", err);
+  }
+}
 
 async function processEvent(
   event: PaystackEvent,

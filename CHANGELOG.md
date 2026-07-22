@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-22 (pt71) — ✅ the webhook is PROVEN delivering, and now permanently observable.
+
+Founder: *"I want it fixed and know exactly if the webhook fires."* Rather than keep inferring, made
+the observability the fix.
+
+- **New `webhook_deliveries` table** (migration `20260722234500`) — one row per **signature-verified**
+  delivery, written **before** any business logic. That ordering is the whole point: this webhook is
+  an idempotent backstop, so when the pay-page return wins the race the handler exits silently and
+  writes nothing. A working webhook and a dead one were literally indistinguishable — the textbook
+  answer to *"if this were broken, what would I see?"* being **"nothing"** (`RULES.md` §8.1).
+- **✅ PROVEN 20:58:57 UTC** on the first real transaction after deploying it:
+  `event_type='charge.success'`, `outcome='processed'`, `environment='test'`.
+  🔑 `environment` is resolved *from the key that matched*, so that value alone proves the HMAC
+  verified. The registered Paystack URL is correct and delivery works.
+- **The standing check is now one query** (no reasoning required):
+  `SELECT received_at, event_type, outcome, environment, reference FROM webhook_deliveries ORDER BY received_at DESC;`
+  `outcome` stuck on `'received'` = handler threw · `'error'` = processEvent failed and Paystack was
+  asked to retry · no rows after a card payment = not being delivered.
+- **Only verified deliveries are logged, on purpose** — the endpoint must be unauthenticated (the HMAC
+  is the auth), so logging rejects would let anyone grow the table at will.
+- **⚠️ Coverage gap worth knowing:** bookings have two nets (pay-page return + `booking-reconcile-worker`)
+  and subscriptions have `subscription-reconcile-worker`, but **`product_orders` has no reconciler at
+  all** — verified by grep over `app/api` and `supabase/functions`, and no cron chases them. So for
+  Wielo's own product revenue the webhook is the **only** backstop. Now that it's proven working that's
+  acceptable, but a product-order reconciler would remove the single point of failure.
+
 ## 2026-07-22 (pt70) — tried to prove the webhook fires. Couldn't. Corrected pt69's severity.
 
 Three real test transactions against production (test mode) to verify the pt69 fix. **The endpoint

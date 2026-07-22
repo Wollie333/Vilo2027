@@ -226,7 +226,30 @@ Verified 2026-07-22 against the real code and the live database.
   back** never triggers the callback, so their order sat `pending` with their
   money taken. That is the case the backstop exists for.
 
-### ⚠️ Why you CANNOT verify this webhook from the database
+- [x] ✅ **PROVEN DELIVERING — 2026-07-22 20:58:57 UTC.** Made instrumentation
+  the fix rather than arguing from inference: **`webhook_deliveries`** (migration
+  `20260722234500`) records one row per signature-verified delivery, written
+  **before** any business logic, so delivery is observable even when the handler
+  legitimately does nothing. First real transaction after deploying it:
+  `event_type='charge.success'`, `outcome='processed'`, `environment='test'`.
+  🔑 `environment` is resolved **from the key that matched**, so that value alone
+  proves the HMAC verified. The founder's Paystack webhook URL is registered
+  correctly.
+
+  **This is now the standing check — one query, no reasoning required:**
+  ```sql
+  SELECT received_at, event_type, outcome, environment, reference
+  FROM webhook_deliveries ORDER BY received_at DESC LIMIT 20;
+  ```
+  `outcome` stuck on `'received'` = the handler threw. `'error'` = processEvent
+  failed and Paystack was asked to retry. No rows after a card payment = not
+  being delivered.
+  ⚠️ Deliberately logs **only signature-verified** deliveries: the endpoint must
+  be unauthenticated (the HMAC is the auth), so logging rejects would let anyone
+  grow the table at will. A rejected delivery shows as a 401 in Paystack's
+  dashboard instead.
+
+### ⚠️ Why the DATABASE ALONE could not verify this (before the log existed)
 
 Attempted 2026-07-22 with three real test transactions; recording it so nobody
 burns the time again:
