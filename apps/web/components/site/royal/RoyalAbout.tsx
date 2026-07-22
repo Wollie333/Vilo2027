@@ -200,34 +200,35 @@ export function RoyalAbout({
         </div>
       </section>
 
-      {/* STORY — centred, formal */}
+      {/* STORY — two-column editorial (text left, framed image right), matches
+          the reference About.html story split. */}
       <section className="section">
         <div className="wrap">
-          <div className="sec-head center" data-reveal>
-            <span className="tag" style={{ justifyContent: "center" }}>
-              Our story
-            </span>
-            <h2 className="lg" style={{ marginTop: 18 }}>
-              Why we do it this way
-            </h2>
-          </div>
-          <div className="story-col" data-reveal>
-            <p className="lead">{lead}</p>
-            {rest.map((p, i) => (
-              <p className="muted" key={i}>
-                {p}
-              </p>
-            ))}
-          </div>
-          <div className="story-fig" data-reveal>
-            <div className="frame ar-32">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={siteImageUrl(storyImg, { width: 1600 })}
-                alt={brandName}
-                loading="lazy"
-                decoding="async"
-              />
+          <div className="split w-left story-split" data-reveal>
+            <div>
+              <span className="tag">Our story</span>
+              <h2 className="lg" style={{ marginTop: 18 }}>
+                Why we do it this way
+              </h2>
+              <div className="story-col">
+                <p className="lead">{lead}</p>
+                {rest.map((p, i) => (
+                  <p className="muted" key={i}>
+                    {p}
+                  </p>
+                ))}
+              </div>
+            </div>
+            <div className="frame-wrap">
+              <div className="frame ar-45">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={siteImageUrl(storyImg, { width: 1200 })}
+                  alt={brandName}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -332,16 +332,26 @@
   margin-top: 18px;
   line-height: 1.65;
 }
-.rabout .story-fig {
-  margin-top: clamp(40px, 5vw, 64px);
+/* The story split is left-aligned (two-column), overriding the centred defaults. */
+.rabout .story-split .story-col {
+  max-width: none;
+  margin: 0;
+  margin-top: 24px;
+  text-align: left;
+}
+.rabout .story-split .story-col .lead {
+  margin: 0;
 }
 
-/* -- split (host bio) ---------------------------------------------------- */
+/* -- split (host bio + story) -------------------------------------------- */
 .rabout .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: clamp(36px, 5vw, 80px);
   align-items: center;
+}
+.rabout .split.w-left {
+  grid-template-columns: 1.1fr 0.9fr;
 }
 .rabout .frame-wrap {
   position: relative;
