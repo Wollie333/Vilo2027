@@ -288,3 +288,22 @@ collapsing them onto one Doppler value.
 A Vercel sync still needs a **redeploy** to reach the running deployment, exactly
 as a manual edit does. Then confirm on both sides — `supabase secrets list` and
 the Configuration panel. Checking only one side is the original bug.
+
+### Proving two runtimes hold the SAME value
+
+Presence is not equality. A wrong-but-present key fails exactly like a missing
+one, and neither dashboard will tell you.
+
+**The `DIGEST` column in `supabase secrets list` is a plain SHA-256 of the
+value.** So a secret can be proven identical without ever reading it:
+
+```bash
+printf '%s' "$(doppler secrets get BANKING_CIPHER_KEY -p wielo -c prd --plain)" \
+  | sha256sum
+supabase secrets list          # compare against the DIGEST column
+```
+
+Vercel offers no equivalent — `vercel env pull` returns empty strings for these,
+so the Vercel side can only be confirmed **functionally**: redeploy, then exercise
+a path that decrypts (a host's banking details, a Paystack webhook). Treat the
+Configuration panel's green tick as "present", never as "correct".
