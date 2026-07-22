@@ -1,6 +1,7 @@
 # 🧭 SAVEPOINT — 2026-07-22 (SESSION 2, live-testing punch-list) — read FIRST
 
-> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `353d841` (pushed? NO — commit local, push before ending).
+> **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
+> **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.
 > Supersedes the "NEXT UP" in `SAVEPOINT_2026-07-22.md` (that session's work is still valid; this is the
 > founder's live-testing punch-list on the Royal site). Do NOT merge to `main` yet.
 
@@ -52,23 +53,27 @@ Founder ran the wizard + browsed the Royal site live and fired a punch-list. Ove
      per-page `royal*.css`. Royal reuses `OceansViewHeader/Footer` (SiteChrome THEME_CHROME ~line 88).
 
 ## ✅ DONE THIS SESSION
-- **`353d841` fix(royal): dark image hero on Journal** so the header menu stays legible. Converted
-  `.rj-phead` (white, centred) → `.phead` dark image hero (post cover → first cover → warm fallback +
-  gradient overlay + white copy), matching the reference. Guards the `featured===null` case (mana has no
-  posts) — I first shipped an unguarded `cover(featured)` that threw `coverUrl` null-deref; caught it LIVE
-  and fixed before commit. **Verified live on mana:** nav renders white over the dark hero (screenshotted).
+- **PROD CRASH FIXED + SHIPPED to main (`b2ab4d7`).** `themes.ts` did `FONT_STACKS[headingFont].heading`
+  with `headingFont="archivo"` (Royal's font; mana's `theme.base.font`), a key main's FONT_STACKS lacks
+  (branch-only) → `undefined.heading` → digest 405703985 on every royal site. Guarded the lookup → falls
+  back to `grotesk`. Reproduced the exact throw + verified mana renders 200 on fixed main. Isolated
+  one-line hotfix straight to main (founder-authorized), via a throwaway worktree (torn down). Prod deploy
+  `dpl_5LBUfw4nKhixAqYY33iT3ei5HvAg` was BUILDING at hand-off — confirm READY, then check mana.wielo.co.za.
+- **`353d841` Journal hero** (blog INDEX): `.rj-phead` white + `nav over` → invisible white menu. Now a
+  `.phead` dark image hero (post cover → first cover → warm fallback), guards `featured===null` (a
+  null-deref I caught LIVE before commit). Verified live + screenshotted.
+- **`7994015` Specials hero** (offers INDEX): merged white `.rhead` + separate `.rhero` band into one dark
+  `.phead` hero (matches reference). Verified live.
 
 ## 📋 PUNCH-LIST / TASK STATE (see also the harness task list #1–#5)
-- [DONE] Journal hero legibility (`353d841`).
-- [TODO] **Apply the SAME `.phead` dark-hero fix to: RoyalArticle (`.r-art-head`), RoyalSpecials (white
-  head + separate `.rhero` band → single dark `.phead`), RoyalSpecialDetail (white breadcrumb open).**
-  Pattern = copy `.rrooms .phead` CSS (royalRooms.css:266-299) + the `<section className="phead"><img/>…`
-  markup (RoyalRooms.tsx:70-86). Source hero img from that page's own data (article cover / special image)
-  with a fallback; **GUARD nulls** (this session's near-miss). Verify each live at
-  `/en/site/blog/<slug>?site=mana`, `/en/site/specials?site=mana`, a special-detail URL.
-- [TODO] **Room Detail** → make header solid (reference intent): set `pageHasHero=false` for the room route
-  (check how SiteChrome / the room page passes `pageHasHero`).
-- [TODO] **Experiences** hero → swap charcoal gradient panel for a real photo `.phead` (non-blocking).
+- [DONE] **Hero/menu legibility (task #5) RESOLVED.** Only the two INDEX pages were actually broken
+  (`pageHasHero=true` + white head): Journal (`353d841`) + Specials (`7994015`), both fixed + verified.
+  VERIFIED via code that Article (blog post, `blog/[postSlug]/page.tsx` sets `pageHasHero=false` for
+  royal), Special-Detail (SiteSpecialView `pageHasHero={false}`) and Room-Detail (SiteRoomView
+  `pageHasHero={false}`) ALREADY use a SOLID header → legible → NO fix needed (the gap-analysis
+  over-flagged them). Home/Rooms/Gallery/About/Contact already have dark heroes.
+- [TODO] **Experiences** hero → charcoal gradient panel is legible but reference wants a real photo
+  `.phead` (optional polish). Same pattern as Journal/Specials if desired.
 - [TODO] **Nearby robustness** (finding #3) — `lib/site/nearbyFetch.ts` + action + card.
 - [TODO] **Currency switcher on checkout** (founder: "on all pages incl. checkout"). `/book` uses a
   different chrome (SiteChrome, not the browsing header) and is deliberately NOT wrapped in
