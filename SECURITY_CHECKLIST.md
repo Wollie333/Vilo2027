@@ -171,13 +171,55 @@ Verified 2026-07-22 against the real code and the live database.
 - [ ] **Paystack live keys** — **deferred on purpose** to launch day, see
   `docs/SMOKE_TESTS.md` §0.5 **G3**. Test keys staying active until then is
   intended, not an oversight.
-- [ ] ⚠️ **Not blocking, worth hardening:** `paystack-webhook` compares the HMAC
-  with `hash === signature` — a non-constant-time comparison. The codebase already
-  uses `timingSafeEqual` for the impersonation cookie, so this is inconsistent
-  rather than unknown. Practically very hard to exploit over a network, and
-  changing it means deploying an Edge Function on the money path
-  (`AGENT_RULES.md` §9 — stop and ask), so it is flagged rather than silently
-  changed.
+- [x] **HMAC compared in constant time** — fixed + deployed 2026-07-22 (function
+  version 20). It used `hash === signature`, which short-circuits at the first
+  differing character and leaks how much of a guessed signature was correct.
+  🔑 Deliberately a **plain XOR loop, not `timingSafeEqual`**: both `matchesSecret`
+  calls sit inside a `try/catch` that returns `null`, so if `timingSafeEqual` were
+  missing or threw in the Deno runtime, every **valid** webhook would be silently
+  rejected and look identical to a bad signature — card payments would stop
+  settling with nothing in the logs. There is no Deno or Docker on this machine to
+  test that against, so the version with **no runtime-API dependency** is the one
+  that ships. Accept + reject proven at unit level; on the deployed function:
+  `GET → 405` (module booted), forged 128-char signature → `401 Invalid signature`
+  (exercises the full equal-length loop), short signature → `401` (length guard,
+  no throw).
+
+- [x] 🔴 **The webhook was UNREACHABLE by Paystack — fixed 2026-07-22.** It was
+  deployed with `verify_jwt` **on** (the CLI default), so the Supabase **edge
+  gateway** rejected every request Paystack could actually make, before the
+  function ever ran. Bare POST, `?apikey=<anon>` and an `apikey:` header all
+  returned `{"code":"UNAUTHORIZED_NO_AUTH_HEADER"}`; only `Authorization: Bearer`
+  got through, **which Paystack does not send**.
+
+  **Proof it had never fired, not a guess:** the handler writes the raw event to
+  `payments.provider_response` on *every* event, before any branching. All three
+  Paystack payments — **including both that completed on 18 and 19 July** — have
+  `provider_response IS NULL`. Card payments were being settled by the checkout
+  **callback** / `booking-reconcile-worker` instead, so a working fallback hid a
+  completely dead path for months (`RULES.md` §8.1: "test payments worked" is
+  true of both worlds and therefore proves neither).
+
+  ⚠️ **This is why the old check passed.** `docs/BETA_INFRA.md` recorded the
+  webhook as "deployed + signature-gated (`POST … → 401`)". That 401 was the
+  **gateway's**, not the function's — identical status code, different body.
+  Read the BODY (`RULES.md` §2).
+
+  Redeployed with `--no-verify-jwt`, which is the correct posture for a webhook:
+  **the HMAC is the authentication.** Re-verified after the change, with **no
+  auth header at all**: a Paystack-shaped `charge.success` with no signature →
+  `401 Invalid signature`; forged 128-char signature → `401`; short signature →
+  `401`; `GET` → `405`. And **zero rows written** — no `payments`, no
+  `platform_ledger`, no `product_orders`.
+  🔑 **Redeploying this function without `--no-verify-jwt` silently breaks it
+  again.** Same for any other webhook endpoint.
+
+  📌 **Still yours to confirm:** the webhook URL registered in the Paystack
+  dashboard must point at
+  `<SUPABASE_URL>/functions/v1/paystack-webhook`. The endpoint is now reachable,
+  but I can't see your Paystack dashboard to confirm it is pointed here — and
+  until a real event lands, `provider_response` staying NULL is the signal to
+  watch. Fold this into `docs/SMOKE_TESTS.md` §0.5 **G3**.
 
 ---
 

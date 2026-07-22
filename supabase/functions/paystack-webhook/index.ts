@@ -49,6 +49,29 @@ type PaystackEvent = {
   };
 };
 
+// Constant-time compare of two hex digests. `===` short-circuits at the first
+// differing character, so how long it takes leaks how much of a guessed
+// signature was correct — the classic way to forge an HMAC one byte at a time.
+//
+// Deliberately a plain loop rather than node:crypto's timingSafeEqual. This runs
+// on Deno, and the two matchesSecret calls below sit inside a try/catch that
+// returns null — so if timingSafeEqual were missing or threw in that runtime,
+// every VALID webhook would be silently rejected and look exactly like a bad
+// signature. Payments would stop being recorded with nothing in the logs. There
+// is no Deno or Docker on this machine to test that against, so this version
+// depends on no runtime API, cannot throw, and needs no extra import.
+//
+// Length is compared first and leaks only the length, which is fixed for a
+// SHA-512 hex digest.
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 function matchesSecret(
   rawBody: string,
   signature: string,
@@ -56,7 +79,7 @@ function matchesSecret(
 ): boolean {
   if (!secret) return false;
   const hash = createHmac("sha512", secret).update(rawBody).digest("hex");
-  return hash === signature;
+  return constantTimeEqual(hash, signature);
 }
 
 // Decrypt a payment secret stored by the app (lib/crypto/payments.ts): format

@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-22 (pt69) — 🔴 the Paystack webhook had never once fired.
+
+Started as a small hardening (constant-time HMAC compare) and turned up a dead money path.
+
+- **🔴 The webhook was UNREACHABLE by Paystack.** It was deployed with `verify_jwt` on (the CLI
+  default), so the Supabase **edge gateway** rejected every request Paystack could actually make,
+  before the function ran. Bare POST, `?apikey=`, and an `apikey:` header all got
+  `UNAUTHORIZED_NO_AUTH_HEADER`; only `Authorization: Bearer` passed — **which Paystack never sends**.
+- **Proven, not inferred:** the handler writes the raw event to `payments.provider_response` on every
+  event before any branching. All three Paystack payments — **including both that completed 18–19
+  Jul** — have `provider_response IS NULL`. Settlement was happening via the checkout **callback** /
+  `booking-reconcile-worker`. A working fallback hid a dead path for months. "Test payments worked"
+  is true whether or not the webhook fires, so it proves neither (`RULES.md` §8.1).
+- **Why it was never caught:** `docs/BETA_INFRA.md` recorded it as verified — "deployed +
+  signature-gated (`POST … → 401`)". That 401 came from the **gateway**, not the function. Same
+  status code, different body. I made the identical mistake mid-session and only caught it by
+  reading the body (`RULES.md` §2). Annotated the doc so the next person doesn't repeat it.
+- **Fixed:** redeployed with `--no-verify-jwt` — correct for a webhook, since the HMAC *is* the
+  authentication. Re-verified with **no auth header**: unsigned `charge.success` → `401 Invalid
+  signature`, forged 128-char sig → `401`, short sig → `401`, `GET` → `405`, and **zero rows**
+  written to `payments` / `platform_ledger` / `product_orders`.
+  🔑 Redeploying without `--no-verify-jwt` silently breaks it again.
+- **Constant-time HMAC compare** — `hash === signature` short-circuits at the first differing
+  character. Now a plain XOR loop, **deliberately not `timingSafeEqual`**: both `matchesSecret` calls
+  sit inside a `try/catch` returning `null`, so had `timingSafeEqual` been missing in Deno, every
+  *valid* webhook would have been silently rejected and looked exactly like a bad signature. No Deno
+  or Docker here to test that, so the version with no runtime-API dependency shipped.
+- **👤 Yours to confirm:** the webhook URL registered in the Paystack dashboard must point at
+  `<SUPABASE_URL>/functions/v1/paystack-webhook`. The endpoint is reachable now; `provider_response`
+  staying NULL after a real test payment is the signal that it still isn't pointed here.
+
 ## 2026-07-22 (pt68) — SECURITY_CHECKLIST §4 named three things that don't exist.
 
 §4 (Payment Security) verified line by line against the real code and the live DB. **Every control

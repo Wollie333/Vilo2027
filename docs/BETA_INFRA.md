@@ -101,6 +101,15 @@ Verified this session:
 
 **Payment webhooks (checked this pass):** `paystack-webhook` Edge Function is
 **deployed + signature-gated** (`POST …/functions/v1/paystack-webhook` → 401). PayPal
+<!-- ⚠️ 2026-07-22: that "→ 401" proved NOTHING about signature gating. A bare
+     POST is rejected by the Supabase EDGE GATEWAY with
+     {"code":"UNAUTHORIZED_NO_AUTH_HEADER"} before the function ever runs — the
+     status code is identical to the function's own "Invalid signature" 401.
+     Read the BODY (RULES.md §2). To reach the function you must send
+     `Authorization: Bearer <anon key>`; `?apikey=` and an `apikey:` header do
+     NOT work. Which raises the open question in §"Paystack webhook
+     reachability" — Paystack cannot send that header. -->
+
 intentionally has **no webhook** for the booking path (return redirect +
 `booking-reconcile-worker`), so a missing `paypal-webhook` is expected, not a gap.
 
