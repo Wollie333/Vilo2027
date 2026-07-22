@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 
-import { requirePermission, withAdminAudit } from "@/lib/admin";
+import {
+  AdminReasonRequired,
+  getActiveImpersonationTargetId,
+  requestAuditMeta,
+  requirePermission,
+  withAdminAudit,
+} from "@/lib/admin";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import {
   applyFoundingLock,
@@ -110,57 +116,54 @@ const reinstateSchema = z.object({
   reason: z.string().min(5).max(500),
 });
 
-export const suspendUserAction = withAdminAudit<
-  z.infer<typeof suspendSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "users.suspend",
-    actionName: "user.suspend",
-    targetType: "user",
-    getTargetId: (a) => a.userId,
-    requireReason: true,
-  },
-  async (args, service) => {
-    const { error, data } = await service
-      .from("user_profiles")
-      .update({ is_active: false })
-      .eq("id", args.userId)
-      .select("id, is_active")
-      .single();
-    if (error) throw new Error(error.message);
+/**
+ * Suspend / reinstate go through the ATOMIC path (AGENT_RULES.md §6.8): the
+ * `admin_set_user_active` DB function mutates `user_profiles` and writes the
+ * `admin_audit_log` row inside ONE transaction, so a user can never be suspended
+ * without the record of who did it and why. Proven by forcing the audit insert
+ * to fail — the suspension rolls back with it.
+ *
+ * These deliberately do NOT use `withAdminAudit`, which writes its row AFTER the
+ * mutation commits (fine for everything else, not for this). The permission
+ * check still happens here, in the app, before the call.
+ */
+async function setUserActive(
+  args: { userId: string; reason: string },
+  isActive: boolean,
+): Promise<{ ok: true }> {
+  const admin = await requirePermission("users.suspend");
+  if (!args.reason?.trim()) throw new AdminReasonRequired();
 
-    revalidatePath(`/admin/users/${args.userId}`);
-    revalidatePath("/admin/users");
-    return { result: { ok: true }, after: data };
-  },
-);
+  const meta = requestAuditMeta();
+  const { error } = await createAdminClient().rpc("admin_set_user_active", {
+    p_user_id: args.userId,
+    p_is_active: isActive,
+    p_admin_id: admin.userId,
+    p_reason: args.reason,
+    p_impersonating: getActiveImpersonationTargetId(),
+    p_ip: meta.ip_address,
+    p_user_agent: meta.user_agent,
+  });
+  // Nothing committed if this errored — mutation and audit row share the
+  // transaction, so there is no half-applied state to clean up.
+  if (error) throw new Error(error.message);
 
-export const reinstateUserAction = withAdminAudit<
-  z.infer<typeof reinstateSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "users.suspend",
-    actionName: "user.reinstate",
-    targetType: "user",
-    getTargetId: (a) => a.userId,
-    requireReason: true,
-  },
-  async (args, service) => {
-    const { error, data } = await service
-      .from("user_profiles")
-      .update({ is_active: true })
-      .eq("id", args.userId)
-      .select("id, is_active")
-      .single();
-    if (error) throw new Error(error.message);
+  revalidatePath(`/admin/users/${args.userId}`);
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
 
-    revalidatePath(`/admin/users/${args.userId}`);
-    revalidatePath("/admin/users");
-    return { result: { ok: true }, after: data };
-  },
-);
+export async function suspendUserAction(
+  args: z.infer<typeof suspendSchema>,
+): Promise<{ ok: true }> {
+  return setUserActive(suspendSchema.parse(args), false);
+}
+
+export async function reinstateUserAction(
+  args: z.infer<typeof reinstateSchema>,
+): Promise<{ ok: true }> {
+  return setUserActive(reinstateSchema.parse(args), true);
+}
 
 // ─── Admin-initiated password reset ───────────────────────────
 // Sends the user the standard Supabase recovery email (same mechanism as the

@@ -313,11 +313,31 @@ Verified 2026-07-22 against the real code and the live database.
 - [x] **Admin panel is not accessible from the mobile app** — `grep -rIn "admin"
   apps/mobile/src` returns **zero** matches. (Note: mobile source lives in
   `apps/mobile/src`, not `apps/mobile/app`.)
-- [ ] ⚠️ **`/admin/platform/errors` is gated by `requireAdmin()` only** — no
-  permission key, so ANY active staff member of ANY role can resolve error events.
-  That deviates from `AGENT_RULES.md` §6.4 (RBAC via the DB, not an `is_active`-only
-  check). Page and action are at least consistent with each other. Founder call:
-  pick a key (`platform.settings`?) or document it as intentionally all-staff.
+- [x] **`/admin/platform/errors` now requires `platform.settings`** — fixed
+  2026-07-22. It took only `requireAdmin()`, so ANY active staff of ANY role could
+  resolve error events *and* read `configHealth()`, which reports which platform
+  secrets are configured. `platform.settings` is held by `ops` + `super_admin`
+  only; `content_mod`, `support_agent` and `finance` do **not** hold it (verified
+  against `admin_role_permissions`). Page and action both gated.
+- [x] **Wielo support inbox sends are audited** — fixed 2026-07-22, migration
+  `20260722224500` adds the `conversation` target type. Posting as "Wielo Support"
+  and sending payment links are outbound messages to real users made on the
+  platform's behalf, previously with no record of which staff member sent them.
+  `adminMarkPlatformReadAction` is deliberately NOT audited (clearing the admin
+  side's own unread counter changes nothing a user can see).
+- [x] **Finance/moderation atomicity (`AGENT_RULES.md` §6.8)** — `users.suspend` is
+  done via `admin_set_user_active` (migration `20260722231500`): the mutation and
+  its audit row commit in ONE transaction. **Proven** by forcing the audit INSERT
+  to fail with a bad `admin_id` — the suspension rolled back with it (`23503`,
+  `is_active` unchanged), plus a blank reason rejected (`22023`) and
+  `anon`/`authenticated` having **no** EXECUTE.
+  🔑 **§6.8's old wording was wrong and has been corrected:** it prescribed an Edge
+  Function wrapping `BEGIN … COMMIT`, but an Edge Function reaches the DB over
+  PostgREST and **every PostgREST request is its own transaction** — that gives no
+  atomicity at all. Only a single DB call (plpgsql function via RPC) does.
+  ⚠️ `payments.refund` and `bookings.cancel` are seeded and granted to `finance`
+  but have **zero call sites** — there is no admin refund or booking-cancel action
+  yet, so §6.8 is forward-looking for those two.
 
 ---
 

@@ -192,10 +192,45 @@ edit URLs which run through `withAdminAudit`.
 
 ### 6.8 Finance and moderation actions must be atomic
 For `payments.refund`, `subscriptions.edit`, `bookings.cancel`, and
-`users.suspend`, route the mutation through a Supabase Edge Function that
-wraps `BEGIN ... INSERT INTO admin_audit_log ... COMMIT` in a single
-transaction. Other audited actions may use the eventual-consistency path
-in `withAdminAudit`.
+`users.suspend`, the mutation and its `admin_audit_log` row must commit
+**in the same transaction**. Other audited actions may use the
+eventual-consistency path in `withAdminAudit` (which writes its row *after*
+the mutation commits).
+
+**Do it with a `SECURITY DEFINER` plpgsql function, called via one RPC.**
+A plpgsql function body is a single transaction, so the mutation and the audit
+insert rise and fall together.
+
+> ⚠️ **Corrected 2026-07-22.** This rule used to say "route the mutation through
+> a Supabase Edge Function that wraps `BEGIN … COMMIT`". **That does not deliver
+> atomicity.** An Edge Function talks to the database over PostgREST, and every
+> PostgREST request is its own transaction — a mutation call and an audit call
+> from the same Edge Function are still two separate commits. Moving code to Deno
+> changes *where it runs*, not *how it commits*. An Edge Function is fine as the
+> entry point, but the atomic tail still has to be one database call.
+
+Reference implementation: `admin_set_user_active` (migration
+`20260722231500`), used by `suspendUserAction` / `reinstateUserAction`.
+Proven by forcing the audit `INSERT` to fail (a bad `admin_id` violating its
+FK): the suspension rolled back with it — `23503`, and `is_active` was
+unchanged. **When you add one of these, prove it the same way** — a test that
+only shows the happy path does not show atomicity at all.
+
+Such a function is `SECURITY DEFINER`, so it must **fail closed**: check the
+caller is `service_role` (or has no JWT), `REVOKE ... FROM PUBLIC` (a bare
+`REVOKE ... FROM anon` is a no-op — `CREATE FUNCTION` grants EXECUTE to PUBLIC),
+then `GRANT` to `service_role` only. The permission check itself stays in the
+app (`requirePermission`) — the function is the atomic tail, not the gate.
+
+**Current scope in the codebase:** `users.suspend` is done (above).
+`payments.refund` and `bookings.cancel` are seeded in `admin_permissions` and
+granted to the `finance` role but have **zero call sites** — there is no admin
+refund or admin booking-cancel action yet (refunds are host self-service in
+`dashboard/refunds/`). For those two this rule is forward-looking: honour it
+when the action is built. `subscriptions.edit` is used very widely as a
+convenience key (products, promo codes, marketing assets, taxonomy); only the
+mutations that actually move money or change a subscription need the atomic
+path, not every action holding that key.
 
 ---
 

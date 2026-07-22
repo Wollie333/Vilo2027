@@ -167,7 +167,7 @@ export type Database = {
       admin_audit_log: {
         Row: {
           action: string
-          admin_id: string
+          admin_id: string | null
           created_at: string
           id: string
           impersonating: string | null
@@ -179,7 +179,7 @@ export type Database = {
         }
         Insert: {
           action: string
-          admin_id: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           impersonating?: string | null
@@ -191,7 +191,7 @@ export type Database = {
         }
         Update: {
           action?: string
-          admin_id?: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           impersonating?: string | null
@@ -12212,6 +12212,21 @@ export type Database = {
             }
             Returns: string
           }
+      admin_set_user_active: {
+        Args: {
+          p_admin_id: string
+          p_impersonating?: string
+          p_ip?: unknown
+          p_is_active: boolean
+          p_reason: string
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: {
+          id: string
+          is_active: boolean
+        }[]
+      }
       affiliate_tier_bonus: {
         Args: { p_affiliate_id: string }
         Returns: number

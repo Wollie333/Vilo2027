@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
-import { requireAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin";
 import { CONFIG_GROUPS, configHealth } from "@/lib/observability/configHealth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -32,7 +32,12 @@ function ago(iso: string): string {
 // this, so the first anyone knew of a production failure was a customer
 // mentioning it — if they bothered, rather than just leaving.
 export default async function AdminErrorsPage() {
-  await requireAdmin();
+  // `platform.settings` (ops + super_admin), not a bare requireAdmin(): this page
+  // renders configHealth(), which reports WHICH platform secrets are configured.
+  // An `is_active`-only check let any staff member of any role — content_mod,
+  // support_agent, finance — read that and resolve error events
+  // (AGENT_RULES.md §6.4: capability checks via the DB, never `is_active` alone).
+  await requirePermission("platform.settings");
   const service = createAdminClient();
   const checks = configHealth();
 

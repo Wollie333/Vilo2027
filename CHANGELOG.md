@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-22 (pt67) — closed the three items pt66 left open, and corrected a rule that didn't work.
+
+Founder: "fix all these." All three done + verified live. Green (build, lint, tsc, 446 tests).
+
+- **`/admin/platform/errors` now requires `platform.settings`** — it took only `requireAdmin()`, so
+  any active staff of ANY role could resolve error events *and* read `configHealth()`, which reports
+  which platform secrets are set. `platform.settings` is `ops` + `super_admin` only; `content_mod`,
+  `support_agent` and `finance` do not hold it (checked against `admin_role_permissions`). Page and
+  action both gated. Also gave `resolveErrorAction` a RETURNING check — it could match zero rows and
+  report success.
+- **Wielo support inbox sends are audited** — migration `20260722224500` adds the `conversation`
+  target type. Posting as "Wielo Support" and sending payment links are outbound messages to real
+  users, previously with no record of who sent them. Mark-as-read is deliberately left unaudited.
+- **🔑 `AGENT_RULES.md` §6.8 prescribed a mechanism that does not work.** It said to route
+  finance/moderation mutations "through a Supabase Edge Function that wraps `BEGIN … COMMIT`".
+  An Edge Function reaches the database over PostgREST, and **every PostgREST request is its own
+  transaction** — a mutation call and an audit call from the same Edge Function are still two
+  separate commits. Moving code to Deno changes where it runs, not how it commits. Rewrote §6.8
+  around the thing that actually is atomic: a `SECURITY DEFINER` plpgsql function called via one RPC.
+- **`users.suspend` now atomic** — `admin_set_user_active` (migration `20260722231500`) mutates
+  `user_profiles` and writes `admin_audit_log` in one transaction. **Proven by forcing the audit
+  INSERT to fail** with a bad `admin_id`: the suspension rolled back with it (`23503`, `is_active`
+  unchanged). Blank reason rejected (`22023`); `anon`/`authenticated` have no EXECUTE (revoked from
+  **PUBLIC**, not just `anon` — `CREATE FUNCTION` grants to PUBLIC). Round-tripped through the real
+  admin UI: suspend → badge "Suspended" + audit row `atomic:true`; reinstate → restored.
+- **Scope correction worth keeping:** `payments.refund` and `bookings.cancel` are seeded in
+  `admin_permissions` and granted to `finance`, but have **zero call sites** repo-wide — there is no
+  admin refund or admin booking-cancel action (refunds are host self-service). §6.8 is forward-looking
+  for those two. Also noted: `SECURITY_CHECKLIST.md` §4 references a `refund-process` Edge Function
+  that **does not exist** — only 6 Edge Functions are deployed.
+
 ## 2026-07-22 (pt66) — SECURITY_CHECKLIST §9: the admin audit log was lying by omission.
 
 Working the checklist long tail. §9 (Admin Panel) is now verified rather than assumed, and two real
