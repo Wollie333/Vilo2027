@@ -52,28 +52,21 @@ export function RoyalSpecials({
 
   return (
     <div className="rspecials">
-      {/* PAGE HEAD — centred, formal, champagne-ruled */}
-      <section className="rhead">
+      {/* PAGE HEAD — dark image hero (keeps the transparent header legible) */}
+      <section className="phead">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={siteImageUrl(headImg, { width: 2560 })}
+          alt={`Offers at ${brandName}`}
+        />
         <div className="wrap">
           <nav className="crumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span className="sep">·</span>
             <span>Offers</span>
           </nav>
-          <span className="tag">Direct-only rates</span>
           <h1 className="xl">Offers &amp; seasons</h1>
           <p className="lead">{sub}</p>
-        </div>
-      </section>
-
-      {/* EDITORIAL HERO — framed grand-hotel band */}
-      <section className="wrap">
-        <div className="rhero" data-reveal>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={siteImageUrl(headImg, { width: 2560 })}
-            alt={`Offers at ${brandName}`}
-          />
         </div>
       </section>
 
