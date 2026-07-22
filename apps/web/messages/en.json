@@ -461,7 +461,7 @@
   "settings": {
     "tabProfile": "Profile",
     "tabBusinesses": "Businesses",
-    "tabCardPayments": "Card payments",
+    "tabCardPayments": "Payment processors",
     "tabSubscription": "Subscription",
     "tabTransactions": "Transaction history",
     "tabNotifications": "Notifications",

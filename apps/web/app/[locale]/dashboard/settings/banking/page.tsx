@@ -19,7 +19,7 @@ import { PaymentGatewaysSection } from "./_components/PaymentGatewaysSection";
 import type { Currency, PaymentGateway } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Card payments · Settings",
+  title: "Payment processors · Settings",
 };
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,7 @@ export default async function CardPaymentsSettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold text-brand-ink">
-          Card payments
+          Payment processors
         </h2>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-medium text-brand-secondary">
           <ShieldCheck className="h-3 w-3" />
