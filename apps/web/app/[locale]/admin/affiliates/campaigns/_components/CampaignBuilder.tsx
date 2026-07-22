@@ -93,6 +93,7 @@ export function CampaignBuilder({
   const [maxParticipants, setMaxParticipants] = useState<string>(
     initial.max_participants != null ? String(initial.max_participants) : "",
   );
+  const [hostOffer, setHostOffer] = useState(initial.host_offer ?? "");
 
   const cs = initial.commission_structure;
   const [model, setModel] = useState(cs.model);
@@ -161,6 +162,7 @@ export function CampaignBuilder({
       max_participants: maxParticipants.trim()
         ? Math.max(1, Math.round(Number(maxParticipants)))
         : null,
+      host_offer: hostOffer.trim() || null,
       commission_structure: {
         model,
         scope,
@@ -473,6 +475,25 @@ export function CampaignBuilder({
               ) : (
                 <>Leave blank for unlimited · {enrolledActive} enrolled</>
               )}
+            </span>
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className={LABEL}>Offer shown to hosts</span>
+            <input
+              type="text"
+              maxLength={60}
+              value={hostOffer}
+              placeholder="e.g. 4 months free"
+              onChange={(e) => setHostOffer(e.target.value)}
+              className={FIELD}
+            />
+            <span className="mt-1 block text-[11px] text-brand-mute">
+              Appears on every partner&rsquo;s landing page
+              (/partners/&lt;their-slug&gt;) as the reason to sign up now. This
+              is a commercial promise published under a partner&rsquo;s name and
+              photo — leave it blank and the page makes no pricing claim at all,
+              rather than inventing one.
             </span>
           </label>
 

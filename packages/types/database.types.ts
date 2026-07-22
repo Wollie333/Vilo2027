@@ -524,6 +524,7 @@ export type Database = {
           id: string
           payout_threshold: number | null
           photo_url: string | null
+          public_phone: string | null
           region: string | null
           signup_campaign_id: string | null
           slug: string
@@ -549,6 +550,7 @@ export type Database = {
           id?: string
           payout_threshold?: number | null
           photo_url?: string | null
+          public_phone?: string | null
           region?: string | null
           signup_campaign_id?: string | null
           slug: string
@@ -574,6 +576,7 @@ export type Database = {
           id?: string
           payout_threshold?: number | null
           photo_url?: string | null
+          public_phone?: string | null
           region?: string | null
           signup_campaign_id?: string | null
           slug?: string
@@ -907,6 +910,7 @@ export type Database = {
           eligible_partners: string
           eligible_referrals: string
           ends_at: string | null
+          host_offer: string | null
           id: string
           max_participants: number | null
           name: string
@@ -924,6 +928,7 @@ export type Database = {
           eligible_partners?: string
           eligible_referrals?: string
           ends_at?: string | null
+          host_offer?: string | null
           id?: string
           max_participants?: number | null
           name: string
@@ -941,6 +946,7 @@ export type Database = {
           eligible_partners?: string
           eligible_referrals?: string
           ends_at?: string | null
+          host_offer?: string | null
           id?: string
           max_participants?: number | null
           name?: string

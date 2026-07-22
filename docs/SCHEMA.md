@@ -541,6 +541,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `activated_at` | timestamp with time zone | yes | — |
 | `activated_by` | uuid | yes | — |
 | `signup_campaign_id` | uuid | yes | — |
+| `public_phone` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (activated_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -729,6 +730,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `max_participants` | integer | yes | — |
+| `host_offer` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`

@@ -46,6 +46,12 @@ export default async function HostSignupPage({
     paid_token?: string;
     reference?: string;
     trxref?: string;
+    // Carried from a partner landing page's form.
+    name?: string;
+    email?: string;
+    phone?: string;
+    town?: string;
+    propertyType?: string;
   };
 }) {
   // A quote (or other) intent to return to after onboarding. Same-origin guard.
@@ -147,6 +153,23 @@ export default async function HostSignupPage({
     }
   }
 
+  // Answers carried over from a partner landing page (/partners/<slug>), so the
+  // host does not retype what they just typed. Untrusted visitor input: capped,
+  // trimmed, and NEVER treated as consent or as proof of an account — the terms
+  // checkbox stays unticked and the email is passed on a separate `lead*` prop
+  // for exactly that reason.
+  const leadText = (v: string | undefined, max: number): string | null => {
+    const s = (v ?? "").trim();
+    return s ? s.slice(0, max) : null;
+  };
+  // A signed-in profile always wins over these (see the Wizard props below).
+  const lead = {
+    name: leadText(searchParams?.name, 120),
+    email: leadText(searchParams?.email, 160),
+    phone: leadText(searchParams?.phone, 32),
+    town: leadText(searchParams?.town, 120),
+  };
+
   let prefilledFullName: string | null = null;
   let prefilledPhone: string | null = null;
   let prefilledBio: string | null = null;
@@ -210,12 +233,14 @@ export default async function HostSignupPage({
   return (
     <Wizard
       prefilledEmail={user?.email ?? null}
-      prefilledFullName={prefilledFullName}
-      prefilledPhone={prefilledPhone}
+      prefilledFullName={prefilledFullName ?? lead.name}
+      prefilledPhone={prefilledPhone ?? lead.phone}
       prefilledBio={prefilledBio}
       prefilledAvatar={prefilledAvatar}
       prefilledLanguages={prefilledLanguages}
       prefilledCountry={prefilledCountry}
+      leadEmail={lead.email}
+      leadCity={lead.town}
       categoryLeaves={categoryLeaves}
       products={products}
       purchasedProductName={purchasedProductName}

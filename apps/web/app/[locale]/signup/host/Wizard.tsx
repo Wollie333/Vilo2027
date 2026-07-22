@@ -140,6 +140,8 @@ type WizardData = {
 };
 
 type Prefilled = {
+  /** The SIGNED-IN user's email. Its presence means they already have an
+   *  account and accepted the terms at first signup — see `terms` below. */
   email: string | null;
   fullName: string | null;
   phone: string | null;
@@ -147,6 +149,15 @@ type Prefilled = {
   avatarUrl: string | null;
   languages: string[] | null;
   country: string | null;
+  /**
+   * An email a VISITOR typed into a partner landing page. Deliberately separate
+   * from `email`: it fills the field but must never imply an account or consent.
+   * Routing it through `email` would tick the terms box below on behalf of
+   * someone who has never seen the terms.
+   */
+  leadEmail: string | null;
+  /** Town/region a visitor typed on a partner page, seeded into the address. */
+  leadCity: string | null;
 };
 
 function initialData(prefilled: Prefilled): WizardData {
@@ -155,11 +166,14 @@ function initialData(prefilled: Prefilled): WizardData {
     firstName: first_name,
     surname,
     fullName: prefilled.fullName ?? "",
-    email: prefilled.email ?? "",
+    email: prefilled.email ?? prefilled.leadEmail ?? "",
     password: "",
     confirmPassword: "",
     showPassword: false,
-    terms: prefilled.email !== null, // returning user → terms already accepted at first signup
+    // Returning user → terms already accepted at first signup. Keyed on `email`
+    // ONLY: a lead email is just text a stranger typed, and must leave this box
+    // for them to tick themselves.
+    terms: prefilled.email !== null,
     phone: splitDialCode(prefilled.phone).national,
     phoneCountry: splitDialCode(prefilled.phone).iso2,
     country: prefilled.country ?? "South Africa",
@@ -179,7 +193,7 @@ function initialData(prefilled: Prefilled): WizardData {
     businessName: "",
     addressLine1: "",
     addressLine2: "",
-    city: "",
+    city: prefilled.leadCity ?? "",
     region: "Western Cape",
     postalCode: "",
     latitude: null,
@@ -266,6 +280,8 @@ export function Wizard({
   prefilledAvatar = null,
   prefilledLanguages = null,
   prefilledCountry = null,
+  leadEmail = null,
+  leadCity = null,
   categoryLeaves = [],
   products = [],
   purchasedProductName = null,
@@ -281,6 +297,9 @@ export function Wizard({
   prefilledAvatar?: string | null;
   prefilledLanguages?: string[] | null;
   prefilledCountry?: string | null;
+  /** Values a visitor typed on a partner landing page — never proof of consent. */
+  leadEmail?: string | null;
+  leadCity?: string | null;
   categoryLeaves?: Array<{
     id: string;
     label: string;
@@ -332,6 +351,8 @@ export function Wizard({
       avatarUrl: prefilledAvatar,
       languages: prefilledLanguages,
       country: prefilledCountry,
+      leadEmail,
+      leadCity,
     });
     // Default the toolkit selection to the first product (sorted; Free is first).
     base.productSlug = products[0]?.slug ?? null;

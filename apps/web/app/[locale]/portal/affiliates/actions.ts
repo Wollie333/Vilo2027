@@ -224,6 +224,16 @@ const partnerProfileSchema = z.object({
   display_headline: z.string().trim().max(80).optional().or(z.literal("")),
   bio: z.string().trim().max(400).optional().or(z.literal("")),
   photo_url: z.string().trim().url().max(500).optional().or(z.literal("")),
+  // Published on a public page, so it is validated rather than trusted: digits,
+  // spaces and the usual separators only. Empty clears it, and the page then
+  // shows no phone at all rather than falling back to someone else's number.
+  public_phone: z
+    .string()
+    .trim()
+    .max(24)
+    .regex(/^[0-9+()\-.\s]*$/, "Use digits, spaces and + ( ) - only.")
+    .optional()
+    .or(z.literal("")),
 });
 
 // Save the affiliate's public presentation fields for their co-branded
@@ -257,6 +267,7 @@ export async function updatePartnerProfileAction(
       display_headline: d.display_headline?.trim() || null,
       bio: d.bio?.trim() || null,
       photo_url: d.photo_url?.trim() || null,
+      public_phone: d.public_phone?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", acct.id);

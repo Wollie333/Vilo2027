@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { CampaignCard } from "../_components/CampaignCard";
+import { LandingPageCard } from "../_components/LandingPageCard";
 
 export const metadata: Metadata = { title: "Competitions" };
 export const dynamic = "force-dynamic";
@@ -30,6 +31,14 @@ export default async function AffiliateCompetitionsPage() {
   const admin = createAdminClient();
   const me = await getAffiliateForUser(admin, user.id);
   if (!me) return null; // layout shows the terms gate
+
+  // Presentation fields for the landing-page editor. Fetched here rather than
+  // widened onto the shared AffiliateAccount type, which every money path uses.
+  const { data: presentation } = await admin
+    .from("affiliate_accounts")
+    .select("display_headline, bio, photo_url, public_phone")
+    .eq("id", me.id)
+    .maybeSingle();
 
   async function placesLeftFor(
     campaignId: string,
@@ -213,6 +222,16 @@ export default async function AffiliateCompetitionsPage() {
         a public leaderboard. Share your campaign link, get hosts live, and
         climb.
       </p>
+
+      <div className="mt-6">
+        <LandingPageCard
+          slug={me.slug}
+          headline={(presentation?.display_headline as string | null) ?? null}
+          bio={(presentation?.bio as string | null) ?? null}
+          photoUrl={(presentation?.photo_url as string | null) ?? null}
+          publicPhone={(presentation?.public_phone as string | null) ?? null}
+        />
+      </div>
 
       {cards.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-brand-line bg-white p-8 text-center text-sm text-brand-mute">

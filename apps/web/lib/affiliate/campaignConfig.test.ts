@@ -38,6 +38,8 @@ const BASE_CAMPAIGN = {
   rules_doc_slug: "founding-race-rules",
   // null = unlimited places; the Founding Programme sets 25.
   max_participants: null,
+  // null = the partner landing pages make no pricing claim at all.
+  host_offer: null,
   commission_structure: FOUNDING_LADDER,
   competition: { leaderboard_visibility: "public" as const, prizes: [] },
 };

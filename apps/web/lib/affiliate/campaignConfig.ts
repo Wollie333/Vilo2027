@@ -209,6 +209,13 @@ export const campaignInputSchema = z
     rules_doc_slug: z.string().trim().max(80).nullable(),
     /** Places available. null = unlimited. Enforced by trg_campaign_capacity. */
     max_participants: z.number().int().positive().max(100_000).nullable(),
+    /**
+     * Host-facing offer shown on partner landing pages, e.g. "4 months free".
+     * null = the page makes no pricing claim. This is a commercial promise made
+     * under a partner's name and photo — it must stay true, so it is edited
+     * here rather than hardcoded in the page.
+     */
+    host_offer: z.string().trim().max(60).nullable(),
     commission_structure: commissionStructureSchema,
     competition: competitionSchema,
   })

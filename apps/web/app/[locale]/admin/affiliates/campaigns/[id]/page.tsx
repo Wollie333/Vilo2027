@@ -32,7 +32,7 @@ export default async function AdminCampaignPage({
   const { data: campaign } = await service
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants",
+      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -382,6 +382,7 @@ export default async function AdminCampaignPage({
           rules_doc_slug: (campaign.rules_doc_slug as string | null) ?? null,
           max_participants:
             (campaign.max_participants as number | null) ?? null,
+          host_offer: (campaign.host_offer as string | null) ?? null,
           commission_structure: (campaign.commission_structure ?? {
             model: "inherit",
           }) as never,
