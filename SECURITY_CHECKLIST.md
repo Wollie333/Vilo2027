@@ -6,6 +6,43 @@
 
 ---
 
+## Audit log — 2026-07-22 (run against PRODUCTION, not read from code)
+
+Everything below was **probed live** with the public anon key and two real host
+sessions. A tick here means a request was actually made and the response checked.
+
+| Area | Result |
+|---|---|
+| RLS enabled on every public table | ✅ only PostGIS `spatial_ref_sys` is off (reference data, not a risk) |
+| `anon` read on 11 sensitive tables | ✅ all return `[]` — and against tables that DO have rows, so the result is meaningful |
+| Anon-callable functions (excl. PostGIS/triggers) | 19 real ones — 18 legitimate, **1 vulnerable → fixed** |
+| Paystack webhook, unsigned + forged | ✅ 401, and **zero rows** written to `payments` / `platform_ledger` |
+| PayPal webhook, unsigned | ✅ 401 |
+| Cross-host IDOR (read) | ✅ scoped — bookings 3/29 and 1/29, banking 1/3, conversations 1/16 |
+| Cross-host IDOR (write) | ✅ UPDATE + DELETE on another host's property affect **0 rows**; row verified unchanged |
+| Client-supplied price | ✅ impossible — the checkout schema accepts no money field at all |
+
+**🔴 Found and fixed: user-enumeration oracle** in `record_error_event`
+(migration `20260722161500`). It is anon-executable by design, but wrote the
+caller's `p_user_id` into a foreign-keyed column, so the response differed by
+whether the uuid existed — random uuid `409`, real user `204`. Identity now comes
+from `auth.uid()`; `p_user_id` is honoured only for `service_role`. Re-probed
+after the fix: both cases `204`, and `user_id` lands NULL.
+
+**Two traps worth remembering when re-running this:**
+- **PostgREST returns 200/204 for "0 rows affected".** A write blocked by RLS
+  looks like a success. Always re-read the target row to confirm it is untouched
+  — status codes alone will tell you the opposite of the truth.
+- **Pick the IDOR victim by the attacker's real owner id**, via `get_my_host_id()`
+  under their JWT. Comparing against "some other row" can hand the attacker their
+  own record and produce a scary-looking false positive (a FK `409` that is
+  simply correct behaviour).
+
+Still unticked below = **not yet verified**, not "known broken". The Supabase
+dashboard items (token rotation, JWT expiry, login rate limiting) are founder-only.
+
+---
+
 ## 1. Authentication & Sessions
 
 - [ ] Email verification required before host onboarding can complete
