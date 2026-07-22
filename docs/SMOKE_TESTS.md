@@ -21,13 +21,35 @@ the list below is untestable until they are done.
 
 | # | What | Why it blocks |
 |---|---|---|
-| 0.1 | `openssl rand -base64 32` → set `PAYMENT_CIPHER_KEY` and `BANKING_CIPHER_KEY` in Vercel, then run `node scripts/encrypt-secrets-backfill.mjs --apply` | 6 real secrets — including a host's live gateway key and 3 bank account numbers — are stored in plain text. Setting the keys alone does NOT fix existing rows. |
-| 0.2 | Decide on error monitoring | Nothing reports runtime errors in production. You will not know a launch-day failure happened. |
+| ~~0.1~~ | ~~cipher keys + backfill~~ **✅ DONE 2026-07-22** | All 3 cipher keys regenerated and matched across Doppler → Vercel → Supabase; `encrypt-secrets-backfill.mjs --apply` run. **0 plaintext secrets left** (`eft_banking_details` 3/3, `host_payment_gateways` 1/1, `affiliate_payout_methods` 1/1, platform Paystack + PayPal). Verified the webhook still decrypts. |
+| ~~0.2~~ | ~~error monitoring~~ **✅ DONE** | `error_events` + `/admin/platform/errors`, built in-house. Config panel reads 27/27. |
 | 0.3 | Replace the `founding-race-rules` legal doc with the attorney copy | It currently contains a test sentence, and it is **snapshotted and hashed into every partner's signature**. |
 | 0.4 | Decide whether the Founding Race stays `status='active'` with both affiliates enrolled | It is live and publicly joinable the moment you deploy. |
 | 0.5 | Remove the seeded demo properties from the live directory | Real guests should not see test listings. |
 | 0.6 | **Create the mailboxes `hello@`, `privacy@` and `legal@` on `wielo.co.za`** (or point `NEXT_PUBLIC_CONTACT_EMAIL` / `NEXT_PUBLIC_PRIVACY_EMAIL` / `NEXT_PUBLIC_LEGAL_EMAIL` at whichever inbox you do have) | Every contact link in the app, the account-deletion screen and the published Privacy Notice now direct people to these addresses. **POPIA requires a working channel for data-subject requests** — if the mailbox does not exist, those requests bounce silently. The published notice also advertises `support@wielo.co.za`. |
 | 0.7 | **Decide how to disclose that the database is in Frankfurt** | Verified via `supabase projects list`: the live project is in Central EU (Frankfurt) and the planned Cape Town migration was dropped. The published Privacy Notice §8 only says "some of our service providers may be located outside South Africa", which understates it — the primary store of all personal information is offshore. See "Cross-border transfers" below. |
+
+---
+
+## 0.5 GO-LIVE DAY — the last flips, deliberately deferred
+
+Founder decision 2026-07-22: these stay **as they are** through the whole beta and
+are flipped **immediately before opening to the public**. Everything runs on TEST
+keys until then, on purpose — so nobody can be charged real money by accident
+while we are still breaking things.
+
+Do them **in this order**, and re-verify after each.
+
+| # | Flip | Notes / trap |
+|---|---|---|
+| G1 | **Mailboxes** on `wielo.co.za` — `hello@`, `privacy@`, `legal@` | Longest lead time (DNS), so start this one FIRST even though it is listed here. DNS is on **Vercel** (`ns1/ns2.vercel-dns.com`) and there are currently **no MX records**. ⚠️ **A domain may have only ONE SPF record** — you already have Resend's for sending. Do not add a second; merge them into one line or mail silently starts landing in spam. |
+| G2 | **Legal text** — cross-border (Frankfurt) disclosure, entity name, 2025/2026 date typo | ⚠️ `/privacy` and `/terms` render a **DATABASE document**, not the `.tsx`. Edit at **Admin → Platform → Settings → Legal**. Detail in 0.6 / 0.7 below. |
+| G3 | **Paystack → live** | Business verification must be complete before Paystack issues live keys. Paste `sk_live_…` in **Admin → Payments**, then switch platform mode `test` → `live`. ⚠️ The key is **encrypted at rest**, so after saving, re-verify the `paystack-webhook` Edge Function can still decrypt it — the live key is a different value and the webhook is the ONLY settle path for card money. |
+| G4 | **PayPal → live** | Same shape. Also needs a **new `PAYPAL_WEBHOOK_ID`**: webhook ids are environment-specific, so the sandbox one will not verify live events. Create the webhook on the Live app (URL `https://wielo.co.za/api/paypal-webhook`, the 6 events listed in the runbook), then set `paypal_recurring_enabled = true`. |
+
+**Until G3/G4 happen, test keys stay active and that is the intended state.** Card
+payments work end-to-end in test mode; nothing about the code changes on launch day,
+only the stored credentials and the mode flag.
 
 ### Email — configured and sending ✅
 
