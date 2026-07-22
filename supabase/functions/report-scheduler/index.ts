@@ -128,11 +128,13 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    // Details stay in the function logs. Also fixes the shape: the platform
+    // contract is `error: { code, message }`, not a bare string.
     console.error("report-scheduler error:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: { code: "INTERNAL_ERROR", message: "Report run failed." },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -107,19 +107,25 @@ serve(async (req) => {
     });
 
     if (error) {
+      // Deliberately NOT surfaced to the caller, and deliberately not
+      // distinguishable from success.
+      //
+      // This used to return `error.message` verbatim, which handed an anonymous
+      // caller the table name, the constraint name (`listing_view_events_..._fkey`,
+      // still carrying the table's pre-rename name) and — because a real
+      // property_id inserts while an unknown one raises a foreign-key violation —
+      // a PROPERTY-EXISTENCE ORACLE. Same shape as the record_error_event oracle.
+      //
+      // A view is telemetry: the caller cannot act on the failure, so the only
+      // thing a different response buys is that oracle. The failure is kept where
+      // it is useful — the function logs.
       console.error("Failed to track listing view:", error);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: { code: "INSERT_FAILED", message: error.message },
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        },
-      );
     }
 
+    // `tracked` means ACCEPTED, not persisted — see the insert branch above.
+    // Nothing reads it (lib/analytics/trackListingView.ts returns void and only
+    // checks `success`), and making it reflect the insert would rebuild the
+    // oracle this endpoint just had removed.
     return new Response(
       JSON.stringify({
         success: true,
@@ -134,11 +140,14 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    // The real error goes to the function logs, never to the caller: this is a
+    // PUBLIC endpoint reachable with the publishable key, and `error.message`
+    // from Postgres names tables and constraints.
     console.error("track-listing-view error:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: { code: "INTERNAL_ERROR", message: error.message },
+        error: { code: "INTERNAL_ERROR", message: "Could not track the view." },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

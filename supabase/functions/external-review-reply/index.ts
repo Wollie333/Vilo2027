@@ -191,11 +191,13 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    // Details stay in the function logs — `error.message` here can carry the
+    // provider's raw API response as well as Postgres table/constraint names.
     console.error("external-review-reply error:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: { code: "INTERNAL_ERROR", message: error.message },
+        error: { code: "INTERNAL_ERROR", message: "Could not post the reply." },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

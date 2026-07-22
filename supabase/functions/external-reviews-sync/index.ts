@@ -188,11 +188,14 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    // Raw `error.message` went to the caller here, which both leaked internals
+    // and broke the platform's error contract — `error` must be
+    // { code, message }, not a bare string. Details stay in the function logs.
     console.error("external-reviews-sync error:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: { code: "INTERNAL_ERROR", message: "Review sync failed." },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
