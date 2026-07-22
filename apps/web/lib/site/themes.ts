@@ -605,8 +605,12 @@ export function buildSiteVars(
   const cardRadius =
     typeof card.radius === "number" ? px(card.radius) : "var(--site-radius)";
   const cardShadow = SITE_SHADOWS[card.shadow ?? "none"];
-  const cardBorder =
-    card.style === "flat" ? "none" : "1px solid var(--site-line)";
+  // A COLOR, not a full border shorthand: the bespoke theme CSS consumes this as
+  // `border-color: var(--site-card-border)` (and `border: 1px solid var(--site-card-border)`).
+  // Emitting a shorthand here made `border-color: 1px solid …` invalid-at-computed-
+  // -value-time, which CSS resets to `currentColor` — i.e. ink borders on every card.
+  // `transparent` renders the flat look (invisible 1px) without breaking the contract.
+  const cardBorder = card.style === "flat" ? "transparent" : "var(--site-line)";
   const cardRatio = CARD_RATIO[card.ratio ?? "4:3"];
 
   // --- Hero layout / feature icons / social ---
@@ -647,10 +651,11 @@ export function buildSiteVars(
   const sStyle = sBtn.style ?? "outline"; // default to outline for secondary
   const sColor = (sBtn.color || "").trim() || secondary;
   const sInk = sBtn.color ? accentInkFor(sBtn.color) : secondaryInk;
-  const sBorder =
-    sStyle === "outline"
-      ? `${sBtn.borderWidth ?? 1}px solid ${sColor}`
-      : "none";
+  // A COLOR, not a shorthand: every consumer reads this as `border-color:
+  // var(--site-btn-secondary-border)` (the width lives on the button base). Emitting
+  // a `Npx solid …` shorthand made `border-color` invalid-at-computed-value-time,
+  // resetting to `currentColor` — the heavy near-black outline on ghost buttons.
+  const sBorder = sStyle === "outline" ? sColor : "transparent";
   const sRadius = sBtn.pill ? "9999px" : siteRadius;
   const sBg = sStyle === "solid" ? sColor : "transparent";
   const sFg = sStyle === "solid" ? sInk : sColor;

@@ -166,7 +166,7 @@ export function RoomBookingForm({
       className="site-rbf wielo-book-card-sticky"
       style={{
         background: "var(--el-card-bg, var(--site-surface))",
-        border: "var(--el-card-bd, var(--site-card-border))",
+        border: "var(--el-card-bd, 1px solid var(--site-card-border))",
         borderRadius: "var(--el-card-radius, var(--site-card-radius))",
         boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
       }}
