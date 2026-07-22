@@ -451,8 +451,19 @@ export function buildSiteVars(
   // --- Typography families ---
   const headingFont = ty.headingFont ?? theme?.font ?? preset.font;
   const bodyFont = ty.bodyFont ?? theme?.font ?? preset.font;
-  const headingStack = FONT_STACKS[headingFont].heading;
-  const bodyStack = FONT_STACKS[bodyFont].body;
+  // A site created by a newer theme can carry a font key this build's FONT_STACKS
+  // doesn't ship yet (e.g. the Royal theme's "archivo"), so index the record as
+  // possibly-undefined and fall back to `grotesk` (its stack already leads with
+  // Archivo / Manrope) instead of throwing `undefined.heading` on every render —
+  // this was the production crash (digest 405703985) on royal-themed sites.
+  const stackFor = (
+    f: string,
+  ): { heading: string; body: string } =>
+    (FONT_STACKS as Record<string, { heading: string; body: string } | undefined>)[
+      f
+    ] ?? FONT_STACKS.grotesk;
+  const headingStack = stackFor(headingFont).heading;
+  const bodyStack = stackFor(bodyFont).body;
 
   // --- Typography scale (modular base × ratio^step + per-element overrides) ---
   const base = clampNum(ty.baseSize ?? TYPE_DEFAULTS.baseSize, 12, 22);
