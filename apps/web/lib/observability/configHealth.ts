@@ -134,15 +134,24 @@ export function configHealth(): ConfigCheck[] {
     },
 
     // ── Money ───────────────────────────────────────────────────────────
-    {
-      key: "PAYSTACK_SECRET_KEY",
-      label: "Paystack (platform billing)",
-      group: "Money",
-      present: has("PAYSTACK_SECRET_KEY"),
-      impact:
-        "Platform subscription charges fall back to the key stored in platform_payment_settings; if that is empty too, subscription checkout cannot start. Host payouts are unaffected — those use each host's own gateway.",
-      severity: "warning",
-    },
+    // NO PAYSTACK_SECRET_KEY row, deliberately — the second Paystack row this
+    // panel has had to drop, for the same underlying reason.
+    //
+    // The platform Paystack secret lives in the DATABASE
+    // (platform_payment_settings, set from Admin → Payments, mode-aware and
+    // encrypted at rest). getPlatformPaystackSecret() reads that FIRST and only
+    // falls back to the env var if paystack_enabled is false. So the env var was
+    // never read in practice, and the var itself has now been removed from Vercel:
+    // an unread fallback is a place a misconfiguration can hide, because
+    // disabling Paystack in admin would have silently used a stale env key
+    // instead of failing.
+    //
+    // A row here would therefore report on something that neither exists nor
+    // matters, and this panel is only worth trusting if every red dot is real.
+    // The check that WOULD be meaningful — "is platform billing configured?" —
+    // needs a DB read, and configHealth() is deliberately synchronous and
+    // env-only. Surface it on the Payments admin page instead, next to the
+    // setting itself.
     {
       key: "PAYMENT_CIPHER_KEY",
       label: "Gateway secret encryption",
