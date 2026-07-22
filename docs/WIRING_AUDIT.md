@@ -90,6 +90,62 @@ host-facing capability that exists server-side with no way to trigger it.
 **Nothing was deleted on the strength of this list.** Each entry needs the §3
 proof and its own commit.
 
+### 🔒 Founder decisions 2026-07-22 — DO NOT DELETE
+
+- **Website builder (~15 symbols)** — actively being built on a **sub-branch**.
+  Not dead; not yet wired. Leave alone.
+- **External-reviews fetch/reply layer** — the feature **must be completed**, it
+  is simply not there yet (also blocked on Google/Meta approval). Leave alone.
+- **Deletion is a last resort generally.** Re-coding something we already built
+  wastes more than the dead code costs.
+
+### 🔍 Traced 2026-07-22 — the five host/admin orphans
+
+The question asked was whether these are *crucial*, since several sit near money.
+**Only one is.**
+
+| Symbol | Verdict | Money? |
+|---|---|---|
+| **`markNoShowBookingAction`** | 🔴 **REAL GAP — wire it** | **YES** |
+| `deletePolicyAction` | 🟢 superseded by `retirePolicyAction` (wired) | no |
+| `assignCancellationPresetAction` | 🟢 redundant shortcut | no |
+| `fetchScheduledReportsAction` | 🟢 redundant | no |
+| `passOnPostAction` | 🟡 incomplete feature, skews one stat | no |
+
+**🔴 `markNoShowBookingAction` — the only financial one.**
+The backend is complete and deliberately designed: `TRANSITIONS.noShow` moves
+`confirmed → no_show`, the `bookings.status` CHECK constraint already permits
+`'no_show'`, and the code carries the policy decision — *dates stay blocked (the
+stay was reserved and the host may retain payment per policy — no calendar
+release, no auto-refund), and the guest is not notified.*
+
+The only missing piece is the UI: `noShow` is absent from the `run()` union and
+the action map in `bookings/[id]/BookingActions.tsx`, while its two siblings
+(`checkInBookingAction`, `checkOutBookingAction`) are both wired there.
+
+**Consequence today:** a host cannot record a no-show at all. The booking stays
+`confirmed` indefinitely, so no-show forfeiture / retained revenue can never be
+applied. This is a money path that exists in the database and is unreachable from
+the product.
+
+**🟢 The three redundant ones** — capability is NOT missing, so nothing is broken:
+- `deletePolicyAction`: policies are **retired**, not deleted, because they are
+  snapshotted into bookings — hard delete would break historical refund maths.
+  `retirePolicyAction` is wired and is the correct design.
+- `assignCancellationPresetAction`: a wrapper that resolves a
+  flexible/moderate/strict preset then calls `setListingPolicyAction`, which IS
+  wired. `PolicyPicker` already lets a host choose "locked presets + their own",
+  so cancellation policy — and therefore refund percentage — is fully reachable.
+- `fetchScheduledReportsAction`: `dashboard/reports/page.tsx:500` queries
+  `scheduled_reports` server-side; its four siblings are all wired.
+
+**🟡 `passOnPostAction`** — "Not a Fit" on a Looking-For request. Doubly
+incomplete: nothing calls it, **and** nothing filters the browse view on
+`looking_for_passes`. But the table IS read by `analytics_looking_for_stats`,
+which counts "posts viewed" from passes-or-responses — so with the table
+permanently empty, that host stat **silently undercounts**. No money impact; a
+quiet reporting inaccuracy, and another instance of the §8.1 pattern.
+
 ## Why this exists
 
 `view_count` was fixed on 2026-07-16 and the autopsy is the whole reason for this document.
