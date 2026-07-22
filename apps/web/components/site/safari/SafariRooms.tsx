@@ -41,13 +41,6 @@ const Arrow = (
   </svg>
 );
 
-// Direct-booking truths — brand-agnostic, always true for a Wielo host.
-const INCLUDED = [
-  "Book direct with the lodge",
-  "The price you see is the price you pay",
-  "Secure payment",
-];
-
 /**
  * Safari (NenGama Lodge) ROOMS page (preset `safari`) — its own component +
  * stylesheet (`.sfrooms` / safariRooms.css). An editorial "collection" GRID
@@ -113,20 +106,6 @@ export function SafariRooms({
           </nav>
           <h1>Rooms &amp; tents</h1>
           <p>{sub}</p>
-        </div>
-      </section>
-
-      {/* INCLUDED — ruled editorial row */}
-      <section className="sf-included-sec">
-        <div className="wrap">
-          <div className="sf-included">
-            {INCLUDED.map((c, i) => (
-              <div className="sf-inc" key={i}>
-                <span aria-hidden>{pad2(i)}</span>
-                <b>{c}</b>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 

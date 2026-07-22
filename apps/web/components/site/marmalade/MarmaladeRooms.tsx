@@ -21,14 +21,6 @@ function money(n?: number | null, currency?: string | null): string | null {
   return `${sym}${commas(n)}`;
 }
 
-// Direct-booking truths — brand-agnostic, always true for a Wielo host, so the
-// "what's included" strip never fabricates a property-specific inclusion.
-const INCLUDED = [
-  "Book direct with the house",
-  "The price you see is the price you pay",
-  "Secure payment",
-];
-
 /**
  * Marmalade House ROOMS page — the founder's bespoke "Postcards" reference design,
  * wired to the host's LIVE rooms (`rooms_preview`). Each room renders as a tilted,
@@ -84,22 +76,6 @@ export function MarmaladeRooms({
             Each one named, each its own colour and quirk — and every one with a
             key that&apos;s yours for the stay, booked straight with the house.
           </p>
-        </div>
-      </section>
-
-      {/* INCLUDED */}
-      <section
-        className="section-sm"
-        style={{ paddingTop: "clamp(40px, 5vw, 60px)" }}
-      >
-        <div className="wrap">
-          <div className="included">
-            {INCLUDED.map((c) => (
-              <span className="chip" key={c}>
-                {c}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 

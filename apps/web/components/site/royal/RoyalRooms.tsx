@@ -40,11 +40,6 @@ const FactIcon = (
 
 // Direct-booking truths — brand-agnostic, always true for a Wielo host, so the
 // "what you get" bar never fabricates a property-specific inclusion.
-const INCLUDED = [
-  "Book direct with the host",
-  "The price you see is the price you pay",
-  "Secure payment",
-];
 
 /**
  * Royal Hotel ROOMS page (preset `royal`) — Royal's own component + stylesheet
@@ -103,19 +98,6 @@ export function RoyalRooms({
           </div>
           <h1>Rooms &amp; suites</h1>
           <p>{sub}</p>
-        </div>
-      </section>
-
-      {/* INCLUDED BAR */}
-      <section className="section-sm sand">
-        <div className="wrap">
-          <div className="included">
-            {INCLUDED.map((c) => (
-              <span className="chip" key={c}>
-                {c}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 

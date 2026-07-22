@@ -38,14 +38,6 @@ const FactIcon = (
   </svg>
 );
 
-// Direct-booking truths — brand-agnostic, always true for a Wielo host, so the
-// "what you get" bar never fabricates a property-specific inclusion.
-const INCLUDED = [
-  "Book direct with the host",
-  "The price you see is the price you pay",
-  "Secure payment",
-];
-
 /**
  * Oceans View ROOMS page — the founder's bespoke reference design, wired to the
  * host's LIVE rooms (`rooms_preview`). Each room renders as an alternating
@@ -101,19 +93,6 @@ export function OceansViewRooms({
           </div>
           <h1>Rooms &amp; suites</h1>
           <p>{sub}</p>
-        </div>
-      </section>
-
-      {/* INCLUDED BAR */}
-      <section className="section-sm sand">
-        <div className="wrap">
-          <div className="included">
-            {INCLUDED.map((c) => (
-              <span className="chip" key={c}>
-                {c}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 
