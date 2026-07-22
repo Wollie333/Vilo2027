@@ -8,7 +8,7 @@ type Item = {
 
 const ITEMS: Item[] = [
   {
-    q: "Do I have to leave Airbnb or Booking.com?",
+    q: "Do I have to leave the OTAs I'm already listed on?",
     a: "No — most hosts run Wielo alongside the OTAs at first, and migrate guests over to direct booking as the savings stack up. Two-way iCal sync prevents double-bookings.",
   },
   {

@@ -131,7 +131,7 @@ const STEPS = [
 
 const FAQS = [
   {
-    q: "Do I have to leave Airbnb, Booking.com or Lekkeslaap?",
+    q: "Do I have to leave the OTAs I'm already listed on?",
     a: "No. Most hosts run Wielo alongside the OTAs at first and move guests to direct booking as the savings stack up. Two-way calendar sync prevents double-bookings while you transition.",
   },
   {
@@ -541,8 +541,7 @@ export default async function LaunchPage() {
                 The OTA tax
               </div>
               <h2 className="mt-3 font-display text-3xl font-bold leading-[1.08] tracking-tight text-brand-dark md:text-4xl lg:text-[44px]">
-                Lekkeslaap takes 15% + VAT. Booking.com takes its cut. Airbnb
-                takes theirs.{" "}
+                The OTAs take a cut of every booking you earn.{" "}
                 <span className="text-brand-primary">{brand} takes R0.</span>
               </h2>
               <p className="mt-6 max-w-md leading-relaxed text-brand-mute">
@@ -836,7 +835,7 @@ export default async function LaunchPage() {
                 Here&apos;s where hosts near Kruger, the Panorama Route and the
                 Winelands quietly bleed the most: international guests. An
                 overseas traveller can&apos;t easily pay a South African host
-                direct — so they retreat to Booking.com, where they feel safe,
+                direct — so they retreat to the big OTAs, where they feel safe,
                 and you pay full freight on your most valuable bookings.
               </p>
               <p className="mt-4 max-w-xl text-lg leading-relaxed text-brand-mute">

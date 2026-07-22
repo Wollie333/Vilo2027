@@ -829,6 +829,15 @@ know which product each row describes for the comparison to mean anything. That
 licence covers the table only. It does not extend to the sentence above it, the
 heading, or a pull-quote lifted out of it.
 
+**Second exception — integration naming.** Saying what Wielo *connects to* is a
+capability statement, not a swipe: "a calendar that syncs both ways with Airbnb /
+Booking.com" is the same true sentence the product UI already makes, and a host
+needs it to know their existing channel is covered. Naming an integration target
+is always allowed. The test is direction: **naming what we work WITH is fine;
+naming what we are BETTER THAN is the thing this principle forbids.** A sentence
+that names a competitor and attaches a fee, a percentage, or a shortcoming is a
+comparison and belongs in the table or nowhere.
+
 ### Why this matters
 
 1. **A named claim is a claim you must defend.** "Booking.com takes 17%" is a

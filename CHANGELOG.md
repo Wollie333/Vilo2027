@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-22 (pt61) — Principle #16 sweep: competitor names out of live sales prose.
+
+Finished the sweep left open at pt60. `/launch` is **publicly live** (unlike `/booking-management`,
+which is behind `FOR_HOSTS_PAGE_HIDDEN`), so the named comparative claims on it were shipped copy —
+confirmed by reading the old headline off `wielo.co.za/launch` before changing anything. All green
+(build, lint, typecheck, 442 tests).
+
+- **`/launch`** — the H2 "Lekkeslaap takes 15% + VAT. Booking.com takes its cut. Airbnb takes theirs."
+  became "The OTAs take a cut of every booking you earn." This was the exact failure mode Principle
+  #16 §Why-#1 describes: a pricing assertion about three named businesses, in a heading, that goes
+  stale without notice. Also the FAQ question ("Do I have to leave the OTAs I'm already listed on?")
+  and "they retreat to the big OTAs".
+- **`/booking-management/_components`** — `ValueProp` headline, the `Testimonials` pull-quote ("I
+  dropped my last OTA in month three") and the `FAQ` question. Hidden page, fixed for consistency.
+- **KEPT, by founder ruling:** the `COMPARISON_ROWS` table + column headers, the two fee calculators,
+  and integration naming ("syncs both ways with Airbnb / Booking.com"). The first two are the
+  principle's existing structured-comparison exception; the third was an undocumented gap.
+- **`BUSINESS_PRINCIPLES.md` #16** — wrote that ruling down as a second exception, with the test that
+  resolves it: **naming what we work WITH is fine; naming what we are BETTER THAN is forbidden.**
+  Without this the principle reads as banning the calendar-sync sentence, which is why the sweep
+  nearly over-reached.
+- Verified rendered, not just built: scanned the live DOM for every competitor name and asserted each
+  survivor sits in a `<th>` or a calculator row. `/booking-management` was temporarily unhidden to see
+  it, then the flag restored. The dev overlay's "1 error" (a hydration warning) was proven
+  **pre-existing** by stashing the edits and reloading — it appears on unmodified `main` too.
+
+---
+
 ## 2026-07-21 (pt54) — Founding Race leaderboard (public + partner), competition capacity, refunds tabs.
 
 Founder supplied two approved designs (public leaderboard + partner dashboard). Both are now real pages

@@ -50,7 +50,8 @@ export async function Testimonials() {
           <div className="flex flex-col rounded-card border border-brand-line bg-brand-primary p-7 text-white md:col-span-2 lg:col-span-1">
             <Quote className="mb-4 h-6 w-6 text-brand-accent" />
             <p className="font-display text-lg leading-snug">
-              I dropped Airbnb in month three. {brandName} paid for itself in{" "}
+              I dropped my last OTA in month three. {brandName} paid for itself
+              in{" "}
               <span className="font-semibold text-white underline decoration-brand-accent decoration-2 underline-offset-4">
                 eleven days.
               </span>{" "}

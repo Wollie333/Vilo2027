@@ -13,9 +13,9 @@ export async function ValueProp() {
               The OTA tax
             </div>
             <h2 className="mt-3 font-display text-3xl font-bold leading-[1.08] tracking-tight text-brand-dark md:text-4xl lg:text-5xl">
-              Airbnb keeps 18%.
+              The OTAs keep a fifth
               <br />
-              Booking.com keeps 22%.
+              of every booking.
               <br />
               <span className="text-brand-primary">{brandName} keeps R0.</span>
             </h2>
