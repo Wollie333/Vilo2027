@@ -107,6 +107,37 @@ const ICONS = {
       <path d="M8 16.5c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5-1.8 3-4 3-4-1-4-3Z" />
     </>,
   ),
+  laundry: svg(
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <circle cx="12" cy="13" r="4" />
+      <path d="M7 6h.01M10 6h.01" />
+    </>,
+  ),
+  tv: svg(
+    <>
+      <rect x="3" y="5" width="18" height="12" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </>,
+  ),
+  coffee: svg(
+    <>
+      <path d="M4 8h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M7 2.5c-.6.8-.6 1.7 0 2.5M11 2.5c-.6.8-.6 1.7 0 2.5" />
+    </>,
+  ),
+  workspace: svg(
+    <>
+      <rect x="3" y="4" width="18" height="12" rx="1.5" />
+      <path d="M8 20h8M12 16v4" />
+    </>,
+  ),
+  safe: svg(
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="13" cy="12" r="3" />
+      <path d="M13 9v.01M6 8v8" />
+    </>,
+  ),
   check: svg(<path d="M20 6 9 17l-5-5" />),
 } as const;
 
@@ -124,7 +155,12 @@ const RULES: { re: RegExp; icon: ReactNode }[] = [
   { re: /m²|m2|sqm|sq\s?m|square|size/, icon: ICONS.size },
   { re: /air|a\/c|aircon|climate|heating/, icon: ICONS.aircon },
   { re: /wifi|wi-fi|internet|fibre|fiber/, icon: ICONS.wifi },
+  { re: /coffee|tea|espresso|nespresso|kettle|minibar/, icon: ICONS.coffee },
   { re: /breakfast|meal|dining|kitchen|self-cater/, icon: ICONS.breakfast },
+  { re: /launder|laundry|washer|washing|dryer/, icon: ICONS.laundry },
+  { re: /\btv\b|television|netflix|smart tv|dstv/, icon: ICONS.tv },
+  { re: /desk|workspace|work\s?space|office/, icon: ICONS.workspace },
+  { re: /safe\b|vault|lockbox/, icon: ICONS.safe },
   { re: /fire|braai|hearth|log/, icon: ICONS.fire },
   { re: /park|garage|carport/, icon: ICONS.parking },
   { re: /pet|dog|animal/, icon: ICONS.pet },

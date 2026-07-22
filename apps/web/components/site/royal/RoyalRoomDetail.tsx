@@ -11,6 +11,8 @@ import type {
   SeasonalPricingData,
 } from "@/lib/site/types";
 
+import { amenityIcon } from "./royalAmenityIcon";
+
 import { OceansBookCard } from "../oceansview/OceansBookCard";
 import { OceansRoomGallery } from "../oceansview/OceansRoomGallery";
 
@@ -397,7 +399,7 @@ export function RoyalRoomDetail({
                   <div className="amen" style={{ marginTop: 22 }}>
                     {room.amenities.map((a, i) => (
                       <div className="a" key={i}>
-                        <Check />
+                        {amenityIcon(a.label)}
                         {a.label}
                       </div>
                     ))}
