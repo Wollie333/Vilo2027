@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **195** (195 with RLS) |
-| Functions | **181** (141 SECURITY DEFINER, 67 trigger fns) |
+| Functions | **182** (141 SECURITY DEFINER, 68 trigger fns) |
 | Cron jobs | **41** (14 Vault-gated, 0 inactive) |
 | Vault secrets set | **17** |
 
@@ -159,6 +159,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `fetch_seasonality_heatmap` | **yes** | yes | callable |
 | `fetch_secondary_metrics` | **yes** | yes | callable |
 | `fetch_time_to_book` | **yes** | yes | callable |
+| `forbid_admin_audit_log_mutation` | — | — | trigger |
 | `forbid_affiliate_agreement_mutation` | — | — | trigger |
 | `forbid_campaign_rule_acceptance_mutation` | — | — | trigger |
 | `forbid_forfeit_statement_mutation` | — | — | trigger |
@@ -352,7 +353,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | column | type | null | default |
 |---|---|---|---|
 | `id` | uuid | — | `gen_random_uuid()` |
-| `admin_id` | uuid | — | — |
+| `admin_id` | uuid | yes | — |
 | `impersonating` | uuid | yes | — |
 | `action` | text | — | — |
 | `target_type` | text | — | — |
@@ -368,6 +369,9 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **Checks:**
 - `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text, 'changelog_entry'::text])))`
+
+**Triggers:**
+- `trg_admin_audit_log_immutable` → `forbid_admin_audit_log_mutation()`
 
 **RLS policies:**
 - `admin_read_audit` (SELECT) — `USING is_super_admin()`
