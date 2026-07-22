@@ -1,210 +1,141 @@
 # 🧭 SAVEPOINT — 2026-07-22 (read this FIRST in a new session)
 
-> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `2ecfef2` · tree clean, **all pushed**.
-> Do NOT merge to `main` yet — founder wants the feature fully working on the branch first.
-> Then read `WIZARD_TO_WEBSITE_PLAN.md` + `CHANGELOG.md`. Supersedes `SAVEPOINT_2026-07-21.md`.
+> **Branch:** `feature/website-cms-10min-wizard` · **HEAD:** `f84208f` · tree clean, **all pushed**.
+> Do NOT merge to `main` yet — founder wants the feature 100% working on the branch first.
+> This file supersedes all earlier SAVEPOINT_* files. Then skim `CHANGELOG.md` (top ~6 entries
+> are this session) + `WIZARD_TO_WEBSITE_PLAN.md`.
 
 ---
 
 ## ▶▶ WHERE WE ARE (resume here)
 
-Iterating on the wizard → published tenant-site feature on the branch, driven by the
-founder's live testing on the **branch preview** (they run the wizard, screenshot issues,
-I fix + push). The Royal theme is the active test theme. **mana** is a **published Royal
-site** — CURRENT website_id `00fd5e51-8883-4ed1-a88d-2cb70d314d42` (the founder deletes +
-re-runs the wizard, so the id changes — look it up by subdomain `mana`, not by a hard-coded id).
-host_id `7b4c377e-…`, business_id `3e471597-…`.
+Building the **launch-ready Royal micro-site + its setup wizard** on the branch, driven by the
+founder's live testing on the **branch preview** (they run the flow, flag issues, I fix + push).
 
-### 🔒 ROYAL IS THE SOLE LAUNCH THEME (founder directive, 2026-07-22)
-Get ONE theme working 100% end-to-end (wizard → published booking-integrated site)
-before touching the others. Hosts now see **only Royal** in every theme picker; the
-other four (oceansview/safari/sabela/marmalade) stay fully built but HIDDEN via
-`lib/frontendFlags.ts` → `LAUNCH_THEME_SLUGS = ["royal"]` (filtered in
-`loadActiveThemes()`; render path untouched). **All new tenant-site work is Royal-only**
-until the founder signs Royal off — then add slugs back to `LAUNCH_THEME_SLUGS` and sweep.
-Committed `HEAD` (see below). Any "sweep the other themes" note elsewhere in this file is
-DEFERRED behind this gate.
+### 🔒 LAUNCH STRATEGY — ROYAL ONLY (founder directive)
+Get **ONE theme 100% working end-to-end** (wizard → published booking-integrated site) before
+touching the others. Hosts currently see **only Royal** in every theme picker; the other four
+(oceansview/safari/sabela/marmalade) stay fully built but HIDDEN via
+`lib/frontendFlags.ts` → `LAUNCH_THEME_SLUGS = ["royal"]` (filtered in `loadActiveThemes()`; render
+path untouched). Re-enable a theme by adding its slug there. **All new work is Royal-only** until the
+founder signs Royal off, then sweep the others.
 
-### ✅ DONE — the currency switcher (#11), Royal MVP. Founder chose "Royal first". Foundation
-(enabled-scoped `CurrencyProvider` + `SiteCurrencyProvider` wrap on tenant browsing routes +
-`CurrencySwitcher` in `OceansViewHeader`) + all Royal browsing price renders swapped to client
-`<Money>` (home/rooms/roomdetail+OceansBookCard/specials/specialdetail). Verified live on mana
-flipping ZAR→USD/GBP/EUR at every browsing surface; checkout intentionally stays ZAR (switcher
-self-hides there — transactional). See CHANGELOG 2026-07-22. **To extend to the other themes when
-they come back:** repeat the `money()`→`<Money>` swap in each theme's price components (they already
-render inside the tenant provider). ⚠️ Cross-page cookie persistence is correct in code but was NOT
-observable in the in-app test browser (it doesn't forward the JS-set cookie) — confirm on the real
-branch preview.
+**mana** is the live Royal test site — look it up by subdomain `mana` (founder deletes + re-runs the
+wizard, so `website_id` changes). host_id `7b4c377e-…`, business_id `3e471597-…`.
 
-### ✅ DONE — Website wizard redesigned to the single-page "setup flow" pattern (Claude-design
-handoff `design_handoff_setup_flow`, applied to OUR real steps). New shell: `WizardChrome.tsx`
-(SectionCard, ProgressRail w/ scroll-spy, CompletionRing, PublishBar, Confetti) + `wizard.css`;
-each step got an `embedded` prop; `WizardLivePreview` got a `device` toggle; `WebsiteWizard.tsx`
-fully rewritten (phase=edit|building|done, completion rules, gating). Verified on `/en/dev/wizard`
-(ring reactivity, rail, gating, device toggle). NOT fired a real build in the harness (fake
-business) — founder to test wizard→publish end-to-end on the branch preview. See CHANGELOG 2026-07-22.
-Follow-ups: (i) step INTERNALS still use the old input styling — a later pass can restyle them to the
-design's atoms (Field/TextInput/Select/Stepper/Toggle) for full fidelity; (ii) `WizardSidebar.tsx`
-is now unused (safe to delete); (iii) StepTheme embedded still renders its own live-preview iframe
-(second iframe) — could hide in embedded mode.
-
-### 🎯 NEXT UP — founder-driven. Options: (a) full wizard→publish→booking end-to-end on Royal
-(the launch goal — needs founder login on the branch preview); (b) restyle the wizard step internals
-to the design atoms for full fidelity; (c) confirm currency cross-page persistence on the real
-preview; (d) #6 logo in the wizard theme-preview (minor). Everything the founder flagged before this
-(A logo, B centering, theme-gate to Royal, currency) is resolved/done.
+### 🎯 NEXT UP — the ONE thing left to verify: a **real wizard → publish → booking run on Royal**.
+Everything below is built + branch-verified EXCEPT the final publish mutation + a live booking, which
+need the founder's login on the branch preview (the `/dev/wizard` harness can't run it — it uses a
+fake `dev-harness` business the finalize action rejects). Founder to:
+1. Run the wizard on the branch preview → build/publish → confirm the site goes live.
+2. Do a real test booking (room → dates → checkout → a payment method) on mana.
+3. Confirm the two harness-blocked items (below) on their real browser.
 
 **Preview URL (behind Wielo login + Vercel SSO):**
 `https://vilo2027-git-feature-website-cms-10m-6c3132-wollie333s-projects.vercel.app`
-- Wizard: `…/en/dashboard/website/wizard` · Site (app-domain affordance): `…/en/site?site=mana`
-- To run the wizard fresh: on `/dashboard/website`, use **"Delete this website & start over
-  (testing)"** on Mana's card first (one-site-per-business; bounce is OFF pre-launch), then run it.
-
-### ✅ RESOLVED since flagged (A logo, B centering) — kept for context
-
-1. **(A) Logo — RESOLVED, no code bug.** The CURRENT mana site (`00fd5e51-…`, the old `823789d8`
-   was deleted) has `brand.logo_path` correctly set (live + snapshot) to the business logo URL. The
-   wizard prefilled + persisted it end-to-end; the header renders it. The pinwheel is simply Mana's
-   stored `businesses.logo_path` — a **19KB placeholder** the host never replaced (`host.avatar_url`
-   is a separate profile photo). **Fix = upload a real logo** (wizard Step 1 / business settings);
-   it replaces the placeholder everywhere. Nothing to code.
-2. **(B) Left-shifted stats/feature grids — DONE, all themes.** Commits `1aa4827` (Royal
-   `.stats`+`.tiles`, verified symmetric) + `2e96026` (OceansView `.stats`/`.tiles`, Safari
-   `.sf-stats`/`.sf-promise-row`, Sabela `.feature-grid`). Pattern: `repeat(auto-fit, minmax());
-   justify-content: center` (+ `text-align: center` on stats). Marmalade already centres its postcards.
-
-<details><summary>Original flagged text (superseded)</summary>
-
-1. **(A) Logo pulls through WRONG.** Header renders the business logo from the `host-logos`
-   bucket and it *loads* (naturalWidth 120) — but it's the colourful **Wielo default/placeholder**
-   pinwheel, not Mana's real brand mark. So `businesses.logo_path` points at a generated default;
-   the host's *real* logo was never captured. NEXT: confirm whether the founder has a real logo to
-   upload / where host logos are captured (host Settings vs wizard Step 1), and make the site show
-   the real one. (The path→URL *resolution* is already fixed — commit `b118cd8`; this is a
-   which-image / data-capture issue, not a broken URL.)
-2. **(B) LEFT-shifted grids → CENTRE them, on ALL themes.** A whole family of `repeat(4, 1fr)`
-   grids read left-heavy. Confirmed cases in `royalHome.css`:
-   - **`.tiles`** (highlights/features, line 577): 4-col grid but the "Everything taken care of"
-     section has **3** cards → empty 4th column on the right → looks left-aligned.
-   - **`.stats`** (line 412): 4-col grid; the stats row (e.g. "3 Rooms · 4.7 rating · 3 reviews ·
-     4 sleeps") sits left because each cell's content is left-aligned (and short rows leave gaps).
-   FIX pattern (apply to every theme's equivalents — grep `grid-template-columns: repeat(4` across
-   `components/site/*/`): centre the row when items < columns (e.g.
-   `grid-template-columns: repeat(auto-fit, minmax(200px, 240px)); justify-content: center;`) AND
-   centre each item's content (`text-align: center` / center the stat number+label). Verify with
-   3 AND 4 items. Same `.tiles`/`.stats`/features grids exist in oceansview/marmalade/sabela/safari
-   `*Home.css` + the token skins — do a sweep, not just Royal.
-
-</details>
+- Wizard: `…/en/dashboard/website/wizard` · Site: `…/en/site?site=mana`
+- Run wizard fresh: on `/dashboard/website`, use **"Delete this website & start over (testing)"** on
+  Mana's card first (one-site-per-business; bounce is OFF pre-launch), then run it.
 
 ---
 
-## ✅ DONE THIS SESSION (15 commits, `9921209`→`2ecfef2`, all pushed + branch-verified)
+## ✅ DONE THIS SESSION (6 commits, `2d0be09`→`f84208f`, all pushed + branch-verified)
 
-- **`b118cd8` fix(wizard): logo → URL.** Wizard page passed the bare `host-logos` path;
-  `websiteAssetUrl` treated it as a website-assets path → 404. Now resolved to its public URL.
-  (Real logo lives in `host-logos`; verified loads. See open issue A for the *which-logo* problem.)
-- **`31356a8` fix(safari): specials sticky Book card** clears the 84px fixed header (top 96→112px).
-- **`aa86c7e` feat(wizard): hard-cap AI copy lengths.** `lib/website/aiContent.ts` `clampSlot` +
-  `AI_SLOT_CHAR_LIMITS` (hero headline 64, sub 130, exp-intro 180, story/bio 460), enforced at
-  `aiContentToProfile` + both regen actions; prompt/tool-schema budgets tightened. 12 unit tests.
-- **`b783d1e` feat(royal): built the Royal wizard templates.** Royal was in the catalogue but had
-  NO template pages → `/theme-preview/royal` 404'd + couldn't seed. Added a full `royal` object in
-  `lib/website/themeSections.ts` (mirrors OceansView's composition — Royal = "OceansView layout
-  re-skinned via `.wielo-royal`") + `ROYAL_PRESETS`(13)/`ROYAL_TEMPLATES`(5: home/about/rooms/
-  journal/contact) + registered in PRESETS/TEMPLATES/ACTIVE_THEME_SLUGS/ROOM_DETAIL. Verified renders.
-- **`096dbc5` fix(site): card & ghost-button borders were ink-black on EVERY theme.** Root cause:
-  `--site-card-border` + `--site-btn-secondary-border` (in `lib/site/themes.ts`) were emitted as full
-  `border` SHORTHANDS but the bespoke CSS consumes them as `border-color:` → invalid-at-computed-
-  value-time → CSS resets to `currentColor` (ink). Now emitted as COLOURS; the 2 full-shorthand
-  consumers (BookingConfirmationCard, RoomBookingForm) patched to `1px solid var(--token)`. Also
-  centred the Royal `.sec-head.center h2::after` accent rule (was pinned left).
-- **`8311519` fix(site): removed the rooms-page trust chip band** (Book direct / price you pay /
-  Secure payment) on Royal, OceansView, Marmalade, Safari. Sabela had none.
-- **`3e8b188` fix(royal): ghost buttons use the design's light `var(--site-line)` border** (gold on
-  hover), not the espresso secondary token — matches the provided grand-hotel design. 5 royal CSS files.
-- **`32562db` feat(site): copy-relevant default images for empty experience cards.** New
-  `lib/site/defaultImages.ts` (`defaultCardImage`) — free Unsplash photos keyword-matched to each
-  card's copy (safari/dining/nature/stars/pool/spa/wine/sunset/water…), rotating within a category by
-  index. Host image ALWAYS wins. Wired into all 9 `experiences` mappings in `SitePageView.tsx`.
-- **`1aa4827` fix(royal) + `2e96026` fix(site): centre the stats + feature grids** (issue B). Were
-  `repeat(4,1fr)` → 3 items left an empty column / stats left-hung. Now `repeat(auto-fit, minmax());
-  justify-content: center` (+ `text-align:center` on stats). Royal (verified symmetric), OceansView
-  `.stats`/`.tiles`, Safari `.sf-stats`/`.sf-promise-row`, Sabela `.feature-grid`. Marmalade N/A.
-- **`ff7f4ed`/`2ecfef2` docs(savepoint)** — this file.
+1. **`2d0be09` — Theme gate to Royal only.** `LAUNCH_THEME_SLUGS` allowlist in
+   `lib/frontendFlags.ts`, applied in `lib/site/themes.server.ts` (`loadActiveThemes` + preset
+   fallback). Verified `/dev/wizard`: DB has 5 themes → picker gets exactly `(1): royal`.
+2. **`ec5b5b7` — Currency switcher live on Royal tenant sites (browsing estimates).** Guests switch
+   ZAR/USD/EUR/GBP; every browsing price re-renders converted with a "≈" marker. **Checkout stays
+   ZAR (transactional) — the `/book` route is deliberately NOT wrapped, so its switcher self-hides.**
+   Foundation: `CurrencyProvider` got an `enabled?` prop + `enabled` in context (tenant sites pass
+   `true` without flipping the global flag); `CurrencySwitcher` reads `enabled` from context; `Money`
+   `currency` widened to `string|null`; new server `SiteCurrencyProvider` fetches rates+cookie and
+   wraps the tenant browsing routes (`site/page`, `site/[...slug]`, `rooms/[roomSlug]`,
+   `specials/[specialSlug]`). Royal price renders swapped `money()`→`<Money>` in RoyalHome/Rooms/
+   RoomDetail/Specials/SpecialDetail + shared `OceansBookCard`; switcher added to `OceansViewHeader`.
+   Verified live on mana across all browsing surfaces (home R4 850→≈$294.63, specials R18 500→≈€985.50,
+   etc.); checkout confirmed ZAR + switcher-less.
+3. **`707dd9b`/`a119ac6`/`69139c0`/`f84208f` — Website wizard redesigned to the single-page
+   "setup-flow" pattern** (from the founder's Claude-design handoff, applied to OUR real steps,
+   keeping the live site preview). New shell + full design-atom migration. See "Wizard" section below.
 
 ---
 
-## ⏳ OPEN / NOT DONE (priority order for next session)
+## 🧩 THE WIZARD (new architecture — you'll likely iterate here next)
 
-> (A) logo + (B) centering are DONE/resolved — see "RESOLVED since flagged" above. Remaining:
+Route: `app/[locale]/dashboard/website/wizard/page.tsx` → `_wizard/WebsiteWizard.tsx`.
+Dev harness (no auth): `/en/dev/wizard` (`app/[locale]/dev/wizard/`).
 
-1. **#11 Currency switcher on tenant sites** — founder approved "build it now"; it's LARGER than a
-   wire-up (scoped this session). The currency *system* exists but is **flag-locked** and tenant
-   prices don't use it. Exact plan:
-   - **(a) Lift the ZAR lock for tenant sites.** `lib/frontendFlags.ts` `CURRENCY_SWITCHER_ENABLED=false`
-     hard-gates EVERYTHING (CurrencyProvider ignores the cookie + locks to ZAR; `setCurrency` no-ops;
-     `CurrencySwitcher` returns null). Flipping it globally also enables the main-app UtilityBar — a
-     product call. Prefer a **tenant-scoped enable** (e.g. a `enabled` prop threaded through
-     CurrencyProvider/Money/CurrencySwitcher, or a second flag) so tenant sites unlock without touching
-     the app. Confirm fx rates are production-ready first (`lib/fx.ts` `getDisplayRates()`).
-   - **(b) Wrap the tenant site in `CurrencyProvider`** (in `components/site/SitePageView.tsx` or
-     SiteChrome), seeded server-side with `await getDisplayRates()` + the cookie's initial currency.
-   - **(c) Add `CurrencySwitcher` to each theme's header** (SiteChrome / the bespoke chrome).
-   - **(d) THE BIG PART — convert ~30 bespoke price renders** from the local server `money()` helper to
-     the client `<Money amount currency>` (components/currency/Money.tsx). Files: every
-     `components/site/{royal,oceansview,safari,sabela,marmalade}/*Home|Rooms|RoomDetail|Specials|
-     SpecialDetail|Suite*.tsx` + `RoomBookingForm.tsx` + `sections/{RatesBlocks,RateTableSection,
-     SearchResultsSection}.tsx` + `v2/NewLeaves.tsx` (grep `function money(`). Suggest a shared
-     `<SitePrice amount currency>` wrapper (wraps `<Money>` with the site's price styling) so it's ONE
-     swap-per-usage + consistent. Money already prefixes converted amounts with "≈" (browsing estimate;
-     the guest is still charged in ZAR — keep that wording). Do Royal first as the reference, verify the
-     switcher flips prices live, then sweep the other 4 themes.
-   - Verify: switch currency in the header → room/special/booking prices re-render converted; ZAR stays
-     exact; no layout breakage in the styled price spans.
-2. **#6 Logo in the wizard THEME-PREVIEW** (minor) — `/theme-preview/[slug]` passes `brand={{name}}`
-   only (sample brand), so the host's logo doesn't show in the theme step preview. Pass the logo through.
-3. **Full wizard end-to-end + a real test booking** on the branch preview (founder-driven; needs their login).
-4. **Merge to `main` eventually** — branch & main have DIVERGED (main +223 / branch +184 commits since
-   base `c0eb519`; main +89 migrations, branch +7). Trial-merge showed only ~1 real code conflict
-   (`themeSections.ts`) + 2 docs; real risk is the 96-migration ordering + build. Do it as an isolated
-   git-worktree trial merge (build+verify) before touching main. `main` is VERY active (2FA, security,
-   billing, email fixes landing constantly), so the merge grows daily.
+- **Single-page scroll**, not step-at-a-time. `WebsiteWizard.tsx` = orchestrator: `phase` =
+  `edit|building|done`, per-section **completion rules**, publish **gating**, scroll-spy.
+- **Chrome** in `_wizard/WizardChrome.tsx`: `SectionCard` (numbered 01–07 badge, Required/Optional
+  pill, Done check, hint), sticky `ProgressRail` (scroll-spy status discs + amber required-dots +
+  gradient bar + gated Build button), `CompletionRing`, `PublishBar`, `Confetti`. Styles in
+  `_wizard/wizard.css` (scoped to `.wz-root`: focus-ring, `.wz-num`, active-card pulse, confetti).
+- **Form atoms** in `_wizard/WizardFields.tsx`: `WField`, `WInput`, `WTextArea`, `WSelect`, `WToggle`
+  (design-exact; focus ring comes from the `.wz-root` CSS). ALL step internals now use these.
+- **7 sections** → `SectionCard`s embedding the existing steps in `embedded` mode (each step got an
+  `embedded?` prop that hides its own title + Back/Next): 01 Basics, 02 Theme, 03 Colours, 04 Your
+  story (AI), 05 Payments, 06 Pages, 07 Review & publish (summary + framed live preview w/ Desktop/
+  Mobile toggle + publish bar → build → confetti + `StepDone` modal).
+- **Completion rules** (`WebsiteWizard.tsx`): basics (name>2 + subdomain≥3) & theme are REQUIRED
+  (gate the build); colours/payments/pages optional; story "done" once AI copy generated. Ring % =
+  done/6 editable. Prefilled start ≈ 83% (story the only todo).
+- **Verified `/dev/wizard`:** layout, ring reactivity (clear name → 67% + amber dot + gated button),
+  scroll-spy, device toggle, all atoms (px-3.5/py-2.5 inputs, text-sm/medium labels, h-6/w-11 toggles).
 
 ---
 
-## 🔴 The "subdomain crash" (digest `405703985`) — NOT a branch bug
+## ⚠️ NOT VERIFIABLE IN THE HARNESS (founder to confirm on the real branch preview)
 
-`TypeError: Cannot read properties of undefined (reading 'heading')` on `/[locale]/site`, seen at
-`mana.wielo.site`. That subdomain is served by the **production** deployment = **`main`**, which is
-~40 site-render commits behind the branch. The **branch renders mana's exact published data at HTTP
-200, every page** (verified repeatedly). It only crashes on production/`main`. It self-resolves when
-the branch reaches production (the merge above). Nothing to fix on the branch.
+1. **Wizard build → publish + a real booking** — harness uses a fake business the finalize action
+   rejects. The path reuses UNCHANGED finalize/`StepBuilding`/`StepDone` logic; just needs a real run.
+2. **Currency cross-page persistence** — the display-currency cookie → server-seeded initial currency
+   is correct in code (same cookie the app-root provider reads), but the in-app test browser doesn't
+   forward the JS-set cookie to the server, so it reset to ZAR on navigation there. In-page switching
+   works; persistence should work on a real browser.
+3. **The wizard focus-ring** — the `.wz-root input:focus` glow is present + correct by rule inspection,
+   but the in-app browser runs without system focus (`document.hasFocus()` false) so `:focus` never
+   matches there. Renders on a real browser. (Pick-card glow uses static classes → already confirmed.)
+
+---
+
+## ⏳ OPEN / OPTIONAL (after the end-to-end run passes)
+
+1. **Merge to `main` eventually** — branch & main have DIVERGED (main very active: 2FA, security,
+   billing, email). Do it as an isolated git-worktree trial merge (build+verify) before touching main;
+   main is ~40+ site-render commits behind, +90ish migrations vs branch's few. The "subdomain crash"
+   (`TypeError …reading 'heading'` at `mana.wielo.site`) is a PRODUCTION/`main` bug that self-resolves
+   when the branch reaches prod — NOT a branch bug (the branch renders mana at 200 every page).
+2. **Currency for the OTHER themes** — when they come back, repeat the `money()`→`<Money>` swap in each
+   theme's price components (they already render inside the tenant provider).
+3. **#6 logo in the wizard theme-preview** (minor) — `/theme-preview/[slug]` gets `brand={{name}}` only.
 
 ---
 
 ## 🔑 ENVIRONMENT / TOOLING STATE
-
-- **`apps/web/.env.local` exists** with REAL Supabase creds (URL + anon + service-role, project ref
-  `zlcivjgvtyeaszikqleu`) — `pnpm dev` works, renders real site pages. `ANTHROPIC_API_KEY` is set in
-  Vercel (AI works on the deploy). ⚠️ service-role key was shared in chat → founder rotates at launch.
-- **Dev + QA loop:** `.claude/launch.json` (gitignored) defines the `web-dev` server → use the in-app
-  Browser (`mcp__Claude_Browser`) `preview_start {name:"web-dev"}`, then `?site=mana`. The public
-  (non-preview) render path = `?site=mana` WITHOUT `preview=1`. **`computer{action:screenshot}` keeps
-  TIMING OUT** this session — rely on `javascript_tool` DOM/computed-style reads for verification.
-- **Vercel MCP** (project `prj_ia39tAuJTTErlViwZXjgNHWKU7xZ`, team `team_HBP2Mcif9OcWL3w4hJXlAXDt`):
-  `get_runtime_errors` / `get_runtime_logs` / `get_deployment` are the way to read production errors +
-  confirm a branch build is READY. Branch alias auto-points to the newest branch build.
+- **`apps/web/.env.local` exists** with REAL Supabase creds (project ref `zlcivjgvtyeaszikqleu`);
+  `ANTHROPIC_API_KEY` set in Vercel (AI works on the deploy). ⚠️ service-role key was shared in chat →
+  founder rotates at launch.
+- **Dev + QA:** in-app Browser (`mcp__Claude_Browser`) `preview_start {name:"web-dev"}` (from
+  gitignored `.claude/launch.json`). `/dev/wizard` is the auth-free wizard harness. `?site=mana` (no
+  `preview=1`) is the public tenant render. **`computer{action:screenshot}` frequently TIMES OUT when
+  a page has the live-preview iframes** — rely on `javascript_tool` DOM/computed-style reads. The
+  in-app browser also has NO system focus (`:focus` won't match) and doesn't forward JS-set cookies.
+- **Vercel MCP** (project `prj_ia39tAuJTTErlViwZXjgNHWKU7xZ`): `get_runtime_errors`/`get_runtime_logs`/
+  `get_deployment` read prod errors + confirm a branch build is READY.
 - **Gate before commit:** `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` + `npx eslint <files>`
-  (local `pnpm build` may OOM). Commit hook runs prettier/lint-staged automatically.
+  (local `pnpm build` may OOM). Commit hook runs prettier/lint-staged automatically. Founder workflow =
+  commit + push each iteration so the branch preview updates for their testing.
 
 ## 🗺️ KEY FILES (this session)
-- Design tokens: `lib/site/themes.ts` (card/button border tokens — the ink-border root cause).
-- Theme templates (wizard preview + seeding): `lib/website/themeSections.ts` (added `royal`).
-- Site render dispatch (bespoke per-theme components): `components/site/SitePageView.tsx`.
-- Royal bespoke: `components/site/royal/*.tsx` + `royal*.css`; shared skin `themes/theme-skins.css`
-  (`.wielo-royal` block ~line 1020/1261; `.tiles` grid + card/button token wiring in `royalHome.css`).
-- Default images: `lib/site/defaultImages.ts`. AI caps: `lib/website/aiContent.ts` + `aiPrompts.ts`.
-- Readiness gate: `lib/website/readiness.ts`. Wizard: `app/[locale]/dashboard/website/_wizard/`.
+- Theme gate: `lib/frontendFlags.ts` (`LAUNCH_THEME_SLUGS`), `lib/site/themes.server.ts`.
+- Currency: `components/currency/{CurrencyProvider,CurrencySwitcher,Money}.tsx`,
+  `components/site/SiteCurrencyProvider.tsx`, `lib/fx.ts` (`getDisplayRates`), Royal `components/site/
+  royal/*.tsx` + `components/site/oceansview/{OceansViewHeader,OceansBookCard}.tsx`.
+- Wizard: `app/[locale]/dashboard/website/_wizard/` — `WebsiteWizard.tsx`, `WizardChrome.tsx`,
+  `WizardFields.tsx`, `wizard.css`, `WizardLivePreview.tsx`, `steps/*.tsx` (each has `embedded`).
+- Design source (reference, gitignored/local): the Claude-design handoff is in Downloads
+  `Wielo (11).zip` → `design_handoff_setup_flow/`.
 
 **Update + commit a new savepoint before ending any session.**
