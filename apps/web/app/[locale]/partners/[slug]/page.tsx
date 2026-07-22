@@ -331,19 +331,23 @@ const FEATURES = [
   },
 ];
 
+// Categories, not brands. Naming competitors on a page published under a
+// partner's own name invites a complaint the partner would have to answer for,
+// and the comparison makes its point without them — what differs is the KIND of
+// product, not the logo. The two global OTAs in the original mockup had
+// identical rows anyway, so nothing is lost by collapsing them.
 const COMPARISON = [
-  { n: "NightsBridge", v: [1, 0, 0, 1, 1] },
-  { n: "Booking.com", v: [0, 1, 0, 0, 0] },
-  { n: "Airbnb", v: [0, 1, 0, 0, 0] },
-  { n: "LekkeSlaap", v: [0, 1, 0, 0, 1] },
-  { n: "Lodgify", v: [1, 0, 1, 1, 0] },
+  { n: "Global OTA / marketplace", v: [0, 1, 0, 0, 0] },
+  { n: "Local OTA / directory", v: [0, 1, 0, 0, 1] },
+  { n: "Booking engine", v: [1, 0, 0, 1, 1] },
+  { n: "Website builder", v: [1, 0, 1, 1, 0] },
   { n: "Web agency", v: [0, 0, 1, 0, 0] },
 ];
 
 const FAQ = [
   {
-    q: "If I leave Booking.com, won't I lose bookings?",
-    a: "You're not leaving — you're adding a direct channel alongside it. Keep your listings for discovery. This is for every guest who already knows you.",
+    q: "If I leave the OTAs, won't I lose bookings?",
+    a: "You're not leaving — you're adding a direct channel alongside them. Keep your listings for discovery. This is for every guest who already knows you.",
   },
   {
     q: "I'm not good with technology.",
@@ -985,6 +989,12 @@ export default async function PartnerLandingPage({
                 </table>
               </div>
             </div>
+            {/* Not every host uses the industry shorthand, and the word now
+                carries the comparison on its own. */}
+            <p className="mt-4 text-center text-[12.5px] text-brand-mute">
+              OTA means online travel agent — the big booking sites that charge
+              commission on each stay.
+            </p>
           </div>
         </section>
 

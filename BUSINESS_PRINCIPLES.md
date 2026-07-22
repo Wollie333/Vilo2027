@@ -812,3 +812,67 @@ DB functions — all green on every automated check.)
 - **`SECURITY_CHECKLIST.md` + `AGENT_RULES.md §1` hold the standing detail;** this
   principle is the always-on mindset behind them. When unsure, treat it as a
   security issue and ask.
+
+---
+
+## Principle #16 — Never name a competitor in sales copy
+
+### The principle
+
+**Wielo sells on what Wielo does, not on who else is worse.** No competitor's
+name appears in marketing copy, headlines, feature benefits, FAQs, email, ads,
+or anything else written to persuade.
+
+**One exception:** a **structured comparison** — a table of pricing, fees or
+capabilities — may name the products it compares, because the reader needs to
+know which product each row describes for the comparison to mean anything. That
+licence covers the table only. It does not extend to the sentence above it, the
+heading, or a pull-quote lifted out of it.
+
+### Why this matters
+
+1. **A named claim is a claim you must defend.** "Booking.com takes 17%" is a
+   factual assertion about another company's pricing that changes without notice
+   and varies by plan and region. The moment it is stale it is a false statement
+   about a named business — and under the CPA that is our problem, not theirs.
+2. **Partner pages carry someone else's name.** A Founding Partner's landing page
+   shows their face and their number. A comparative swipe there is published
+   under *their* identity, and they are the one who has to answer for it.
+3. **It positions us as the challenger.** Copy that leads with a competitor makes
+   them the subject. Wielo's argument — 0% commission, you own the guest, one
+   subscription — needs no opponent to make sense.
+4. **The category, not the brand, is the real contrast.** What differs is the KIND
+   of product: an OTA takes commission, a website builder does not book, an
+   agency does not integrate. Naming the category says the true thing and stays
+   true when the market moves.
+
+### The rules (what must always be true)
+
+1. **No competitor name in persuasive copy.** Use the category: *OTA*, *global
+   OTA*, *local directory*, *booking engine*, *website builder*, *web agency*,
+   *agent*.
+2. **Gloss the shorthand once per page.** Not every host reads "OTA" as jargon
+   they know. One plain line — *"OTA means online travel agent — the big booking
+   sites that charge commission on each stay"* — is enough.
+3. **Comparison tables may name products**, and must then be accurate, dated and
+   sourced. If nobody will keep them current, use categories there too.
+4. **FUNCTIONAL naming is always fine and must not be scrubbed.** These are not
+   claims — they are instructions and data:
+   - calendar-sync help ("paste your Airbnb iCal URL here"),
+   - booking channel labels and channel-mix reports,
+   - integration settings and migration guides.
+   Removing a name a host needs in order to complete a task makes the product
+   worse for no gain.
+5. **Citing a research source is not naming a competitor.** An attributed
+   statistic keeps its attribution — an uncited number is the worse failure. If
+   the source is itself a competitor, prefer a neutral source or drop the stat;
+   never strip the citation and keep the number.
+
+### How to apply it
+
+- **Writing copy:** if a sentence needs a competitor's name to land, the sentence
+  is arguing the wrong thing. Say what Wielo does instead.
+- **Reviewing a design or mockup:** brand names in headings, chips, calculators
+  and testimonials are the usual offenders. Swap to the category before it ships.
+- **Unsure whether it's copy or function?** Ask what the reader is doing. Deciding
+  whether to buy → copy, no names. Completing a task → functional, name it.

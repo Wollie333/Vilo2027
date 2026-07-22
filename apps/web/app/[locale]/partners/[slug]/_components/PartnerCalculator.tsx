@@ -11,10 +11,14 @@ import { useState } from "react";
 // guest total. The competitor rates are host-side service fees and are labelled
 // as approximate in the footnote, because they genuinely vary by plan.
 
+// Rate bands, not brand names — the host picks the commission they actually pay,
+// which is the only input the sum needs. Naming platforms here added nothing to
+// the maths and put a comparative claim about a named company on a page
+// published under a partner's own name.
 const COMPETITORS = [
-  { label: "Airbnb ~15%", rate: 0.15 },
-  { label: "Booking.com ~17%", rate: 0.17 },
-  { label: "Agent / OTA ~20%", rate: 0.2 },
+  { label: "OTA ~15%", rate: 0.15 },
+  { label: "OTA ~17%", rate: 0.17 },
+  { label: "Agent ~20%", rate: 0.2 },
 ];
 
 const zar = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;

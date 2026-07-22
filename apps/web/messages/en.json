@@ -83,7 +83,7 @@
     "featBookings": "One place, not five tools",
     "featBookingsBenefit": "No more email, spreadsheets and WhatsApp. Confirm, decline and track every stay in one view.",
     "featCalendar": "Never double-book again",
-    "featCalendarBenefit": "Two-way iCal sync with Airbnb & Booking.com keeps every calendar in step.",
+    "featCalendarBenefit": "Two-way iCal sync keeps every calendar — your OTA listings included — in step.",
     "featListings": "Get discovered, on your terms",
     "featListingsBenefit": "A branded booking page that's yours to share — not a listing buried in a marketplace.",
     "featReviews": "Build a reputation that's yours",
@@ -134,7 +134,7 @@
 
     "cEyebrow": "Calendar",
     "cTitle": "Never double-book again.",
-    "cBody": "One calendar for every channel. Two-way iCal sync keeps Airbnb and Booking.com in step automatically.",
+    "cBody": "One calendar for every channel. Two-way iCal sync keeps your OTA listings in step automatically.",
 
     "gEyebrow": "Get discovered",
     "gTitle": "A booking page that's yours.",
@@ -164,7 +164,7 @@
     "oQ3": "Am I locked in?",
     "oA3": "No contracts. A flat monthly fee you can cancel anytime.",
     "oQ4": "Do I lose my existing listings?",
-    "oA4": "No — sync your calendar with Airbnb and Booking.com and run them side by side."
+    "oA4": "No — sync your calendar with the OTAs you already use and run them side by side."
   },
   "nav": {
     "tagline": "Direct bookings · zero commission to guests",
@@ -265,7 +265,7 @@
     "pillarCancelBody": "Policies shown up-front with a one-tap refund preview. No hunting through fine print.",
     "hostEyebrow": "For hosts",
     "hostTitle": "Got a place to share? List it on {brand}.",
-    "hostBody": "Branded booking page, calendar that syncs with Airbnb & Booking.com, unified inbox, payments via Paystack or PayPal. Flat monthly fee. Zero commissions.",
+    "hostBody": "Branded booking page, calendar that syncs with your OTA listings, unified inbox, payments via Paystack or PayPal. Flat monthly fee. Zero commissions.",
     "hostCtaPrimary": "List your property",
     "hostCtaSecondary": "See how {brand} works",
     "featuredEyebrow": "Featured stays",
