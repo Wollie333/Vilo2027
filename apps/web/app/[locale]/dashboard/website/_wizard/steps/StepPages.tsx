@@ -167,13 +167,13 @@ export function StepPages({
                   onClick={() => toggle(p.kind)}
                   disabled={locked}
                   aria-pressed={on}
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                  className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
                     on ? "bg-brand-primary" : "bg-brand-line"
                   } ${locked ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <span
-                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
-                      on ? "left-[18px]" : "left-0.5"
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                      on ? "left-[22px]" : "left-0.5"
                     }`}
                   />
                 </button>

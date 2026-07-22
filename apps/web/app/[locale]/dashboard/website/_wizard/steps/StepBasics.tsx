@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { createWizardLogoUploadUrl } from "../../actions";
+import { WField, WInput } from "../WizardFields";
 import type { WizardState } from "../wizardState";
 
 export function StepBasics({
@@ -89,7 +90,7 @@ export function StepBasics({
 
       {/* Logo — prefilled from the business if it has one; upload or change here */}
       <div>
-        <label className="block text-[13px] font-semibold text-brand-ink">
+        <label className="mb-1.5 block text-sm font-medium text-brand-ink">
           Logo
         </label>
         <div className="mt-1.5 flex items-center gap-3">
@@ -153,24 +154,17 @@ export function StepBasics({
         </div>
       </div>
 
-      <div>
-        <label className="block text-[13px] font-semibold text-brand-ink">
-          {t("wizardSiteName")}
-        </label>
-        <input
+      <WField label={t("wizardSiteName")}>
+        <WInput
           value={state.siteName}
           onChange={(e) => update({ siteName: e.target.value })}
           maxLength={120}
-          className="mt-1.5 w-full rounded-[10px] border border-brand-line px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-primary"
           placeholder={t("wizardSiteNamePh")}
         />
-      </div>
+      </WField>
 
-      <div>
-        <label className="block text-[13px] font-semibold text-brand-ink">
-          {t("subdomainLabel")}
-        </label>
-        <div className="mt-1.5 flex max-w-md items-stretch overflow-hidden rounded-[10px] border border-brand-line focus-within:border-brand-primary">
+      <WField label={t("subdomainLabel")} hint={t("subdomainHint")}>
+        <div className="flex max-w-md items-stretch overflow-hidden rounded-[10px] border border-brand-line transition focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]">
           <input
             value={state.subdomain}
             onChange={(e) =>
@@ -182,44 +176,33 @@ export function StepBasics({
             }
             spellCheck={false}
             autoCapitalize="none"
-            className="min-w-0 flex-1 px-3 py-2.5 font-mono text-sm text-brand-ink outline-none"
+            className="min-w-0 flex-1 bg-white px-3.5 py-2.5 font-mono text-sm text-brand-ink outline-none"
             placeholder="your-place"
           />
           <span className="flex items-center bg-brand-light px-3 font-mono text-[13px] text-brand-mute">
             .{root}
           </span>
         </div>
-        <p className="mt-1.5 text-[11.5px] text-brand-mute">
-          {t("subdomainHint")}
-        </p>
-      </div>
+      </WField>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-[13px] font-semibold text-brand-ink">
-            {t("wizardContactEmail")}
-          </label>
-          <input
+        <WField label={t("wizardContactEmail")} optional>
+          <WInput
             type="email"
             value={state.contactEmail}
             onChange={(e) => update({ contactEmail: e.target.value })}
             maxLength={160}
-            className="mt-1.5 w-full rounded-[10px] border border-brand-line px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-primary"
             placeholder="hello@example.com"
           />
-        </div>
-        <div>
-          <label className="block text-[13px] font-semibold text-brand-ink">
-            {t("wizardContactPhone")}
-          </label>
-          <input
+        </WField>
+        <WField label={t("wizardContactPhone")} optional>
+          <WInput
             value={state.contactPhone}
             onChange={(e) => update({ contactPhone: e.target.value })}
             maxLength={40}
-            className="mt-1.5 w-full rounded-[10px] border border-brand-line px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-primary"
             placeholder="+27 ..."
           />
-        </div>
+        </WField>
       </div>
 
       {!embedded ? (

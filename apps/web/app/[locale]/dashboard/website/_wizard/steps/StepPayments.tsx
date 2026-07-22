@@ -13,6 +13,7 @@ import type { LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
+import { WToggle } from "../WizardFields";
 import type {
   WizardPaymentKey,
   WizardPaymentMethod,
@@ -114,9 +115,9 @@ export function StepPayments({
                   </p>
                 </div>
                 <EditLink href={m.editHref} label={t("wizardEdit")} />
-                <Toggle
+                <WToggle
                   on={on}
-                  onClick={() => togglePayment(m.key)}
+                  onChange={() => togglePayment(m.key)}
                   label={t("wizardShowOnSite")}
                 />
               </li>
@@ -178,9 +179,9 @@ export function StepPayments({
                   ) : null}
                 </div>
                 <EditLink href={p.editHref} label={t("wizardEdit")} />
-                <Toggle
+                <WToggle
                   on={on}
-                  onClick={() => togglePolicy(p.key)}
+                  onChange={() => togglePolicy(p.key)}
                   label={t("wizardShowOnSite")}
                 />
               </li>
@@ -259,34 +260,5 @@ function EditLink({
       <Icon className="h-3.5 w-3.5" />
       {label}
     </Link>
-  );
-}
-
-function Toggle({
-  on,
-  onClick,
-  label,
-}: {
-  on: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      aria-label={label}
-      title={label}
-      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-        on ? "bg-brand-primary" : "bg-brand-line"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
-          on ? "left-[18px]" : "left-0.5"
-        }`}
-      />
-    </button>
   );
 }

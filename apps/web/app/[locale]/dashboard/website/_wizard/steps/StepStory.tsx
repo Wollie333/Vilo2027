@@ -19,7 +19,8 @@ const btnPrimary =
 const btnGhost =
   "rounded-[10px] border border-brand-line px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light";
 const field =
-  "w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary";
+  "w-full rounded-[10px] border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink outline-none transition placeholder:text-brand-mute";
+const fieldLabel = "mb-1.5 block text-sm font-medium text-brand-ink";
 
 export function StepStory({
   state,
@@ -98,7 +99,7 @@ export function StepStory({
       {/* Questions */}
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-[13px] font-semibold text-brand-ink">
+          <label className={fieldLabel}>
             In one line, what makes your place special?
           </label>
           <input
@@ -111,7 +112,7 @@ export function StepStory({
         </div>
 
         <div>
-          <label className="mb-1 block text-[13px] font-semibold text-brand-ink">
+          <label className={fieldLabel}>
             Tell us the story of your place — why do you host?
           </label>
           <textarea
@@ -124,7 +125,7 @@ export function StepStory({
         </div>
 
         <div>
-          <label className="mb-1 block text-[13px] font-semibold text-brand-ink">
+          <label className={fieldLabel}>
             Up to 3 things guests love to do nearby
           </label>
           <div className="space-y-2">

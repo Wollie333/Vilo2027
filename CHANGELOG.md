@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-22 — Wizard step internals: shared design form atoms.
+
+Second fidelity pass — shared form atoms matching the setup-flow design
+(`WizardFields.tsx`: `WField`, `WInput`, `WTextArea`, `WSelect`, `WToggle`). Migrated:
+- **StepBasics** — site name, web address, contact email/phone now use `WField` +
+  `WInput` (design label `text-sm font-medium`, control `px-3.5 py-2.5`; the address
+  input-group + logo label aligned to match).
+- **StepPayments** — replaced its bespoke local toggle with the shared `WToggle`
+  (design h-6/w-11 pill).
+- **StepPages** — the include-page switch resized to the same h-6/w-11 pill (kept its
+  Home-locked/disabled logic).
+- **StepStory** — its shared `field`/label constants aligned to the design control +
+  label styling, so every question/review input picks it up.
+
+Verified via DOM in `/en/dev/wizard`: Basics inputs `px-3.5 py-2.5`, labels
+`text-sm font-medium`, Payments + Pages toggles `h-6 w-11`. tsc + lint clean.
+(Screenshots of the Basics card time out — the two live-preview iframes make the page
+heavy — but these are static-class changes, not focus-state.) StepStory's deeper
+`ReviewField`/experiences editors and any native selects remain on the plain `field`
+style; a further pass could route them through the atoms too.
+
 ## 2026-07-22 — Wizard step internals: design focus-ring + pick-card polish.
 
 First fidelity pass on the wizard step internals (follow-up to the shell redesign).
