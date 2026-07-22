@@ -18,8 +18,8 @@ it after any migration.
 |---|---|
 | Tables | **195** (195 with RLS) |
 | Functions | **182** (142 SECURITY DEFINER, 68 trigger fns) |
-| Cron jobs | **41** (14 Vault-gated, 0 inactive) |
-| Vault secrets set | **17** |
+| Cron jobs | **41** (15 Vault-gated, 0 inactive) |
+| Vault secrets set | **20** |
 
 ## 🚩 Automated red flags
 
@@ -71,7 +71,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `reconcile-subscriptions` | `20 * * * *` | yes | yes |
 | `renew-subscriptions` | `0 6 * * *` | yes | yes |
 | `restrict-overdue-subscriptions` | `0 * * * *` | yes | — |
-| `scheduled-reports-hourly` | `0 * * * *` | yes | — |
+| `scheduled-reports-hourly` | `0 * * * *` | yes | yes |
 | `send-access-cards` | `*/15 * * * *` | yes | — |
 | `snapshot-campaign-scores` | `15 1 * * *` | yes | — |
 | `subscription-expiry-warnings` | `0 8 * * *` | yes | — |
