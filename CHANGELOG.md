@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-22 (pt68) — SECURITY_CHECKLIST §4 named three things that don't exist.
+
+§4 (Payment Security) verified line by line against the real code and the live DB. **Every control
+is real and sound — the drift was entirely in which files the doc named**, which is exactly the kind
+of prose that sends the next session hunting for code that was never there.
+
+- **Corrected three phantom references:** there is no `refund-process` Edge Function, no
+  `booking-create` Edge Function, and the app does **not** call `calculate_booking_price` (a legacy
+  DB function surviving only in migrations, a README and a test script — don't "restore" it). Only
+  **six** Edge Functions are deployed, and the **PayPal webhook is a Next.js API route**, not an
+  Edge Function.
+- **Verified real:** Paystack HMAC SHA-512 fails closed and resolves the environment *from the key
+  that matched*, so a test-key event can't process as live · PayPal calls `verify-webhook-signature`
+  and refuses when `PAYPAL_WEBHOOK_ID` is absent · pricing chokepoint is `lib/bookings/createBooking.ts`
+  → `priceStay` · `unique_provider_reference` UNIQUE and `payments_refunded_le_amount CHECK` both
+  confirmed on the live database.
+- **Refund cap is enforced in the DB, not just the app** — worth knowing why: the app checks
+  `approved <= amount − refunded_amount`, but `refunded_amount` is bumped later by the completion
+  trigger, so two concurrent approvals both passed. The CHECK rejects the overflow atomically (`23514`).
+- **Flagged, not changed:** `paystack-webhook` compares the HMAC with `hash === signature` — not
+  constant-time, while the codebase already uses `timingSafeEqual` for the impersonation cookie.
+  Changing it means deploying an Edge Function on the money path (`AGENT_RULES.md` §9 — ask first).
+
 ## 2026-07-22 (pt67) — closed the three items pt66 left open, and corrected a rule that didn't work.
 
 Founder: "fix all these." All three done + verified live. Green (build, lint, tsc, 446 tests).

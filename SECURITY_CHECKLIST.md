@@ -124,14 +124,60 @@ grep -r "NEXT_PUBLIC_SUPABASE_SERVICE" apps/
 
 ## 4. Payment Security
 
-- [ ] **Paystack webhook signature verified** (HMAC SHA-512 on `x-paystack-signature`) before any DB write
-- [ ] **PayPal webhook verified** via PayPal Webhook Verification API before any DB write
-- [ ] Paystack `PAYSTACK_WEBHOOK_SECRET` is set in production Edge Function secrets
-- [ ] PayPal `PAYPAL_WEBHOOK_ID` is set in production Edge Function secrets
-- [ ] Price is **never trusted from the client** — `booking-create` always recalculates using `calculate_booking_price` DB function
-- [ ] Refund amount validated: `approved_amount <= original_payment.amount` in `refund-process`
-- [ ] Duplicate webhook delivery handled: `provider_reference` unique constraint prevents double-processing
-- [ ] Paystack live keys active (`pk_live_...` / `sk_live_...`) — test keys must not be in production
+Verified 2026-07-22 against the real code and the live database.
+
+> ⚠️ **This section used to name three things that do not exist.** There is no
+> `refund-process` Edge Function, no `booking-create` Edge Function, and the app
+> does not call `calculate_booking_price`. Only **six** Edge Functions are
+> deployed — `_shared`, `external-review-reply`, `external-reviews-sync`,
+> `paystack-webhook`, `report-scheduler`, `track-listing-view` — and the PayPal
+> webhook is a **Next.js API route**, not an Edge Function. The controls below are
+> real and sound; the file names were stale. Check `supabase functions list`
+> before writing an Edge Function name into this doc again.
+
+- [x] **Paystack webhook signature verified** (HMAC SHA-512 on `x-paystack-signature`)
+  before any DB write — `supabase/functions/paystack-webhook/index.ts`. Fails
+  closed: no signature or no configured key that matches ⇒ `401`, before any
+  write. It resolves the environment *from the key that matched*, so a test-key
+  event can't be processed as live. Confirmed live in the audit block above:
+  unsigned + forged both `401`, with **zero** rows written to `payments` /
+  `platform_ledger`.
+- [x] **PayPal webhook verified** via PayPal's `verify-webhook-signature` API
+  before any DB write — `apps/web/app/api/paypal-webhook/route.ts` (**an API
+  route, not an Edge Function**), using `verifyPayPalWebhookSignature`
+  (`lib/paypal`). Headers alone are forgeable, so it calls PayPal to verify.
+  Fails closed twice over: **no `PAYPAL_WEBHOOK_ID` ⇒ refuse**, unverifiable
+  event ⇒ refuse. Confirmed live: unsigned ⇒ `401`.
+- [x] **`PAYSTACK_WEBHOOK_SECRET` / `PAYPAL_WEBHOOK_ID` set in production** —
+  both present; Doppler is the single source of truth and Vercel prod matches it
+  exactly (29 vars, zero drift). See `docs/SECRETS_RUNBOOK.md`.
+- [x] **Price is never trusted from the client** — the real chokepoint is
+  **`lib/bookings/createBooking.ts`**, which recomputes every amount through
+  **`priceStay`** (`lib/pricing`, the SSOT per `RULES.md` §3). Public on-site
+  checkout (`app/api/site-booking/route.ts`) goes through the same core.
+  ⚠️ `calculate_booking_price` is a **legacy DB function the app no longer
+  calls** — it survives only in migrations, a README and a test script. Don't
+  "restore" it. Confirmed in the audit block: the checkout schema accepts **no
+  money field at all**, so there is nothing to tamper with.
+- [x] **Refund amount validated** — enforced in the **database**, not just the
+  app: `payments_refunded_le_amount CHECK (COALESCE(refunded_amount,0) <= amount)`
+  (migration `20260717001000`). This is the backstop for a real race: the app
+  checks `approved <= amount - refunded_amount`, but `refunded_amount` is only
+  bumped later by the completion trigger, so two concurrent approvals both passed
+  the app check. The CHECK rejects the overflowing one atomically (`23514`).
+  Host self-service refunds live in `app/[locale]/dashboard/refunds/`.
+- [x] **Duplicate webhook delivery handled** — `unique_provider_reference UNIQUE
+  (provider_reference)` on `payments`, verified on the live database.
+- [ ] **Paystack live keys** — **deferred on purpose** to launch day, see
+  `docs/SMOKE_TESTS.md` §0.5 **G3**. Test keys staying active until then is
+  intended, not an oversight.
+- [ ] ⚠️ **Not blocking, worth hardening:** `paystack-webhook` compares the HMAC
+  with `hash === signature` — a non-constant-time comparison. The codebase already
+  uses `timingSafeEqual` for the impersonation cookie, so this is inconsistent
+  rather than unknown. Practically very hard to exploit over a network, and
+  changing it means deploying an Edge Function on the money path
+  (`AGENT_RULES.md` §9 — stop and ask), so it is flagged rather than silently
+  changed.
 
 ---
 
