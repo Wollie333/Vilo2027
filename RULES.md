@@ -230,8 +230,42 @@ If you notice `ARCHITECTURE.md` has a wrong folder name, or `supabase_database.m
 > / ask for a test URL up front) — never report "done"; mark it NOT verified and
 > say so loudly.
 
+### 8.1 The silent no-op — the dominant bug class in this codebase
+
+`audit-wiring.mjs` answers *"does anything call this?"*. The harder failure is the
+one where **something does call it, and it quietly does nothing**. On 2026-07-22
+four separate features were found in that state. All four built green, linted
+green, and had been "done" for weeks:
+
+| What was wrong | Why nobody noticed |
+|---|---|
+| `isAuthorized()` ended in `return true` | The check ran. It could never fail. |
+| A trigger's `UPDATE` was blocked by RLS | Matched **0 rows** — Postgres does not consider that an error. |
+| Cipher keys set on Vercel, absent on Supabase | Two runtimes; each dashboard looked correct on its own. |
+| A cron read `current_setting('app.…')`, which hosted Supabase forbids | Its own guard hit `RAISE NOTICE … RETURN` — a skip that looks exactly like a quiet, healthy tick. |
+
+**The common thread is a silent fallback.** Every one of them turned a failure
+into a no-op. So while coding, treat these as smells and prove each one:
+
+- `return true` / `?? false` / `catch {}` / `|| ''` on an **auth or validation**
+  path → **prove the DENY path**, not just the allow path.
+- A write that can match zero rows (RLS, a wrong id, a different runtime's view of
+  the world) → **re-read the row afterwards**. `UPDATE … WHERE` affecting nothing
+  is not an error, and **PostgREST answers 200/204 for "0 rows affected"**.
+- A value read in a **different place from where it is set** (Vercel vs Supabase
+  vs Vault vs a DB GUC) → prove BOTH sides hold the same value, not that each is
+  "set". A wrong-but-present secret fails identically to a missing one.
+- A guard that returns early "if unconfigured" → make it **log loudly or fail**,
+  never skip silently. A quiet skip is indistinguishable from success forever.
+
+**The question to ask before calling it done:** *if this were broken right now,
+what would I see?* If the honest answer is "nothing", it is not finished — it is
+untested, and it will fail silently in production.
+
 Run through this checklist every time:
 
+- [ ] **If this feature were broken, something would visibly differ** — name it (§8.1)
+- [ ] **The DENY / failure path was exercised**, not just the happy path (§8.1)
 - [ ] **SEEN working in the builder canvas** (real evidence, not assumption)
 - [ ] **SEEN working on the live/published render** — canvas ≠ live must be proven
 - [ ] Does it match the acceptance criteria in `CURRENT_TASK.md`?
