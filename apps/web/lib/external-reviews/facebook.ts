@@ -3,11 +3,23 @@ import "server-only";
 import { encryptOAuthToken, decryptOAuthToken } from "@/lib/crypto/oauth";
 import type { FacebookPage, FacebookReview } from "./types";
 
-// Facebook OAuth configuration
-const FACEBOOK_AUTH_URL = "https://www.facebook.com/v18.0/dialog/oauth";
-const FACEBOOK_TOKEN_URL =
-  "https://graph.facebook.com/v18.0/oauth/access_token";
-const FACEBOOK_GRAPH_API = "https://graph.facebook.com/v18.0";
+// Facebook OAuth configuration.
+//
+// ONE constant for the version. It was previously written out four times across
+// three files (two of them in Edge Functions), so a bump meant finding all four
+// or silently running two versions at once.
+//
+// v18.0 was NOT dead — checked 2026-07-22 with a real app access token, it still
+// answered normally, contrary to third-party claims that it expired in January.
+// Moved to v22.0 for runway, not as a fix: Meta retires a version roughly two
+// years after release, and v18.0 shipped in 2023. When it does expire the symptom
+// is a 400 on every call, and the fix is this one line.
+// https://developers.facebook.com/docs/graph-api/changelog/versions/
+const FACEBOOK_GRAPH_VERSION = "v22.0";
+
+const FACEBOOK_AUTH_URL = `https://www.facebook.com/${FACEBOOK_GRAPH_VERSION}/dialog/oauth`;
+const FACEBOOK_TOKEN_URL = `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/oauth/access_token`;
+const FACEBOOK_GRAPH_API = `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}`;
 
 // Permissions needed for reading page reviews and posting replies
 const PERMISSIONS = [

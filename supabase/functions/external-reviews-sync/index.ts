@@ -388,9 +388,11 @@ async function syncFacebookReviews(
 
   const accessToken = await decryptOAuthToken(source.access_token);
 
-  // Fetch reviews from Facebook
+  // Fetch reviews from Facebook.
+  // Keep this version in step with FACEBOOK_GRAPH_VERSION in
+  // apps/web/lib/external-reviews/facebook.ts — Edge Functions cannot import it.
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${source.external_account_id}/ratings?access_token=${accessToken}&fields=recommendation_type,review_text,created_time,reviewer&limit=50`,
+    `https://graph.facebook.com/v22.0/${source.external_account_id}/ratings?access_token=${accessToken}&fields=recommendation_type,review_text,created_time,reviewer&limit=50`,
   );
 
   if (!response.ok) {

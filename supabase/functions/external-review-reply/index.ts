@@ -243,9 +243,11 @@ async function postFacebookReply(
 ): Promise<{ ok: true } | { error: string }> {
   const accessToken = await decryptOAuthToken(encryptedToken);
 
-  // For Facebook, we comment on the recommendation
+  // For Facebook, we comment on the recommendation.
+  // Keep this version in step with FACEBOOK_GRAPH_VERSION in
+  // apps/web/lib/external-reviews/facebook.ts — Edge Functions cannot import it.
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${reviewId}/comments`,
+    `https://graph.facebook.com/v22.0/${reviewId}/comments`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
