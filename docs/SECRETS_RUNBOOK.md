@@ -200,3 +200,83 @@ key becomes safe to rotate on its own.
 The Configuration panel at `/admin/platform/errors` reads the **running
 server's** environment. If it says missing, the running app cannot see it —
 whatever the dashboard shows.
+
+---
+
+## 5. One place to control both (Doppler)
+
+The whole reason §2 exists is that Vercel and Supabase are set separately and
+nothing notices when only one of them gets a value. Doppler syncs natively to
+**both**, so a secret is entered once. Free Developer plan covers a solo founder.
+
+### Which variables belong where
+
+Vercel holds all 42. Supabase Edge Functions need **exactly six** — everything
+else would be noise in that runtime:
+
+| Variable | Read by | Also on Vercel? |
+|---|---|---|
+| `PAYMENT_CIPHER_KEY` | `paystack-webhook` | ⚠️ yes — must match |
+| `BANKING_CIPHER_KEY` | `eft-banking-details` | ⚠️ yes — must match |
+| `OAUTH_CIPHER_KEY` | `external-review-*` | ⚠️ yes — must match |
+| `REPORT_SCHEDULER_SECRET` | `report-scheduler` | ⚠️ yes — caller/callee pair |
+| `EXTERNAL_REVIEWS_WORKER_SECRET` | `external-reviews-sync` | ⚠️ yes — caller/callee pair |
+| `PAYSTACK_SECRET_KEY` | `paystack-webhook` | optional — falls back to the DB |
+
+**Never put `SUPABASE_URL`, `SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY`
+into the Supabase config.** That runtime injects them itself and reserves the
+`SUPABASE_` prefix. They belong in the Vercel config only (as
+`NEXT_PUBLIC_SUPABASE_URL` etc.).
+
+### Structure
+
+A root config holding the shared values, with two branch configs inheriting it:
+
+```
+wielo
+├── prd            ← the three cipher keys + the two worker secrets live HERE, once
+    ├── prd_vercel   → Vercel sync (Production)   — all 42
+    └── prd_supabase → Supabase sync              — only the six above
+```
+
+Enter a cipher key once in `prd`; both branches inherit it. That is the property
+that makes the §2 failure impossible to repeat.
+
+### Order of adoption — least destructive first
+
+Doppler's docs do **not** state whether its Vercel sync deletes Vercel variables
+that are absent from the Doppler config. Until that is proven on this project,
+treat it as if it might:
+
+1. **Supabase first.** That runtime currently holds almost nothing, so there is
+   nothing to lose. It is also where the live gap is. Verify with
+   `supabase secrets list`.
+2. **Vercel Preview second** — a separate integration is required per Vercel
+   environment, so Preview is a real blast-radius-limited rehearsal. Confirm
+   afterwards that Preview still has variables Doppler does not manage.
+3. **Vercel Production last**, and only once the config holds **all 42**. A
+   partial config pointed at Production is the one move that can break the app.
+
+### Collecting the values
+
+Most cannot be read back out of Vercel — `vercel env pull` writes empty strings
+for them. Two kinds:
+
+- **Symmetric secrets you can simply regenerate** — the cipher keys and both
+  worker secrets. They only need to match *each other*, and Doppler pushes the
+  new value everywhere at once, so regenerating is safe and cheaper than
+  recovering. (A cipher key is the exception: regenerating abandons any data
+  already encrypted with the old one — see §3.)
+- **Third-party keys that must be re-fetched from the provider** — Supabase,
+  Resend, Paystack, PayPal, Google Maps/Reviews, Facebook, Cloudflare Turnstile,
+  PostHog, Sentry, Mapbox, Anthropic.
+
+⚠️ `EMAIL_WORKER_SECRET` and `ICAL_TOKEN_SECRET` exist as **separate Preview and
+Production entries** in Vercel and may hold different values. Check both before
+collapsing them onto one Doppler value.
+
+### After any sync
+
+A Vercel sync still needs a **redeploy** to reach the running deployment, exactly
+as a manual edit does. Then confirm on both sides — `supabase secrets list` and
+the Configuration panel. Checking only one side is the original bug.
