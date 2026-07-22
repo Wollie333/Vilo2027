@@ -925,7 +925,7 @@
   border-radius: var(--site-btn-primary-radius, 999px);
 }
 .rhome .btn-ghost {
-  border-color: var(--site-btn-secondary-border, var(--site-line, #e9e1d1));
+  border-color: var(--site-line, #e9e1d1);
   border-radius: var(--site-btn-secondary-radius, 999px);
 }
 .rhome .room,

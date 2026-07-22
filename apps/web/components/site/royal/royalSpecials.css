@@ -138,7 +138,7 @@
 .rspecials .btn-ghost {
   background: transparent;
   color: var(--site-ink, #1b1915);
-  border-color: var(--site-btn-secondary-border, var(--site-line, #e7e1d6));
+  border-color: var(--site-line, #e7e1d6);
 }
 .rspecials .btn-ghost:hover {
   border-color: var(--site-accent, #b08948);

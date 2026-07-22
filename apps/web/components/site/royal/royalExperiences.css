@@ -92,7 +92,7 @@
 .rexp .btn-ghost {
   background: transparent;
   color: var(--site-ink, #241d13);
-  border-color: var(--site-btn-secondary-border, var(--site-line, #e5ddcd));
+  border-color: var(--site-line, #e5ddcd);
   border-radius: var(--site-btn-secondary-radius, 999px);
 }
 .rexp .btn-ghost:hover {

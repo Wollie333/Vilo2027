@@ -139,7 +139,7 @@
 .rrooms .btn-ghost {
   background: transparent;
   color: var(--site-ink, #0e2c3a);
-  border-color: var(--site-btn-secondary-border, var(--site-line, #e9e1d1));
+  border-color: var(--site-line, #e9e1d1);
   border-radius: var(--site-btn-secondary-radius, 999px);
 }
 .rrooms .btn-ghost:hover {
