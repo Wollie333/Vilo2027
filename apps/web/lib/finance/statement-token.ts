@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { tokenSecret } from "@/lib/auth/tokenSecret";
+import { tokenSecret, tokenSecretsForVerify } from "@/lib/auth/tokenSecret";
 
 // Ephemeral, signed token for a Statement of Account (F4). A statement is a
 // bank-style VIEW over a ledger — it mints NO document number and stores NO row.
@@ -54,12 +54,16 @@ export function verifyStatementToken(token: string): StatementToken | null {
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
 
-  const expected = createHmac("sha256", getSecret())
-    .update(body)
-    .digest("base64url");
+  // Accept any key still in the rotation window — a statement link lives in a
+  // host's email for as long as they keep it.
   const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const ok = tokenSecretsForVerify("statement").some((secret) => {
+    const b = Buffer.from(
+      createHmac("sha256", secret).update(body).digest("base64url"),
+    );
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+  if (!ok) return null;
 
   let payload: StatementToken;
   try {

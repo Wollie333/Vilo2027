@@ -6,7 +6,7 @@ import { createElement } from "react";
 
 import { ClaimAccount, ConfirmEmail, ExistingAccount } from "@vilo/emails";
 
-import { tokenSecret } from "@/lib/auth/tokenSecret";
+import { tokenSecret, tokenSecretsForVerify } from "@/lib/auth/tokenSecret";
 import { getBrandName } from "@/lib/brand";
 import { sendReactEmail } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -28,13 +28,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 3; // 3 days
 
+function signWith(secret: Buffer, payload: string): string {
+  return createHmac("sha256", secret).update(payload).digest("hex");
+}
+
 function sign(payload: string): string {
   // Was: EMAIL_VERIFY_SECRET ?? SERVICE_ROLE_KEY ?? "wielo-email-verify" — a
   // literal in this repo. Anyone could forge a verification token, and email
   // verification gates affiliate activation. See lib/auth/tokenSecret.ts.
-  return createHmac("sha256", tokenSecret("email-verify"))
-    .update(payload)
-    .digest("hex");
+  // Signing always uses the CURRENT key.
+  return signWith(tokenSecret("email-verify"), payload);
 }
 
 /** Mint a signed verification token for a user id. */
@@ -49,10 +52,14 @@ export function verifyVerificationToken(token: string): string | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [userId, expStr, sig] = parts;
-  const expected = sign(`${userId}.${expStr}`);
+  // Accept any key still in the rotation window. A verification email sits in
+  // an inbox for days — rotating the key must not silently dead-link them all.
   const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const ok = tokenSecretsForVerify("email-verify").some((secret) => {
+    const b = Buffer.from(signWith(secret, `${userId}.${expStr}`));
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+  if (!ok) return null;
   const exp = Number.parseInt(expStr, 10);
   if (!Number.isFinite(exp) || exp * 1000 < Date.now()) return null;
   return userId;

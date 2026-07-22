@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cipherKeys, currentCipherKey, decryptWithAny } from "./keys";
+
 import {
   createCipheriv,
   createDecipheriv,
@@ -30,17 +32,9 @@ const NONCE_BYTES = 12;
 const TAG_BYTES = 16;
 
 function tryLoadKey(): Buffer | null {
-  const raw = process.env.BANKING_CIPHER_KEY;
-  if (!raw) return null;
-  const key = Buffer.from(raw, "base64");
-  if (key.length !== 32) {
-    // A misconfigured key is worse than no key — it would silently produce
-    // garbage. Fail loudly so the deployer notices.
-    throw new Error(
-      `BANKING_CIPHER_KEY must decode to 32 bytes (got ${key.length}). Use \`openssl rand -base64 32\`, or unset it to store account numbers in plain text.`,
-    );
-  }
-  return key;
+  // A misconfigured key is worse than no key — it would silently produce
+  // garbage — so cipherKeys() fails loudly on a wrong-length value.
+  return currentCipherKey("BANKING_CIPHER_KEY");
 }
 
 function isEncrypted(stored: string): boolean {
@@ -95,10 +89,24 @@ export function decryptAccountNumber(stored: string): string {
   if (nonce.length !== NONCE_BYTES || tag.length !== TAG_BYTES) {
     throw new Error("decryptAccountNumber: malformed banking ciphertext");
   }
-  const decipher = createDecipheriv("aes-256-gcm", key, nonce) as DecipherGCM;
-  decipher.setAuthTag(tag);
-  const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
-  return plain.toString("utf8");
+  // Newest key first, falling back to BANKING_CIPHER_KEY_PREVIOUS during a
+  // rotation. GCM authenticates, so a wrong key throws rather than returning
+  // plausible-looking rubbish.
+  return decryptWithAny(
+    cipherKeys("BANKING_CIPHER_KEY"),
+    (k) => {
+      const decipher = createDecipheriv("aes-256-gcm", k, nonce) as DecipherGCM;
+      decipher.setAuthTag(tag);
+      return Buffer.concat([decipher.update(ct), decipher.final()]).toString(
+        "utf8",
+      );
+    },
+    () => {
+      throw new Error(
+        "decryptAccountNumber: could not decrypt with BANKING_CIPHER_KEY or BANKING_CIPHER_KEY_PREVIOUS — wrong key, or the row was encrypted with a key that is gone.",
+      );
+    },
+  );
 }
 
 // Last 4 digits of the account number, prefixed with bullets. Used wherever

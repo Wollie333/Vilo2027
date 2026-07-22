@@ -47,6 +47,55 @@ const ENV_BY_PURPOSE: Record<TokenPurpose, string> = {
   impersonation: "IMPERSONATION_TOKEN_SECRET",
 };
 
+/** Material derived from the service-role key — the no-dedicated-key fallback. */
+function derived(purpose: TokenPurpose): Buffer | null {
+  const base = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!base) return null;
+  // Domain separation: one compromised purpose must not yield the others.
+  return createHmac("sha256", base).update(`wielo/token/${purpose}`).digest();
+}
+
+/**
+ * Every secret a token may LEGITIMATELY have been signed with — newest first.
+ *
+ * Signing always uses the first entry. Verification tries them all, which is
+ * what makes a key rotatable at all: without it, changing the variable
+ * instantly invalidates every verification link, review link and statement URL
+ * already in someone's inbox, and the only symptom is customers reporting that
+ * "the link doesn't work".
+ *
+ * Order:
+ *   1. `<PURPOSE>_SECRET`           — current, used for signing
+ *   2. `<PURPOSE>_SECRET_PREVIOUS`  — the key being rotated out
+ *   3. derived from the service-role key
+ *
+ * (3) matters more than it looks: production currently has no dedicated keys,
+ * so every outstanding link is signed with derived material. Keeping it in the
+ * verify list means setting a dedicated key for the first time does NOT break
+ * links already sent — the migration is seamless in the safe direction.
+ *
+ * Rotating is then: set `_PREVIOUS` to the old value, set the main key to the
+ * new one, wait out the longest token lifetime, delete `_PREVIOUS`.
+ */
+export function tokenSecretsForVerify(purpose: TokenPurpose): Buffer[] {
+  const out: Buffer[] = [];
+  const current = process.env[ENV_BY_PURPOSE[purpose]]?.trim();
+  if (current) out.push(Buffer.from(current, "utf8"));
+
+  const previous = process.env[`${ENV_BY_PURPOSE[purpose]}_PREVIOUS`]?.trim();
+  if (previous) out.push(Buffer.from(previous, "utf8"));
+
+  const fallback = derived(purpose);
+  if (fallback) out.push(fallback);
+
+  if (out.length === 0) {
+    throw new Error(
+      `No signing secret available for "${purpose}". Set ${ENV_BY_PURPOSE[purpose]} (or SUPABASE_SERVICE_ROLE_KEY).`,
+    );
+  }
+  return out;
+}
+
 export function tokenSecret(purpose: TokenPurpose): Buffer {
   const dedicated = process.env[ENV_BY_PURPOSE[purpose]]?.trim();
   if (dedicated) return Buffer.from(dedicated, "utf8");

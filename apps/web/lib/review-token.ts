@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { tokenSecret } from "@/lib/auth/tokenSecret";
+import { tokenSecret, tokenSecretsForVerify } from "@/lib/auth/tokenSecret";
 
 /**
  * Per-booking review-submission tokens. Derived from the review signing key +
@@ -16,8 +16,8 @@ import { tokenSecret } from "@/lib/auth/tokenSecret";
  * purpose alone — so review links are not signed with the same key as
  * verification or statement links, and never with the raw DB credential.
  */
-export function signReviewToken(bookingId: string): string {
-  const mac = createHmac("sha256", tokenSecret("review"))
+function reviewTokenWith(secret: Buffer, bookingId: string): string {
+  const mac = createHmac("sha256", secret)
     .update(`review:${bookingId}`)
     .digest();
   return mac
@@ -28,14 +28,23 @@ export function signReviewToken(bookingId: string): string {
     .slice(0, 22);
 }
 
+export function signReviewToken(bookingId: string): string {
+  // Signing always uses the CURRENT key.
+  return reviewTokenWith(tokenSecret("review"), bookingId);
+}
+
 export function verifyReviewToken(
   bookingId: string,
   candidate: string,
 ): boolean {
   if (!candidate || candidate.length === 0) return false;
-  const expected = signReviewToken(bookingId);
-  if (expected.length !== candidate.length) return false;
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(candidate));
+  // Accept anything signed with a key still in the rotation window, so rotating
+  // REVIEW_TOKEN_SECRET does not dead-link every review email already sent.
+  return tokenSecretsForVerify("review").some((secret) => {
+    const expected = reviewTokenWith(secret, bookingId);
+    if (expected.length !== candidate.length) return false;
+    return timingSafeEqual(Buffer.from(expected), Buffer.from(candidate));
+  });
 }
 
 /**
