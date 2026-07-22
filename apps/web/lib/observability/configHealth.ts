@@ -256,9 +256,11 @@ export function configHealth(): ConfigCheck[] {
       key: "TURNSTILE_SECRET_KEY",
       label: "Bot protection (server)",
       group: "Integrations",
-      present: has("TURNSTILE_SECRET_KEY"),
-      impact: "Turnstile is inert — signup forms have no CAPTCHA.",
-      severity: "warning",
+      // Either name counts — Cloudflare's own setup flow says TURNSTILE_SECRET.
+      present: has("TURNSTILE_SECRET_KEY") || has("TURNSTILE_SECRET"),
+      impact:
+        "Verification FAILS OPEN: the widget renders and the server accepts any answer, so visitors solve a challenge that stops nobody. Set TURNSTILE_SECRET_KEY (or TURNSTILE_SECRET) and redeploy.",
+      severity: "critical",
     },
     {
       key: "NEXT_PUBLIC_TURNSTILE_SITE_KEY",

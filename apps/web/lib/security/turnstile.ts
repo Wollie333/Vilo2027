@@ -17,6 +17,27 @@ import "server-only";
 const SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+/**
+ * The widget secret, under either name.
+ *
+ * Cloudflare's own setup flow (and its Spin skill) tells you to store it as
+ * `TURNSTILE_SECRET`; this codebase has always read `TURNSTILE_SECRET_KEY`.
+ * Accepting both removes the single most likely way to lose an afternoon here:
+ * setting the variable exactly as Cloudflare instructed, redeploying, and
+ * having nothing change — because verification silently kept failing open under
+ * a name nothing was reading.
+ *
+ * `TURNSTILE_SECRET_KEY` wins when both are set; it is the one the config panel
+ * and the runbook name.
+ */
+export function turnstileSecret(): string | undefined {
+  return (
+    process.env.TURNSTILE_SECRET_KEY?.trim() ||
+    process.env.TURNSTILE_SECRET?.trim() ||
+    undefined
+  );
+}
+
 export type TurnstileResult =
   | { ok: true; skipped?: boolean }
   | { ok: false; reason: "missing-token" | "failed" | "error" };
@@ -33,7 +54,7 @@ export async function verifyTurnstile(
   token: string | undefined | null,
   remoteIp?: string | null,
 ): Promise<TurnstileResult> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
+  const secret = turnstileSecret();
   // Not configured → inert (honeypot still applies upstream).
   if (!secret) return { ok: true, skipped: true };
 

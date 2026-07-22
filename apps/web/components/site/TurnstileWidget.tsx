@@ -47,6 +47,7 @@ type TurnstileApi = {
       "timeout-callback"?: () => void;
       theme?: "auto" | "light" | "dark";
       appearance?: "always" | "execute" | "interaction-only";
+      action?: string;
       retry?: "auto" | "never";
       "retry-interval"?: number;
       "refresh-expired"?: "auto" | "manual" | "never";
@@ -174,6 +175,9 @@ export function TurnstileWidget({
         widgetId.current = window.turnstile.render(ref.current, {
           sitekey: TURNSTILE_SITE_KEY as string,
           theme: "auto",
+          // Cloudflare's account-level activation telemetry (aggregate, never
+          // per-user). Harmless to keep; the integration works without it.
+          action: "turnstile-spin-v2",
           // Explicit rather than relying on defaults: a transient failure must
           // keep retrying on its own, because the visitor will not know to.
           retry: "auto",

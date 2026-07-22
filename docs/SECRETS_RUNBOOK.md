@@ -42,14 +42,41 @@ Follow this order. Later steps assume earlier ones.
 
 ### Step 1 — Turnstile secret (do this first: it is a live gap)
 
-`NEXT_PUBLIC_TURNSTILE_SITE_KEY` is already set, so the widget renders — but
-`TURNSTILE_SECRET_KEY` is not, and verification **fails open**. Visitors solve a
-challenge that stops nobody.
+Everything else is already in place and verified:
 
-1. Cloudflare dashboard → Turnstile → your site → **Secret Key**
-2. Vercel → add `TURNSTILE_SECRET_KEY` → Production
-3. Redeploy
-4. Check: the Configuration panel shows Bot protection green on both rows
+- Widget **`0x4AAAAAADx7O8A2t5BqLv1Q`** ("Wielo") is embedded on all seven public
+  forms, and that exact sitekey is inlined in the deployed production bundle.
+- Server-side verification is the canonical `POST` to
+  `challenges.cloudflare.com/turnstile/v0/siteverify`, form-urlencoded, sending
+  `secret` + `response` + `remoteip`, gated on `success === true`
+  (`lib/security/turnstile.ts`).
+
+Only the secret is missing, so verification **fails open**: the widget renders,
+the server accepts any answer, and visitors solve a challenge that stops nobody.
+
+1. Cloudflare dashboard → Turnstile → the **Wielo** widget → **Secret Key**
+2. Vercel → Settings → Environment Variables → add the secret, **Production**
+   scope. Either name works: `TURNSTILE_SECRET_KEY` (preferred — what the config
+   panel and this runbook name) or `TURNSTILE_SECRET` (what Cloudflare's own
+   setup flow tells you to use). Both are read.
+3. **Redeploy** — an env change does not touch the running deployment
+4. Check: `/admin/platform/errors` → Bot protection (server) turns green
+
+Verify the secret is bound to the right widget without needing a real visitor —
+a valid secret + a junk token must answer `invalid-input-response`, and a wrong
+secret answers `invalid-input-secret`:
+
+```bash
+curl -s -X POST https://challenges.cloudflare.com/turnstile/v0/siteverify \
+  -d "secret=$TURNSTILE_SECRET_KEY" \
+  -d "response=XXXX.DUMMY.TOKEN.XXXX" | jq
+# expect: {"success":false,"error-codes":["invalid-input-response"]}
+```
+
+Also confirm the widget's **domains** include `wielo.co.za` (and `localhost` for
+local work) — Cloudflare dashboard → Turnstile → Wielo → Settings. A hostname
+missing there fails verification in production only, which is the worst place to
+discover it.
 
 After this, a visitor whose challenge genuinely fails gets a clear message
 instead of sailing through. That is the point.
