@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import {
+  ensureTurnstileToken,
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
@@ -33,14 +34,20 @@ export function QuotesSignupForm() {
       toast.error("Please accept the terms to continue.");
       return;
     }
-    if (turnstileEnabled() && !captchaToken) {
-      toast.error("Please complete the human check.");
-      return;
-    }
     start(async () => {
+      // A slow connection often lands the token AFTER the visitor is ready to
+      // submit. Wait for it here — inside the pending state, so this reads as
+      // progress — rather than refusing a submit that is moments from valid.
+      const captcha = await ensureTurnstileToken(captchaToken);
+      if (turnstileEnabled() && !captcha) {
+        toast.error(
+          "The human check didn't finish. Check your connection and try again.",
+        );
+        return;
+      }
       const r = await createQuotesAccountAction(
         { first_name: firstName, surname, email, password, terms },
-        captchaToken,
+        captcha,
         honeypot,
       );
       if (!r.ok) {

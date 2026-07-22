@@ -4,8 +4,8 @@ import { X } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 
 import {
+  ensureTurnstileToken,
   TurnstileWidget,
-  turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
 import type { SiteConversion, SiteFormDef } from "@/lib/site/types";
 
@@ -232,6 +232,9 @@ function PopupForm({
     if (!live || status === "sending") return;
     setStatus("sending");
     setError("");
+    // Wait for a still-pending challenge rather than failing the submit. We are
+    // already showing "Sending…", so the wait reads as progress.
+    const ts = await ensureTurnstileToken(tsToken);
     try {
       const res = await fetch("/api/website-form-submit", {
         method: "POST",
@@ -241,7 +244,7 @@ function PopupForm({
           form_id: form.id,
           values,
           hp,
-          ts: tsToken,
+          ts,
         }),
       });
       const result = (await res.json()) as { ok: boolean; error?: string };
@@ -371,9 +374,11 @@ function PopupForm({
 
       <button
         type="submit"
-        disabled={
-          !live || status === "sending" || (turnstileEnabled() && !tsToken)
-        }
+        // Deliberately NOT disabled on a missing Turnstile token: on a slow
+        // connection the token lands after the visitor is ready, and a dead
+        // button with no explanation is how you lose them. The submit handler
+        // waits for it instead.
+        disabled={!live || status === "sending"}
         style={{
           background: "var(--site-btn-primary-bg)",
           color: "var(--site-btn-primary-color)",

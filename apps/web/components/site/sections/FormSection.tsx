@@ -3,6 +3,7 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
 
 import {
+  ensureTurnstileToken,
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
@@ -99,6 +100,8 @@ export function FormSection({
     if (!live || !form || status === "sending") return;
     setStatus("sending");
     setError("");
+    // Wait for a still-pending challenge rather than failing the enquiry.
+    const ts = needsTurnstile ? await ensureTurnstileToken(tsToken) : tsToken;
     try {
       const res = await fetch("/api/website-form-submit", {
         method: "POST",
@@ -108,7 +111,7 @@ export function FormSection({
           form_id: form.id,
           values,
           hp,
-          ts: tsToken,
+          ts,
         }),
       });
       const result = (await res.json()) as {
@@ -495,9 +498,10 @@ export function FormSection({
       <div style={{ display: "flex", justifyContent: btnJustify }}>
         <button
           type="submit"
-          disabled={
-            !live || status === "sending" || (needsTurnstile && !tsToken)
-          }
+          // Not disabled on a missing token: the submit handler waits for a
+          // still-retrying challenge instead. This form sits on a HOST's own
+          // site — a dead button there is their lost enquiry, not just ours.
+          disabled={!live || status === "sending"}
           style={{
             background: "var(--vform-btn-bg, var(--site-btn-primary-bg))",
             color: "var(--vform-btn-fg, var(--site-btn-primary-color))",

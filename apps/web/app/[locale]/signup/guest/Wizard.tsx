@@ -34,6 +34,7 @@ import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
 import {
+  ensureTurnstileToken,
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
@@ -243,12 +244,18 @@ export function Wizard({
       setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
-    if (turnstileEnabled() && !captchaToken) {
-      toast.error("Please complete the verification challenge.");
-      return;
-    }
     setErrors({});
     startCreate(async () => {
+      // A slow connection often lands the token AFTER the visitor is ready to
+      // submit. Wait for it here — inside the pending state, so this reads as
+      // progress — rather than refusing a submit that is moments from valid.
+      const captcha = await ensureTurnstileToken(captchaToken);
+      if (turnstileEnabled() && !captcha) {
+        toast.error(
+          "The verification challenge didn't finish. Check your connection and try again.",
+        );
+        return;
+      }
       const result = await createGuestAccountAction(
         {
           first_name: data.firstName,
@@ -257,7 +264,7 @@ export function Wizard({
           password,
           terms: data.terms,
         },
-        captchaToken,
+        captcha,
         honeypot,
       );
       if (!result.ok) {

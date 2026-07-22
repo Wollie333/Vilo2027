@@ -23,8 +23,8 @@ import {
   Card,
 } from "@/components/site/sections/_shared";
 import {
+  ensureTurnstileToken,
   TurnstileWidget,
-  turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
 import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
@@ -514,13 +514,18 @@ export function SiteCheckoutForm({
     !name.trim() ||
     !email.trim() ||
     !ack ||
-    (!cardAvailable && !eftAvailable && !paypalAvailable) ||
-    (turnstileEnabled() && !tsToken);
+    (!cardAvailable && !eftAvailable && !paypalAvailable);
+  // A missing Turnstile token deliberately does NOT invalidate the form — the
+  // submit handler waits for it. Blocking checkout on a challenge that is still
+  // retrying costs a booking that would have completed.
 
   async function onSubmit() {
     if (formInvalid || submitting) return;
     setSubmitting(true);
     setError("");
+    // Wait for a still-pending challenge rather than blocking the booking. The
+    // button already reads as submitting, so the wait looks like progress.
+    const ts = await ensureTurnstileToken(tsToken);
 
     const u = new URL(window.location.href);
     const siteParam = u.searchParams.get("site");
@@ -563,7 +568,7 @@ export function SiteCheckoutForm({
           additional_guests: additionalGuests,
           policy_acknowledged: true,
           return_path: returnPath,
-          ts: tsToken,
+          ts,
         }),
       });
       const json = (await res.json()) as
