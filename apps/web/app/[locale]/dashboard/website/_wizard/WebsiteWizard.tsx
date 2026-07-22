@@ -289,7 +289,7 @@ export function WebsiteWizard(props: WizardProps) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="wz-root mx-auto max-w-6xl">
       {/* page intro + completion ring */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">

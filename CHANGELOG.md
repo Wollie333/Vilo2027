@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-22 — Wizard step internals: design focus-ring + pick-card polish.
+
+First fidelity pass on the wizard step internals (follow-up to the shell redesign).
+Added the design's signature soft **focus ring** (4px `rgba(16,185,129,.15)` glow +
+brand-primary border) to every text control, applied via a `.wz-root`-scoped rule so
+each step's inputs pick it up with no per-field edits (file/colour inputs excluded).
+Selectable **pick-cards** (palette swatches in Colours, theme cards in Theme) now lift
+on hover (`.wz-pick`, reduced-motion safe) and carry `shadow-glow` when selected.
+Verified: rule present + correct by inspection and pick-card glow computed-applied. The
+`:focus` ring itself couldn't be observed in the in-app browser — it runs without system
+focus (`document.hasFocus()` false), so `:focus` never matches there; it renders in a
+real browser. Fuller atom migration (Field/Select/Stepper/Toggle spacing) still optional.
+
 ## 2026-07-22 — Website wizard redesigned to the single-page "setup flow" pattern.
 
 Reworked the website setup wizard from a step-at-a-time conversational flow into

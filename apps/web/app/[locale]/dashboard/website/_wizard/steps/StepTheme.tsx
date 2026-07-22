@@ -52,9 +52,9 @@ export function StepTheme({
               key={theme.id}
               type="button"
               onClick={() => update({ themeId: theme.id })}
-              className={`group relative overflow-hidden rounded-card border-2 text-left transition ${
+              className={`wz-pick group relative overflow-hidden rounded-card border-2 text-left ${
                 selected
-                  ? "border-brand-primary"
+                  ? "border-brand-primary shadow-glow"
                   : "border-brand-line hover:border-brand-mute"
               }`}
             >

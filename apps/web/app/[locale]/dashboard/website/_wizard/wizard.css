@@ -11,10 +11,38 @@
   font-feature-settings: "tnum" 1;
 }
 
-/* Soft focus ring on the shell's own inputs/controls. */
-.wz-focus:focus {
+/* The design's signature soft focus ring, applied to every text control inside
+   the wizard (`.wz-root`) so each step's inputs pick it up without per-field
+   edits. Scoped to the wizard root — never leaks to the dashboard. Iframes are
+   separate documents, so the live-preview frame is unaffected. */
+.wz-root input:focus,
+.wz-root textarea:focus,
+.wz-root select:focus {
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
   border-color: #10b981;
+  outline: none;
+}
+/* File inputs / colour swatches shouldn't carry the text-field ring. */
+.wz-root input[type="file"]:focus,
+.wz-root input[type="color"]:focus {
+  box-shadow: none;
+}
+
+/* Selectable "pick" cards (palettes, themes): a gentle lift on hover. */
+.wz-pick {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.wz-pick:hover {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wz-pick:hover {
+    transform: none;
+  }
 }
 
 /* Gentle pulse on the section the reader is currently in (scroll-spy). */

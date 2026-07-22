@@ -73,9 +73,9 @@ export function StepColors({
                 key={p.key}
                 type="button"
                 onClick={() => update({ paletteIndex: i, useCustom: false })}
-                className={`relative rounded-card border-2 bg-white px-3 py-3 text-left transition ${
+                className={`wz-pick relative rounded-card border-2 bg-white px-3 py-3 text-left ${
                   selected
-                    ? "border-brand-primary shadow-sm"
+                    ? "border-brand-primary shadow-glow"
                     : "border-brand-line hover:border-brand-mute"
                 }`}
               >
@@ -102,9 +102,9 @@ export function StepColors({
 
           {/* custom accent card */}
           <label
-            className={`relative flex cursor-pointer flex-col justify-between rounded-card border-2 bg-white px-3 py-3 transition ${
+            className={`wz-pick relative flex cursor-pointer flex-col justify-between rounded-card border-2 bg-white px-3 py-3 ${
               state.useCustom
-                ? "border-brand-primary shadow-sm"
+                ? "border-brand-primary shadow-glow"
                 : "border-brand-line hover:border-brand-mute"
             }`}
           >
