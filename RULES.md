@@ -30,7 +30,47 @@ Whatever state the code is in at the end of a session — commit it. A stale wor
 
 ---
 
-## 2. Always Read the Schema Before Touching Data
+## 2. Establish Ground Truth Before You Assert or Code
+
+> **THE RULE (founder directive, non-negotiable): never assert anything before
+> you have checked the real code and the real database state.** Not "I recall",
+> not "the doc says", not "a search result says", not "it looks like". Read the
+> actual file, query the actual database, call the actual endpoint — THEN speak.
+
+This rule exists because it was broken five times in a single session
+(2026-07-22). Every retraction had the same shape: a confident claim built on a
+partial read or a stale note, corrected only because someone eventually ran the
+check that should have come first.
+
+| Claimed | Reality | What the check would have been |
+|---|---|---|
+| "Refresh-token replay works" | Intentional idempotent retry returning the same child token | Advance the family, THEN replay |
+| "A host can delete another host's property" | I picked the victim wrongly and told host1 to delete its OWN row | Take the owner id from `get_my_host_id()` under the attacker's JWT |
+| "Supabase email is broken" | The mailer was rejecting `@example.com` as undeliverable | Send to a real address |
+| "Graph API v18.0 expired, calls 400" | v18.0 answered normally | One authenticated call before believing a search result |
+| "The avatar upload validates nothing" | It rejects >4MB and non-images | Read the ten lines ABOVE the code I opened |
+
+**The cost is asymmetric.** A wrong assertion gets written into commit messages,
+code comments and docs, where it long outlives the conversation — two of the
+five nearly shipped as permanent false comments.
+
+### How to establish it
+
+- **Code:** open the whole function, not the line a grep pointed at. Guards
+  usually sit ABOVE the interesting line.
+- **Database:** `supabase db query --linked`. Rehearse destructive work inside
+  `BEGIN; … ROLLBACK;`, or a `DO $$ … RAISE EXCEPTION 'PROBE …' $$` block that
+  prints its findings and rolls back.
+- **Behaviour:** call the endpoint. **A 2xx is not proof of success and a 4xx is
+  not proof of a block** — read the BODY (see §8.1).
+- **External services:** make one real authenticated call. Search results about
+  third-party APIs are frequently wrong or stale.
+- **Docs and memory:** treat as leads, never as evidence. `docs/SCHEMA.md` is
+  generated from the live database and `scripts/audit-wiring.mjs` answers "what
+  calls this?" — prefer both over any prose, including this file.
+
+**If a check is not practical, say so plainly** — "I believe X but have not
+verified it" is always acceptable. Presenting a guess as a finding is not.
 
 ### Read supabase_database.md before any DB-related work
 Before writing a query, migration, Edge Function, or RLS policy — open `supabase_database.md` and read the relevant domain section. The schema is the source of truth. Don't guess column names, types, or relationships.
