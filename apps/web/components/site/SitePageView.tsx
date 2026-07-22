@@ -20,6 +20,7 @@ import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import { defaultCardImage } from "@/lib/site/defaultImages";
 import { parseContentProfileLoose } from "@/lib/website/contentProfile.schema";
 import { resolveEffectiveProfile } from "@/lib/website/deriveContent";
 import { usesOceansViewLayout } from "@/lib/site/themeFamily";
@@ -242,10 +243,14 @@ export async function SitePageView({
       parseContentProfileLoose(cpRow?.content_profile),
     );
     const roomsHref = roomsHrefRaw ?? "/rooms";
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -336,10 +341,14 @@ export async function SitePageView({
       parseContentProfileLoose(cpRow?.content_profile),
     );
     const roomsHref = roomsHrefRaw ?? "/rooms";
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -426,10 +435,14 @@ export async function SitePageView({
       parseContentProfileLoose(cpRow?.content_profile),
     );
     const roomsHref = roomsHrefRaw ?? "/rooms";
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -518,10 +531,14 @@ export async function SitePageView({
       parseContentProfileLoose(cpRow?.content_profile),
     );
     const roomsHref = roomsHrefRaw ?? "/rooms";
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -602,10 +619,14 @@ export async function SitePageView({
       parseContentProfileLoose(cpRow?.content_profile),
     );
     const roomsHref = roomsHrefRaw ?? "/rooms";
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -1961,10 +1982,14 @@ export async function SitePageView({
     );
     const ExperiencesComponent =
       ctx.theme.preset === "royal" ? RoyalExperiences : SafariExperiences;
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -2032,10 +2057,14 @@ export async function SitePageView({
       ctx.businessId,
       parseContentProfileLoose(cpRow?.content_profile),
     );
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -2102,10 +2131,14 @@ export async function SitePageView({
       ctx.businessId,
       parseContentProfileLoose(cpRow?.content_profile),
     );
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
@@ -2172,10 +2205,14 @@ export async function SitePageView({
       ctx.businessId,
       parseContentProfileLoose(cpRow?.content_profile),
     );
-    const experiences = (cp.experiences?.items ?? []).map((e) => ({
+    const experiences = (cp.experiences?.items ?? []).map((e, i) => ({
       title: e.title,
       body: e.body ?? null,
-      imageUrl: e.imagePath ? (websiteAssetUrl(e.imagePath) ?? null) : null,
+      // Host image wins; an empty slot falls back to a copy-relevant free-stock
+      // default so a card never renders as a blank gradient tile.
+      imageUrl: e.imagePath
+        ? (websiteAssetUrl(e.imagePath) ?? null)
+        : defaultCardImage(`${e.title} ${e.body ?? ""}`, i),
     }));
     return (
       <>
