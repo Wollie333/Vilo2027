@@ -230,17 +230,25 @@ into the Supabase config.** That runtime injects them itself and reserves the
 
 ### Structure
 
-A root config holding the shared values, with two branch configs inheriting it:
+A branch config **implicitly inherits everything** from its environment's root
+config — no `--inherits` flag needed (verified on this project: a secret set in
+`prd` appeared in `prd_supabase` immediately). Inheritance is total, so the root
+must hold **only** what both runtimes need:
 
 ```
 wielo
-├── prd            ← the three cipher keys + the two worker secrets live HERE, once
-    ├── prd_vercel   → Vercel sync (Production)   — all 42
-    └── prd_supabase → Supabase sync              — only the six above
+├── prd            ← ONLY the 6 shared secrets. Anything here reaches BOTH.
+    ├── prd_vercel   → Vercel sync (Production) — the other 36 live here
+    └── prd_supabase → Supabase sync — adds nothing of its own
 ```
 
 Enter a cipher key once in `prd`; both branches inherit it. That is the property
 that makes the §2 failure impossible to repeat.
+
+⚠️ **Do not put the other 36 in `prd`.** Because inheritance is total, they would
+be pushed into the Edge Function runtime too — including `SUPABASE_`-prefixed
+names, which that runtime reserves. Vercel-only variables belong in
+`prd_vercel`.
 
 ### Order of adoption — least destructive first
 
