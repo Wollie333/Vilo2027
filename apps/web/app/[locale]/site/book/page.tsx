@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteCurrencyProvider } from "@/components/site/SiteCurrencyProvider";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { commerceParams } from "@/lib/analytics/pixel";
 import { hostHasValidEft } from "@/lib/payments/eft";
@@ -457,60 +458,62 @@ export default async function SiteBookPage({
   );
 
   return (
-    <SiteThemeRoot theme={ctx.theme}>
-      <SiteChrome
-        brand={ctx.brand}
-        nav={ctx.nav}
-        navigation={ctx.navigation}
-        conversion={ctx.conversion}
-        analytics={ctx.analytics}
-        layout={ctx.layout}
-        popupForm={ctx.popupForm}
-        websiteId={ctx.websiteId}
-        bookHref={
-          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
-        }
-        darkChrome={siteSurfaceIsDark(ctx.theme)}
-        preset={ctx.theme.preset}
-        header={ctx.theme.header}
-        footer={ctx.theme.footer}
-        preview={
-          ctx.preview
-            ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
-            : undefined
-        }
-        previewPages={previewPages}
-        pageHasHero={false}
-      >
-        {/* Meta InitiateCheckout — reaching the checkout starts the funnel. On a
+    <SiteCurrencyProvider>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SiteChrome
+          brand={ctx.brand}
+          nav={ctx.nav}
+          navigation={ctx.navigation}
+          conversion={ctx.conversion}
+          analytics={ctx.analytics}
+          layout={ctx.layout}
+          popupForm={ctx.popupForm}
+          websiteId={ctx.websiteId}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          darkChrome={siteSurfaceIsDark(ctx.theme)}
+          preset={ctx.theme.preset}
+          header={ctx.theme.header}
+          footer={ctx.theme.footer}
+          preview={
+            ctx.preview
+              ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+              : undefined
+          }
+          previewPages={previewPages}
+          pageHasHero={false}
+        >
+          {/* Meta InitiateCheckout — reaching the checkout starts the funnel. On a
             host micro-site the ONLY pixel loaded is the host's own (the Wielo
             platform pixel is suppressed on tenant renders), so this fires to the
             host's pixel. Consent-gated like the site's other events; skipped in
             preview. */}
-        {!ctx.preview ? (
-          <FirePixelEvent
-            event="InitiateCheckout"
-            // Gate on the HOST's own consent setting so InitiateCheckout fires
-            // under the exact same condition their pixel loads (SiteMarketing
-            // loads the pixel immediately when the host turned the gate off, and
-            // only after accept when it's on).
-            consentRequired={ctx.analytics?.cookieConsent?.enabled !== false}
-            params={commerceParams({
-              contentIds: [property.id],
-              contentName: property.name,
-              currency: special?.currency ?? property.currency ?? "ZAR",
-              ...(special?.total != null
-                ? { value: special.total }
-                : property.base_price != null
-                  ? { value: Number(property.base_price) }
-                  : {}),
-            })}
-          />
-        ) : null}
-        <BookingStyleOverlay node={bookingStyle} sectionType="booking_form">
-          {checkout}
-        </BookingStyleOverlay>
-      </SiteChrome>
-    </SiteThemeRoot>
+          {!ctx.preview ? (
+            <FirePixelEvent
+              event="InitiateCheckout"
+              // Gate on the HOST's own consent setting so InitiateCheckout fires
+              // under the exact same condition their pixel loads (SiteMarketing
+              // loads the pixel immediately when the host turned the gate off, and
+              // only after accept when it's on).
+              consentRequired={ctx.analytics?.cookieConsent?.enabled !== false}
+              params={commerceParams({
+                contentIds: [property.id],
+                contentName: property.name,
+                currency: special?.currency ?? property.currency ?? "ZAR",
+                ...(special?.total != null
+                  ? { value: special.total }
+                  : property.base_price != null
+                    ? { value: Number(property.base_price) }
+                    : {}),
+              })}
+            />
+          ) : null}
+          <BookingStyleOverlay node={bookingStyle} sectionType="booking_form">
+            {checkout}
+          </BookingStyleOverlay>
+        </SiteChrome>
+      </SiteThemeRoot>
+    </SiteCurrencyProvider>
   );
 }

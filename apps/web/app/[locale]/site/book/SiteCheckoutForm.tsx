@@ -28,6 +28,31 @@ import {
 } from "@/components/site/TurnstileWidget";
 import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
+import { Money } from "@/components/currency/Money";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
+
+// A browsing ESTIMATE of the total in the guest's chosen display currency, shown
+// under the (always native-currency) Total when they've switched currency. Purely
+// informational — the charge is always the host's settlement currency, so the
+// line spells that out. Renders nothing while the display matches the charge
+// currency (no conversion to show). Uses <Money>, which only ever converts a ZAR
+// base and marks it "≈"; a non-ZAR settlement amount renders natively.
+function TotalEstimate({
+  total,
+  chargeCurrency,
+}: {
+  total: number | null;
+  chargeCurrency: string;
+}) {
+  const { enabled, currency: display } = useCurrency();
+  if (!enabled || total == null || display === chargeCurrency) return null;
+  return (
+    <p className="mt-1 text-xs" style={{ color: "var(--site-mute)" }}>
+      <Money amount={total} currency={chargeCurrency} /> — estimate only;
+      you&apos;re charged in {chargeCurrency}.
+    </p>
+  );
+}
 import { SiteThemeModal } from "@/components/site/SiteThemeModal";
 
 export type CheckoutRoom = {
@@ -1317,6 +1342,10 @@ export function SiteCheckoutForm({
                     : (money(quote?.total ?? null, currency) ?? "—")}
                 </span>
               </div>
+              <TotalEstimate
+                total={quote?.total ?? null}
+                chargeCurrency={currency}
+              />
               <Muted className="text-xs">
                 Final price is confirmed on the next step.
               </Muted>
