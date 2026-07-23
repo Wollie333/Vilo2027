@@ -403,11 +403,22 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
   // Auto menus: fill the flagged Rooms / Specials items' dropdowns with the
   // site's current rooms / specials (minus hidden) so the menu is always up to
   // date — public + preview. Each detail link nests under its listing item.
-  let menu = navigation.menu ?? [];
-  // The Specials listing item opts into its auto-dropdown even when the stored
-  // menu predates the flag (so existing sites get the offers dropdown too, the
-  // same way the Rooms item is flagged at build time). A host who built a manual
-  // Specials submenu (own children) keeps it — we never override that.
+  // Seed the working menu from the host's configured navigation when they have
+  // one, else from the page-derived nav — so the auto Rooms/Specials dropdowns
+  // work on DEFAULT (wizard-built) sites too, not only hand-built menus.
+  let menu: SiteMenuItem[] =
+    navigation.menu && navigation.menu.length > 0
+      ? navigation.menu
+      : nav.map((n) => ({ id: n.href, label: n.label, href: n.href }));
+  // The Rooms and Specials listing items opt into their auto-dropdown even when
+  // the stored menu predates the flag (so existing + wizard-built sites get the
+  // per-room / per-offer dropdown). A host who built their own submenu (own
+  // children) keeps it — we never override that.
+  menu = menu.map((i) =>
+    i.autoRooms || i.children?.length || !/(^|\/)rooms$/.test(i.href)
+      ? i
+      : { ...i, autoRooms: true },
+  );
   menu = menu.map((i) =>
     i.autoSpecials || i.children?.length || !/(^|\/)specials$/.test(i.href)
       ? i
