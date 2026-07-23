@@ -200,7 +200,7 @@
   background: var(--site-surface, #ffffff);
   border-radius: var(--site-radius, 16px);
   padding: 18px 22px;
-  box-shadow: 0 24px 50px -22px rgba(10, 34, 48, 0.4);
+  box-shadow: 0 24px 50px -22px rgba(22, 19, 14, 0.4);
 }
 .rrooms .float-badge b {
   display: block;

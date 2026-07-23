@@ -362,7 +362,7 @@
   padding: 9px 15px;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 12px 30px -14px rgba(10, 34, 48, 0.5);
+  box-shadow: 0 12px 30px -14px rgba(22, 19, 14, 0.5);
   cursor: zoom-in;
   transition: transform 0.25s;
 }
@@ -421,7 +421,7 @@
   border: 1px solid var(--site-line, #e9e1d1);
   border-radius: var(--site-radius-lg, 22px);
   padding: 26px;
-  box-shadow: 0 30px 60px -32px rgba(10, 34, 48, 0.36);
+  box-shadow: 0 30px 60px -32px rgba(22, 19, 14, 0.36);
 }
 .rroom .bktrust {
   display: flex;
@@ -560,7 +560,7 @@
 }
 .rroom .scard:hover {
   transform: translateY(-4px);
-  box-shadow: 0 24px 44px -26px rgba(10, 34, 48, 0.3);
+  box-shadow: 0 24px 44px -26px rgba(22, 19, 14, 0.3);
 }
 .rroom .scard.best {
   border-color: var(--site-accent, #12a5b5);
@@ -866,7 +866,7 @@
 }
 .rroom .room:hover {
   transform: translateY(-8px);
-  box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
+  box-shadow: 0 36px 60px -30px rgba(22, 19, 14, 0.34);
 }
 .rroom .room:hover .room-img img {
   transform: scale(1.05);
@@ -887,7 +887,7 @@
   );
   font-weight: 800;
   font-size: 15px;
-  box-shadow: 0 10px 24px -10px rgba(10, 34, 48, 0.4);
+  box-shadow: 0 10px 24px -10px rgba(22, 19, 14, 0.4);
 }
 .rroom .room-price small {
   font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);

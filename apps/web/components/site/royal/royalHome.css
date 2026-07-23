@@ -359,7 +359,7 @@
 .rhome .availbar-in {
   background: var(--site-surface, #ffffff);
   border-radius: var(--site-radius-lg, 22px);
-  box-shadow: 0 30px 70px -30px rgba(10, 34, 48, 0.4);
+  box-shadow: 0 30px 70px -30px rgba(22, 19, 14, 0.4);
   display: grid;
   grid-template-columns: repeat(3, 1fr) auto;
   gap: 0;
@@ -455,7 +455,7 @@
   background: var(--site-surface, #ffffff);
   border-radius: var(--site-radius, 16px);
   padding: 18px 22px;
-  box-shadow: 0 24px 50px -22px rgba(10, 34, 48, 0.4);
+  box-shadow: 0 24px 50px -22px rgba(22, 19, 14, 0.4);
 }
 .rhome .float-badge b {
   display: block;
@@ -497,7 +497,7 @@
 }
 .rhome .room:hover {
   transform: translateY(-8px);
-  box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
+  box-shadow: 0 36px 60px -30px rgba(22, 19, 14, 0.34);
 }
 .rhome .room-img {
   position: relative;
@@ -529,7 +529,7 @@
   );
   font-weight: 800;
   font-size: 15px;
-  box-shadow: 0 10px 24px -10px rgba(10, 34, 48, 0.4);
+  box-shadow: 0 10px 24px -10px rgba(22, 19, 14, 0.4);
 }
 .rhome .room-price small {
   font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
@@ -596,7 +596,7 @@
 }
 .rhome .tile:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 50px -28px rgba(10, 34, 48, 0.3);
+  box-shadow: 0 30px 50px -28px rgba(22, 19, 14, 0.3);
 }
 .rhome .tile .ic {
   width: 52px;
