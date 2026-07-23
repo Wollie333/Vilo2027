@@ -84,6 +84,9 @@
   max-width: 720px;
   margin-bottom: clamp(38px, 5vw, 60px);
 }
+.rarticle .sec-head h2 {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+}
 
 /* -- buttons ------------------------------------------------------------- */
 .rarticle .btn {

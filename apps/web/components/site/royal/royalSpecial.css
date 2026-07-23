@@ -111,6 +111,11 @@
   max-width: 680px;
   margin-bottom: clamp(28px, 4vw, 44px);
 }
+/* Section headings use the reference sec-head scale (smaller than page h2.lg),
+   matching every other royal page. */
+.rspecial .sec-head h2 {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+}
 /* Champagne rule under the "more offers" section head. */
 .rspecial .sec-head h2.lg::after {
   content: "";

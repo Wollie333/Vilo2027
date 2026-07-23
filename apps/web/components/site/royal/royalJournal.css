@@ -107,6 +107,9 @@
   max-width: 680px;
   margin-bottom: clamp(38px, 5vw, 60px);
 }
+.rjournal .sec-head h2 {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+}
 .rjournal .sec-head.center {
   margin-inline: auto;
   display: flex;
