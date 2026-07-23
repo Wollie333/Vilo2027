@@ -51,12 +51,20 @@ export function RoyalExperiences({
   // Decorative chrome only (page head + closing banner) — never a fabricated claim.
   const ctaImg =
     "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=2000&q=80";
+  // Dark photo hero (matches the reference Experiences phead + the other Royal
+  // pages) so the transparent header stays legible — the first experience's
+  // photo, else a warm fallback.
+  const headImg =
+    (list[0]?.imageUrl
+      ? (asset(list[0].imageUrl) ?? list[0].imageUrl)
+      : null) || ctaImg;
 
   return (
     <div className="rexp">
-      {/* PAGE HEAD — centred, formal (champagne/charcoal panel, no photo prop) */}
+      {/* PAGE HEAD — dark photo hero, left-aligned (matches the reference) */}
       <section className="phead">
-        <div className="phead-bg" aria-hidden />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={siteImageUrl(headImg, { width: 2560 })} alt={brandName} />
         <div className="wrap">
           <div className="crumbs">
             <a href="/">Home</a>
