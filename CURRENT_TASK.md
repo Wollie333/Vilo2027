@@ -27,9 +27,16 @@ included); export feed is token-gated with a generic SUMMARY (no guest PII); web
 + mobile expo-secure-store (zero localStorage/AsyncStorage tokens); zero hardcoded keys; `/privacy`+
 `/terms` live + data-deletion flow present.
 
-**Next:** §5 Sentry-breadcrumb PII review; §7 CSP (deferred to live-QA); scattered dashboard/founder-only
-items (Supabase region, JWT expiry, OAuth callback URL, Google Maps key restriction). Go-live flips
-(`docs/SMOKE_TESTS.md` §0.5 G1–G4) deferred on purpose.
+**§5 PII review DONE** (no Sentry; app's `error_events` is RLS-locked deny-by-default, service-role-read
+only; guest reads `[]`). **§1 email verification reviewed** — SOFT by design (nag + affiliate gate, not
+a hard onboarding block); 🔑 founder decision whether beta hard-gates real bookings/payouts on a
+verified email.
+
+**App-side security checklist is now fully reviewed** (78 green). The 9 remaining `[ ]` are all
+dashboard/founder-only (JWT expiry, OAuth callback, Supabase region, Maps key), deferred-on-purpose
+(Paystack live keys → launch day; CSP → live-QA), or accepted-for-beta notes (directory-read rate
+limit, push copy). **Next options:** the pt74 open items (PayPal recurring, seed live directory
+properties, campaign `host_offer`) or the founder go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4).
 
 ---
 

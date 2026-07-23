@@ -31,8 +31,20 @@ app-side items are now nearly all verified; what remains is dashboard/founder-on
 - **§10 POPIA:** `/privacy` + `/terms` live (DB-doc render), cookie banner present, data-deletion flow
   exists (`app_purge_user_account`). PostHog is not in app code → its two items marked N/A. Region is
   a dashboard check.
-- **Still open:** §5 Sentry-breadcrumb PII review; §7 CSP (deferred to live-QA); scattered dashboard/
-  founder items (Supabase region, JWT expiry, OAuth callback URL, Google Maps key restriction).
+- **§5 PII review — DONE.** There is NO Sentry (no package/config/import). Errors go to the app's own
+  `error_events` via `reportError`→`record_error_event`: stores message/stack/url + a uuid user_id
+  (server-resolved, oracle fixed pt63), fingerprint scrubbed. **`error_events` has RLS enabled with
+  ZERO policies → deny-by-default; only the service-role admin client reads it, behind the
+  `platform.settings`-gated errors page** (guest reads `[]`, proven). Residual (low, acceptable): raw
+  message/stack not actively PII-scrubbed, but only ops/super_admin can see it.
+- **§1 email verification — reviewed, it is SOFT by design.** GoTrue auto-confirms, so the app tracks
+  `user_profiles.email_verified_at` via a stateless HMAC-signed link (dedicated secret, not the service
+  role). It gates a nag banner + affiliate activation, NOT host onboarding/bookings. 🔑 **FOUNDER
+  DECISION for beta:** nag vs hard-gate real bookings/payouts on a verified email (affiliate payout is
+  already gated; host money runs through the host's own verified Paystack/PayPal).
+- **App-side checklist now fully reviewed: 78→ green, 9 remaining are dashboard/founder-only (JWT
+  expiry, OAuth callback URL, Supabase region, Google Maps key) or deferred-on-purpose (Paystack live
+  keys → launch day, CSP → live-QA) or accepted-for-beta notes (directory-read rate limit, push copy).**
 
 ## 2026-07-23 (pt75) — SECURITY_CHECKLIST §2 + §3 + §5 + §6 verified live.
 

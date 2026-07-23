@@ -56,9 +56,20 @@ dashboard items (token rotation, JWT expiry, login rate limiting) are founder-on
 
 App-side items verified 2026-07-23 (dashboard-only items covered in pt64).
 
-- [ ] Email verification required before host onboarding can complete — mechanism
-  exists (`app/verify-email/route.ts`, `email_confirmed_at` checks); the onboarding
-  completion gate itself not re-traced this pass.
+- [~] **Email verification is SOFT by design — reviewed 2026-07-23.** GoTrue runs
+  with auto-confirm ON (`enable_confirmations=false`), so Supabase's
+  `email_confirmed_at` is meaningless as an inbox-ownership signal. The app tracks
+  its OWN `user_profiles.email_verified_at`, set via a **stateless HMAC-signed**
+  verify link (3-day TTL, key-rotation-aware, constant-time verify, signed with a
+  dedicated `email-verify` secret — NOT the service-role key;
+  `lib/auth/verifyEmail.ts`). ⚠️ But it **gates a nag banner + affiliate activation,
+  NOT host onboarding / listing creation / taking bookings** — a host can operate
+  with an unverified email. That's a deliberate conversion-vs-friction choice, not a
+  bug. 🔑 **FOUNDER DECISION for beta:** is a nag enough, or should real bookings /
+  payouts hard-require a verified email? The money-sensitive path (affiliate payout)
+  is already gated; host booking money runs through the host's OWN
+  Paystack/PayPal (independently verified), so the practical risk is mainly missed
+  notifications to a typo'd address.
 - [x] Password min 8 — set in the Supabase dashboard (pt64, raised 6→8).
 - [x] Login rate limiting — Supabase built-in confirmed active (pt64); app-side
   signup/re-auth throttle in `lib/auth/rateLimit.ts` (see §3).
@@ -389,9 +400,21 @@ Verified 2026-07-23 against the live database (probed, not read from code).
   the one live row is NULL. Refunds return through the **original** payment
   provider (Paystack/PayPal), so no guest bank account is ever collected. The
   column is unused schema — don't "wire encryption" for data that is never stored.
-- [ ] No PII in error logs (no emails, phone numbers, or names in Sentry
-  breadcrumbs) — obvious grep is clean (see next item); a full Sentry-breadcrumb
-  review is still outstanding.
+- [x] **No PII in error logs — reviewed 2026-07-23.** ⚠️ There is NO Sentry (no
+  `@sentry` package, config, or import anywhere) — so there is no third-party
+  breadcrumb sink to leak into. Errors go to the app's OWN sink: `reportError`
+  (`lib/observability/reportError.ts`) → `record_error_event` → the `error_events`
+  table. It stores `message`/`stack`/`url` (truncated) + a **uuid** `user_id`
+  resolved SERVER-side (never a client-supplied identity; the enumeration oracle was
+  fixed in pt63), never an email/name/phone field. The grouping *fingerprint* is
+  scrubbed (strips uuids, long digit runs, long path segments). **Access is airtight:
+  `error_events` has RLS ENABLED with ZERO policies → deny-by-default; only the
+  service-role admin client can read it, behind the `platform.settings`-gated
+  `/admin/platform/errors` page.** Proven live: an authenticated guest reads `[]`.
+  Residual (low, acceptable for beta): the raw `message`/`stack` text is not actively
+  scrubbed, so a PII substring baked into an error string would be stored — but only
+  ops/super_admin can ever see it. A `beforeStore` scrubber is a nice-to-have, not a
+  launch blocker.
 - [x] **No secret VALUES or PII in production logs.** Grepped every
   `console.*` in `apps/web` for `account_number|secret|password|api_key|token|
   cipher`: the only hits are (1) dev **seed scripts** printing *test* account
@@ -686,7 +709,7 @@ the export route (NOT the in-repo worktree copies, which greps also surface).
 - [~] **Feed error states** — stored generic + truncated (`last_error = message.slice(0,
   500)`); the SSRF/fetch messages returned are user-safe ("That address isn't allowed").
   ⚠️ One path returns `rpcError.message` (a Postgres message) to the host's OWN feed UI —
-  low risk (their own feed), consider routing to Sentry + a friendly string.
+  low risk (their own feed), consider a friendly string + `reportError` (there is no Sentry).
 - [n/a] Rotating an export token — **no per-listing rotation exists yet** (Phase 3, with
   the `ical_feeds` migration); global rotation = rotating `ICAL_TOKEN_SECRET`. Nothing to
   warn about until the feature ships.
