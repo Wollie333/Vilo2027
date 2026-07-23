@@ -429,6 +429,9 @@ async function main() {
       full_name: "Lerato Mahlangu",
       email: GUEST_EMAIL,
       phone: "+27829990001",
+      // Pre-verified so the hard email-verification wall doesn't block the seed
+      // account (real signups earn this by clicking the emailed link).
+      email_verified_at: new Date().toISOString(),
     },
   ]);
   console.log(`  guest  ${GUEST_EMAIL}`);
@@ -437,7 +440,15 @@ async function main() {
     const user = await ensureAuthUser(h.email, PASSWORD);
 
     await up("user_profiles", [
-      { id: user.id, role: "host", email: h.email, ...h.profile },
+      {
+        id: user.id,
+        role: "host",
+        email: h.email,
+        // Pre-verified so the hard email-verification wall doesn't block the
+        // seed host (real signups earn this by clicking the emailed link).
+        email_verified_at: new Date().toISOString(),
+        ...h.profile,
+      },
     ]);
 
     // hosts INSERT → default business + the full policy set, via triggers.

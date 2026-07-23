@@ -56,20 +56,25 @@ dashboard items (token rotation, JWT expiry, login rate limiting) are founder-on
 
 App-side items verified 2026-07-23 (dashboard-only items covered in pt64).
 
-- [~] **Email verification is SOFT by design — reviewed 2026-07-23.** GoTrue runs
-  with auto-confirm ON (`enable_confirmations=false`), so Supabase's
-  `email_confirmed_at` is meaningless as an inbox-ownership signal. The app tracks
-  its OWN `user_profiles.email_verified_at`, set via a **stateless HMAC-signed**
-  verify link (3-day TTL, key-rotation-aware, constant-time verify, signed with a
-  dedicated `email-verify` secret — NOT the service-role key;
-  `lib/auth/verifyEmail.ts`). ⚠️ But it **gates a nag banner + affiliate activation,
-  NOT host onboarding / listing creation / taking bookings** — a host can operate
-  with an unverified email. That's a deliberate conversion-vs-friction choice, not a
-  bug. 🔑 **FOUNDER DECISION for beta:** is a nag enough, or should real bookings /
-  payouts hard-require a verified email? The money-sensitive path (affiliate payout)
-  is already gated; host booking money runs through the host's OWN
-  Paystack/PayPal (independently verified), so the practical risk is mainly missed
-  notifications to a typo'd address.
+- [x] **Email verification is now HARD-REQUIRED — implemented 2026-07-23 (founder
+  directive).** GoTrue runs auto-confirm ON, so the app tracks its OWN
+  `user_profiles.email_verified_at`, set via a **stateless HMAC-signed** verify link
+  (3-day TTL, rotation-aware, constant-time verify, dedicated `email-verify` secret —
+  NOT the service-role key; `lib/auth/verifyEmail.ts`). **Every signed-in non-staff
+  user is now WALLED** at `/verify-email-required` until they confirm:
+  - **UI layer** — `dashboard/layout.tsx` + `portal/layout.tsx` redirect unverified
+    non-staff to the wall (mirrors the `/suspended` wall; the page bounces a
+    verified/staff user back so nobody is stranded). Platform staff exempt.
+  - **Server layer** — `requireHost()` + `assertFullHost()` (`lib/host/current.ts`)
+    reject unverified callers with `EMAIL_NOT_VERIFIED_ERROR`, so a crafted action
+    call can't skip the UI wall. Fails OPEN only on an unreadable profile row.
+  - **Guest booking is deliberately NOT blocked** — the directory booking flow
+    creates the account inline and sends this very verification email, so blocking it
+    would break first-time booking; the wall covers the persistent portal instead.
+  - **Verified live** (dev): unverified `guest@` → both `/dashboard` and `/portal`
+    redirect to the wall (correct email shown); after verifying, the portal renders;
+    a verified/staff user is bounced off the wall. Seed scripts pre-stamp
+    `email_verified_at` so re-seeds aren't walled.
 - [x] Password min 8 — set in the Supabase dashboard (pt64, raised 6→8).
 - [x] Login rate limiting — Supabase built-in confirmed active (pt64); app-side
   signup/re-auth throttle in `lib/auth/rateLimit.ts` (see §3).

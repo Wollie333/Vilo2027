@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-23 (pt76) — Email verification is now HARD-REQUIRED (founder directive).
+
+Flipped email verification from a soft nag to a hard wall. Every signed-in non-staff user must
+confirm their inbox before using the app.
+
+- **New wall** `/verify-email-required` (`app/[locale]/verify-email-required/`) — friendly page with
+  Resend + "I've confirmed — continue" + Sign out; bounces a verified/staff user back so nobody is
+  stranded (mirrors the `/suspended` pattern).
+- **UI gate**: `dashboard/layout.tsx` + `portal/layout.tsx` redirect unverified non-staff to the wall.
+- **Server gate**: `requireHost()` + `assertFullHost()` (`lib/host/current.ts`) now reject unverified
+  callers with `EMAIL_NOT_VERIFIED_ERROR` (one combined `loadAccountFlags` query for suspension +
+  verification; fails OPEN on an unreadable row) — so a crafted Server Action can't skip the UI wall.
+- **Guest booking is intentionally NOT blocked** — the directory booking flow creates the account
+  inline and sends the verification email, so the wall covers the persistent portal, not the sale.
+- Platform staff exempt. Seed scripts (starter/demo/single-host/test-site) now pre-stamp
+  `email_verified_at` so re-seeds aren't walled; existing test accounts stamped verified.
+- **Verified live** (dev): unverified `guest@` → `/dashboard` and `/portal` both redirect to the wall
+  (correct email shown); after verifying, the portal renders; verified/staff bounced off the wall.
+  tsc + eslint clean.
+
 ## 2026-07-23 (pt75) — SECURITY_CHECKLIST §1 §2 §3 §5 §6 §8 §10 §11 §12 verified.
 
 Continued the checklist pass into auth/session, calendar-sync, mobile, secrets, and POPIA — the

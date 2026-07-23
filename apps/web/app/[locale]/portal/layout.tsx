@@ -66,6 +66,18 @@ export default async function PortalLayout({
     redirect("/suspended");
   }
 
+  // Hard email-verification wall (see dashboard/layout.tsx for the rationale).
+  // Every signed-in non-staff user must confirm their inbox before using the
+  // app. A guest can still COMPLETE a booking (that flow creates the account and
+  // sends this very email); this only walls the persistent portal surfaces.
+  if (
+    staff?.is_active !== true &&
+    !(profile as { email_verified_at?: string | null } | null)
+      ?.email_verified_at
+  ) {
+    redirect("/verify-email-required");
+  }
+
   const displayName = profile?.full_name ?? user.email ?? "Guest";
   // canHost = hosts row OR user_profiles.role='host'. Lets the switcher
   // surface "Host workspace" for mid-signup hosts whose hosts row wasn't

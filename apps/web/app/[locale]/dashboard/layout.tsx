@@ -76,6 +76,20 @@ export default async function DashboardLayout({
     redirect("/suspended");
   }
 
+  // Hard email-verification wall. Every signed-in non-staff user must confirm
+  // their inbox before using the app (founder directive — a verified email is
+  // required to operate: it's where booking, payment and notification mail go,
+  // and it's the identity the affiliate programme is built on). Mirrors the
+  // /suspended wall; host Server Actions are blocked independently in
+  // requireHost/assertFullHost so a crafted call can't skip this.
+  if (
+    !isPlatformStaff &&
+    !(profileRow as { email_verified_at?: string | null } | null)
+      ?.email_verified_at
+  ) {
+    redirect("/verify-email-required");
+  }
+
   // Quote-only accounts (or any host an admin bounced off the platform) get a
   // scoped shell — only the quote surfaces, everything else gated off.
   const scope = resolveAccountScope(

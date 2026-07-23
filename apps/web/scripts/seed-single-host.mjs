@@ -113,7 +113,8 @@ async function main() {
   const hostUser = await ensureAuthUser(HOST_EMAIL, HOST_PASSWORD);
   const HOST_UID = hostUser.id;
   await up("user_profiles", [
-    { id: HOST_UID, role: "host", full_name: "Lerato Nkosi", email: HOST_EMAIL, phone: "+27820001111" },
+    // email_verified_at pre-set so the hard email-verification wall doesn't block the seed host.
+    { id: HOST_UID, role: "host", full_name: "Lerato Nkosi", email: HOST_EMAIL, phone: "+27820001111", email_verified_at: new Date().toISOString() },
   ]);
 
   // 2. Host — fully verified so it can use the whole system.

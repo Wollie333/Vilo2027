@@ -18,19 +18,37 @@ export const FULL_HOST_ONLY_ERROR =
 export const ACCOUNT_SUSPENDED_ERROR =
   "Your account is suspended. Contact support to restore access.";
 
-/** True when the signed-in user's profile is suspended (is_active = false). */
-async function isSuspended(
+// The error an UNVERIFIED account (user_profiles.email_verified_at IS NULL) gets
+// on any host action. A verified email is hard-required to operate (founder
+// directive) — the dashboard/portal layouts wall the UI, and this is the
+// SERVER-SIDE boundary so a scripted/crafted action call is rejected even though
+// the wall never rendered.
+export const EMAIL_NOT_VERIFIED_ERROR =
+  "Please confirm your email before doing this. Check your inbox for the link.";
+
+/**
+ * Load the two account flags every host guard needs in a single query:
+ * suspension and app-level email verification. Only a DEFINITIVE state counts —
+ * a missing row / read hiccup must not lock a legitimate host out of their own
+ * actions (so `suspended` needs `is_active === false`, and `emailVerified`
+ * defaults to TRUE when the row can't be read).
+ */
+async function loadAccountFlags(
   supabase: ReturnType<typeof createServerClient>,
   userId: string,
-): Promise<boolean> {
+): Promise<{ suspended: boolean; emailVerified: boolean }> {
   const { data } = await supabase
     .from("user_profiles")
-    .select("is_active")
+    .select("is_active, email_verified_at")
     .eq("id", userId)
     .maybeSingle();
-  // Only a definitive `false` suspends — a missing row / read hiccup must not
-  // lock a legitimate host out of their own actions.
-  return data?.is_active === false;
+  return {
+    suspended: data?.is_active === false,
+    // Fail OPEN on a missing/unreadable row: only a row we can read with a NULL
+    // timestamp is treated as unverified, so a transient read error never walls
+    // a real host mid-action.
+    emailVerified: data ? data.email_verified_at != null : true,
+  };
 }
 
 /**
@@ -78,8 +96,12 @@ export async function requireHost(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
-  if (await isSuspended(supabase, user.id)) {
+  const flags = await loadAccountFlags(supabase, user.id);
+  if (flags.suspended) {
     return { ok: false, error: ACCOUNT_SUSPENDED_ERROR };
+  }
+  if (!flags.emailVerified) {
+    return { ok: false, error: EMAIL_NOT_VERIFIED_ERROR };
   }
   const { data } = await supabase
     .from("hosts")
@@ -109,8 +131,12 @@ export async function assertFullHost(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
-  if (await isSuspended(supabase, user.id)) {
+  const flags = await loadAccountFlags(supabase, user.id);
+  if (flags.suspended) {
     return { ok: false, error: ACCOUNT_SUSPENDED_ERROR };
+  }
+  if (!flags.emailVerified) {
+    return { ok: false, error: EMAIL_NOT_VERIFIED_ERROR };
   }
   const { data } = await supabase
     .from("hosts")

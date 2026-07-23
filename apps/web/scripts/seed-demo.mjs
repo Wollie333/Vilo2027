@@ -155,8 +155,9 @@ async function main() {
   const GUEST_UID = guestUser.id;
 
   await up("user_profiles", [
-    { id: HOST_UID, role: "host", full_name: "Thandi Mokoena", email: HOST_EMAIL, phone: "+27821234567" },
-    { id: GUEST_UID, role: "guest", full_name: "Sipho Dlamini", email: GUEST_EMAIL, phone: "+27829876543" },
+    // email_verified_at pre-set so the hard email-verification wall doesn't block seed accounts.
+    { id: HOST_UID, role: "host", full_name: "Thandi Mokoena", email: HOST_EMAIL, phone: "+27821234567", email_verified_at: new Date().toISOString() },
+    { id: GUEST_UID, role: "guest", full_name: "Sipho Dlamini", email: GUEST_EMAIL, phone: "+27829876543", email_verified_at: new Date().toISOString() },
   ]);
 
   // 2. Host + subscription + banking

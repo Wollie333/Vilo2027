@@ -160,6 +160,8 @@ async function main() {
       full_name: "Lerato van Wyk",
       email: HOST_EMAIL,
       phone: "+27 82 555 0142",
+      // Pre-verified so the hard email-verification wall doesn't block the seed host.
+      email_verified_at: new Date().toISOString(),
     },
   ]);
 
@@ -453,6 +455,8 @@ async function main() {
       full_name: "Sipho Dlamini",
       email: "guest@vilotest.com",
       phone: "+27 82 987 6543",
+      // Pre-verified so the hard email-verification wall doesn't block the seed guest.
+      email_verified_at: new Date().toISOString(),
     },
   ]);
   const guest = {
