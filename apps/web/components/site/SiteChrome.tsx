@@ -46,7 +46,7 @@ import { OceansViewHeader } from "./oceansview/OceansViewHeader";
 import { SabelaFooter } from "./sabela/SabelaFooter";
 import { SabelaHeader } from "./sabela/SabelaHeader";
 import { AnnouncementBar } from "./AnnouncementBar";
-import { SitePreviewBar } from "./SitePreviewBar";
+import { SitePreviewLinks } from "./SitePreviewLinks";
 import { SiteReveal } from "./SiteReveal";
 import { SiteAnalytics } from "./SiteAnalytics";
 import { SiteMarketing } from "./SiteMarketing";
@@ -1310,8 +1310,11 @@ export function SiteChrome({
   // in place of the generic token-driven chrome). Transparent-over-hero mirrors
   // the generic rule (a top bar forces the header solid).
   const bespokeChrome = preset ? THEME_CHROME[preset] : undefined;
-  // The shared Wielo theme-preview bar (single source of truth across all themes).
-  const showBar = Boolean(
+  // In theme-preview we mount the (invisible) link interceptor so clicking through
+  // the design keeps the ?site/preview/theme params. There is NO visible preview
+  // bar — the builder's own controls signal "previewing" (founder: the bar +
+  // full page list read as confusing site chrome). No layout offset needed.
+  const previewNav = Boolean(
     preview && !hideBanner && previewPages && previewPages.length,
   );
   const bodyStyle = {
@@ -1323,13 +1326,11 @@ export function SiteChrome({
           boxShadow: "0 0 60px rgba(0,0,0,0.12)",
         }
       : null),
-    // Clear the fixed preview bar (so the header's initial position sits below it).
-    ...(showBar ? { paddingTop: 44 } : null),
-    // Total fixed-bar offset (preview bar + top bar + sticky header) so sticky
-    // in-content elements — e.g. the room booking dock — sit BELOW the header
-    // with a gap instead of scrolling behind it.
+    // Total fixed-bar offset (top bar + sticky header) so sticky in-content
+    // elements — e.g. the room booking dock — sit BELOW the header with a gap
+    // instead of scrolling behind it.
     "--wielo-sticky-top": `${
-      (showBar ? 44 : 0) + (topBar?.enabled ? 38 : 0) + (sticky ? 96 : 28)
+      (topBar?.enabled ? 38 : 0) + (sticky ? 96 : 28)
     }px`,
   } as CSSProperties;
   const body = (
@@ -1343,18 +1344,9 @@ export function SiteChrome({
           and under reduced-motion. Skipped only while inline-editing the chrome. */}
       {editable ? null : <SiteReveal />}
 
-      {/* Theme-preview bar (shared SSOT) — hidden when embedded in a card iframe. */}
-      {showBar && previewPages ? (
-        <SitePreviewBar
-          themeName={
-            preview?.themeSlug
-              ? preview.themeSlug.charAt(0).toUpperCase() +
-                preview.themeSlug.slice(1)
-              : "Theme"
-          }
-          pages={previewPages}
-        />
-      ) : null}
+      {/* Theme-preview link interceptor (invisible) — keeps the preview params on
+          every internal click. No visible preview bar. */}
+      {previewNav ? <SitePreviewLinks /> : null}
 
       <AnnouncementBar
         announcement={conversion.announcement}
@@ -1376,7 +1368,7 @@ export function SiteChrome({
             preview={preview}
             currentPageKey={currentPageKey}
             transparent={transparentOver || (pageHasHero && !topBar?.enabled)}
-            topOffset={showBar ? 44 : 0}
+            topOffset={0}
             subtitle={
               brand.tagline && brand.tagline.trim().length <= 42
                 ? brand.tagline.trim()
@@ -1405,7 +1397,7 @@ export function SiteChrome({
               borderWidth={navigation.header?.borderWidth}
               trackScroll={hasScrolledStyle}
               textColor={mergedMenuStyle?.color}
-              topOffset={showBar ? 44 : 0}
+              topOffset={0}
             >
               <div className="wielo-cq-d hidden md:block">
                 <HeaderInner
