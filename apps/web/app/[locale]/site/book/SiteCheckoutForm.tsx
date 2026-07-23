@@ -30,6 +30,7 @@ import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
 import { Money } from "@/components/currency/Money";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
+import { SiteThemeModal } from "@/components/site/SiteThemeModal";
 
 // A browsing ESTIMATE of the total in the guest's chosen display currency, shown
 // under the (always native-currency) Total when they've switched currency. Purely
@@ -53,7 +54,6 @@ function TotalEstimate({
     </p>
   );
 }
-import { SiteThemeModal } from "@/components/site/SiteThemeModal";
 
 export type CheckoutRoom = {
   id: string;
