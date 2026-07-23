@@ -2,7 +2,38 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢×12 SAVE POINT (2026-07-22 pt66) — **START HERE** (supersedes pt17 below)
+## 🟢 SAVE POINT (2026-07-23 pt74) — **START HERE** (supersedes pt66 below)
+
+**Pushed `0c61ecf1`. Build + lint + tsc green. Tree clean. 0 node procs. Migrations synced.**
+The living resume anchor is the memory save point **`project-savepoint-jul23-pt74`** — read it first.
+
+### ✅ Shipped this session (newest first)
+- 💷 **VAT inclusive/exclusive toggle** for Wielo product pricing (`73e834a7`). Admin → Platform
+  settings → Business: "Prices are" select + configurable VAT rate %. Exclusive = VAT **on top**
+  (R99 → R113.85); the gross-up is at the CHARGE (`applyWieloVatToCharge`), the invoice trigger backs
+  it out (migration `20260723010000`). **Proven on prod** end-to-end. **Wielo LEFT ON EXCLUSIVE**
+  (founder intent; one-click revert). Scope = Wielo product side only; host bookings already exclusive.
+- 🧾 **Invoices now show exact cents** (`formatMoneyExact`, hosted page + PDF — a tax invoice can't
+  round R113.85 to R114) and the **payment reference = the document number** verbatim (no "Use your
+  Invoice number" hint, no "WIELO-" prefix). Verified on rendered PDFs: Wielo INV-0130, host INV-0105.
+- 🚀 **The Paystack webhook had NEVER fired** — `verify_jwt` ON made the edge gateway 401 it before it
+  ran, and that 401 looks identical to the function's own (READ THE BODY). Fixed `--no-verify-jwt`
+  (**redeploying without the flag re-breaks it**); `webhook_deliveries` log (`20260722234500`) proves
+  firing; **product-order reconciler** added (`20260723000500`) since it was the only backstop.
+- 🔒 SECURITY_CHECKLIST §9 + §4 verified; §6.8 rewritten (Edge Function ≠ atomic; `users.suspend` now
+  atomic via `admin_set_user_active`); admin audit-write single home. New `docs/AGENT_GUARDRAILS_BRIEF.md`.
+
+### 📌 FOUNDER TO CONFIRM
+- **Paystack dashboard webhook URL** → `https://zlcivjgvtyeaszikqleu.supabase.co/functions/v1/paystack-webhook`
+  (Test + Live fields, NOT the Callback URL). Watch `webhook_deliveries` after a real payment.
+
+### ▶️ NEXT
+`SECURITY_CHECKLIST.md` §2 (RLS-by-role) + §5 (sensitive data). Go-live flips deferred on purpose
+(`docs/SMOKE_TESTS.md` §0.5 G1–G4; ⚠️ G3 wording "only settle path" is WRONG — flagged).
+
+---
+
+## 🟢×12 SAVE POINT (2026-07-22 pt66) — superseded by pt74 above
 
 **Pushed `0fe0cc94`. Build + lint + tsc + 446 tests green. Tree clean. 0 node procs.**
 Session = `SECURITY_CHECKLIST.md` **§9 (Admin Panel)**, now *verified* rather than assumed,
