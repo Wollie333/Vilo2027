@@ -10,31 +10,23 @@ export default async function AffiliateSettingsPage() {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
-  const [
-    { data: settings },
-    { data: fees },
-    { data: assets },
-    { data: tiers },
-  ] = await Promise.all([
-    service
-      .from("affiliate_settings")
-      .select(
-        "cookie_days, hold_days, min_payout_threshold, terms_version, attribution_model, currency",
-      )
-      .eq("id", true)
-      .maybeSingle(),
-    service
-      .from("affiliate_payout_fees")
-      .select("method, fixed_fee, percent_fee, cap_fee, currency"),
-    service
-      .from("marketing_assets")
-      .select("id, title, category, file_url, mime_type, is_active, created_at")
-      .order("created_at", { ascending: false }),
-    service
-      .from("affiliate_tiers")
-      .select("id, name, min_lifetime_earnings, bonus_percent")
-      .order("min_lifetime_earnings", { ascending: true }),
-  ]);
+  const [{ data: settings }, { data: fees }, { data: tiers }] =
+    await Promise.all([
+      service
+        .from("affiliate_settings")
+        .select(
+          "cookie_days, hold_days, min_payout_threshold, terms_version, attribution_model, currency",
+        )
+        .eq("id", true)
+        .maybeSingle(),
+      service
+        .from("affiliate_payout_fees")
+        .select("method, fixed_fee, percent_fee, cap_fee, currency"),
+      service
+        .from("affiliate_tiers")
+        .select("id, name, min_lifetime_earnings, bonus_percent")
+        .order("min_lifetime_earnings", { ascending: true }),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -54,14 +46,6 @@ export default async function AffiliateSettingsPage() {
           fixedFee: Number(f.fixed_fee),
           percentFee: Number(f.percent_fee),
           capFee: f.cap_fee != null ? Number(f.cap_fee) : null,
-        }))}
-        assets={(assets ?? []).map((a) => ({
-          id: a.id,
-          title: a.title,
-          category: a.category,
-          fileUrl: a.file_url,
-          mimeType: a.mime_type,
-          isActive: a.is_active,
         }))}
       />
 

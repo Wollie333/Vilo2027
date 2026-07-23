@@ -1,15 +1,11 @@
 "use client";
 
-import { Trash2, Upload } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
-  deleteMarketingAssetAction,
   updateAffiliateSettingsAction,
   updatePayoutFeeAction,
-  uploadMarketingAssetAction,
 } from "../actions";
 
 type Settings = {
@@ -26,14 +22,6 @@ type Fee = {
   percentFee: number;
   capFee: number | null;
 };
-type Asset = {
-  id: string;
-  title: string;
-  category: string;
-  fileUrl: string;
-  mimeType: string | null;
-  isActive: boolean;
-};
 
 const METHOD_LABEL: Record<string, string> = {
   eft: "EFT",
@@ -44,17 +32,13 @@ const METHOD_LABEL: Record<string, string> = {
 export function AffiliateSettingsClient({
   settings,
   fees,
-  assets,
 }: {
   settings: Settings;
   fees: Fee[];
-  assets: Asset[];
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [s, setS] = useState(settings);
   const [feeState, setFeeState] = useState(fees);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   function saveSettings() {
     startTransition(async () => {
@@ -80,20 +64,6 @@ export function AffiliateSettingsClient({
       });
       if (res.ok) toast.success(`${METHOD_LABEL[f.method]} fee saved.`);
       else toast.error(res.error);
-    });
-  }
-
-  function upload(formEl: HTMLFormElement) {
-    const fd = new FormData(formEl);
-    startTransition(async () => {
-      const res = await uploadMarketingAssetAction(fd);
-      if (res.ok) {
-        toast.success("Asset uploaded.");
-        formEl.reset();
-        router.refresh();
-      } else {
-        toast.error(res.error);
-      }
     });
   }
 
@@ -215,114 +185,6 @@ export function AffiliateSettingsClient({
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Marketing assets */}
-      <section className="am-card p-6">
-        <div className="smallcaps">Marketing material</div>
-        <p className="mt-1 text-[12px] text-brand-mute">
-          Banners and images affiliates download or embed. Max 10MB each.
-        </p>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            upload(e.currentTarget);
-          }}
-          className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <label className="block">
-            <span className="flabel">Title</span>
-            <input name="title" required className="fld" />
-          </label>
-          <label className="block">
-            <span className="flabel">Category</span>
-            <select name="category" className="fld">
-              <option value="banner">Banner</option>
-              <option value="social">Social</option>
-              <option value="email">Email</option>
-              <option value="logo">Logo</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label className="block sm:col-span-2 lg:col-span-1">
-            <span className="flabel">File</span>
-            <input
-              ref={fileRef}
-              name="file"
-              type="file"
-              required
-              accept="image/*"
-              className="fld py-2"
-            />
-          </label>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={pending}
-              className="btn-pri h-[42px]"
-            >
-              <Upload className="h-4 w-4" />
-              Upload
-            </button>
-          </div>
-        </form>
-
-        {assets.length > 0 ? (
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {assets.map((a) => (
-              <li
-                key={a.id}
-                className="overflow-hidden rounded-[13px] border border-brand-line"
-              >
-                <div className="flex aspect-[16/9] items-center justify-center bg-brand-light">
-                  {(a.mimeType ?? "").startsWith("image/") ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={a.fileUrl}
-                      alt={a.title}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-xs text-brand-mute">
-                      {a.category}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2 p-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-brand-ink">
-                      {a.title}
-                    </div>
-                    <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                      {a.category}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() =>
-                      startTransition(async () => {
-                        const res = await deleteMarketingAssetAction(a.id);
-                        if (res.ok) {
-                          toast.success("Asset removed.");
-                          router.refresh();
-                        } else toast.error(res.error);
-                      })
-                    }
-                    disabled={pending}
-                    className="rounded-md p-1.5 text-brand-mute hover:bg-brand-light hover:text-status-cancelled"
-                    aria-label="Delete asset"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-5 text-sm text-brand-mute">
-            No marketing material uploaded yet.
-          </p>
-        )}
       </section>
     </div>
   );
