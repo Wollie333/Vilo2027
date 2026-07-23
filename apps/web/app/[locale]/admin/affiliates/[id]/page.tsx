@@ -9,10 +9,6 @@ import {
 import { notFound } from "next/navigation";
 
 import { Link } from "@/i18n/navigation";
-import {
-  AdminTable,
-  type AdminColumn,
-} from "@/app/[locale]/admin/_components/AdminTable";
 import { requirePermission } from "@/lib/admin";
 import { listAcceptances } from "@/lib/affiliate/agreement";
 import { summariseCommissions } from "@/lib/affiliate/balance";
@@ -35,6 +31,24 @@ function fmtDate(iso: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function payoutTag(status: string): { cls: string; label: string } {
+  switch (status) {
+    case "paid":
+      return { cls: "green", label: "Paid" };
+    case "approved":
+      return { cls: "sky", label: "Approved" };
+    case "processing":
+      return { cls: "indigo", label: "Processing" };
+    case "rejected":
+    case "failed":
+      return { cls: "red", label: status === "failed" ? "Failed" : "Rejected" };
+    case "cancelled":
+      return { cls: "gray", label: "Cancelled" };
+    default:
+      return { cls: "amber", label: "Requested" };
+  }
 }
 
 // Admin per-affiliate funnel: clicks → signups → paid customers → commission,
@@ -170,126 +184,11 @@ export default async function AdminAffiliateFunnelPage({
   const clicks = clickCount ?? 0;
   const signups = rows.length;
   const paidCount = rows.filter((r) => r.paid).length;
-
-  const refColumns: AdminColumn<(typeof rows)[number]>[] = [
-    {
-      header: "Referred user",
-      cell: (r) => (
-        <div className="min-w-0">
-          <div className="truncate font-medium text-brand-ink">{r.name}</div>
-          {r.email ? (
-            <div className="truncate text-[11px] text-brand-mute">
-              {r.email}
-            </div>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      header: "Plan",
-      cell: (r) => (
-        <span
-          className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[11px] font-medium capitalize ${
-            r.paid
-              ? "bg-brand-accent text-brand-secondary"
-              : "bg-brand-light text-brand-mute"
-          }`}
-        >
-          {r.plan}
-        </span>
-      ),
-    },
-    {
-      header: "Joined",
-      cell: (r) => <span className="text-brand-mute">{fmtDate(r.joined)}</span>,
-    },
-    {
-      header: "Commission",
-      align: "right",
-      cell: (r) => (
-        <span className="font-medium text-brand-ink">
-          {formatMoney(r.commission, account.currency)}
-        </span>
-      ),
-    },
-  ];
-
-  // WS-6b — the signed agreement trail. Rows are immutable at DB level, so this
-  // is the evidence a CPA dispute would be answered with.
-  const agreementColumns: AdminColumn<(typeof acceptances)[number]>[] = [
-    {
-      header: "Version",
-      cell: (a) => (
-        <span className="font-medium text-brand-ink">{a.version}</span>
-      ),
-    },
-    {
-      header: "Signed",
-      cell: (a) => (
-        <span className="text-brand-mute">
-          {new Date(a.accepted_at).toLocaleString("en-ZA", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-      ),
-    },
-    {
-      header: "IP",
-      cell: (a) => (
-        <span className="font-mono text-[11.5px] text-brand-mute">
-          {a.ip ?? "—"}
-        </span>
-      ),
-    },
-    {
-      header: "Document hash",
-      cell: (a) => (
-        <span
-          className="font-mono text-[11px] text-brand-mute"
-          title={a.body_sha256}
-        >
-          {a.body_sha256.slice(0, 16)}…
-        </span>
-      ),
-    },
-  ];
-
-  const payoutColumns: AdminColumn<NonNullable<typeof payouts>[number]>[] = [
-    {
-      header: "Requested",
-      cell: (p) => (
-        <span className="text-brand-mute">{fmtDate(p.requested_at)}</span>
-      ),
-    },
-    {
-      header: "Method",
-      cell: (p) => <span className="capitalize">{p.method}</span>,
-    },
-    {
-      header: "Net",
-      align: "right",
-      cell: (p) => (
-        <span className="font-medium text-brand-ink">
-          {formatMoney(Number(p.net_amount), p.currency)}
-        </span>
-      ),
-    },
-    {
-      header: "Status",
-      cell: (p) => (
-        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium capitalize text-brand-mute">
-          {p.status}
-        </span>
-      ),
-    },
-  ];
+  const isActive = account.status === "active";
 
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div>
         <Link
           href="/admin/affiliates"
@@ -302,25 +201,20 @@ export default async function AdminAffiliateFunnelPage({
             <h1 className="font-display text-2xl font-bold text-brand-ink">
               {owner?.full_name || "Affiliate"}
             </h1>
-            <p className="mt-0.5 font-mono text-[12px] text-brand-mute">
+            <p className="mono mt-0.5 text-[12px] text-brand-mute">
               /r/{account.slug}
               {owner?.email ? ` · ${owner.email}` : ""}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center rounded-pill px-2.5 py-0.5 text-[11px] font-semibold ${
-              account.status === "active"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-rose-50 text-rose-600"
-            }`}
-          >
-            {account.status === "active" ? "Active partner" : "Suspended"}
+          <span className={`tag ${isActive ? "green" : "red"}`}>
+            <span className="d" />
+            {isActive ? "Active partner" : "Suspended"}
           </span>
         </div>
       </div>
 
-      {/* Funnel stat band */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line md:grid-cols-3 lg:grid-cols-5">
+      {/* FUNNEL STAT BAND */}
+      <div className="fade grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line md:grid-cols-3 lg:grid-cols-5">
         <Stat
           icon={<MousePointerClick className="h-3.5 w-3.5" />}
           label="Link clicks"
@@ -356,11 +250,9 @@ export default async function AdminAffiliateFunnelPage({
         </div>
       </div>
 
-      {/* Funnel bars */}
-      <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h3 className="font-display text-[15px] font-bold text-brand-ink">
-          Funnel
-        </h3>
+      {/* FUNNEL BARS */}
+      <div className="am-card p-5">
+        <div className="smallcaps">Funnel</div>
         <div className="mt-4 space-y-3">
           <FunnelBar label="Clicks" value={clicks} width={100} />
           <FunnelBar
@@ -376,44 +268,172 @@ export default async function AdminAffiliateFunnelPage({
         </div>
       </div>
 
-      <section>
-        <h2 className="mb-3 font-display text-lg font-semibold text-brand-ink">
-          Referred users
-        </h2>
-        <AdminTable
-          columns={refColumns}
-          rows={rows}
-          getKey={(r) => r.id}
-          empty="No referrals yet."
-        />
+      {/* REFERRED USERS */}
+      <section className="am-card overflow-hidden">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Referred users</div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Referred user</th>
+                <th>Plan</th>
+                <th>Joined</th>
+                <th className="r">Commission</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-brand-mute">
+                    No referrals yet.
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <div className="min-w-0">
+                        <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+                          {r.name}
+                        </div>
+                        {r.email ? (
+                          <div className="truncate text-[11px] text-brand-mute">
+                            {r.email}
+                          </div>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`chip capitalize ${
+                          r.paid
+                            ? "bg-brand-accent text-brand-secondary"
+                            : "bg-brand-light text-brand-mute"
+                        }`}
+                      >
+                        {r.plan}
+                      </span>
+                    </td>
+                    <td className="num text-brand-mute">{fmtDate(r.joined)}</td>
+                    <td className="num r font-semibold text-brand-ink">
+                      {formatMoney(r.commission, account.currency)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section>
-        <h2 className="mb-1 font-display text-lg font-semibold text-brand-ink">
-          Signed agreement
-        </h2>
-        <p className="mb-3 text-[12.5px] text-brand-mute">
-          Each acceptance stores a full snapshot of the agreement text signed.
-          Records are immutable and retained for three years.
-        </p>
-        <AdminTable
-          columns={agreementColumns}
-          rows={acceptances}
-          getKey={(a) => a.id}
-          empty="No signature on file — this partner signs on their next portal visit."
-        />
+      {/* SIGNED AGREEMENT */}
+      <section className="am-card overflow-hidden">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Signed agreement</div>
+          <p className="mt-0.5 text-[11.5px] text-brand-mute">
+            Each acceptance stores a full snapshot of the agreement text signed.
+            Records are immutable and retained for three years.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Signed</th>
+                <th>IP</th>
+                <th>Document hash</th>
+              </tr>
+            </thead>
+            <tbody>
+              {acceptances.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-brand-mute">
+                    No signature on file — this partner signs on their next
+                    portal visit.
+                  </td>
+                </tr>
+              ) : (
+                acceptances.map((a) => (
+                  <tr key={a.id}>
+                    <td className="font-semibold text-brand-ink">
+                      {a.version}
+                    </td>
+                    <td className="num text-brand-mute">
+                      {new Date(a.accepted_at).toLocaleString("en-ZA", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="mono text-[11.5px] text-brand-mute">
+                      {a.ip ?? "—"}
+                    </td>
+                    <td
+                      className="mono text-[11px] text-brand-mute"
+                      title={a.body_sha256}
+                    >
+                      {a.body_sha256.slice(0, 16)}…
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section>
-        <h2 className="mb-3 font-display text-lg font-semibold text-brand-ink">
-          Payouts
-        </h2>
-        <AdminTable
-          columns={payoutColumns}
-          rows={payouts ?? []}
-          getKey={(p) => p.id}
-          empty="No payouts yet."
-        />
+      {/* PAYOUTS */}
+      <section className="am-card overflow-hidden">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Payouts</div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Requested</th>
+                <th>Method</th>
+                <th className="r">Net</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(payouts ?? []).length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-brand-mute">
+                    No payouts yet.
+                  </td>
+                </tr>
+              ) : (
+                (payouts ?? []).map((p) => {
+                  const tag = payoutTag(p.status);
+                  return (
+                    <tr key={p.id}>
+                      <td className="num text-brand-mute">
+                        {fmtDate(p.requested_at)}
+                      </td>
+                      <td className="uppercase text-brand-mute">{p.method}</td>
+                      <td className="num r font-semibold text-brand-ink">
+                        {formatMoney(Number(p.net_amount), p.currency)}
+                      </td>
+                      <td>
+                        <span className={`tag ${tag.cls}`}>
+                          <span className="d" />
+                          {tag.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
@@ -432,7 +452,7 @@ function Stat({
 }) {
   return (
     <div className="bg-[#FAFCFB] p-4">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+      <div className="smallcaps flex items-center gap-1.5">
         {icon}
         {label}
       </div>
@@ -461,11 +481,8 @@ function FunnelBar({
         <span className="font-medium text-brand-ink">{label}</span>
         <span className="num text-brand-mute">{value}</span>
       </div>
-      <div className="mt-1.5 h-2.5 rounded-pill bg-brand-light">
-        <div
-          className="h-full rounded-pill bg-brand-primary"
-          style={{ width: `${Math.max(width, value > 0 ? 2 : 0)}%` }}
-        />
+      <div className="pbar mt-1.5">
+        <div style={{ width: `${Math.max(width, value > 0 ? 2 : 0)}%` }} />
       </div>
     </div>
   );
