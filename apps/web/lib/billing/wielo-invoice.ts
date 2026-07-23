@@ -169,9 +169,15 @@ export type InvoiceBankingBlock = {
 
 // Wielo's own bank account (platform_payment_settings EFT fields), rendered as
 // "Payment details" on UNPAID Wielo invoices so a host paying by EFT knows where
-// to send it. Returns null when EFT isn't enabled or no bank name is set. The
-// reference defaults to the invoice number when no hint is configured. Read live
-// (not frozen) — you always want to pay the CURRENT account.
+// to send it. Returns null when EFT isn't enabled or no bank name is set. Read
+// live (not frozen) — you always want to pay the CURRENT account.
+//
+// The reference is the DOCUMENT's own number (e.g. "INV-0131") whenever one is
+// passed, so the payer copy-pastes an exact, matchable reference. The admin
+// `eft_reference_hint` is only a last-resort fallback for a context with no
+// document number — it must NEVER override a real reference. (It was set to a
+// generic instruction like "Use your Invoice number as reference", which then
+// printed on every invoice in place of the actual number.)
 export async function getPlatformInvoiceBanking(
   referenceFallback?: string | null,
 ): Promise<InvoiceBankingBlock | null> {
@@ -192,7 +198,8 @@ export async function getPlatformInvoiceBanking(
       accountType: "",
       branchCode: data.eft_branch_code?.trim() ?? "",
       swiftCode: data.eft_swift_code?.trim() || null,
-      reference: data.eft_reference_hint?.trim() || referenceFallback || null,
+      reference:
+        referenceFallback?.trim() || data.eft_reference_hint?.trim() || null,
     };
   } catch {
     return null;

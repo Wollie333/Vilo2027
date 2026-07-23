@@ -302,7 +302,11 @@ export default async function ProductPayPage({
                 accountName: settings?.eft_account_name ?? null,
                 accountNumber: settings?.eft_account_number ?? null,
                 branchCode: settings?.eft_branch_code ?? null,
-                reference: settings?.eft_reference_hint || order.id.slice(0, 8),
+                // The payer's EFT reference must be a real, matchable value they
+                // can copy-paste — the order's short id — never the generic
+                // `eft_reference_hint` instruction (an EFT paid with the literal
+                // text "Use your Invoice number as reference" can't be matched).
+                reference: order.id.slice(0, 8),
               }}
             />
           ) : null}
