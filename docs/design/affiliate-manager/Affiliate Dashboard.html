@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Affiliate Dashboard · Wielo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#10B981",secondary:"#064E3B",accent:"#D1FAE5",dark:"#0A1510",light:"#F0FDF4",ink:"#052E1F",mute:"#4A7C6A",line:"#E4EFE8"},status:{confirmed:"#10B981",pending:"#F59E0B",cancelled:"#EF4444",completed:"#6366F1",inhouse:"#0EA5E9",draft:"#94A3B8"}},borderRadius:{DEFAULT:"10px",card:"16px",pill:"9999px",sm:"6px"},fontFamily:{sans:["Inter","system-ui","sans-serif"],display:['"Plus Jakarta Sans"',"sans-serif"],mono:['"JetBrains Mono"',"monospace"]},boxShadow:{card:"0 1px 2px rgba(6,78,59,.05)",lift:"0 10px 34px -14px rgba(6,78,59,.18)"}}}};
+</script>
+<link rel="stylesheet" href="affiliate-ui.css" />
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+<header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+<button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+<a href="Affiliate Dashboard.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Wielo</span>
+</a>
+<span class="hidden sm:inline-flex items-center gap-1.5 rounded-pill bg-brand-light border border-brand-line px-3 py-1 text-[11.5px] font-semibold text-brand-secondary"><i data-lucide="handshake" class="h-3.5 w-3.5"></i> Partner</span>
+<div class="flex-1"></div>
+<div class="hidden md:flex items-center gap-2 mr-1 rounded-pill bg-[#F4F8F5] px-3.5 h-10"><span class="smallcaps">Available</span><span class="num font-display text-[15px] font-bold text-brand-ink">R 3 480</span></div>
+<button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i><span class="num absolute right-1 top-1 h-4 min-w-[16px] px-1 rounded-full bg-status-cancelled text-[10px] font-bold text-white flex items-center justify-center">1</span></button>
+<div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">LM</div>
+</header>
+<div class="flex-1 flex min-h-0">
+<aside id="sidebar" class="gnav">
+<nav class="flex-1 overflow-y-auto thin-scroll pt-3 pb-3">
+<a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Overview</span></a>
+<a href="Inbox v3 - Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+<a href="Bookings Page.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+<a href="Guests List.html" class="gitem"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+<a href="Calendar.html" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+<a href="Listings Page.html" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+<a href="Payment Record.html" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+<a href="Affiliate Dashboard.html" class="gitem active"><span class="ico"><i data-lucide="handshake" class="h-[18px] w-[18px]"></i></span><span class="glbl">Affiliates</span></a>
+<div class="gsec"></div>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="life-buoy" class="h-[18px] w-[18px]"></i></span><span class="glbl">Help &amp; docs</span></a>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+</nav>
+</aside>
+<div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+<div class="shrink-0 border-b border-brand-line bg-white">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8">
+<div class="pt-4 flex flex-wrap items-end gap-x-4 gap-y-2">
+<div>
+<h1 class="font-display text-[20px] font-extrabold leading-none text-brand-ink whitespace-nowrap">Affiliate program</h1>
+<div class="mt-1.5 text-[12.5px] text-brand-mute">Partner since March 2026 · <span class="text-brand-primary font-medium">wielo.co.za/r/lerato-m</span></div>
+</div>
+<div class="ml-auto flex items-center gap-2 pb-0.5">
+<span class="tag green"><span class="d"></span>Active partner</span>
+<a href="Affiliate Payouts.html" class="btn-pri h-9"><i data-lucide="wallet" class="h-4 w-4"></i> Request payout</a>
+</div>
+</div>
+<div class="mt-1.5 flex items-center gap-7 overflow-x-auto thin-scroll">
+<a href="Affiliate Dashboard.html" class="tabbtn on" style="text-decoration:none"><i data-lucide="layout-dashboard" class="h-[17px] w-[17px]"></i> Overview</a>
+<a href="Affiliate Links.html" class="tabbtn" style="text-decoration:none"><i data-lucide="link" class="h-[17px] w-[17px]"></i> Links &amp; products</a>
+<a href="Affiliate Campaigns.html" class="tabbtn" style="text-decoration:none"><i data-lucide="flag" class="h-[17px] w-[17px]"></i> Campaigns <span class="pillcnt num">2</span></a>
+<a href="Affiliate Payouts.html" class="tabbtn" style="text-decoration:none"><i data-lucide="wallet" class="h-[17px] w-[17px]"></i> Payouts</a>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto thin-scroll">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-6">
+
+<!-- EARNINGS BAND -->
+<section class="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4 fade" data-screen-label="Partner overview">
+<div class="bg-brand-secondary p-4 col-span-2 sm:col-span-1">
+<div class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Cleared · yours now</div>
+<div class="num mt-1.5 font-display text-[24px] font-bold leading-none text-white">R 3 480</div>
+<div class="mt-1 text-[11px] text-brand-accent">Ready to pay out</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Pending</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">R 1 145</div>
+<div class="mt-1 text-[11px] text-brand-mute">Clears after 30-day hold</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Lifetime earned</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">R 18 920</div>
+<div class="mt-1 inline-flex items-center gap-1 text-[11px] text-status-confirmed font-medium"><i data-lucide="trending-up" class="h-3 w-3"></i> +R 2 340 this month</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Active referred hosts</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">17</div>
+<div class="mt-1 text-[11px] text-brand-mute">21 signed up · 17 paying</div>
+</div>
+</section>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+<div class="space-y-6 min-w-0">
+
+<!-- YOUR LINK -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Your referral link · default program</div>
+<a href="Affiliate Links.html" class="text-[12px] font-medium text-brand-primary hover:underline inline-flex items-center gap-1">Link builder <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+</div>
+<div class="p-5">
+<div class="copyfield">
+<i data-lucide="globe" class="h-4 w-4 text-brand-mute shrink-0"></i>
+<span class="mono flex-1 truncate text-[13px] text-brand-ink">wielo.co.za/r/lerato-m</span>
+<button class="btn-pri h-9 px-4" data-copy="https://wielo.co.za/r/lerato-m"><i data-lucide="copy" class="h-4 w-4"></i> Copy</button>
+</div>
+<div class="mt-3 flex flex-wrap items-center gap-2">
+<button class="btn-ghost"><i data-lucide="qr-code" class="h-3.5 w-3.5"></i> QR code</button>
+<button class="btn-ghost"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp</button>
+<button class="btn-ghost"><i data-lucide="mail" class="h-3.5 w-3.5"></i> Email</button>
+<span class="ml-auto text-[12px] text-brand-mute num">238 clicks · 21 signups · 17 active</span>
+</div>
+<p class="mt-3 text-[12.5px] leading-relaxed text-brand-mute">Every host who joins through this link earns you <strong class="text-brand-ink">20% of their subscription, for life</strong> — plus your Silver tier bonus. Hosts you refer through a campaign link earn under that campaign instead.</p>
+</div>
+</section>
+
+<!-- FOUNDING RACE STRIP -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="flex items-center gap-2"><span class="smallcaps">Founding Race</span><span class="tag amber"><span class="d"></span>Live · ends 30 Nov</span></div>
+<a href="Campaign - Founding Race.html" class="text-[12px] font-medium text-brand-primary hover:underline inline-flex items-center gap-1">Open race <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+</div>
+<div class="grid grid-cols-3 gap-px bg-brand-line">
+<div class="bg-white p-4"><div class="smallcaps">Your rank</div><div class="num mt-1 font-display text-[20px] font-bold text-brand-ink">#4 <span class="text-[12px] font-semibold text-brand-mute">of 22</span></div><div class="text-[10.5px] text-status-confirmed mt-0.5">▲ 2 this week</div></div>
+<div class="bg-white p-4"><div class="smallcaps">Score</div><div class="num mt-1 font-display text-[20px] font-bold text-brand-ink">14</div><div class="text-[10.5px] text-brand-mute mt-0.5">active listings</div></div>
+<div class="bg-white p-4"><div class="smallcaps">Race rate</div><div class="num mt-1 font-display text-[20px] font-bold text-brand-ink">15%</div><div class="text-[10.5px] text-brand-mute mt-0.5">R 6 200 book to 20%</div></div>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 flex items-center gap-3">
+<div class="flex-1"><div class="pbar"><div style="width:75%"></div></div></div>
+<span class="text-[11.5px] font-semibold text-brand-secondary num">R 18 800 / R 25 000 monthly book</span>
+</div>
+</section>
+
+<!-- RECENT ACTIVITY -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Recent commission activity</div>
+<a href="Affiliate Payouts.html" class="text-[12px] font-medium text-brand-primary hover:underline inline-flex items-center gap-1">All statements <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+</div>
+<div class="p-2.5">
+<div class="arow"><div class="h-9 w-9 rounded-full av av-2 text-[11px] shrink-0">TN</div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Thabo N. renewed · Growth plan</div><div class="text-[12px] text-brand-mute mt-0.5">Today · Founding Race · 15% of R 599</div></div><div class="text-right shrink-0"><div class="num text-[13.5px] font-bold text-brand-ink">+R 89.85</div><span class="tag amber mt-1"><span class="d"></span>Pending</span></div></div>
+<div class="arow"><div class="h-9 w-9 rounded-full av av-6 text-[11px] shrink-0">KP</div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Karin P. subscribed · first payment</div><div class="text-[12px] text-brand-mute mt-0.5">Yesterday · conversion bonus (monthly)</div></div><div class="text-right shrink-0"><div class="num text-[13.5px] font-bold text-brand-ink">+R 250.00</div><span class="tag green mt-1"><span class="d"></span>Cleared</span></div></div>
+<div class="arow"><div class="h-9 w-9 rounded-full av av-7 text-[11px] shrink-0">SM</div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Sipho M. renewed · Starter plan</div><div class="text-[12px] text-brand-mute mt-0.5">3 days ago · default program · 20% + Silver bonus</div></div><div class="text-right shrink-0"><div class="num text-[13.5px] font-bold text-brand-ink">+R 76.58</div><span class="tag green mt-1"><span class="d"></span>Cleared</span></div></div>
+<div class="arow"><div class="h-9 w-9 rounded-full av av-4 text-[11px] shrink-0">AB</div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Refund · Anél B. first month</div><div class="text-[12px] text-brand-mute mt-0.5">5 days ago · commission reversed</div></div><div class="text-right shrink-0"><div class="num text-[13.5px] font-bold text-status-cancelled">−R 119.80</div><span class="tag gray mt-1"><span class="d"></span>Reversed</span></div></div>
+</div>
+</section>
+</div>
+
+<!-- RIGHT RAIL -->
+<div class="space-y-6 min-w-0">
+<!-- TIER CARD -->
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Your tier · default program</div>
+<div class="p-5">
+<div class="flex items-center gap-3">
+<div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#F1F5F4] border border-brand-line"><i data-lucide="medal" class="h-5 w-5 text-[#64748B]"></i></div>
+<div><div class="font-display text-[16px] font-bold text-brand-ink">Silver</div><div class="text-[11.5px] text-brand-mute">+5% bonus on your base rate</div></div>
+</div>
+<div class="mt-4"><div class="pbar"><div style="width:63%"></div></div>
+<div class="mt-2 flex justify-between text-[11px] text-brand-mute num"><span>R 18 920 lifetime cleared</span><span>Gold at R 30 000</span></div></div>
+<p class="mt-3 text-[11.5px] leading-relaxed text-brand-mute">Gold adds a +10% bonus to every default-program commission, forever.</p>
+</div>
+</section>
+
+<!-- CALCULATOR -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><span class="smallcaps">Potential earnings</span><span class="tag gray"><span class="d"></span>Illustrative</span></div>
+<div class="p-5">
+<label class="flabel">If you refer this many paying hosts…</label>
+<input id="calcHosts" type="range" min="1" max="100" value="25" class="w-full accent-[#10B981]" oninput="calc()" />
+<div class="mt-1 flex justify-between text-[11px] text-brand-mute num"><span>1</span><span id="calcN" class="font-bold text-brand-ink text-[13px]">25 hosts</span><span>100</span></div>
+<div class="mt-4 rounded-[12px] bg-brand-light border border-[#C7F0DC] p-4 text-center">
+<div class="smallcaps">Potential monthly book</div>
+<div id="calcOut" class="num mt-1 font-display text-[26px] font-extrabold text-brand-secondary">R 2 995 / mo</div>
+<div class="text-[11px] text-brand-mute mt-1">at 20% of the R 599 Growth plan</div>
+</div>
+<p class="mt-3 text-[10.5px] leading-relaxed text-brand-mute">Potential earnings only — illustrative, not guaranteed. Actual commission depends on the plans your referred hosts choose and keep. Earnings are conditional on hosts remaining subscribed.</p>
+</div>
+</section>
+
+<!-- MARKETING SHORTCUT -->
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Share-ready assets</div>
+<div class="p-2.5">
+<a href="Campaign - Founding Race.html" class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="image" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Founding Race pack</div><div class="text-[12px] text-brand-mute mt-0.5">Posts, banners &amp; captions</div></div><i data-lucide="chevron-right" class="h-4 w-4 text-brand-mute shrink-0"></i></a>
+<a href="Affiliate Links.html" class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="qr-code" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">Print QR poster</div><div class="text-[12px] text-brand-mute mt-0.5">For guesthouse meet-ups</div></div><i data-lucide="chevron-right" class="h-4 w-4 text-brand-mute shrink-0"></i></a>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+lucide.createIcons();
+function calc(){var n=+document.getElementById('calcHosts').value;document.getElementById('calcN').textContent=n+' hosts';var v=Math.round(n*599*0.2);document.getElementById('calcOut').textContent='R '+v.toLocaleString('en-ZA').replace(/,/g,' ')+' / mo';}
+document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){navigator.clipboard.writeText(b.dataset.copy);var o=b.innerHTML;b.innerHTML='<i data-lucide="check" class="h-4 w-4"></i> Copied';lucide.createIcons();setTimeout(function(){b.innerHTML=o;lucide.createIcons();},1400);});});
+</script>
+</body>
+</html>

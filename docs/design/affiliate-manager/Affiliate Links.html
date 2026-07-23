@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Links &amp; Products · Wielo Affiliates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#10B981",secondary:"#064E3B",accent:"#D1FAE5",dark:"#0A1510",light:"#F0FDF4",ink:"#052E1F",mute:"#4A7C6A",line:"#E4EFE8"},status:{confirmed:"#10B981",pending:"#F59E0B",cancelled:"#EF4444",completed:"#6366F1",inhouse:"#0EA5E9",draft:"#94A3B8"}},borderRadius:{DEFAULT:"10px",card:"16px",pill:"9999px",sm:"6px"},fontFamily:{sans:["Inter","system-ui","sans-serif"],display:['"Plus Jakarta Sans"',"sans-serif"],mono:['"JetBrains Mono"',"monospace"]},boxShadow:{card:"0 1px 2px rgba(6,78,59,.05)",lift:"0 10px 34px -14px rgba(6,78,59,.18)"}}}};
+</script>
+<link rel="stylesheet" href="affiliate-ui.css" />
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+<header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+<button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+<a href="Dashboard.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Wielo</span>
+</a>
+<span class="hidden sm:inline-flex items-center gap-1.5 rounded-pill bg-brand-light border border-brand-line px-3 py-1 text-[11.5px] font-semibold text-brand-secondary"><i data-lucide="handshake" class="h-3.5 w-3.5"></i> Partner</span>
+<div class="flex-1"></div>
+<div class="hidden md:flex items-center gap-2 mr-1 rounded-pill bg-[#F4F8F5] px-3.5 h-10"><span class="smallcaps">Available</span><span class="num font-display text-[15px] font-bold text-brand-ink">R 3 480</span></div>
+<button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i></button>
+<div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">LM</div>
+</header>
+<div class="flex-1 flex min-h-0">
+<aside id="sidebar" class="gnav">
+<nav class="flex-1 overflow-y-auto thin-scroll pt-3 pb-3">
+<a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Overview</span></a>
+<a href="Inbox v3 - Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+<a href="Bookings Page.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+<a href="Guests List.html" class="gitem"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+<a href="Calendar.html" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+<a href="Listings Page.html" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+<a href="Payment Record.html" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+<a href="Affiliate Dashboard.html" class="gitem active"><span class="ico"><i data-lucide="handshake" class="h-[18px] w-[18px]"></i></span><span class="glbl">Affiliates</span></a>
+<div class="gsec"></div>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="life-buoy" class="h-[18px] w-[18px]"></i></span><span class="glbl">Help &amp; docs</span></a>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+</nav>
+</aside>
+<div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+<div class="shrink-0 border-b border-brand-line bg-white">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8">
+<div class="pt-4 flex flex-wrap items-end gap-x-4 gap-y-2">
+<div>
+<h1 class="font-display text-[20px] font-extrabold leading-none text-brand-ink whitespace-nowrap">Affiliate program</h1>
+<div class="mt-1.5 text-[12.5px] text-brand-mute">Partner since March 2026 · <span class="text-brand-primary font-medium">wielo.co.za/r/lerato-m</span></div>
+</div>
+<div class="ml-auto flex items-center gap-2 pb-0.5"><span class="tag green"><span class="d"></span>Active partner</span></div>
+</div>
+<div class="mt-1.5 flex items-center gap-7 overflow-x-auto thin-scroll">
+<a href="Affiliate Dashboard.html" class="tabbtn" style="text-decoration:none"><i data-lucide="layout-dashboard" class="h-[17px] w-[17px]"></i> Overview</a>
+<a href="Affiliate Links.html" class="tabbtn on" style="text-decoration:none"><i data-lucide="link" class="h-[17px] w-[17px]"></i> Links &amp; products</a>
+<a href="Affiliate Campaigns.html" class="tabbtn" style="text-decoration:none"><i data-lucide="flag" class="h-[17px] w-[17px]"></i> Campaigns <span class="pillcnt num">2</span></a>
+<a href="Affiliate Payouts.html" class="tabbtn" style="text-decoration:none"><i data-lucide="wallet" class="h-[17px] w-[17px]"></i> Payouts</a>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto thin-scroll">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-6" data-screen-label="Partner links and products">
+
+<!-- YOUR LINKS -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Your links</div>
+<span class="text-[11.5px] text-brand-mute">Plain link earns your default rates · campaign links earn campaign rates</span>
+</div>
+<div class="p-2.5 space-y-2.5">
+<div class="brow" style="cursor:default;transform:none">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-light border border-brand-line text-brand-secondary"><i data-lucide="globe" class="h-[18px] w-[18px]"></i></div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-2"><span class="text-[13.5px] font-semibold text-brand-ink">Default link</span><span class="tag green"><span class="d"></span>Default program</span></div>
+<div class="mono text-[12px] text-brand-mute mt-0.5 truncate">wielo.co.za/r/lerato-m</div>
+</div>
+<div class="hidden md:block text-right text-[11.5px] text-brand-mute num shrink-0">238 clicks · 21 signups<br/>17 active · R 16 400 earned</div>
+<div class="flex items-center gap-1.5 shrink-0"><a href="Affiliate Link Metrics.html" class="btn-ghost h-8"><i data-lucide="bar-chart-3" class="h-3.5 w-3.5"></i> Metrics</a><button class="btn-ghost h-8" data-copy="https://wielo.co.za/r/lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Copy</button><button class="btn-ghost h-8"><i data-lucide="qr-code" class="h-3.5 w-3.5"></i></button></div>
+</div>
+<div class="brow" style="cursor:default;transform:none">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-[#FFFBEB] border border-[#FCE9B6] text-[#B45309]"><i data-lucide="flag" class="h-[18px] w-[18px]"></i></div>
+<div class="min-w-0 flex-1">
+<div class="flex items-center gap-2"><span class="text-[13.5px] font-semibold text-brand-ink">Founding Race link</span><span class="tag amber"><span class="d"></span>Campaign</span></div>
+<div class="mono text-[12px] text-brand-mute mt-0.5 truncate">wielo.co.za/c/founding-race/lerato-m</div>
+</div>
+<div class="hidden md:block text-right text-[11.5px] text-brand-mute num shrink-0">126 clicks · 9 signups<br/>14 listings · R 2 520 earned</div>
+<div class="flex items-center gap-1.5 shrink-0"><a href="Affiliate Link Metrics.html" class="btn-ghost h-8"><i data-lucide="bar-chart-3" class="h-3.5 w-3.5"></i> Metrics</a><button class="btn-ghost h-8" data-copy="https://wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Copy</button><button class="btn-ghost h-8"><i data-lucide="qr-code" class="h-3.5 w-3.5"></i></button></div>
+</div>
+</div>
+</section>
+
+<!-- LINK BUILDER -->
+<section class="card overflow-hidden fade mt-6">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Link builder</div>
+<div class="p-5 grid grid-cols-1 gap-5 md:grid-cols-[1fr_300px]">
+<div>
+<label class="flabel">Send people to</label>
+<div class="seg" id="lbSeg">
+<button class="on" onclick="lbMode(this,'page')">Any page</button>
+<button onclick="lbMode(this,'product')">A product</button>
+<button onclick="lbMode(this,'campaign')">Campaign signup</button>
+</div>
+<div class="mt-3">
+<input id="lbPath" class="fld mono text-[13px]" value="/pricing" />
+<p class="fhelp">Paste any Wielo page or path. Your referral code is added automatically.</p>
+</div>
+<label class="flabel mt-4">Your link</label>
+<div class="copyfield">
+<i data-lucide="link-2" class="h-4 w-4 text-brand-mute shrink-0"></i>
+<span id="lbOut" class="mono flex-1 truncate text-[13px] text-brand-ink">wielo.co.za/pricing?ref=lerato-m</span>
+<button class="btn-pri h-9 px-4" data-copy="https://wielo.co.za/pricing?ref=lerato-m"><i data-lucide="copy" class="h-4 w-4"></i> Copy</button>
+</div>
+<div class="mt-2.5 flex items-center gap-2">
+<button class="btn-ghost"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp</button>
+<button class="btn-ghost"><i data-lucide="mail" class="h-3.5 w-3.5"></i> Email</button>
+<button class="btn-ghost"><i data-lucide="download" class="h-3.5 w-3.5"></i> Save QR</button>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-brand-line bg-[#FAFCFB] p-5">
+<svg viewBox="0 0 29 29" class="h-36 w-36" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><g fill="#052E1F"><rect x="1" y="1" width="7" height="7"/><rect x="21" y="1" width="7" height="7"/><rect x="1" y="21" width="7" height="7"/><rect x="3" y="3" width="3" height="3" fill="#10B981"/><rect x="23" y="3" width="3" height="3" fill="#10B981"/><rect x="3" y="23" width="3" height="3" fill="#10B981"/><rect x="10" y="2" width="1" height="1"/><rect x="12" y="1" width="2" height="2"/><rect x="16" y="2" width="2" height="1"/><rect x="10" y="5" width="2" height="2"/><rect x="14" y="4" width="1" height="3"/><rect x="17" y="5" width="2" height="2"/><rect x="2" y="10" width="2" height="2"/><rect x="6" y="11" width="1" height="2"/><rect x="9" y="10" width="3" height="1"/><rect x="13" y="9" width="2" height="3"/><rect x="17" y="10" width="1" height="2"/><rect x="20" y="11" width="2" height="1"/><rect x="24" y="10" width="2" height="2"/><rect x="27" y="12" width="1" height="1"/><rect x="1" y="14" width="1" height="2"/><rect x="4" y="15" width="2" height="1"/><rect x="8" y="13" width="2" height="2"/><rect x="12" y="14" width="3" height="2"/><rect x="16" y="13" width="1" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="23" y="15" width="2" height="1"/><rect x="26" y="14" width="2" height="2"/><rect x="2" y="18" width="2" height="1"/><rect x="6" y="17" width="1" height="2"/><rect x="9" y="18" width="2" height="2"/><rect x="13" y="17" width="1" height="2"/><rect x="15" y="19" width="3" height="1"/><rect x="20" y="17" width="2" height="2"/><rect x="24" y="18" width="1" height="2"/><rect x="26" y="19" width="2" height="1"/><rect x="10" y="21" width="2" height="2"/><rect x="13" y="22" width="2" height="1"/><rect x="16" y="21" width="1" height="3"/><rect x="19" y="22" width="2" height="2"/><rect x="22" y="21" width="2" height="1"/><rect x="25" y="22" width="2" height="2"/><rect x="10" y="25" width="1" height="2"/><rect x="12" y="26" width="3" height="1"/><rect x="17" y="25" width="2" height="2"/><rect x="21" y="26" width="1" height="1"/><rect x="24" y="25" width="3" height="1"/></g></svg>
+<div class="mt-2 text-[11px] text-brand-mute">Live QR for your link</div>
+</div>
+</div>
+</section>
+
+<!-- PER-PRODUCT RATES -->
+<section class="card overflow-hidden fade mt-6">
+<div class="flex items-center justify-between gap-3 flex-wrap border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Products &amp; your rates · default program</div>
+<div class="flex items-center gap-3">
+<div class="seg" id="ptSeg">
+<button class="on" onclick="ptFilter(this,'all')">All</button>
+<button onclick="ptFilter(this,'subscription')">Subscriptions</button>
+<button onclick="ptFilter(this,'onceoff')">Once-off</button>
+<button onclick="ptFilter(this,'service')">Services</button>
+<button onclick="ptFilter(this,'package')">Packages</button>
+</div>
+<span class="tag gray"><span class="d"></span>Silver +5% bonus applied</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="ttable">
+<thead><tr><th>Product</th><th class="r">Price</th><th class="r">Base rate</th><th class="r">Your rate</th><th>Duration</th><th class="r">You earn</th><th></th></tr></thead>
+<tbody id="ptRows">
+<tr data-ptype="subscription"><td><div class="font-semibold text-brand-ink">Starter plan</div><div class="text-[11.5px] text-brand-mute">Monthly subscription</div></td><td class="r num">R 349 /mo</td><td class="r num">18%</td><td class="r num font-bold text-brand-secondary">18.9%</td><td><span class="tag green"><span class="d"></span>Lifetime</span></td><td class="r num font-semibold">R 65.96 /mo</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/pricing/starter?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="subscription"><td><div class="font-semibold text-brand-ink">Growth plan</div><div class="text-[11.5px] text-brand-mute">Monthly subscription</div></td><td class="r num">R 599 /mo</td><td class="r num">20%</td><td class="r num font-bold text-brand-secondary">21%</td><td><span class="tag green"><span class="d"></span>Lifetime</span></td><td class="r num font-semibold">R 125.79 /mo</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/pricing/growth?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="subscription"><td><div class="font-semibold text-brand-ink">Pro plan</div><div class="text-[11.5px] text-brand-mute">Monthly subscription</div></td><td class="r num">R 999 /mo</td><td class="r num">20%</td><td class="r num font-bold text-brand-secondary">21%</td><td><span class="tag green"><span class="d"></span>Lifetime</span></td><td class="r num font-semibold">R 209.79 /mo</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/pricing/pro?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="subscription"><td><div class="font-semibold text-brand-ink">Annual plan</div><div class="text-[11.5px] text-brand-mute">Yearly subscription</div></td><td class="r num">R 5 990 /yr</td><td class="r num">15%</td><td class="r num font-bold text-brand-secondary">15.75%</td><td><span class="tag green"><span class="d"></span>Lifetime</span></td><td class="r num font-semibold">R 943.43 /yr</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/pricing/annual?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="onceoff"><td><div class="font-semibold text-brand-ink">Website setup</div><div class="text-[11.5px] text-brand-mute">Once-off setup fee</div></td><td class="r num">R 1 500</td><td class="r num">10%</td><td class="r num font-bold text-brand-secondary">10%</td><td><span class="tag gray"><span class="d"></span>Once</span></td><td class="r num font-semibold">R 150.00</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/setup?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="onceoff"><td><div class="font-semibold text-brand-ink">Domain &amp; email setup</div><div class="text-[11.5px] text-brand-mute">Once-off fee</div></td><td class="r num">R 850</td><td class="r num">10%</td><td class="r num font-bold text-brand-secondary">10%</td><td><span class="tag gray"><span class="d"></span>Once</span></td><td class="r num font-semibold">R 85.00</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/setup/domain?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="service"><td><div class="font-semibold text-brand-ink">Photography session</div><div class="text-[11.5px] text-brand-mute">Service · per booking</div></td><td class="r num">R 2 400</td><td class="r num">8%</td><td class="r num font-bold text-brand-secondary">8.4%</td><td><span class="tag gray"><span class="d"></span>Once</span></td><td class="r num font-semibold">R 201.60</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/services/photography?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="service"><td><div class="font-semibold text-brand-ink">Listing copywriting</div><div class="text-[11.5px] text-brand-mute">Service · per listing</div></td><td class="r num">R 1 200</td><td class="r num">8%</td><td class="r num font-bold text-brand-secondary">8.4%</td><td><span class="tag gray"><span class="d"></span>Once</span></td><td class="r num font-semibold">R 100.80</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/services/copywriting?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="package"><td><div class="font-semibold text-brand-ink">Launch package</div><div class="text-[11.5px] text-brand-mute">Package · setup + Growth 12 mo</div></td><td class="r num">R 7 900</td><td class="r num">15%</td><td class="r num font-bold text-brand-secondary">15.75%</td><td><span class="tag indigo"><span class="d"></span>Recurring · 12 mo</span></td><td class="r num font-semibold">R 1 244.25</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/packages/launch?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+<tr data-ptype="package"><td><div class="font-semibold text-brand-ink">Pro + website package</div><div class="text-[11.5px] text-brand-mute">Package · Pro plan + site build</div></td><td class="r num">R 11 500</td><td class="r num">15%</td><td class="r num font-bold text-brand-secondary">15.75%</td><td><span class="tag indigo"><span class="d"></span>Recurring · 12 mo</span></td><td class="r num font-semibold">R 1 811.25</td><td class="r"><button class="btn-ghost h-8" data-copy="https://wielo.co.za/packages/pro-site?ref=lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i> Link</button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 text-[11.5px] text-brand-mute">"Your rate" includes your Silver tier bonus. Hosts referred through a <a href="Affiliate Campaigns.html" class="font-semibold">campaign link</a> earn that campaign's structure instead — tier bonuses don't apply there.</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+lucide.createIcons();
+function ptFilter(btn,t){document.querySelectorAll('#ptSeg button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');document.querySelectorAll('#ptRows tr').forEach(function(r){r.hidden=(t!=='all'&&r.dataset.ptype!==t);});}
+var lbPaths={page:'/pricing',product:'/pricing/growth',campaign:'/signup/partner/founding-race'};
+function lbMode(btn,m){document.querySelectorAll('#lbSeg button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');document.getElementById('lbPath').value=lbPaths[m];lbSync();}
+function lbSync(){var p=document.getElementById('lbPath').value.trim();if(p&&p[0]!=='/')p='/'+p;document.getElementById('lbOut').textContent='wielo.co.za'+p+'?ref=lerato-m';}
+document.getElementById('lbPath').addEventListener('input',lbSync);
+document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){navigator.clipboard.writeText(b.dataset.copy);var o=b.innerHTML;b.innerHTML='<i data-lucide="check" class="h-3.5 w-3.5"></i> Copied';lucide.createIcons();setTimeout(function(){b.innerHTML=o;lucide.createIcons();},1400);});});
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Link Metrics · Wielo Affiliates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#10B981",secondary:"#064E3B",accent:"#D1FAE5",dark:"#0A1510",light:"#F0FDF4",ink:"#052E1F",mute:"#4A7C6A",line:"#E4EFE8"},status:{confirmed:"#10B981",pending:"#F59E0B",cancelled:"#EF4444",completed:"#6366F1",inhouse:"#0EA5E9",draft:"#94A3B8"}},borderRadius:{DEFAULT:"10px",card:"16px",pill:"9999px",sm:"6px"},fontFamily:{sans:["Inter","system-ui","sans-serif"],display:['"Plus Jakarta Sans"',"sans-serif"],mono:['"JetBrains Mono"',"monospace"]},boxShadow:{card:"0 1px 2px rgba(6,78,59,.05)",lift:"0 10px 34px -14px rgba(6,78,59,.18)"}}}};
+</script>
+<link rel="stylesheet" href="affiliate-ui.css" />
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+<header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+<button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+<a href="Dashboard.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Wielo</span>
+</a>
+<span class="hidden sm:inline-flex items-center gap-1.5 rounded-pill bg-brand-light border border-brand-line px-3 py-1 text-[11.5px] font-semibold text-brand-secondary"><i data-lucide="handshake" class="h-3.5 w-3.5"></i> Partner</span>
+<div class="flex-1"></div>
+<div class="hidden md:flex items-center gap-2 mr-1 rounded-pill bg-[#F4F8F5] px-3.5 h-10"><span class="smallcaps">Available</span><span class="num font-display text-[15px] font-bold text-brand-ink">R 3 480</span></div>
+<button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i></button>
+<div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">LM</div>
+</header>
+<div class="flex-1 flex min-h-0">
+<aside id="sidebar" class="gnav">
+<nav class="flex-1 overflow-y-auto thin-scroll pt-3 pb-3">
+<a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Overview</span></a>
+<a href="Inbox v3 - Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+<a href="Bookings Page.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+<a href="Guests List.html" class="gitem"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+<a href="Calendar.html" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+<a href="Listings Page.html" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+<a href="Payment Record.html" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+<a href="Affiliate Dashboard.html" class="gitem active"><span class="ico"><i data-lucide="handshake" class="h-[18px] w-[18px]"></i></span><span class="glbl">Affiliates</span></a>
+<div class="gsec"></div>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="life-buoy" class="h-[18px] w-[18px]"></i></span><span class="glbl">Help &amp; docs</span></a>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+</nav>
+</aside>
+<div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+<div class="shrink-0 border-b border-brand-line bg-white">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-4">
+<div class="flex items-center gap-3">
+<a href="Affiliate Links.html" class="icon-btn shrink-0" style="border:1px solid #E4EFE8" title="Back to Links &amp; products"><i data-lucide="arrow-left" class="h-4.5 w-4.5"></i></a>
+<nav class="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+<a href="Affiliate Dashboard.html" class="hover:underline" style="color:#4A7C6A">Affiliates</a><i data-lucide="chevron-right" class="h-3 w-3"></i>
+<a href="Affiliate Links.html" class="hover:underline" style="color:#4A7C6A">Links &amp; products</a><i data-lucide="chevron-right" class="h-3 w-3"></i>
+<span class="font-medium text-brand-ink" id="bcName">Default link</span>
+</nav>
+</div>
+<div class="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
+<div class="min-w-0">
+<div class="flex items-center gap-2.5">
+<h1 class="font-display text-[20px] font-extrabold leading-none text-brand-ink" id="lmTitle">Default link metrics</h1>
+<span class="tag green" id="lmTag"><span class="d"></span>Default program</span>
+</div>
+<div class="mt-2 relative inline-flex items-center">
+<i data-lucide="link-2" class="h-3.5 w-3.5 text-brand-mute absolute left-3 pointer-events-none"></i>
+<select id="lmSelect" onchange="switchLink(this.value)" class="appearance-none h-9 pl-9 pr-9 rounded-pill border border-brand-line bg-brand-light text-[12.5px] font-medium text-brand-ink cursor-pointer outline-none focus:border-brand-primary" style="font-family:'JetBrains Mono',monospace">
+<option value="default" selected>wielo.co.za/r/lerato-m</option>
+<option value="race">wielo.co.za/c/founding-race/lerato-m</option>
+<option value="pricing">wielo.co.za/pricing?ref=lerato-m</option>
+</select>
+<i data-lucide="chevron-down" class="h-3.5 w-3.5 text-brand-mute absolute right-3 pointer-events-none"></i>
+</div>
+</div>
+<div class="ml-auto flex items-center gap-2 pb-0.5">
+<div class="seg"><button onclick="setr(this)">30d</button><button onclick="setr(this)">90d</button><button class="on" onclick="setr(this)">All time</button></div>
+<button class="btn-sec h-9" id="lmCopy" data-copy="https://wielo.co.za/r/lerato-m"><i data-lucide="copy" class="h-4 w-4"></i> Copy link</button>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto thin-scroll">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-6" data-screen-label="Link metrics">
+
+<!-- FUNNEL -->
+<section class="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4 fade">
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Clicks</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink" id="stClicks">238</div>
+<div class="mt-1 inline-flex items-center gap-1 text-[11px] text-status-confirmed font-medium"><i data-lucide="trending-up" class="h-3 w-3"></i> <span id="stClicksSub">+31 this month</span></div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Signups</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink" id="stSign">21</div>
+<div class="mt-1 text-[11px] text-brand-mute num" id="stSignSub">8.8% of clicks</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Paying hosts</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink" id="stPay">17</div>
+<div class="mt-1 text-[11px] text-brand-mute num" id="stPaySub">81% of signups</div>
+</div>
+<div class="bg-brand-secondary p-4">
+<div class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Earned via this link</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-white" id="stEarn">R 16 400</div>
+<div class="mt-1 text-[11px] text-brand-accent num" id="stEarnSub">R 1 890 / mo current book</div>
+</div>
+</section>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+<div class="space-y-6 min-w-0">
+
+<!-- TREND -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Clicks &amp; signups · last 90 days</div>
+<div class="flex items-center gap-4 text-[11px] font-medium text-brand-mute"><span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-brand-primary"></span>Clicks</span><span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-[#6366F1]"></span>Signups</span></div>
+</div>
+<div class="px-5 pt-4">
+<svg viewBox="0 0 700 190" class="w-full h-[160px]" preserveAspectRatio="none">
+<defs><linearGradient id="clk" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10B981" stop-opacity=".2"/><stop offset="100%" stop-color="#10B981" stop-opacity="0"/></linearGradient></defs>
+<g stroke="#EDF3EF" stroke-width="1"><line x1="0" y1="48" x2="700" y2="48"/><line x1="0" y1="96" x2="700" y2="96"/><line x1="0" y1="144" x2="700" y2="144"/></g>
+<path d="M0,150 C60,138 100,146 150,120 S250,88 300,98 380,66 430,58 520,48 570,64 640,40 700,34 L700,190 L0,190 Z" fill="url(#clk)"/>
+<path d="M0,150 C60,138 100,146 150,120 S250,88 300,98 380,66 430,58 520,48 570,64 640,40 700,34" stroke="#10B981" stroke-width="2.5" fill="none"/>
+<path d="M0,176 C80,174 140,172 200,168 S320,162 400,158 540,150 620,146 680,144 700,142" stroke="#6366F1" stroke-width="2" fill="none" stroke-dasharray="1 0"/>
+<circle cx="700" cy="34" r="4" fill="#fff" stroke="#10B981" stroke-width="2.5"/>
+</svg>
+<div class="grid grid-cols-4 text-[10px] text-brand-mute mono mt-1 pb-3"><span>24 Apr</span><span>24 May</span><span>23 Jun</span><span class="text-right">Today</span></div>
+</div>
+</section>
+
+<!-- SIGNUPS -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Signups through this link</div>
+<span class="text-[11.5px] text-brand-mute num" id="suCount">21 hosts</span>
+</div>
+<div class="overflow-x-auto">
+<table class="ttable">
+<thead><tr><th>Host</th><th>Signed up</th><th>Plan</th><th class="r">Listings</th><th>Status</th><th class="r">Earned you</th></tr></thead>
+<tbody>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-2 text-[10.5px]">TN</div><div><div class="font-semibold text-brand-ink">Thabo N.</div><div class="text-[11px] text-brand-mute">Clarens</div></div></div></td><td class="num">14 Jul 2026</td><td>Growth</td><td class="r num">2</td><td><span class="tag green"><span class="d"></span>Paying</span></td><td class="r num font-semibold">R 269.55</td></tr>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-6 text-[10.5px]">KP</div><div><div class="font-semibold text-brand-ink">Karin P.</div><div class="text-[11px] text-brand-mute">Dullstroom</div></div></div></td><td class="num">28 Jun 2026</td><td>Starter</td><td class="r num">1</td><td><span class="tag green"><span class="d"></span>Paying</span></td><td class="r num font-semibold">R 131.92</td></tr>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-7 text-[10.5px]">SM</div><div><div class="font-semibold text-brand-ink">Sipho M.</div><div class="text-[11px] text-brand-mute">St Lucia</div></div></div></td><td class="num">9 Jun 2026</td><td>Pro</td><td class="r num">3</td><td><span class="tag green"><span class="d"></span>Paying</span></td><td class="r num font-semibold">R 629.37</td></tr>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-4 text-[10.5px]">AB</div><div><div class="font-semibold text-brand-ink">Anél B.</div><div class="text-[11px] text-brand-mute">Prince Albert</div></div></div></td><td class="num">2 Jun 2026</td><td>Growth</td><td class="r num">1</td><td><span class="tag red"><span class="d"></span>Churned</span></td><td class="r num font-semibold text-brand-mute">R 119.80</td></tr>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-5 text-[10.5px]">JV</div><div><div class="font-semibold text-brand-ink">Johan v.d. M.</div><div class="text-[11px] text-brand-mute">Wilderness</div></div></div></td><td class="num">25 May 2026</td><td>—</td><td class="r num">0</td><td><span class="tag amber"><span class="d"></span>Trial</span></td><td class="r num font-semibold text-brand-mute">R 0.00</td></tr>
+<tr><td><div class="flex items-center gap-2.5"><div class="h-8 w-8 rounded-full av av-3 text-[10.5px]">NM</div><div><div class="font-semibold text-brand-ink">Naledi M.</div><div class="text-[11px] text-brand-mute">Magoebaskloof</div></div></div></td><td class="num">18 May 2026</td><td>Annual</td><td class="r num">2</td><td><span class="tag green"><span class="d"></span>Paying</span></td><td class="r num font-semibold">R 943.43</td></tr>
+</tbody>
+</table>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 flex items-center justify-between text-[11.5px] text-brand-mute">
+<span>Showing 6 of 21 · hosts stay bound to you for life</span>
+<button class="btn-ghost h-8">View all 21</button>
+</div>
+</section>
+</div>
+
+<!-- RIGHT RAIL -->
+<div class="space-y-6 min-w-0">
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Where clicks come from</div>
+<div class="p-5 space-y-3.5">
+<div><div class="flex justify-between text-[12px] mb-1.5"><span class="font-semibold text-brand-ink">WhatsApp</span><span class="num text-brand-mute">112 · 47%</span></div><div class="pbar"><div style="width:47%"></div></div></div>
+<div><div class="flex justify-between text-[12px] mb-1.5"><span class="font-semibold text-brand-ink">Facebook</span><span class="num text-brand-mute">78 · 33%</span></div><div class="pbar"><div style="width:33%"></div></div></div>
+<div><div class="flex justify-between text-[12px] mb-1.5"><span class="font-semibold text-brand-ink">QR code scans</span><span class="num text-brand-mute">29 · 12%</span></div><div class="pbar"><div style="width:12%"></div></div></div>
+<div><div class="flex justify-between text-[12px] mb-1.5"><span class="font-semibold text-brand-ink">Direct / other</span><span class="num text-brand-mute">19 · 8%</span></div><div class="pbar"><div style="width:8%"></div></div></div>
+</div>
+</section>
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Funnel health</div>
+<div class="p-5 space-y-3 text-[12.5px]">
+<div class="flex items-center justify-between"><span class="text-brand-mute">Click → signup</span><span class="num font-bold text-brand-ink">8.8%</span></div>
+<div class="flex items-center justify-between"><span class="text-brand-mute">Signup → paying</span><span class="num font-bold text-brand-ink">81%</span></div>
+<div class="flex items-center justify-between"><span class="text-brand-mute">Avg. listings per host</span><span class="num font-bold text-brand-ink">1.6</span></div>
+<div class="flex items-center justify-between"><span class="text-brand-mute">Churned hosts</span><span class="num font-bold text-brand-ink">2 of 21</span></div>
+<p class="pt-2 border-t border-brand-line text-[11px] leading-relaxed text-brand-mute">Your signup rate is above the partner average of 6.2%. Sharing in host-focused groups converts best.</p>
+</div>
+</section>
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Recent clicks</div>
+<div class="p-2.5">
+<div class="arow" style="cursor:default"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-secondary"><i data-lucide="mouse-pointer-click" class="h-4 w-4"></i></div><div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-brand-ink">Click from WhatsApp</div><div class="text-[11px] text-brand-mute">Today 14:22 · mobile</div></div></div>
+<div class="arow" style="cursor:default"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-secondary"><i data-lucide="mouse-pointer-click" class="h-4 w-4"></i></div><div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-brand-ink">QR scan</div><div class="text-[11px] text-brand-mute">Today 09:05 · mobile</div></div></div>
+<div class="arow" style="cursor:default"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-secondary"><i data-lucide="user-plus" class="h-4 w-4"></i></div><div class="min-w-0 flex-1"><div class="text-[12.5px] font-medium text-brand-ink">Signup — Thabo N.</div><div class="text-[11px] text-brand-mute">14 Jul · via Facebook click</div></div></div>
+</div>
+<div class="px-5 py-3 border-t border-brand-line text-[10.5px] leading-relaxed text-brand-mute">Visitor identities are anonymised — you see activity, never personal details.</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+lucide.createIcons();
+var LMDATA={
+default:{name:'Default link',title:'Default link metrics',tag:['tag green','Default program'],url:'https://wielo.co.za/r/lerato-m',clicks:'238',clicksSub:'+31 this month',sign:'21',signSub:'8.8% of clicks',pay:'17',paySub:'81% of signups',earn:'R 16 400',earnSub:'R 1 890 / mo current book',su:'21 hosts'},
+race:{name:'Founding Race link',title:'Founding Race link metrics',tag:['tag amber','Campaign · Founding Race'],url:'https://wielo.co.za/c/founding-race/lerato-m',clicks:'126',clicksSub:'+18 this month',sign:'9',signSub:'7.1% of clicks',pay:'8',paySub:'89% of signups · 14 listings',earn:'R 2 520',earnSub:'R 760 / mo current book',su:'9 hosts'},
+pricing:{name:'Pricing page link',title:'Pricing link metrics',tag:['tag green','Default program'],url:'https://wielo.co.za/pricing?ref=lerato-m',clicks:'54',clicksSub:'+9 this month',sign:'4',signSub:'7.4% of clicks',pay:'3',paySub:'75% of signups',earn:'R 1 080',earnSub:'R 310 / mo current book',su:'4 hosts'}};
+function switchLink(k){var d=LMDATA[k];
+document.getElementById('bcName').textContent=d.name;
+document.getElementById('lmTitle').textContent=d.title;
+var t=document.getElementById('lmTag');t.className=d.tag[0];t.innerHTML='<span class="d"></span>'+d.tag[1];
+document.getElementById('lmCopy').dataset.copy=d.url;
+document.getElementById('stClicks').textContent=d.clicks;document.getElementById('stClicksSub').textContent=d.clicksSub;
+document.getElementById('stSign').textContent=d.sign;document.getElementById('stSignSub').textContent=d.signSub;
+document.getElementById('stPay').textContent=d.pay;document.getElementById('stPaySub').textContent=d.paySub;
+document.getElementById('stEarn').textContent=d.earn;document.getElementById('stEarnSub').textContent=d.earnSub;
+document.getElementById('suCount').textContent=d.su;}
+function setr(b){b.parentElement.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');}
+document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){navigator.clipboard.writeText(b.dataset.copy);var o=b.innerHTML;b.innerHTML='<i data-lucide="check" class="h-4 w-4"></i> Copied';lucide.createIcons();setTimeout(function(){b.innerHTML=o;lucide.createIcons();},1400);});});
+</script>
+</body>
+</html>

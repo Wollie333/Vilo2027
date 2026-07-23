@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Affiliate Payouts · Wielo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#10B981",secondary:"#064E3B",accent:"#D1FAE5",dark:"#0A1510",light:"#F0FDF4",ink:"#052E1F",mute:"#4A7C6A",line:"#E4EFE8"},status:{confirmed:"#10B981",pending:"#F59E0B",cancelled:"#EF4444",completed:"#6366F1",inhouse:"#0EA5E9",draft:"#94A3B8"}},borderRadius:{DEFAULT:"10px",card:"16px",pill:"9999px",sm:"6px"},fontFamily:{sans:["Inter","system-ui","sans-serif"],display:['"Plus Jakarta Sans"',"sans-serif"],mono:['"JetBrains Mono"',"monospace"]},boxShadow:{card:"0 1px 2px rgba(6,78,59,.05)",lift:"0 10px 34px -14px rgba(6,78,59,.18)"}}}};
+</script>
+<link rel="stylesheet" href="affiliate-ui.css" />
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+<header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+<button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+<a href="Dashboard.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Wielo</span>
+</a>
+<span class="hidden sm:inline-flex items-center gap-1.5 rounded-pill bg-brand-light border border-brand-line px-3 py-1 text-[11.5px] font-semibold text-brand-secondary"><i data-lucide="handshake" class="h-3.5 w-3.5"></i> Partner</span>
+<div class="flex-1"></div>
+<div class="hidden md:flex items-center gap-2 mr-1 rounded-pill bg-[#F4F8F5] px-3.5 h-10"><span class="smallcaps">Available</span><span class="num font-display text-[15px] font-bold text-brand-ink">R 3 480</span></div>
+<button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i></button>
+<div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">LM</div>
+</header>
+<div class="flex-1 flex min-h-0">
+<aside id="sidebar" class="gnav">
+<nav class="flex-1 overflow-y-auto thin-scroll pt-3 pb-3">
+<a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Overview</span></a>
+<a href="Inbox v3 - Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+<a href="Bookings Page.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+<a href="Guests List.html" class="gitem"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+<a href="Calendar.html" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+<a href="Listings Page.html" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+<a href="Payment Record.html" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+<a href="Affiliate Dashboard.html" class="gitem active"><span class="ico"><i data-lucide="handshake" class="h-[18px] w-[18px]"></i></span><span class="glbl">Affiliates</span></a>
+<div class="gsec"></div>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="life-buoy" class="h-[18px] w-[18px]"></i></span><span class="glbl">Help &amp; docs</span></a>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+</nav>
+</aside>
+<div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+<div class="shrink-0 border-b border-brand-line bg-white">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8">
+<div class="pt-4 flex flex-wrap items-end gap-x-4 gap-y-2">
+<div>
+<h1 class="font-display text-[20px] font-extrabold leading-none text-brand-ink whitespace-nowrap">Affiliate program</h1>
+<div class="mt-1.5 text-[12.5px] text-brand-mute">Partner since March 2026 · <span class="text-brand-primary font-medium">wielo.co.za/r/lerato-m</span></div>
+</div>
+<div class="ml-auto flex items-center gap-2 pb-0.5"><span class="tag green"><span class="d"></span>Active partner</span></div>
+</div>
+<div class="mt-1.5 flex items-center gap-7 overflow-x-auto thin-scroll">
+<a href="Affiliate Dashboard.html" class="tabbtn" style="text-decoration:none"><i data-lucide="layout-dashboard" class="h-[17px] w-[17px]"></i> Overview</a>
+<a href="Affiliate Links.html" class="tabbtn" style="text-decoration:none"><i data-lucide="link" class="h-[17px] w-[17px]"></i> Links &amp; products</a>
+<a href="Affiliate Campaigns.html" class="tabbtn" style="text-decoration:none"><i data-lucide="flag" class="h-[17px] w-[17px]"></i> Campaigns <span class="pillcnt num">2</span></a>
+<a href="Affiliate Payouts.html" class="tabbtn on" style="text-decoration:none"><i data-lucide="wallet" class="h-[17px] w-[17px]"></i> Payouts</a>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto thin-scroll">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-6" data-screen-label="Partner payouts">
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+<div class="space-y-6 min-w-0">
+
+<!-- BALANCE BAND -->
+<section class="grid grid-cols-3 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line fade">
+<div class="bg-brand-secondary p-4">
+<div class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Available now</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-white">R 3 480</div>
+<div class="mt-1 text-[11px] text-brand-accent">Cleared · ready to withdraw</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">On hold</div>
+<div class="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">R 1 145</div>
+<div class="mt-1 text-[11px] text-brand-mute">Clears within 30 days</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Paid out to date</div>
+<div class="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">R 14 295</div>
+<div class="mt-1 text-[11px] text-brand-mute">5 payouts</div>
+</div>
+</section>
+
+<!-- PAYOUT HISTORY -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Payout history</div>
+<button class="btn-ghost"><i data-lucide="download" class="h-3.5 w-3.5"></i> Export all</button>
+</div>
+<div class="overflow-x-auto">
+<table class="ttable">
+<thead><tr><th>Requested</th><th>Reference</th><th class="r">Amount</th><th class="r">Fee</th><th class="r">Paid</th><th>Status</th><th></th></tr></thead>
+<tbody>
+<tr><td class="num">2 Jul 2026</td><td class="mono text-[12px]">CN-000241</td><td class="r num font-semibold">R 4 200.00</td><td class="r num text-brand-mute">R 10.00</td><td class="r num">R 4 190.00</td><td><span class="tag green"><span class="d"></span>Paid</span></td><td class="r"><button class="btn-ghost h-8"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Remittance</button></td></tr>
+<tr><td class="num">1 Jun 2026</td><td class="mono text-[12px]">CN-000198</td><td class="r num font-semibold">R 3 850.00</td><td class="r num text-brand-mute">R 10.00</td><td class="r num">R 3 840.00</td><td><span class="tag green"><span class="d"></span>Paid</span></td><td class="r"><button class="btn-ghost h-8"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Remittance</button></td></tr>
+<tr><td class="num">2 May 2026</td><td class="mono text-[12px]">CN-000154</td><td class="r num font-semibold">R 2 940.00</td><td class="r num text-brand-mute">R 10.00</td><td class="r num">R 2 930.00</td><td><span class="tag green"><span class="d"></span>Paid</span></td><td class="r"><button class="btn-ghost h-8"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Remittance</button></td></tr>
+<tr><td class="num">1 Apr 2026</td><td class="mono text-[12px]">CN-000112</td><td class="r num font-semibold">R 1 890.00</td><td class="r num text-brand-mute">R 10.00</td><td class="r num">R 1 880.00</td><td><span class="tag green"><span class="d"></span>Paid</span></td><td class="r"><button class="btn-ghost h-8"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Remittance</button></td></tr>
+<tr><td class="num">2 Mar 2026</td><td class="mono text-[12px]">CN-000078</td><td class="r num font-semibold">R 1 425.00</td><td class="r num text-brand-mute">R 10.00</td><td class="r num">R 1 415.00</td><td><span class="tag green"><span class="d"></span>Paid</span></td><td class="r"><button class="btn-ghost h-8"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Remittance</button></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- COMMISSION STATEMENTS -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Commission statements</div>
+<span class="text-[11.5px] text-brand-mute">One per earning · CN-numbered</span>
+</div>
+<div class="p-2.5">
+<div class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="file-text" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">July 2026 statement</div><div class="text-[12px] text-brand-mute mt-0.5">23 commissions · R 2 340 accrued</div></div><button class="btn-ghost h-8 shrink-0"><i data-lucide="download" class="h-3.5 w-3.5"></i> PDF</button></div>
+<div class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="file-text" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">June 2026 statement</div><div class="text-[12px] text-brand-mute mt-0.5">19 commissions · R 2 105 accrued</div></div><button class="btn-ghost h-8 shrink-0"><i data-lucide="download" class="h-3.5 w-3.5"></i> PDF</button></div>
+<div class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="file-text" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">May 2026 statement</div><div class="text-[12px] text-brand-mute mt-0.5">16 commissions · R 1 870 accrued</div></div><button class="btn-ghost h-8 shrink-0"><i data-lucide="download" class="h-3.5 w-3.5"></i> PDF</button></div>
+</div>
+</section>
+</div>
+
+<!-- RIGHT RAIL -->
+<div class="space-y-6 min-w-0">
+<!-- REQUEST PAYOUT -->
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Request a payout</div>
+<div class="p-5">
+<div class="rounded-[12px] bg-brand-light border border-[#C7F0DC] p-4 text-center">
+<div class="smallcaps">You can withdraw</div>
+<div class="num mt-1 font-display text-[28px] font-extrabold text-brand-secondary">R 3 480</div>
+</div>
+<dl class="mt-4 space-y-2 text-[12.5px]">
+<div class="flex justify-between"><dt class="text-brand-mute">Cleared balance</dt><dd class="num font-semibold text-brand-ink">R 3 480.00</dd></div>
+<div class="flex justify-between"><dt class="text-brand-mute">Transfer fee</dt><dd class="num font-semibold text-brand-ink">− R 10.00</dd></div>
+<div class="flex justify-between border-t border-brand-line pt-2"><dt class="font-semibold text-brand-ink">You'll receive</dt><dd class="num font-bold text-brand-secondary">R 3 470.00</dd></div>
+</dl>
+<button class="btn-pri w-full justify-center mt-4"><i data-lucide="wallet" class="h-4 w-4"></i> Request payout</button>
+<p class="mt-3 text-[11px] leading-relaxed text-brand-mute">Minimum payout R 500. Paid by EFT to your saved bank account within 3 business days. A remittance document is issued with every payout.</p>
+</div>
+</section>
+
+<!-- HOW HOLDS WORK -->
+<section class="card overflow-hidden fade">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">How your money moves</div>
+<div class="p-5 space-y-3">
+<div class="flex gap-3"><div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FFFBEB] border border-[#FCE9B6] text-[#B45309]"><i data-lucide="clock-3" class="h-3.5 w-3.5"></i></div><div><div class="text-[12.5px] font-semibold text-brand-ink">Pending (30 days)</div><div class="text-[11.5px] text-brand-mute leading-relaxed">New commission holds for 30 days — this protects you and hosts against early refunds.</div></div></div>
+<div class="flex gap-3"><div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#ECFDF5] border border-[#C7F0DC] text-[#047857]"><i data-lucide="check" class="h-3.5 w-3.5"></i></div><div><div class="text-[12.5px] font-semibold text-brand-ink">Cleared</div><div class="text-[11.5px] text-brand-mute leading-relaxed">After the hold, money is yours to withdraw any time above R 500.</div></div></div>
+<div class="flex gap-3"><div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EEF0FF] border border-[#D7DBFB] text-[#4F46E5]"><i data-lucide="banknote" class="h-3.5 w-3.5"></i></div><div><div class="text-[12.5px] font-semibold text-brand-ink">Paid</div><div class="text-[11.5px] text-brand-mute leading-relaxed">We settle to your bank and issue a numbered remittance for your records.</div></div></div>
+</div>
+</section>
+
+<!-- BANK -->
+<section class="card overflow-hidden fade">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><span class="smallcaps">Payout account</span><button class="btn-ghost h-8">Edit</button></div>
+<div class="p-5 flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-light border border-brand-line"><i data-lucide="landmark" class="h-4.5 w-4.5 text-brand-secondary"></i></div>
+<div><div class="text-[13.5px] font-semibold text-brand-ink">FNB · Cheque</div><div class="mono text-[12px] text-brand-mute">•••• 4021 · L Mokoena</div></div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,5 +1,8 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Wallet } from "lucide-react";
 
+import "./affiliate-manager.css";
+
+import { Link } from "@/i18n/navigation";
 import { AffiliateNav } from "@/app/[locale]/portal/affiliates/_components/AffiliateNav";
 import { AffiliateTermsGate } from "@/app/[locale]/portal/affiliates/_components/AffiliateTermsGate";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
@@ -79,10 +82,18 @@ export async function AffiliateShell({
 
   const memberSince = account.accepted_at
     ? new Date(account.accepted_at).toLocaleDateString("en-ZA", {
-        month: "short",
+        month: "long",
         year: "numeric",
       })
     : null;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://wielo.co.za";
+  const refUrlShort = `${baseUrl}/r/${account.slug}`.replace(
+    /^https?:\/\//,
+    "",
+  );
   const isActive = status === "active";
   const isPending = status === "pending";
   const statusLabel = isActive
@@ -102,8 +113,14 @@ export async function AffiliateShell({
             <span className="font-medium text-brand-ink">Affiliates</span>
           </nav>
           <h1 className="mt-1 font-display text-[24px] font-extrabold leading-none text-brand-ink">
-            Affiliate Portal
+            Affiliate program
           </h1>
+          <div className="mt-1.5 text-[12.5px] text-brand-mute">
+            {memberSince ? `Partner since ${memberSince} · ` : null}
+            <span className="font-medium text-brand-primary">
+              {refUrlShort}
+            </span>
+          </div>
         </div>
         <div className="ml-auto flex items-center gap-2 pb-0.5">
           <span
@@ -120,10 +137,10 @@ export async function AffiliateShell({
             />
             {statusLabel}
           </span>
-          {memberSince ? (
-            <span className="text-[12px] text-brand-mute">
-              Member since {memberSince}
-            </span>
+          {isActive ? (
+            <Link href={`${basePath}/payouts`} className="btn-pri h-9">
+              <Wallet className="h-4 w-4" /> Request payout
+            </Link>
           ) : null}
         </div>
       </div>

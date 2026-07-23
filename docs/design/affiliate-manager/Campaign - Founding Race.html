@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Founding Race · Wielo Affiliates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#10B981",secondary:"#064E3B",accent:"#D1FAE5",dark:"#0A1510",light:"#F0FDF4",ink:"#052E1F",mute:"#4A7C6A",line:"#E4EFE8"},status:{confirmed:"#10B981",pending:"#F59E0B",cancelled:"#EF4444",completed:"#6366F1",inhouse:"#0EA5E9",draft:"#94A3B8"}},borderRadius:{DEFAULT:"10px",card:"16px",pill:"9999px",sm:"6px"},fontFamily:{sans:["Inter","system-ui","sans-serif"],display:['"Plus Jakarta Sans"',"sans-serif"],mono:['"JetBrains Mono"',"monospace"]},boxShadow:{card:"0 1px 2px rgba(6,78,59,.05)",lift:"0 10px 34px -14px rgba(6,78,59,.18)"}}}};
+</script>
+<link rel="stylesheet" href="affiliate-ui.css" />
+<style>
+.rankchip{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 7px;border-radius:9px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;font-feature-settings:"tnum" 1;background:#F4F7F5;color:#4A7C6A;border:1px solid #E4EFE8}
+.rankchip.r1{background:#FBF3DD;color:#8A6410;border-color:#EEDDAE}
+.rankchip.r2{background:#F0F3F6;color:#5C6B78;border-color:#DCE3EA}
+.rankchip.r3{background:#F7EBDF;color:#8A5A2E;border-color:#ECD5BF}
+.netpill{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:9999px;background:#ECFDF5;color:#047857}
+.netpill.flat{background:#F4F7F5;color:#8496A0}
+.rowlink{transition:background .12s}.rowlink:hover{background:#F7FBF8}
+.youband{background:#F0FDF4}.youband:hover{background:#EAFBF1}
+.avph{object-fit:cover;background:#EEF4F0}
+</style>
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+<header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+<button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+<a href="Dashboard.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Wielo</span>
+</a>
+<span class="hidden sm:inline-flex items-center gap-1.5 rounded-pill bg-brand-light border border-brand-line px-3 py-1 text-[11.5px] font-semibold text-brand-secondary"><i data-lucide="handshake" class="h-3.5 w-3.5"></i> Partner</span>
+<div class="flex-1"></div>
+<div class="hidden md:flex items-center gap-2 mr-1 rounded-pill bg-[#F4F8F5] px-3.5 h-10"><span class="smallcaps">Available</span><span class="num font-display text-[15px] font-bold text-brand-ink">R 3 480</span></div>
+<button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i></button>
+<div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">LM</div>
+</header>
+<div class="flex-1 flex min-h-0">
+<aside id="sidebar" class="gnav">
+<nav class="flex-1 overflow-y-auto thin-scroll pt-3 pb-3">
+<a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Overview</span></a>
+<a href="Inbox v3 - Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+<a href="Bookings Page.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+<a href="Guests List.html" class="gitem"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+<a href="Calendar.html" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+<a href="Listings Page.html" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+<a href="Payment Record.html" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+<a href="Affiliate Dashboard.html" class="gitem active"><span class="ico"><i data-lucide="handshake" class="h-[18px] w-[18px]"></i></span><span class="glbl">Affiliates</span></a>
+<div class="gsec"></div>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="life-buoy" class="h-[18px] w-[18px]"></i></span><span class="glbl">Help &amp; docs</span></a>
+<a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+</nav>
+</aside>
+<div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+<!-- CAMPAIGN HEADER -->
+<div class="shrink-0 border-b border-brand-line bg-white">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8">
+<div class="pt-4 flex items-center gap-3">
+<a href="Affiliate Campaigns.html" class="icon-btn shrink-0" style="border:1px solid #E4EFE8" title="Back to Campaigns"><i data-lucide="arrow-left" class="h-4.5 w-4.5"></i></a>
+<nav class="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+<a href="Affiliate Dashboard.html" class="hover:underline" style="color:#4A7C6A">Affiliates</a><i data-lucide="chevron-right" class="h-3 w-3"></i>
+<a href="Affiliate Campaigns.html" class="hover:underline" style="color:#4A7C6A">Campaigns</a><i data-lucide="chevron-right" class="h-3 w-3"></i>
+<span class="font-medium text-brand-ink">Founding Race</span>
+</nav>
+</div>
+<div class="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
+<div class="min-w-0">
+<div class="flex items-center gap-2.5">
+<h1 class="font-display text-[20px] font-extrabold leading-none text-brand-ink">The Founding Race</h1>
+<span class="tag amber"><span class="d"></span>Live · ends 30 Nov 2026</span>
+</div>
+<div class="mt-1.5 text-[12.5px] text-brand-mute">8-month launch competition · 131 days left · your campaign link: <span class="mono text-brand-ink">wielo.co.za/c/founding-race/lerato-m</span></div>
+</div>
+<div class="ml-auto flex items-center gap-2 pb-0.5">
+<button class="btn-sec h-9" data-copy="https://wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-4 w-4"></i> Copy race link</button>
+</div>
+</div>
+<div class="mt-1.5 flex items-center gap-7 overflow-x-auto thin-scroll">
+<button class="tabbtn on" data-tab="overview" onclick="tab(this)"><i data-lucide="layout-dashboard" class="h-[17px] w-[17px]"></i> Overview</button>
+<button class="tabbtn" data-tab="links" onclick="tab(this)"><i data-lucide="link" class="h-[17px] w-[17px]"></i> Links &amp; page</button>
+<button class="tabbtn" data-tab="leaderboard" onclick="tab(this)"><i data-lucide="trophy" class="h-[17px] w-[17px]"></i> Leaderboard</button>
+<button class="tabbtn" data-tab="marketing" onclick="tab(this)"><i data-lucide="megaphone" class="h-[17px] w-[17px]"></i> Marketing</button>
+<button class="tabbtn" data-tab="rules" onclick="tab(this)"><i data-lucide="scroll-text" class="h-[17px] w-[17px]"></i> Rules &amp; prizes</button>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto thin-scroll">
+<div class="mx-auto max-w-[1080px] px-5 lg:px-8 py-6">
+
+<!-- ============ OVERVIEW ============ -->
+<section data-panel="overview" class="fade" data-screen-label="Founding Race overview">
+<div class="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4">
+<div class="bg-brand-dark p-4">
+<div class="text-[10px] font-semibold uppercase tracking-wider text-white/60">Your rank</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-white">#4 <span class="text-[12px] font-semibold text-white/50">of 22</span></div>
+<div class="mt-1 text-[11px] text-brand-accent">▲ 2 places this week</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Score · active listings</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">14</div>
+<div class="mt-1 text-[11px] text-brand-mute">3 behind #3 (Anika · 17)</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Current race rate</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">15%</div>
+<div class="mt-1 text-[11px] text-brand-mute">on R 18 800 /mo book</div>
+</div>
+<div class="bg-[#FAFCFB] p-4">
+<div class="smallcaps">Earned in this race</div>
+<div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">R 2 520</div>
+<div class="mt-1 text-[11px] text-brand-mute">+ R 500 conversion bonuses</div>
+</div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+<div class="space-y-6 min-w-0">
+<!-- LADDER -->
+<section class="card overflow-hidden">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Commission ladder · trailing-month book</div>
+<span class="tag green"><span class="d"></span>Lifetime on race referrals</span>
+</div>
+<div class="p-5 space-y-2.5">
+<div class="rung"><span class="num font-display text-[16px] font-bold text-brand-mute w-12">10%</span><div class="flex-1"><div class="text-[13px] font-semibold text-brand-ink">Up to R 10 000 /mo</div></div><span class="tag gray"><span class="d"></span>Passed</span></div>
+<div class="rung now"><span class="num font-display text-[16px] font-bold text-brand-secondary w-12">15%</span><div class="flex-1"><div class="text-[13px] font-semibold text-brand-ink">R 10 000 – R 25 000 /mo</div><div class="mt-1.5 flex items-center gap-3"><div class="flex-1"><div class="pbar"><div style="width:75%"></div></div></div><span class="text-[11px] font-semibold text-brand-secondary num">R 18 800</span></div></div><span class="tag green"><span class="d"></span>You are here</span></div>
+<div class="rung"><span class="num font-display text-[16px] font-bold text-brand-mute w-12">20%</span><div class="flex-1"><div class="text-[13px] font-semibold text-brand-ink">R 25 000 – R 50 000 /mo</div><div class="text-[11.5px] text-brand-mute mt-0.5">R 6 200 more book to reach — about 2 Growth-plan hosts</div></div></div>
+<div class="rung"><span class="num font-display text-[16px] font-bold text-brand-mute w-12">25%</span><div class="flex-1"><div class="text-[13px] font-semibold text-brand-ink">R 50 000+ /mo</div></div></div>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 text-[11.5px] text-brand-mute">Your rate applies to your whole race book and re-checks monthly as hosts join or leave. If you win a prize floor, you never drop below it.</div>
+</section>
+
+<!-- YOUR RACE REFERRALS -->
+<section class="card overflow-hidden">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+<div class="smallcaps">Your race referrals</div>
+<a href="Affiliate Link Metrics.html" class="text-[12px] font-medium text-brand-primary hover:underline inline-flex items-center gap-1">Link metrics <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+</div>
+<div class="overflow-x-auto">
+<table class="ttable">
+<thead><tr><th>Host</th><th>Joined</th><th class="r">Listings</th><th>Status</th><th class="r">Monthly book</th></tr></thead>
+<tbody>
+<tr><td class="font-semibold text-brand-ink">Thabo N.</td><td class="num">14 Jul 2026</td><td class="r num">2</td><td><span class="tag green"><span class="d"></span>Active</span></td><td class="r num">R 1 198</td></tr>
+<tr><td class="font-semibold text-brand-ink">Karin P.</td><td class="num">28 Jun 2026</td><td class="r num">1</td><td><span class="tag green"><span class="d"></span>Active</span></td><td class="r num">R 349</td></tr>
+<tr><td class="font-semibold text-brand-ink">Naledi M.</td><td class="num">18 May 2026</td><td class="r num">2</td><td><span class="tag green"><span class="d"></span>Active</span></td><td class="r num">R 998</td></tr>
+<tr><td class="font-semibold text-brand-ink">Johan v.d. M.</td><td class="num">25 May 2026</td><td class="r num">0</td><td><span class="tag amber"><span class="d"></span>Trial</span></td><td class="r num text-brand-mute">R 0</td></tr>
+</tbody>
+</table>
+</div>
+<div class="px-5 py-3 border-t border-brand-line text-[11.5px] text-brand-mute flex items-center justify-between"><span>Showing 4 of 9 race referrals</span><button class="btn-ghost h-8">View all</button></div>
+</section>
+</div>
+
+<div class="space-y-6 min-w-0">
+<!-- NEXT PRIZE GATE -->
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Next milestone</div>
+<div class="p-5">
+<div class="flex items-center gap-3">
+<div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFBEB] border border-[#FCE9B6]"><i data-lucide="trophy" class="h-5 w-5 text-[#B45309]"></i></div>
+<div><div class="font-display text-[15px] font-bold text-brand-ink">Top 3 at month-end</div><div class="text-[11.5px] text-brand-mute">wins R 2 000 cash + a 15% floor</div></div>
+</div>
+<div class="mt-4"><div class="pbar"><div style="width:82%"></div></div>
+<div class="mt-2 flex justify-between text-[11px] text-brand-mute num"><span>You: 14 listings</span><span>#3: 17 listings</span></div></div>
+<p class="mt-3 text-[11.5px] leading-relaxed text-brand-mute">3 more active listings puts you level with Anika. Month closes in 9 days.</p>
+</div>
+</section>
+<!-- SHARE -->
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Share your race link</div>
+<div class="p-5">
+<div class="copyfield">
+<i data-lucide="flag" class="h-4 w-4 text-brand-mute shrink-0"></i>
+<span class="mono flex-1 truncate text-[12px] text-brand-ink">wielo.co.za/c/founding-race/lerato-m</span>
+<button class="btn-pri h-9 px-3.5" data-copy="https://wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-4 w-4"></i></button>
+</div>
+<div class="mt-2.5 flex items-center gap-2">
+<button class="btn-ghost"><i data-lucide="qr-code" class="h-3.5 w-3.5"></i> QR</button>
+<button class="btn-ghost"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp</button>
+<button class="btn-ghost"><i data-lucide="mail" class="h-3.5 w-3.5"></i> Email</button>
+</div>
+<p class="mt-3 text-[11px] leading-relaxed text-brand-mute">Hosts who sign up through this link count toward your score and earn the race ladder — for life.</p>
+</div>
+</section>
+<!-- CONVERSION BONUS -->
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Conversion bonuses</div>
+<div class="p-5 text-[12.5px] space-y-2">
+<div class="flex justify-between"><span class="text-brand-mute">Monthly plan activates</span><span class="num font-bold text-brand-ink">R 250</span></div>
+<div class="flex justify-between"><span class="text-brand-mute">Annual plan activates</span><span class="num font-bold text-brand-ink">R 400</span></div>
+<div class="flex justify-between border-t border-brand-line pt-2"><span class="font-semibold text-brand-ink">Earned so far</span><span class="num font-bold text-brand-secondary">R 500 · 2 hosts</span></div>
+<p class="text-[11px] leading-relaxed text-brand-mute pt-1">Paid once per referred host, when their first paid subscription starts. Separate from ladder commission.</p>
+</div>
+</section>
+</div>
+</div>
+</section>
+
+<!-- ============ LINKS & PAGE ============ -->
+<section data-panel="links" class="fade" hidden data-screen-label="Founding Race links and page">
+<p class="text-[13px] leading-relaxed text-brand-mute max-w-2xl">Your race link opens your own co-branded landing page. The design is fixed — you fill in the personal parts below and they slot straight in. Hosts see a familiar face, not a cold ad.</p>
+<div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
+<div class="space-y-6 min-w-0">
+<section class="card overflow-hidden">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><span class="smallcaps">Your details on the page</span><span class="tag gray"><span class="d"></span>Auto-saved to your page</span></div>
+<div class="p-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+<div class="sm:col-span-2 flex items-center gap-4">
+<div class="relative h-20 w-20 shrink-0 rounded-full border-2 border-dashed border-brand-line bg-brand-light flex items-center justify-center overflow-hidden" id="pvPhotoSlot"><img src="https://randomuser.me/api/portraits/women/44.jpg" alt="" class="h-full w-full object-cover" /></div>
+<div class="min-w-0"><div class="text-[13px] font-semibold text-brand-ink">Your photo</div><div class="text-[11.5px] text-brand-mute mt-0.5 leading-relaxed">A clear, friendly headshot. Shown at the top of your page.</div><div class="mt-2.5"><button class="btn-ghost"><i data-lucide="upload" class="h-3.5 w-3.5"></i> Upload photo</button></div></div>
+</div>
+<div><label class="flabel">Display name</label><input class="fld" id="fName" value="Lerato Mokoena" /></div>
+<div><label class="flabel">Headline</label><input class="fld" id="fHead" value="Founder · Free State Getaways" /><p class="fhelp">Who you are to your community.</p></div>
+<div class="sm:col-span-2"><label class="flabel">Personal message</label><textarea class="fld" id="fMsg" rows="3">I've helped 14 Free State hosts take back their bookings. No fees, your own website, and I'm here if you get stuck.</textarea><p class="fhelp">Shown as a quote next to your photo. Keep it warm and personal.</p></div>
+<div><label class="flabel">WhatsApp number</label><input class="fld mono text-[13px]" id="fWa" value="+27 82 555 0134" /><p class="fhelp">Adds a "WhatsApp Lerato" button.</p></div>
+<div><label class="flabel">Phone (optional)</label><input class="fld mono text-[13px]" id="fPh" value="" placeholder="Shown as a call button" /></div>
+<div><label class="flabel">Email (optional)</label><input class="fld mono text-[13px]" id="fEm" value="lerato@fsgetaways.co.za" /></div>
+<div><label class="flabel">Facebook group</label><input class="fld" id="fFb" value="Free State Getaways · 1 400 members" /><p class="fhelp">Linked under your name for credibility.</p></div>
+</div>
+<div class="px-5 py-3.5 border-t border-brand-line bg-brand-light/60 flex items-center gap-3"><button class="btn-pri h-9"><i data-lucide="check" class="h-4 w-4"></i> Save changes</button><span class="text-[11.5px] text-brand-mute">Changes go live on your page immediately.</span></div>
+</section>
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Your page link</div>
+<div class="p-5">
+<div class="copyfield">
+<i data-lucide="flag" class="h-4 w-4 text-brand-mute shrink-0"></i>
+<span class="mono flex-1 truncate text-[12.5px] text-brand-ink">wielo.co.za/c/founding-race/lerato-m</span>
+<button class="btn-pri h-9 px-4" data-copy="https://wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-4 w-4"></i> Copy</button>
+</div>
+<div class="mt-2.5 flex flex-wrap items-center gap-2">
+<button class="btn-ghost"><i data-lucide="qr-code" class="h-3.5 w-3.5"></i> Download QR</button>
+<button class="btn-ghost"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp</button>
+<a href="Affiliate Host Landing Page.html" class="btn-ghost"><i data-lucide="external-link" class="h-3.5 w-3.5"></i> View my live page</a>
+</div>
+</div>
+</section>
+</div>
+<div class="min-w-0">
+<section class="card overflow-hidden lg:sticky lg:top-0">
+<div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><span class="smallcaps">Live preview</span><span class="tag green"><span class="d"></span>Updates as you type</span></div>
+<div class="p-4">
+<div class="rounded-[14px] border border-brand-line overflow-hidden">
+<div class="bg-brand-dark px-5 pt-6 pb-5 text-white">
+<div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.09em] text-emerald-300/90"><svg class="h-4 w-4 rounded" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg> Wielo · Founding Partner</div>
+<div class="mt-4 flex items-start gap-3.5">
+<img src="https://randomuser.me/api/portraits/women/44.jpg" alt="" class="h-14 w-14 rounded-full object-cover border-2 border-emerald-400/40 shrink-0" />
+<div class="min-w-0">
+<div class="font-display text-[16px] font-extrabold leading-tight" id="pvName">Lerato Mokoena</div>
+<div class="text-[11px] text-emerald-100/70 mt-0.5" id="pvHead">Founder · Free State Getaways</div>
+<div class="text-[10.5px] text-emerald-200/60 mt-0.5 inline-flex items-center gap-1"><i data-lucide="users" class="h-3 w-3"></i> <span id="pvFb">Free State Getaways · 1 400 members</span></div>
+</div>
+</div>
+<p class="mt-3.5 text-[12px] leading-relaxed text-emerald-50/85 italic" id="pvMsg">“I've helped 14 Free State hosts take back their bookings. No fees, your own website, and I'm here if you get stuck.”</p>
+</div>
+<div class="bg-white p-4">
+<div class="font-display text-[14px] font-extrabold text-brand-ink leading-snug">Run your guesthouse with zero booking fees.</div>
+<p class="text-[11px] text-brand-mute mt-1 leading-relaxed">Your own booking website · keep 100% of every booking.</p>
+<div class="mt-3 flex flex-col gap-2">
+<span class="btn-pri h-9 justify-center text-[12px] pointer-events-none">Get started free</span>
+<span class="btn-sec h-9 justify-center text-[12px] pointer-events-none" id="pvWa"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp Lerato</span>
+<span class="btn-sec h-9 justify-center text-[12px] pointer-events-none" id="pvEmRow"><i data-lucide="mail" class="h-3.5 w-3.5"></i> <span id="pvEm">lerato@fsgetaways.co.za</span></span>
+</div>
+</div>
+</div>
+<p class="mt-3 text-[10.5px] leading-relaxed text-brand-mute">The rest of the page (features, pricing, signup) is Wielo's fixed design — only these slots are yours.</p>
+</div>
+</section>
+</div>
+</div>
+</section>
+
+<!-- ============ LEADERBOARD ============ -->
+<section data-panel="leaderboard" class="fade" hidden data-screen-label="Founding Race leaderboard">
+<div class="card overflow-hidden">
+<div class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-brand-line">
+<i data-lucide="trophy" class="h-[18px] w-[18px] text-brand-primary"></i>
+<h3 class="font-display text-[16px] font-bold text-brand-ink">Standings</h3>
+<span class="tag gray"><span class="d"></span>Updated nightly · last recompute 04:00</span>
+<a href="Founding Race Leaderboard - Public.html" class="ml-auto text-[12.5px] font-semibold text-brand-primary hover:text-brand-secondary inline-flex items-center gap-1">View public page <i data-lucide="external-link" class="h-3.5 w-3.5"></i></a>
+</div>
+<div class="overflow-x-auto thin-scroll">
+<table class="w-full text-left num" style="min-width:620px">
+<thead>
+<tr class="text-brand-mute border-b border-brand-line">
+<th class="py-2.5 pl-5 pr-2 text-[11px] font-semibold uppercase tracking-wider w-[64px]">Rank</th>
+<th class="py-2.5 px-2 text-[11px] font-semibold uppercase tracking-wider">Partner</th>
+<th class="py-2.5 px-2 text-[11px] font-semibold uppercase tracking-wider hidden sm:table-cell">Region</th>
+<th class="py-2.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-right hidden md:table-cell">This month</th>
+<th class="py-2.5 pr-5 pl-2 text-[11px] font-semibold uppercase tracking-wider text-right">Hosts live</th>
+</tr>
+</thead>
+<tbody id="lbRows"></tbody>
+</table>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 text-[11.5px] text-brand-mute">Score = your currently-active referred listings. If a host churns, the score drops automatically — keep your hosts happy.</div>
+</div>
+</section>
+
+<!-- ============ MARKETING ============ -->
+<section data-panel="marketing" class="fade" hidden data-screen-label="Founding Race marketing">
+<div class="flex flex-wrap items-center gap-3">
+<p class="text-[13px] text-brand-mute">Fresh assets drop every week — your race link is baked into every download.</p>
+<div class="ml-auto seg" id="mkSeg">
+<button class="on" onclick="mkFilter(this,'all')">All</button>
+<button onclick="mkFilter(this,'social')">Social posts</button>
+<button onclick="mkFilter(this,'prompt')">AI prompts</button>
+<button onclick="mkFilter(this,'seo')">SEO articles</button>
+<button onclick="mkFilter(this,'video')">Videos</button>
+<button onclick="mkFilter(this,'print')">Print</button>
+</div>
+</div>
+
+<div class="mkgroup">
+<div class="mt-5 flex items-center gap-2.5"><span class="smallcaps">July 2026 · Week 4</span><span class="tag green"><span class="d"></span>New this week</span><div class="h-px flex-1 bg-brand-line"></div></div>
+<div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+<div class="pcard" data-mtype="video"><svg class="w-full" viewBox="0 0 320 180" role="img" aria-label="placeholder"><rect width="320" height="180" fill="#0A1510"/><circle cx="160" cy="84" r="26" fill="#10B981"/><path d="M152 70l24 14-24 14z" fill="#fff"/><text x="160" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#9FBAAE">60s explainer · 1080×1920</text></svg><div class="p-4 flex items-center justify-between gap-2"><div><div class="text-[13px] font-semibold text-brand-ink">“Zero fees” explainer video</div><div class="text-[11px] text-brand-mute">Reels / TikTok / status</div></div><button class="btn-ghost h-8"><i data-lucide="download" class="h-3.5 w-3.5"></i></button></div></div>
+<div class="pcard" data-mtype="social"><svg class="w-full" viewBox="0 0 320 180" role="img" aria-label="placeholder"><rect width="320" height="180" fill="#F0FDF4"/><path d="M0 0h320v180H0z" fill="url(#s1)"/><defs><pattern id="s1" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="14" fill="#E4EFE8"/></pattern></defs><text x="160" y="86" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#4A7C6A">whatsapp status · 1080×1920</text><text x="160" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#94A3B8">story-format race promo</text></svg><div class="p-4 flex items-center justify-between gap-2"><div><div class="text-[13px] font-semibold text-brand-ink">WhatsApp status pack</div><div class="text-[11px] text-brand-mute">3 story frames</div></div><button class="btn-ghost h-8"><i data-lucide="download" class="h-3.5 w-3.5"></i></button></div></div>
+<div class="pcard" data-mtype="print"><svg class="w-full" viewBox="0 0 320 180" role="img" aria-label="placeholder"><rect width="320" height="180" fill="#F0FDF4"/><path d="M0 0h320v180H0z" fill="url(#s1)"/><text x="160" y="86" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#4A7C6A">A5 flyer · print PDF</text><text x="160" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#94A3B8">QR poster for meet-ups</text></svg><div class="p-4 flex items-center justify-between gap-2"><div><div class="text-[13px] font-semibold text-brand-ink">Print QR flyer</div><div class="text-[11px] text-brand-mute">Your link + QR baked in</div></div><button class="btn-ghost h-8"><i data-lucide="download" class="h-3.5 w-3.5"></i></button></div></div>
+</div>
+<div class="mt-4 card overflow-hidden" data-mtype="prompt">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">AI prompts · make your own content</div>
+<div class="p-5 space-y-3">
+<div class="rounded-[12px] border border-brand-line bg-[#FAFCFB] p-4 flex items-start gap-3"><p class="flex-1 mono text-[12px] leading-relaxed text-brand-ink">Write a warm 120-word Facebook post for my accommodation-owners group explaining why I recommend Wielo (0% booking fees, own direct-booking website). Mention I'm a founding partner, end with my link: wielo.co.za/c/founding-race/lerato-m. Tone: helpful neighbour, not salesy.</p><button class="btn-ghost h-8 shrink-0" data-copy="Write a warm 120-word Facebook post for my accommodation-owners group explaining why I recommend Wielo (0% booking fees, own direct-booking website). Mention I'm a founding partner, end with my link: wielo.co.za/c/founding-race/lerato-m. Tone: helpful neighbour, not salesy."><i data-lucide="copy" class="h-3.5 w-3.5"></i></button></div>
+<div class="rounded-[12px] border border-brand-line bg-[#FAFCFB] p-4 flex items-start gap-3"><p class="flex-1 mono text-[12px] leading-relaxed text-brand-ink">Draft a friendly WhatsApp message to a guesthouse owner I know, inviting them to try Wielo through my referral link. Max 60 words, one clear next step, no pressure.</p><button class="btn-ghost h-8 shrink-0" data-copy="Draft a friendly WhatsApp message to a guesthouse owner I know, inviting them to try Wielo through my referral link. Max 60 words, one clear next step, no pressure."><i data-lucide="copy" class="h-3.5 w-3.5"></i></button></div>
+</div>
+</div>
+</div>
+
+<div class="mkgroup">
+<div class="mt-7 flex items-center gap-2.5"><span class="smallcaps">July 2026 · Week 3</span><div class="h-px flex-1 bg-brand-line"></div></div>
+<div class="mt-3 card overflow-hidden" data-mtype="social">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Copy-paste captions</div>
+<div class="p-5 space-y-3">
+<div class="rounded-[12px] border border-brand-line bg-[#FAFCFB] p-4 flex items-start gap-3"><p class="flex-1 text-[13px] leading-relaxed text-brand-ink">Guesthouse owners — stop paying 15% to booking sites. Wielo gives you your own booking site with ZERO fees on every booking. I'm a founding partner; join through my link and set up in an afternoon: wielo.co.za/c/founding-race/lerato-m</p><button class="btn-ghost h-8 shrink-0" data-copy="Guesthouse owners — stop paying 15% to booking sites. Wielo gives you your own booking site with ZERO fees on every booking. I'm a founding partner; join through my link and set up in an afternoon: wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i></button></div>
+<div class="rounded-[12px] border border-brand-line bg-[#FAFCFB] p-4 flex items-start gap-3"><p class="flex-1 text-[13px] leading-relaxed text-brand-ink">Direct bookings, your own website, no commission — ever. I've helped 14 SA hosts switch to Wielo. Ask me anything, or start here: wielo.co.za/c/founding-race/lerato-m</p><button class="btn-ghost h-8 shrink-0" data-copy="Direct bookings, your own website, no commission — ever. I've helped 14 SA hosts switch to Wielo. Ask me anything, or start here: wielo.co.za/c/founding-race/lerato-m"><i data-lucide="copy" class="h-3.5 w-3.5"></i></button></div>
+</div>
+</div>
+<div class="mt-4 card overflow-hidden" data-mtype="seo">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">SEO blog articles · publish on your site</div>
+<div class="p-2.5">
+<div class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="file-text" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">“How SA guesthouses escape 15% OTA commissions”</div><div class="text-[12px] text-brand-mute mt-0.5">1 400 words · keyword: direct booking site South Africa</div></div><button class="btn-ghost h-8 shrink-0"><i data-lucide="download" class="h-3.5 w-3.5"></i> .docx</button></div>
+<div class="arow"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary"><i data-lucide="file-text" class="h-[18px] w-[18px]"></i></div><div class="min-w-0 flex-1"><div class="text-[13.5px] font-semibold text-brand-ink">“Setting up direct bookings in an afternoon”</div><div class="text-[12px] text-brand-mute mt-0.5">900 words · step-by-step · your link in the CTA</div></div><button class="btn-ghost h-8 shrink-0"><i data-lucide="download" class="h-3.5 w-3.5"></i> .docx</button></div>
+</div>
+</div>
+</div>
+
+<div class="mkgroup">
+<div class="mt-7 flex items-center gap-2.5"><span class="smallcaps">June 2026 · Launch pack</span><div class="h-px flex-1 bg-brand-line"></div></div>
+<div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+<div class="pcard" data-mtype="social"><svg class="w-full" viewBox="0 0 320 180" role="img" aria-label="placeholder"><rect width="320" height="180" fill="#F0FDF4"/><path d="M0 0h320v180H0z" fill="url(#s1)"/><text x="160" y="86" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#4A7C6A">facebook post · 1200×630</text><text x="160" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#94A3B8">&quot;Zero booking fees&quot; launch graphic</text></svg><div class="p-4 flex items-center justify-between gap-2"><div><div class="text-[13px] font-semibold text-brand-ink">Launch announcement</div><div class="text-[11px] text-brand-mute">Facebook / group post</div></div><button class="btn-ghost h-8"><i data-lucide="download" class="h-3.5 w-3.5"></i></button></div></div>
+<div class="pcard" data-mtype="video"><svg class="w-full" viewBox="0 0 320 180" role="img" aria-label="placeholder"><rect width="320" height="180" fill="#0A1510"/><circle cx="160" cy="84" r="26" fill="#10B981"/><path d="M152 70l24 14-24 14z" fill="#fff"/><text x="160" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#9FBAAE">3 min walkthrough · 1920×1080</text></svg><div class="p-4 flex items-center justify-between gap-2"><div><div class="text-[13px] font-semibold text-brand-ink">Host setup walkthrough</div><div class="text-[11px] text-brand-mute">Share with interested hosts</div></div><button class="btn-ghost h-8"><i data-lucide="download" class="h-3.5 w-3.5"></i></button></div></div>
+</div>
+</div>
+</section>
+
+<!-- ============ RULES ============ -->
+<section data-panel="rules" class="fade" hidden data-screen-label="Founding Race rules">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+<div class="space-y-6 min-w-0">
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">How the race works</div>
+<div class="p-5 space-y-4 text-[13px] leading-relaxed text-brand-ink">
+<div class="flex gap-3"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary font-display font-bold text-[13px]">1</div><div><strong>Runs 1 Apr – 30 Nov 2026.</strong> Open to enrolled Founding Partners (max 25). Enrolment can pause when full.</div></div>
+<div class="flex gap-3"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary font-display font-bold text-[13px]">2</div><div><strong>Your score is your active referred listings.</strong> Each published, active listing from a host who joined via your race link counts one point. Churn drops the point.</div></div>
+<div class="flex gap-3"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary font-display font-bold text-[13px]">3</div><div><strong>Commission is a revenue ladder,</strong> 10 → 25% of your race book's monthly subscription revenue. It re-rates monthly, applies to the whole book, and keeps paying for life — even after the race ends.</div></div>
+<div class="flex gap-3"><div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary font-display font-bold text-[13px]">4</div><div><strong>Prizes are explicit and audited.</strong> Cash prizes plus permanent rate floors, awarded at the published milestones below. The leaderboard freezes at race end.</div></div>
+</div>
+</section>
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Prizes</div>
+<div class="overflow-x-auto">
+<table class="ttable">
+<thead><tr><th>Milestone</th><th>Prize</th><th>Floor</th><th>When</th></tr></thead>
+<tbody>
+<tr><td class="font-semibold text-brand-ink">Monthly top 3</td><td class="num">R 2 000 cash</td><td><span class="tag indigo"><span class="d"></span>15% floor</span></td><td class="text-brand-mute">Each month-end</td></tr>
+<tr><td class="font-semibold text-brand-ink">Final 1st place</td><td class="num">R 25 000 cash</td><td><span class="tag indigo"><span class="d"></span>25% floor</span></td><td class="text-brand-mute">30 Nov 2026</td></tr>
+<tr><td class="font-semibold text-brand-ink">Final 2nd place</td><td class="num">R 12 000 cash</td><td><span class="tag indigo"><span class="d"></span>20% floor</span></td><td class="text-brand-mute">30 Nov 2026</td></tr>
+<tr><td class="font-semibold text-brand-ink">Final 3rd place</td><td class="num">R 6 000 cash</td><td><span class="tag indigo"><span class="d"></span>20% floor</span></td><td class="text-brand-mute">30 Nov 2026</td></tr>
+</tbody>
+</table>
+</div>
+<div class="px-5 py-3 border-t border-brand-line bg-brand-light/60 text-[11.5px] text-brand-mute">A floor is a permanent minimum rate on this campaign's ladder — you never earn below it on race referrals, whatever your book does.</div>
+</section>
+</div>
+<div class="space-y-6 min-w-0">
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">The fine print</div>
+<div class="p-5 space-y-3 text-[12px] leading-relaxed text-brand-mute">
+<p>Full competition rules live at a fixed public address and don't change mid-race:</p>
+<a href="#" class="mono text-[12px] text-brand-primary break-all">wielo.co.za/legal/founding-race-rules</a>
+<p>Entry is free. Any earnings shown are potential and illustrative, not guaranteed — actual commission depends on the hosts you refer and how long they stay subscribed. You accepted these rules on <strong class="text-brand-ink">2 Apr 2026</strong>.</p>
+</div>
+</section>
+<section class="card overflow-hidden">
+<div class="border-b border-brand-line px-5 py-3.5 smallcaps">Questions?</div>
+<div class="p-5">
+<p class="text-[12.5px] leading-relaxed text-brand-mute">Anything unclear about scoring or payouts — ask before you share.</p>
+<button class="btn-sec mt-3"><i data-lucide="message-circle" class="h-4 w-4"></i> Message the Wielo team</button>
+</div>
+</section>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+lucide.createIcons();
+var YOU='lerato';
+var RACERS=[
+{id:'dawid',name:'Dawid K.',group:'Garden Route Stays',members:2800,region:'Garden Route',score:31,net:3,img:'https://randomuser.me/api/portraits/men/45.jpg'},
+{id:'zanele',name:'Zanele B.',group:'KZN Coastal Hosts',members:3900,region:'South Coast',score:24,net:1,img:'https://randomuser.me/api/portraits/women/90.jpg'},
+{id:'anika',name:'Anika V.',group:'Winelands Escapes',members:2100,region:'Winelands',score:17,net:0,img:'https://randomuser.me/api/portraits/women/68.jpg'},
+{id:'lerato',name:'Lerato M.',group:'Free State Getaways',members:1400,region:'Free State',score:14,net:2,img:'https://randomuser.me/api/portraits/women/44.jpg'},
+{id:'pieter',name:'Pieter J.',group:'Karoo Hideaways',members:980,region:'Karoo',score:12,net:-1,img:'https://randomuser.me/api/portraits/men/76.jpg'},
+{id:'marius',name:'Marius S.',group:'Drakensberg Breaks',members:1700,region:'Drakensberg',score:11,net:1,img:'https://randomuser.me/api/portraits/men/22.jpg'},
+{id:'rethabile',name:'Rethabile N.',group:'Soweto B&amp;B Circle',members:2600,region:'Gauteng',score:9,net:0,img:'https://randomuser.me/api/portraits/women/65.jpg'}];
+function netCell(p){if(p.net>0)return '<span class="netpill"><i data-lucide="arrow-up" class="h-3 w-3"></i>'+p.net+'</span>';if(p.net<0)return '<span class="netpill" style="background:#FEF2F2;color:#B91C1C"><i data-lucide="arrow-down" class="h-3 w-3"></i>'+Math.abs(p.net)+'</span>';return '<span class="netpill flat">±0</span>';}
+document.getElementById('lbRows').innerHTML=RACERS.map(function(p,i){var rank=i+1,you=p.id===YOU,rc=rank<=3?'rankchip r'+rank:'rankchip';
+return '<tr class="rowlink border-b border-brand-line '+(you?'youband':'')+'">'+
+'<td class="py-3 pl-5 pr-2"><span class="'+rc+'">'+rank+'</span></td>'+
+'<td class="py-3 px-2"><div class="flex items-center gap-3"><img src="'+p.img+'" alt="" class="h-11 w-11 rounded-full avph shrink-0" loading="lazy"/><div class="min-w-0"><div class="flex items-center gap-2"><span class="font-display font-bold text-[14px] text-brand-ink truncate">'+p.name+'</span>'+(you?'<span class="tag green" style="padding-top:1px;padding-bottom:1px;font-size:10px"><span class="d"></span>You</span>':'')+'</div><div class="text-[12px] text-brand-mute truncate">'+p.group+' · '+p.members.toLocaleString('en-ZA')+' members</div></div></div></td>'+
+'<td class="py-3 px-2 hidden sm:table-cell"><span class="text-[13px] text-brand-ink">'+p.region+'</span></td>'+
+'<td class="py-3 px-2 text-right hidden md:table-cell">'+netCell(p)+'</td>'+
+'<td class="py-3 pr-5 pl-2 text-right"><div class="inline-flex items-baseline gap-1"><span class="font-display font-extrabold text-[19px] text-brand-ink">'+p.score+'</span><span class="text-[11px] text-brand-mute">pts</span></div></td></tr>';}).join('');
+lucide.createIcons();
+function mkFilter(btn,t){document.querySelectorAll('#mkSeg button').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');document.querySelectorAll('.mkgroup').forEach(function(g){var any=false;g.querySelectorAll('[data-mtype]').forEach(function(el){var h=(t!=='all'&&el.dataset.mtype!==t);el.hidden=h;if(!h)any=true;});g.hidden=!any;});}
+
+function bindPv(inp,out,fmt){var i=document.getElementById(inp),o=document.getElementById(out);if(!i||!o)return;i.addEventListener('input',function(){o.textContent=fmt?fmt(i.value):i.value;});}
+bindPv('fName','pvName');bindPv('fHead','pvHead');bindPv('fFb','pvFb');
+bindPv('fMsg','pvMsg',function(v){return '\u201C'+v+'\u201D';});
+bindPv('fEm','pvEm');
+document.getElementById('fName').addEventListener('input',function(){var first=this.value.trim().split(' ')[0]||'me';document.getElementById('pvWa').innerHTML='<i data-lucide="message-circle" class="h-3.5 w-3.5"></i> WhatsApp '+first;lucide.createIcons();});
+function tab(b){document.querySelectorAll('.tabbtn').forEach(function(x){x.classList.remove('on')});b.classList.add('on');document.querySelectorAll('[data-panel]').forEach(function(p){p.hidden=p.dataset.panel!==b.dataset.tab;});}
+document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){navigator.clipboard.writeText(b.dataset.copy);var o=b.innerHTML;b.innerHTML='<i data-lucide="check" class="h-4 w-4"></i>';lucide.createIcons();setTimeout(function(){b.innerHTML=o;lucide.createIcons();},1400);});});
+</script>
+</body>
+</html>
