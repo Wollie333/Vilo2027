@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 
 import {
@@ -46,6 +44,43 @@ function fmtDate(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function zar0(n: number): string {
+  return "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+}
+
+// Deterministic avatar colour (av-1…av-7) + initials from a display name.
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+function avClass(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return `av-${(h % 7) + 1}`;
+}
+
+const AFFILIATE_STATUS: Record<
+  Affiliate["status"],
+  { cls: string; label: string }
+> = {
+  active: { cls: "green", label: "Active" },
+  pending: { cls: "amber", label: "Awaiting setup" },
+  suspended: { cls: "red", label: "Suspended" },
+};
+
+function payoutTag(status: string): { cls: string; label: string } {
+  switch (status) {
+    case "approved":
+      return { cls: "sky", label: "Approved" };
+    case "processing":
+      return { cls: "indigo", label: "Processing" };
+    default:
+      return { cls: "amber", label: "Requested" };
+  }
 }
 
 export function AffiliateAdminPanel({
@@ -120,187 +155,258 @@ export function AffiliateAdminPanel({
     });
   }
 
+  const activeCount = affiliates.filter((a) => a.status === "active").length;
+  const pendingCount = affiliates.filter((a) => a.status === "pending").length;
+  const totalReferrals = affiliates.reduce((s, a) => s + a.referrals, 0);
+  const totalOwed = affiliates.reduce((s, a) => s + a.available, 0);
+  const awaitingTotal = payouts.reduce((s, p) => s + p.net, 0);
+
   return (
-    <div className="space-y-8">
-      {/* Payout queue */}
-      <section>
-        <h2 className="mb-3 font-display text-base font-semibold text-brand-ink">
-          Payout queue
+    <div className="space-y-6">
+      {/* SUMMARY BAND */}
+      <section className="fade grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4">
+        <div className="bg-brand-secondary p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+            Partners
+          </div>
+          <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-white">
+            {affiliates.length}
+          </div>
+          <div className="mt-1 text-[11px] text-brand-accent">
+            {activeCount} active · {pendingCount} pending
+          </div>
+        </div>
+        <div className="bg-[#FAFCFB] p-4">
+          <div className="smallcaps">Referrals</div>
+          <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
+            {totalReferrals}
+          </div>
+          <div className="mt-1 text-[11px] text-brand-mute">
+            Hosts brought in
+          </div>
+        </div>
+        <div className="bg-[#FAFCFB] p-4">
+          <div className="smallcaps">Awaiting payout</div>
+          <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
+            {zar0(awaitingTotal)}
+          </div>
+          <div className="mt-1 text-[11px] text-brand-mute">
+            {payouts.length} in the queue
+          </div>
+        </div>
+        <div className="bg-[#FAFCFB] p-4">
+          <div className="smallcaps">Cleared &amp; owed</div>
+          <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
+            {zar0(totalOwed)}
+          </div>
+          <div className="mt-1 text-[11px] text-brand-mute">
+            Withdrawable by partners
+          </div>
+        </div>
+      </section>
+
+      {/* PAYOUT QUEUE */}
+      <section className="am-card fade overflow-hidden">
+        <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Payout queue</div>
           {payouts.length > 0 ? (
-            <span className="ml-2 rounded-pill bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            <span className="tag amber">
+              <span className="d" />
               {payouts.length} awaiting
             </span>
           ) : null}
-        </h2>
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          {payouts.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-brand-mute">
-              No payouts awaiting action.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-                  <tr>
-                    <th className="px-4 py-2.5">Affiliate</th>
-                    <th className="px-4 py-2.5">Requested</th>
-                    <th className="px-4 py-2.5">Method</th>
-                    <th className="px-4 py-2.5 text-right">Gross</th>
-                    <th className="px-4 py-2.5 text-right">Net</th>
-                    <th className="px-4 py-2.5">Status</th>
-                    <th className="px-4 py-2.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-line">
-                  {payouts.map((p) => (
-                    <tr key={p.id} className="hover:bg-[#F8FCF9]">
-                      <td className="px-4 py-3 font-medium text-brand-ink">
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Affiliate</th>
+                <th>Requested</th>
+                <th>Method</th>
+                <th className="r">Gross</th>
+                <th className="r">Fee</th>
+                <th className="r">Net</th>
+                <th>Status</th>
+                <th className="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payouts.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-brand-mute">
+                    No payouts awaiting action.
+                  </td>
+                </tr>
+              ) : (
+                payouts.map((p) => {
+                  const tag = payoutTag(p.status);
+                  return (
+                    <tr key={p.id}>
+                      <td className="font-semibold text-brand-ink">
                         {p.affiliateName}
                       </td>
-                      <td className="px-4 py-3 text-brand-mute">
+                      <td className="num text-brand-mute">
                         {fmtDate(p.requestedAt)}
                       </td>
-                      <td className="px-4 py-3 capitalize text-brand-mute">
-                        {p.method}
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="uppercase text-brand-mute">{p.method}</td>
+                      <td className="num r">
                         {formatMoney(p.gross, p.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">
+                      <td className="num r text-brand-mute">
+                        {formatMoney(p.fee, p.currency)}
+                      </td>
+                      <td className="num r font-semibold">
                         {formatMoney(p.net, p.currency)}
                       </td>
-                      <td className="px-4 py-3 capitalize text-brand-mute">
-                        {p.status}
+                      <td>
+                        <span className={`tag ${tag.cls}`}>
+                          <span className="d" />
+                          {tag.label}
+                        </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <div className="flex justify-end gap-1.5">
                           {p.status === "requested" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
+                            <button
+                              type="button"
+                              className="btn-ghost h-8"
                               disabled={pending}
                               onClick={() => settle(p, "approve")}
                             >
                               Approve
-                            </Button>
+                            </button>
                           ) : null}
-                          <Button
-                            size="sm"
+                          <button
+                            type="button"
+                            className="btn-pri h-8"
                             disabled={pending}
                             onClick={() => settle(p, "paid")}
                           >
                             Mark paid
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-danger h-8"
                             disabled={pending}
                             onClick={() => settle(p, "reject")}
                           >
                             Reject
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
-      {/* Affiliate list */}
-      <section>
-        <h2 className="mb-3 font-display text-base font-semibold text-brand-ink">
-          All affiliates ({affiliates.length})
-        </h2>
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          {affiliates.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-brand-mute">
-              No affiliates yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-                  <tr>
-                    <th className="px-4 py-2.5">Affiliate</th>
-                    <th className="px-4 py-2.5">Link</th>
-                    <th className="px-4 py-2.5 text-right">Referrals</th>
-                    <th className="px-4 py-2.5 text-right">Lifetime</th>
-                    <th className="px-4 py-2.5 text-right">Available</th>
-                    <th className="px-4 py-2.5">Status</th>
-                    <th className="px-4 py-2.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-line">
-                  {affiliates.map((a) => (
-                    <tr key={a.id} className="hover:bg-[#F8FCF9]">
-                      <td className="px-4 py-3">
+      {/* ALL PARTNERS */}
+      <section className="am-card fade overflow-hidden">
+        <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">All partners</div>
+          <span className="num text-[11.5px] text-brand-mute">
+            {affiliates.length} total
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th>Link</th>
+                <th className="r">Referrals</th>
+                <th className="r">Lifetime</th>
+                <th className="r">Available</th>
+                <th>Status</th>
+                <th className="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {affiliates.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-brand-mute">
+                    No affiliates yet.
+                  </td>
+                </tr>
+              ) : (
+                affiliates.map((a) => {
+                  const st = AFFILIATE_STATUS[a.status];
+                  return (
+                    <tr key={a.id}>
+                      <td>
                         <Link
                           href={`/admin/affiliates/${a.id}`}
-                          className="font-medium text-brand-ink hover:text-brand-primary"
+                          className="group flex items-center gap-3"
                         >
-                          {a.name}
+                          <span
+                            className={`av ${avClass(a.id)} h-9 w-9 shrink-0 rounded-full text-[12px]`}
+                          >
+                            {initials(a.name)}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13.5px] font-semibold text-brand-ink group-hover:text-brand-primary">
+                              {a.name}
+                            </span>
+                            {a.email ? (
+                              <span className="block truncate text-[11.5px] text-brand-mute">
+                                {a.email}
+                              </span>
+                            ) : null}
+                          </span>
                         </Link>
-                        {a.email ? (
-                          <div className="text-xs text-brand-mute">
-                            {a.email}
-                          </div>
-                        ) : null}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-brand-mute">
+                      <td className="mono text-[12px] text-brand-mute">
                         /r/{a.slug}
                       </td>
-                      <td className="px-4 py-3 text-right">{a.referrals}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="num r">{a.referrals}</td>
+                      <td className="num r">
                         {formatMoney(a.lifetime, a.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">
+                      <td className="num r font-semibold">
                         {formatMoney(a.available, a.currency)}
                       </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          className={
-                            a.status === "active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : a.status === "pending"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-rose-100 text-rose-700"
-                          }
-                        >
-                          {a.status === "pending" ? "awaiting setup" : a.status}
-                        </Badge>
+                      <td>
+                        <span className={`tag ${st.cls}`}>
+                          <span className="d" />
+                          {st.label}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {a.status === "pending" ? (
-                          <Button
-                            size="sm"
-                            disabled={pending}
-                            onClick={() => activate(a)}
-                          >
-                            Activate
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant={
-                              a.status === "active" ? "ghost" : "outline"
-                            }
-                            disabled={pending}
-                            onClick={() => toggleStatus(a)}
-                          >
-                            {a.status === "active" ? "Suspend" : "Reactivate"}
-                          </Button>
-                        )}
+                      <td>
+                        <div className="flex justify-end gap-1.5">
+                          {a.status === "pending" ? (
+                            <button
+                              type="button"
+                              className="btn-pri h-8"
+                              disabled={pending}
+                              onClick={() => activate(a)}
+                            >
+                              Activate
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={
+                                a.status === "active"
+                                  ? "btn-ghost h-8"
+                                  : "btn-sec h-8"
+                              }
+                              disabled={pending}
+                              onClick={() => toggleStatus(a)}
+                            >
+                              {a.status === "active" ? "Suspend" : "Reactivate"}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>

@@ -106,19 +106,5 @@ export default async function AdminAffiliatesPage() {
     };
   });
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Affiliates
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          Every affiliate, their referrals and earnings, plus the payout queue.
-          Commission rates are set per product in the Product manager.
-        </p>
-      </header>
-
-      <AffiliateAdminPanel affiliates={affiliates} payouts={payoutRows} />
-    </div>
-  );
+  return <AffiliateAdminPanel affiliates={affiliates} payouts={payoutRows} />;
 }

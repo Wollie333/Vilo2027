@@ -51,7 +51,7 @@ export function AffiliateAdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="thin-scroll flex items-center gap-7 overflow-x-auto border-b border-brand-line">
+    <nav className="thin-scroll mt-1.5 flex items-center gap-7 overflow-x-auto border-b border-brand-line">
       {TABS.map((t) => {
         const active = t.exact
           ? pathname === t.href
@@ -62,17 +62,10 @@ export function AffiliateAdminNav() {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`relative inline-flex h-11 items-center gap-2 whitespace-nowrap px-1 text-sm font-semibold transition-colors ${
-              active
-                ? "text-brand-secondary"
-                : "text-brand-mute hover:text-brand-ink"
-            }`}
+            className={`tabbtn ${active ? "on" : ""}`}
           >
             <Icon className="h-[17px] w-[17px]" />
             {t.label}
-            {active ? (
-              <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-pill bg-brand-primary" />
-            ) : null}
           </Link>
         );
       })}
