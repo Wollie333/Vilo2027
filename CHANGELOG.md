@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-23 (pt75) — SECURITY_CHECKLIST §1 §2 §3 §5 §6 §8 §10 §11 §12 verified.
+
+Continued the checklist pass into auth/session, calendar-sync, mobile, secrets, and POPIA — the
+app-side items are now nearly all verified; what remains is dashboard/founder-only or deferred.
+
+- **§11 Calendar Sync (iCal) — strong.** SSRF guard (`lib/security/ssrf.ts`) runs before every import
+  fetch and **resolves DNS then checks the resolved addresses** against loopback/private/link-local/
+  ULA/CGNAT + the cloud-metadata IP — so a hostname resolving to a private IP is caught, not just a
+  literal. Import is `server-only` (action + cron), 30s timeout, atomic non-destructive RPC, caps at
+  1000 dates, clamps to [today, today+24mo], skips CANCELLED. Export route is uuid+token-gated
+  (constant-time `timingSafeEqual`), no auth session, and the event SUMMARY is generic — the free-text
+  block `reason` is NEVER echoed (no guest PII on the feed). Token = HMAC(ICAL_TOKEN_SECRET) 128-bit,
+  refuses the service-role fallback. Notes: parser is tolerant (non-iCal → 0 blocks, not an explicit
+  reject); one error path returns a Postgres message to the host's own feed UI (low); per-listing
+  rotation is Phase 3 (N/A now).
+- **§1 Auth/session:** web session is httpOnly-cookie (`@supabase/ssr`) with **zero auth tokens in
+  localStorage** (all localStorage use is UI prefs/drafts/consent/analytics); mobile session is in
+  **expo-secure-store** via an ExpoSecureStoreAdapter with **zero AsyncStorage** anywhere. Password
+  min-8 / rate-limit / refresh-rotation from pt64.
+- **§12 Mobile:** tokens in secure-store; deep-link scheme `vilo`; no hardcoded secrets in app.json/
+  eas.json (public anon key only).
+- **§8 Secrets:** zero hardcoded keys (`sk_`/`re_` scan clean), `.env.local` gitignored, no mis-prefixed
+  NEXT_PUBLIC secrets; Doppler is the source of truth (pt62).
+- **§10 POPIA:** `/privacy` + `/terms` live (DB-doc render), cookie banner present, data-deletion flow
+  exists (`app_purge_user_account`). PostHog is not in app code → its two items marked N/A. Region is
+  a dashboard check.
+- **Still open:** §5 Sentry-breadcrumb PII review; §7 CSP (deferred to live-QA); scattered dashboard/
+  founder items (Supabase region, JWT expiry, OAuth callback URL, Google Maps key restriction).
+
 ## 2026-07-23 (pt75) — SECURITY_CHECKLIST §2 + §3 + §5 + §6 verified live.
 
 Doc-only session — no code changed. Worked the `SECURITY_CHECKLIST.md` sections the pt74 save point

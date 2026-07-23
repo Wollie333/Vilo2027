@@ -21,9 +21,15 @@ vuln); §6 all ticked + 1 low flag. Key results:
   **website sub-branch territory — leave alone from main**): `website-assets` public + host-writable
   + allows SVG.
 
-**Next:** §5 Sentry-breadcrumb PII review; §1 (auth/session — app-side pieces; dashboard toggles are
-founder-only); §7 CSP (deferred to live-QA); go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4) deferred
-on purpose.
+**Continued pass:** §1 (auth/session), §8 (secrets), §10 (POPIA), §11 (iCal), §12 (mobile) all
+verified app-side. Highlights: iCal import SSRF guard resolves DNS + checks resolved IPs (metadata IP
+included); export feed is token-gated with a generic SUMMARY (no guest PII); web tokens httpOnly-cookie
++ mobile expo-secure-store (zero localStorage/AsyncStorage tokens); zero hardcoded keys; `/privacy`+
+`/terms` live + data-deletion flow present.
+
+**Next:** §5 Sentry-breadcrumb PII review; §7 CSP (deferred to live-QA); scattered dashboard/founder-only
+items (Supabase region, JWT expiry, OAuth callback URL, Google Maps key restriction). Go-live flips
+(`docs/SMOKE_TESTS.md` §0.5 G1–G4) deferred on purpose.
 
 ---
 

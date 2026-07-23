@@ -54,14 +54,24 @@ dashboard items (token rotation, JWT expiry, login rate limiting) are founder-on
 
 ## 1. Authentication & Sessions
 
-- [ ] Email verification required before host onboarding can complete
-- [ ] Password requirements enforced: min 8 chars (Supabase Auth handles this)
-- [ ] Rate limiting on login attempts: Supabase Auth built-in — confirm it's enabled in dashboard
-- [ ] Refresh token rotation enabled in Supabase Auth settings
-- [ ] JWT expiry set appropriately (Supabase default: 1 hour access token, 7 days refresh)
-- [ ] Web: session stored in httpOnly cookie via `@supabase/ssr` — confirm no `localStorage` usage for tokens
-- [ ] Mobile: session stored in `expo-secure-store` — confirm no `AsyncStorage` usage for tokens
-- [ ] Google OAuth: confirm callback URL whitelisted in Google Cloud Console
+App-side items verified 2026-07-23 (dashboard-only items covered in pt64).
+
+- [ ] Email verification required before host onboarding can complete — mechanism
+  exists (`app/verify-email/route.ts`, `email_confirmed_at` checks); the onboarding
+  completion gate itself not re-traced this pass.
+- [x] Password min 8 — set in the Supabase dashboard (pt64, raised 6→8).
+- [x] Login rate limiting — Supabase built-in confirmed active (pt64); app-side
+  signup/re-auth throttle in `lib/auth/rateLimit.ts` (see §3).
+- [x] Refresh-token rotation / reuse-detection — verified working (pt64).
+- [ ] JWT expiry appropriate — Supabase default (dashboard, founder to confirm).
+- [x] **Web session is httpOnly-cookie via `@supabase/ssr`; NO auth token in
+  `localStorage`** — grepped every `localStorage`/`sessionStorage` use in `apps/`:
+  all are UI prefs (sidebar, tour, cookie consent), autosave drafts, and analytics
+  session ids — **zero auth tokens**.
+- [x] **Mobile session is in `expo-secure-store`; NO `AsyncStorage`** — proven:
+  `apps/mobile/src/lib/supabase.ts` wires an `ExpoSecureStoreAdapter` as the Supabase
+  auth `storage`, and there are **zero** `AsyncStorage` references anywhere in `apps/`.
+- [ ] Google OAuth callback URL whitelisted in Google Cloud Console (dashboard, founder).
 
 ---
 
@@ -520,11 +530,19 @@ body can break out of the element (`bg: "x}</style><script>…"`).
 
 ## 8. Secrets & Environment
 
-- [ ] All secrets in Vercel Environment Variables (marked Sensitive) — not in `.env` files committed to git
-- [ ] `.env.local` is in `.gitignore`
-- [ ] No hardcoded API keys in source code
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` only in Edge Function secrets — not in Vercel env vars
-- [ ] Vercel environment variables reviewed — no secrets marked `NEXT_PUBLIC_` that shouldn't be
+Verified 2026-07-23 (source scan) + pt62 (Doppler = single source of truth, 0 plaintext).
+
+- [x] Secrets live in Doppler → synced to Vercel/Supabase, not committed (pt62).
+- [x] `.env.local` is gitignored — `git check-ignore` confirms both root and
+  `apps/web/.env.local`.
+- [x] **No hardcoded API keys in source** — grep for `sk_live_`/`sk_test_`/`re_…`
+  across `apps/web/{app,lib}` + `apps/mobile/src` returns **zero** (test files excluded).
+- [x] `SUPABASE_SERVICE_ROLE_KEY` is server-side only — 0 client hits (§2); ⚠️ note it
+  IS a Vercel *server* env var (Server Actions need it), which the original wording
+  ("Edge Function secrets only") didn't allow for — that's correct, not a leak, since
+  it's never `NEXT_PUBLIC_`.
+- [x] **No mis-prefixed public secrets** — grep for
+  `NEXT_PUBLIC_*(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD)` returns zero.
 
 ```bash
 # Scan for accidental key exposure
@@ -614,37 +632,82 @@ Verified 2026-07-22 against the real code and the live database.
 
 ## 10. POPIA Compliance (South Africa)
 
-- [ ] Privacy policy page live at `/privacy`
-- [ ] Terms of service page live at `/terms`
-- [ ] Cookie consent banner shown to new visitors (web)
-- [ ] Data deletion request flow works: guest/host can request via account settings → admin review flow
-- [ ] Supabase region is `af-south-1` (Cape Town) — verify in Supabase dashboard
-- [ ] PostHog hosted on EU region (`eu.posthog.com`) — confirm in `ENV_VARS.md`
-- [ ] No PII sent to PostHog event properties (only anonymised identifiers)
+Verified 2026-07-23 (routes/flows present); dashboard/region items are founder-only.
+
+- [x] Privacy page live at `/privacy` (`app/[locale]/privacy/page.tsx`) — renders a
+  DB-stored legal doc, not the .tsx (pt60).
+- [x] Terms page live at `/terms` (`app/[locale]/terms/page.tsx`) — same DB-doc render.
+- [x] Cookie consent banner exists (`app/_components/CookieBanner.tsx`, choice persisted;
+  privacy-first default per the harness rules).
+- [x] Data-deletion flow exists — `dashboard/settings/data/` (`DeleteAccountSection.tsx`
+  + `actions.ts`), backed by `app_purge_user_account` (the GDPR purge derived from the
+  live FK graph).
+- [ ] Supabase region `af-south-1` — dashboard, founder to confirm.
+- [n/a] PostHog EU region / no-PII — **PostHog is not referenced in app code** (no
+  `posthog` import or host in `apps/web`); if analytics land later, re-open these two.
 
 ---
 
 ## 11. Calendar Sync (iCal)
 
-- [ ] iCal export URLs use a per-listing secret token — confirm token is not guessable (32-byte random hex)
-- [ ] iCal export endpoint does NOT require auth (must be subscribable by external calendars) but does validate the token
-- [ ] iCal import: URL is fetched server-side only (Edge Function) — never from the client browser
-- [ ] iCal import: validate the fetched content is valid RFC 5545 before parsing — reject non-iCal responses
-- [ ] iCal import: cap imported events at 500 per feed to prevent DoS via giant feeds
-- [ ] iCal import: only block dates within the next 24 months — ignore far-future events
-- [ ] External feed URLs are stored in DB — confirm no SSRF vector (reject private IP ranges: 10.x, 192.168.x, localhost, 127.x)
-- [ ] Feed error states do not expose raw error messages to the host UI — log to Sentry, show friendly message
-- [ ] Rotating an iCal export token is an irreversible action — confirm host is warned before proceeding
+Verified 2026-07-23 by reading the real `lib/ical*.ts`, `lib/security/ssrf.ts`, and
+the export route (NOT the in-repo worktree copies, which greps also surface).
+
+- [x] **Export token is unguessable** — HMAC-SHA256(`ICAL_TOKEN_SECRET`, listingId),
+  base64url, 22 chars ≈ **128 bits** (`lib/ical.ts`). ⚠️ Not the "32-byte random hex"
+  the spec named — it's *derived* (no `ical_feeds` table yet; per-listing rotation is
+  Phase 3) and 128-bit, but secret-keyed so unforgeable without the secret, and it
+  deliberately **refuses to fall back to the service-role key**.
+- [x] **Export endpoint is token-gated, no auth session** —
+  `app/ical/[property_id]/[token]/route.ts`: uuid-validates the id (400), 503 if
+  `ICAL_TOKEN_SECRET` unset, `verifyListingToken` **constant-time** (`timingSafeEqual`)
+  → 401 on a bad token; only ever emits `blocked_dates`. 🔑 **Event SUMMARY is generic
+  ("Booked"/"Blocked" + room) — the free-text block `reason` is deliberately NEVER
+  echoed** (could hold guest PII; BOOKING_SYNC.md "No guest data exported").
+- [x] **Import is server-side only** — `syncFeed` (`lib/ical-sync.ts`) is `server-only`,
+  called by the "Sync now" action + the `ical-sync-worker` cron; never the browser.
+- [~] **RFC 5545 validation** — the parser is *tolerant*, not strict: non-iCal input
+  yields **zero ranges** (no crash, no injection, feed just blocks nothing) rather than
+  an explicit "reject non-iCal". Safe, but it does not surface "this isn't a calendar"
+  to the host — minor UX gap, not a security one.
+- [x] **Import caps + timeout** — ⚠️ cap is **1000 expanded dates** (`MAX_IMPORTED_DATES`),
+  not "500 events" as the spec worded it (dates ≠ events; the DoS intent — can't flood
+  `blocked_dates` — is met), plus a **30 s fetch timeout** and an atomic non-destructive
+  `import_ical_blocks` RPC (a real Wielo block always wins via ON CONFLICT DO NOTHING).
+- [x] **Only blocks dates in [today, today+24 mo]** — `rangesToDates(maxDays = 365*2 =
+  730)` clamps both past (→ today) and far-future (→ cutoff); `STATUS:CANCELLED`
+  tombstones skipped.
+- [x] **No SSRF** — `assertFetchableUrl` (`lib/security/ssrf.ts`) runs BEFORE every
+  fetch: http(s)-only, and it **resolves DNS then checks the RESOLVED addresses**
+  against loopback/private/link-local/ULA/CGNAT **and the cloud-metadata IP
+  169.254.169.254** — so a hostname that resolves to a private IP is caught, not just a
+  literal one. Covers 10.x / 192.168.x / 127.x / 172.16-31 / 169.254 / IPv6 `::1`/`fc`/
+  `fd`/`fe80`/IPv4-mapped.
+- [~] **Feed error states** — stored generic + truncated (`last_error = message.slice(0,
+  500)`); the SSRF/fetch messages returned are user-safe ("That address isn't allowed").
+  ⚠️ One path returns `rpcError.message` (a Postgres message) to the host's OWN feed UI —
+  low risk (their own feed), consider routing to Sentry + a friendly string.
+- [n/a] Rotating an export token — **no per-listing rotation exists yet** (Phase 3, with
+  the `ical_feeds` migration); global rotation = rotating `ICAL_TOKEN_SECRET`. Nothing to
+  warn about until the feature ships.
 
 ---
 
 ## 12. Mobile App
 
-- [ ] No sensitive data in `AsyncStorage` — all auth tokens in `expo-secure-store`
-- [ ] Deep link scheme `vilo://` registered and verified in `app.json`
-- [ ] No hardcoded secrets in `app.json` or `eas.json`
-- [ ] Google Maps API key in Android build restricted to the app's package name in Google Cloud Console
-- [ ] Push notification permissions requested gracefully with explanatory copy before system prompt
+Verified 2026-07-23 against `apps/mobile` source.
+
+- [x] **No sensitive data in `AsyncStorage`; auth tokens in `expo-secure-store`** —
+  `src/lib/supabase.ts` uses an `ExpoSecureStoreAdapter` for the Supabase auth
+  `storage`; **zero** `AsyncStorage` references anywhere in `apps/`.
+- [x] **Deep link scheme `vilo` registered** — `app.json` → `"scheme": "vilo"`.
+- [x] **No hardcoded secrets in `app.json` / `eas.json`** — grep for
+  `sk_`/`SERVICE_ROLE`/`secret`/`apiKey` returns nothing; the client uses only the
+  public `EXPO_PUBLIC_SUPABASE_ANON_KEY` (never the service role).
+- [ ] Google Maps Android key restricted to the package name (Google Cloud Console —
+  dashboard, founder).
+- [ ] Push-permission copy shown before the system prompt — UX check, not re-traced
+  this pass.
 
 ---
 
