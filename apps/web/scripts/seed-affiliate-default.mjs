@@ -34,12 +34,14 @@ const CLEAN_ONLY = process.argv.includes("--clean-only");
 
 // Isolated referred hosts (namespace 0c… so they never collide with other seeds).
 const HOSTS = [
-  { key: "a", email: "ref-host-a@wielostarter.com", name: "Thabo Nkosi", uid: "0c000000-0000-4000-8000-0000000000a1", hid: "0c000000-0000-4000-8000-0000000000a2", sid: "0c000000-0000-4000-8000-0000000000a3", charges: 2, clear: true },
-  { key: "b", email: "ref-host-b@wielostarter.com", name: "Karin Pretorius", uid: "0c000000-0000-4000-8000-0000000000b1", hid: "0c000000-0000-4000-8000-0000000000b2", sid: "0c000000-0000-4000-8000-0000000000b3", charges: 1, clear: true },
+  { key: "a", email: "ref-host-a@wielostarter.com", name: "Thabo Nkosi", uid: "0c000000-0000-4000-8000-0000000000a1", hid: "0c000000-0000-4000-8000-0000000000a2", sid: "0c000000-0000-4000-8000-0000000000a3", charges: 4, clear: true },
+  { key: "b", email: "ref-host-b@wielostarter.com", name: "Karin Pretorius", uid: "0c000000-0000-4000-8000-0000000000b1", hid: "0c000000-0000-4000-8000-0000000000b2", sid: "0c000000-0000-4000-8000-0000000000b3", charges: 2, clear: true },
   { key: "c", email: "ref-host-c@wielostarter.com", name: "Naledi Mokoena", uid: "0c000000-0000-4000-8000-0000000000c1", hid: "0c000000-0000-4000-8000-0000000000c2", sid: "0c000000-0000-4000-8000-0000000000c3", charges: 1, clear: false, refund: true },
   { key: "d", email: "ref-host-d@wielostarter.com", name: "Johan van der Merwe", uid: "0c000000-0000-4000-8000-0000000000d1", hid: "0c000000-0000-4000-8000-0000000000d2", sid: "0c000000-0000-4000-8000-0000000000d3", charges: 0 }, // free beta → no commission
 ];
-const HOST_UIDS = HOSTS.map((h) => h.uid);
+// Charges/refunds carry a RANDOM auth user_id (createUser mints its own uuid) but a
+// FIXED host_id — so scope all test-host ledger cleanup by host_id, never user_id.
+const HOST_HIDS = HOSTS.map((h) => h.hid);
 // Last uuid segment must be exactly 12 hex chars: <tag><key> + zero-pad.
 const CHARGE_ID = (key, i) => `0c000000-0000-4000-8000-e${key}${String(i).padStart(10, "0")}`;
 const REFUND_ID = (key) => `0c000000-0000-4000-8000-f${key}0000000000`;
@@ -116,7 +118,7 @@ async function main() {
   const { data: scopeLedger } = await admin
     .from("platform_ledger")
     .select("id")
-    .or(`user_id.in.(${HOST_UIDS.join(",")}),and(user_id.eq.${partner.user_id},type.in.(commission,payout))`);
+    .or(`host_id.in.(${HOST_HIDS.join(",")}),and(user_id.eq.${partner.user_id},type.in.(commission,payout))`);
   const scopeIds = (scopeLedger ?? []).map((r) => r.id);
   if (scopeIds.length) {
     await del("wielo_credit_notes", { ledger_id: scopeIds });
@@ -130,7 +132,10 @@ async function main() {
   await del("affiliate_referrals", { affiliate_id: partner.id });
   await del("affiliate_clicks", { affiliate_id: partner.id });
   // Now the test-host charges/refunds (commissions that referenced them are gone).
-  await del("platform_ledger", { user_id: HOST_UIDS });
+  // Scope by the FIXED host_id — the rows' user_id is a random auth uuid, so a
+  // user_id filter is a silent no-op that leaves the refund row stale and stops
+  // the AFTER INSERT clawback trigger from re-firing on the next run.
+  await del("platform_ledger", { host_id: HOST_HIDS });
   await del("subscriptions", { host_id: HOSTS.map((h) => h.hid) });
 
   if (CLEAN_ONLY) {
