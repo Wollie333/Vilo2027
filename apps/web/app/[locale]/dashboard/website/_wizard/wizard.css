@@ -89,3 +89,23 @@
   animation: wzConfetti var(--wz-d) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
   animation-delay: var(--wz-delay);
 }
+
+/* Step transition — each step fades + slides in as it mounts (one at a time). */
+@keyframes wzFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.wz-fade {
+  animation: wzFade 0.28s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wz-fade {
+    animation: none;
+  }
+}

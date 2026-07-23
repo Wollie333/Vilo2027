@@ -2,7 +2,20 @@
 
 import "./wizard.css";
 
-import { Monitor, Smartphone, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  LayoutGrid,
+  LayoutTemplate,
+  Monitor,
+  Palette,
+  Rocket,
+  Smartphone,
+  Sparkles,
+  SquarePen,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
@@ -21,14 +34,8 @@ import { StepReview } from "./steps/StepReview";
 import { StepStory } from "./steps/StepStory";
 import { StepTheme } from "./steps/StepTheme";
 import { WizardLivePreview } from "./WizardLivePreview";
-import {
-  CompletionRing,
-  Confetti,
-  ProgressRail,
-  PublishBar,
-  SectionCard,
-  type WizardSectionMeta,
-} from "./WizardChrome";
+import { Confetti, type WizardSectionMeta } from "./WizardChrome";
+import { WizardTopbar } from "./WizardTopbar";
 import {
   initialWizardState,
   type WizardProps,
@@ -45,10 +52,9 @@ const ERROR_KEY: Record<string, string> = {
   business_not_found: "errBusinessNotFound",
 };
 
-// The seven setup sections — numbered cards down the page, mirrored in the
-// sticky rail. `hint` is the warm one-line framing shown under each card title.
-// `required` drives the build/publish gate (basics + theme are the essentials;
-// everything else is prefilled/optional and can be refined after launch).
+// The seven setup steps — shown ONE AT A TIME (design handoff: setup-flow, the
+// step-at-a-time variant). `hint` is the warm one-line framing under each title.
+// `required` (basics + theme) gates the build/publish.
 const SECTIONS: WizardSectionMeta[] = [
   {
     id: "basics",
@@ -108,6 +114,28 @@ const SECTIONS: WizardSectionMeta[] = [
   },
 ];
 
+// Per-step icon for the "Required / Optional step" pill.
+const STEP_ICONS: Record<string, LucideIcon> = {
+  basics: SquarePen,
+  theme: LayoutTemplate,
+  colors: Palette,
+  story: Sparkles,
+  payments: CreditCard,
+  pages: LayoutGrid,
+  preview: Rocket,
+};
+
+// Wider steps get more room (grids / live preview); the rest stay tight + focused.
+const STEP_MAX_WIDTH: Record<string, string> = {
+  basics: "max-w-2xl",
+  theme: "max-w-4xl",
+  colors: "max-w-3xl",
+  story: "max-w-2xl",
+  payments: "max-w-2xl",
+  pages: "max-w-2xl",
+  preview: "max-w-5xl",
+};
+
 const EDITABLE = SECTIONS.filter((s) => s.id !== "preview");
 
 type Phase = "edit" | "building" | "done";
@@ -119,7 +147,8 @@ export function WebsiteWizard(props: WizardProps) {
     initialWizardState(props),
   );
   const [phase, setPhase] = useState<Phase>("edit");
-  const [active, setActive] = useState<string>("basics");
+  const [current, setCurrent] = useState(0);
+  const [maxReached, setMaxReached] = useState(0);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -158,7 +187,7 @@ export function WebsiteWizard(props: WizardProps) {
     return palettes[state.paletteIndex]?.accent ?? baseAccent;
   }, [state.useCustom, state.customAccent, state.paletteIndex, baseAccent]);
 
-  // Per-section completion — drives the ring %, rail status discs and the gate.
+  // Per-section completion — drives the pill checks, the header progress and gate.
   const completion = useMemo<Record<string, boolean>>(
     () => ({
       basics: state.siteName.trim().length > 2 && state.subdomain.length >= 3,
@@ -183,35 +212,38 @@ export function WebsiteWizard(props: WizardProps) {
   );
   const ready = requiredMissing.length === 0;
 
-  const jump = (id: string) => {
-    document
-      .getElementById(`sec-${id}`)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const cur = SECTIONS[current];
+  const canContinue = !cur.required || completion[cur.id];
 
-  // Scroll-spy: highlight the section the reader is in.
-  useEffect(() => {
-    if (phase !== "edit") return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const vis = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        const id = vis[0]?.target.getAttribute("data-section");
-        if (id) setActive(id);
-      },
-      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
-    );
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(`sec-${s.id}`);
-      if (el) obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, [phase]);
+  const goTo = (i: number) => {
+    if (i >= 0 && i <= maxReached) {
+      setCurrent(i);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+  const back = () => {
+    setCurrent((c) => Math.max(0, c - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const next = () => {
+    if (cur.required && !completion[cur.id]) return;
+    const ni = Math.min(current + 1, SECTIONS.length - 1);
+    setCurrent(ni);
+    setMaxReached((m) => Math.max(m, ni));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const jumpToFirstMissing = () => {
+    if (!requiredMissing.length) return;
+    const i = SECTIONS.findIndex((s) => s.id === requiredMissing[0].id);
+    if (i >= 0) {
+      setCurrent(i);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   async function build() {
     if (!ready) {
-      jump(requiredMissing[0].id);
+      jumpToFirstMissing();
       return;
     }
     setError(null);
@@ -288,128 +320,160 @@ export function WebsiteWizard(props: WizardProps) {
     ),
   };
 
+  const PillIcon = STEP_ICONS[cur.id] ?? Sparkles;
+  const isPreview = cur.id === "preview";
+
   return (
-    <div className="wz-root mx-auto max-w-6xl">
-      {/* page intro + completion ring */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
-            <Sparkles className="h-3.5 w-3.5" /> Let&apos;s build your website
+    <div className="wz-root flex min-h-screen flex-col bg-white text-brand-ink">
+      <WizardTopbar
+        sections={SECTIONS}
+        current={current}
+        total={SECTIONS.length}
+        pct={pct}
+        maxReached={maxReached}
+        completion={completion}
+        onJump={goTo}
+        onExit={close}
+      />
+
+      <main className="flex-1">
+        <div
+          className={`mx-auto px-5 py-8 lg:py-10 ${STEP_MAX_WIDTH[cur.id] ?? "max-w-2xl"}`}
+        >
+          {/* step heading */}
+          <div className="wz-fade mb-5" key={`h${current}`}>
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+              <PillIcon className="h-3.5 w-3.5" />{" "}
+              {cur.required ? "Required" : "Optional"} step
+            </span>
+            <h1 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink md:text-[28px]">
+              {cur.label}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-brand-mute">
+              {cur.hint}
+            </p>
           </div>
-          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Set up {props.defaultName}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-brand-mute">
-            Work through the steps below — everything you enter builds the live
-            preview at the bottom. The required steps unlock the build button.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 rounded-card border border-brand-line bg-white px-5 py-4 shadow-card">
-          <CompletionRing pct={pct} />
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-brand-ink">
-              Setup progress
-            </div>
-            <div className="text-xs text-brand-mute">
-              {ready
-                ? "Ready to build"
-                : `${requiredMissing.length} required step${
-                    requiredMissing.length === 1 ? "" : "s"
-                  } left`}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* rail + section cards */}
-      <div className="mt-7 grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-3">
-          <ProgressRail
-            sections={SECTIONS}
-            active={active}
-            completion={completion}
-            pct={pct}
-            onJump={jump}
-            ready={ready}
-            onPublish={build}
-          />
-        </div>
-
-        <div className="col-span-12 space-y-5 lg:col-span-9">
-          {EDITABLE.map((s) => (
-            <SectionCard
-              key={s.id}
-              meta={s}
-              complete={!!completion[s.id]}
-              active={active === s.id}
-            >
-              {renderers[s.id]}
-            </SectionCard>
-          ))}
-
-          {/* 07 — Review & publish: summary + framed live preview + publish bar */}
-          <SectionCard
-            meta={SECTIONS[SECTIONS.length - 1]}
-            complete={phase === "done"}
-            active={active === "preview"}
-          >
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="-mt-1 max-w-xl text-sm text-brand-mute">
-                  This is exactly what guests will see. It updates live as you
-                  edit the steps above — review it, then build when you&apos;re
-                  happy.
-                </p>
-                <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
-                  {(
-                    [
-                      { id: "desktop", icon: Monitor, label: "Desktop" },
-                      { id: "mobile", icon: Smartphone, label: "Mobile" },
-                    ] as const
-                  ).map((d) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => setDevice(d.id)}
-                      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
-                        device === d.id
-                          ? "bg-brand-primary text-white"
-                          : "text-brand-mute hover:text-brand-ink"
-                      }`}
-                    >
-                      <d.icon className="h-3.5 w-3.5" /> {d.label}
-                    </button>
-                  ))}
+          {/* step body */}
+          <div className="wz-fade" key={`b${current}`}>
+            {isPreview ? (
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="max-w-xl text-sm text-brand-mute">
+                    This is exactly what guests will see. It updates as you edit
+                    the steps — review it, then build when you&apos;re happy.
+                  </p>
+                  <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
+                    {(
+                      [
+                        { id: "desktop", icon: Monitor, label: "Desktop" },
+                        { id: "mobile", icon: Smartphone, label: "Mobile" },
+                      ] as const
+                    ).map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setDevice(d.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
+                          device === d.id
+                            ? "bg-brand-primary text-white"
+                            : "text-brand-mute hover:text-brand-ink"
+                        }`}
+                      >
+                        <d.icon className="h-3.5 w-3.5" /> {d.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <StepReview
-                themes={props.themes}
-                paymentMethods={props.paymentMethods}
-                policies={props.policies}
-                state={state}
-                embedded
-              />
-
-              {theme?.slug ? (
-                <WizardLivePreview
-                  slug={theme.slug}
-                  accent={effectiveAccent}
-                  siteName={state.siteName}
-                  device={device}
+                <StepReview
+                  themes={props.themes}
+                  paymentMethods={props.paymentMethods}
+                  policies={props.policies}
+                  state={state}
+                  embedded
                 />
-              ) : null}
 
-              <PublishBar
-                ready={ready}
-                missing={requiredMissing}
-                onPublish={build}
-                onJump={jump}
-              />
+                {theme?.slug ? (
+                  <WizardLivePreview
+                    slug={theme.slug}
+                    accent={effectiveAccent}
+                    siteName={state.siteName}
+                    device={device}
+                  />
+                ) : null}
+
+                {!ready ? (
+                  <div className="rounded-card border border-brand-line bg-brand-light/50 p-4 text-sm">
+                    <p className="font-semibold text-brand-ink">
+                      A couple of things first:
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {requiredMissing.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            type="button"
+                            onClick={() => goTo(SECTIONS.indexOf(s))}
+                            className="text-brand-secondary underline decoration-brand-line underline-offset-2 hover:decoration-brand-primary"
+                          >
+                            Finish {s.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                <div className="p-6 md:p-7">{renderers[cur.id]}</div>
+              </section>
+            )}
+          </div>
+
+          {/* footer nav */}
+          <div className="mt-6 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={back}
+              disabled={current === 0}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+            <div className="ml-auto flex items-center gap-3">
+              {!isPreview && !canContinue ? (
+                <span className="hidden text-[12px] font-medium text-status-pending sm:inline">
+                  Complete the required fields
+                </span>
+              ) : null}
+              {isPreview ? (
+                <button
+                  type="button"
+                  onClick={build}
+                  className={`inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
+                    ready
+                      ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                      : "cursor-not-allowed bg-brand-mute/60"
+                  }`}
+                >
+                  <Rocket className="h-4 w-4" />{" "}
+                  {ready ? "Build my site" : "Finish required steps"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={next}
+                  disabled={!canContinue}
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] transition hover:bg-brand-secondary disabled:cursor-not-allowed disabled:bg-brand-mute/50 disabled:shadow-none"
+                >
+                  Save &amp; continue <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          </SectionCard>
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Building overlay */}
       {phase === "building" ? (
