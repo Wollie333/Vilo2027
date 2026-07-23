@@ -451,6 +451,157 @@ export const setCampaignEnrollmentStatusAction = withAdminAudit<
   },
 );
 
+// ── Commission floors ───────────────────────────────────────────────────────
+// A floor permanently locks a partner's MINIMUM commission rate for a campaign
+// (the "prizes = floors" mechanic). Accrual reads it as
+// GREATEST(ladder_rate_for_book(...), floor), so floors only bite on LADDER
+// campaigns. Awarding/removing one re-levels the current month's PENDING
+// commissions immediately (recompute), and — because a floor is a promise made
+// under a partner's name — every change is permission-gated + audited. Floors
+// survive the campaign ending; removing one is deliberate.
+
+export const awardCampaignFloorAction = withAdminAudit<
+  {
+    campaignId: string;
+    affiliateId: string;
+    floorPct: number;
+    wonVia: string;
+    reason?: string;
+  },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_floor_award",
+    // target_id is a uuid column; key on the partner (the subject whose rate is
+    // locked). The campaign id + rate travel in the audited args.
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const pct = Number(args.floorPct);
+    const wonVia = args.wonVia?.trim() || null;
+
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+      return {
+        result: { ok: false, error: "Floor must be between 0 and 100%." },
+      };
+    }
+    if (!wonVia) {
+      return {
+        result: {
+          ok: false,
+          error: "Say why the floor was awarded — the partner is shown it.",
+        },
+      };
+    }
+    // 4dp fraction, matching how ladder band rates are stored (0.25 = 25%).
+    const floorRate = Math.round((pct / 100) * 10_000) / 10_000;
+
+    const { data: camp } = await service
+      .from("affiliate_campaigns")
+      .select("commission_structure")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    if (!camp) return { result: { ok: false, error: "Unknown campaign." } };
+    const model = (camp.commission_structure as { model?: string } | null)
+      ?.model;
+    if (model !== "ladder") {
+      // A floor only means anything against a ladder — the accrual's flat/inherit
+      // branches never read it, so awarding one here would be a silent no-op.
+      return {
+        result: {
+          ok: false,
+          error:
+            "Floors only apply to ladder campaigns — this one pays a flat/inherited rate.",
+        },
+      };
+    }
+
+    const { data: acct } = await service
+      .from("affiliate_accounts")
+      .select("id")
+      .eq("id", args.affiliateId)
+      .maybeSingle();
+    if (!acct) return { result: { ok: false, error: "Unknown partner." } };
+
+    const { data: before } = await service
+      .from("affiliate_campaign_floors")
+      .select("floor_rate, won_via")
+      .eq("campaign_id", args.campaignId)
+      .eq("affiliate_id", args.affiliateId)
+      .maybeSingle();
+
+    const { error } = await service.from("affiliate_campaign_floors").upsert(
+      {
+        campaign_id: args.campaignId,
+        affiliate_id: args.affiliateId,
+        floor_rate: floorRate,
+        won_via: wonVia,
+        awarded_by: admin.userId,
+        awarded_at: new Date().toISOString(),
+      },
+      { onConflict: "affiliate_id,campaign_id" },
+    );
+    if (error) return { result: { ok: false, error: error.message } };
+
+    // Make the floor bite now: re-level this month's pending commissions to
+    // GREATEST(ladder, floor). Already-cleared/paid rows are untouched.
+    await service.rpc("recompute_affiliate_campaign_rates");
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+
+    return {
+      result: { ok: true },
+      before: before
+        ? { floor_rate: before.floor_rate, won_via: before.won_via }
+        : null,
+      after: { floor_rate: floorRate, won_via: wonVia },
+    };
+  },
+);
+
+export const removeCampaignFloorAction = withAdminAudit<
+  { campaignId: string; affiliateId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_floor_remove",
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    await requirePermission(PERMISSION);
+
+    const { data: before } = await service
+      .from("affiliate_campaign_floors")
+      .select("floor_rate, won_via")
+      .eq("campaign_id", args.campaignId)
+      .eq("affiliate_id", args.affiliateId)
+      .maybeSingle();
+    if (!before) return { result: { ok: false, error: "No floor to remove." } };
+
+    const { error } = await service
+      .from("affiliate_campaign_floors")
+      .delete()
+      .eq("campaign_id", args.campaignId)
+      .eq("affiliate_id", args.affiliateId);
+    if (error) return { result: { ok: false, error: error.message } };
+
+    // Removing a floor can only LOWER this month's pending rate back to the
+    // ladder (recompute takes GREATEST(ladder, floor=0)). Cleared/paid stay put.
+    await service.rpc("recompute_affiliate_campaign_rates");
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+
+    return {
+      result: { ok: true },
+      before: { floor_rate: before.floor_rate, won_via: before.won_via },
+      after: null,
+    };
+  },
+);
+
 // Re-exported so the create form can suggest a free slug from the name without
 // duplicating the slugify rules.
 export async function suggestCampaignSlugAction(name: string): Promise<string> {

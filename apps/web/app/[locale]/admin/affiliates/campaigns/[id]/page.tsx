@@ -30,6 +30,7 @@ import { loadCampaignMetrics } from "@/lib/affiliate/metrics";
 import { CampaignAdminTabs } from "../_components/CampaignAdminTabs";
 import { CampaignBuilder } from "../_components/CampaignBuilder";
 import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
+import { FloorAwardManager } from "../_components/FloorAwardManager";
 import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
 import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
 
@@ -229,12 +230,23 @@ export default async function AdminCampaignPage({
   }));
 
   const floorRows = (floors ?? []).map((f) => ({
-    id: `${f.affiliate_id}-${f.awarded_at}`,
+    affiliateId: f.affiliate_id as string,
     name: nameById.get(f.affiliate_id)?.name ?? "—",
-    rate: `${rateToPct(Number(f.floor_rate))}%`,
-    reason: (f.won_via as string | null) ?? "—",
-    awarded_at: f.awarded_at as string | null,
+    slug: nameById.get(f.affiliate_id)?.slug ?? "",
+    ratePct: rateToPct(Number(f.floor_rate)),
+    wonVia: (f.won_via as string | null) ?? "—",
+    awarded: fmtDate(f.awarded_at as string | null),
   }));
+
+  // Everyone taking part is a floor candidate (they appear via a score, an
+  // enrolment, an existing floor or a rules acceptance → all in nameById).
+  const floorPartners = Array.from(nameById.entries())
+    .map(([id, v]) => ({ id, name: v.name, slug: v.slug }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const isLadderCampaign =
+    ((campaign.commission_structure as { model?: string } | null)?.model ??
+      "inherit") === "ladder";
 
   // The rules document this campaign points at, if any, plus who has signed it.
   const rulesDoc =
@@ -465,49 +477,12 @@ export default async function AdminCampaignPage({
         </div>
       </section>
 
-      <section className="am-card overflow-hidden">
-        <div className="border-b border-brand-line px-5 py-3.5">
-          <div className="smallcaps">Commission floors awarded</div>
-          <p className="mt-0.5 text-[11.5px] text-brand-mute">
-            Prizes that permanently lock a partner&apos;s minimum rate. These
-            survive the campaign ending.
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="ttable">
-            <thead>
-              <tr>
-                <th>Partner</th>
-                <th>Locked rate</th>
-                <th>Why</th>
-                <th>Awarded</th>
-              </tr>
-            </thead>
-            <tbody>
-              {floorRows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-brand-mute">
-                    No floors awarded yet.
-                  </td>
-                </tr>
-              ) : (
-                floorRows.map((r) => (
-                  <tr key={r.id}>
-                    <td className="font-semibold text-brand-ink">{r.name}</td>
-                    <td className="num font-semibold text-brand-primary">
-                      {r.rate}
-                    </td>
-                    <td className="text-brand-mute">{r.reason}</td>
-                    <td className="num text-brand-mute">
-                      {fmtDate(r.awarded_at)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <FloorAwardManager
+        campaignId={campaign.id}
+        isLadder={isLadderCampaign}
+        partners={floorPartners}
+        floors={floorRows}
+      />
     </div>
   );
 
