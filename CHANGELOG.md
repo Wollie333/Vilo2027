@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-23 — Royal conform: per-page phead heights + subtitle width.
+
+Section-level computed-style diff of About/Contact against the reference (both
+tabs pinned to 1280×900 so vw/clamp values are comparable), catching per-page
+page-header deltas. **(1) Phead subtitle (`1d12b05`):** the reference `.phead p`
+wraps at `max-width: 52ch`; live pages had drifted to 56/58ch (rooms even had a
+second rule overriding 52→58ch) — conformed About/Contact/Experiences/Gallery/
+Rooms to 52ch. **(2) Phead heights (`b4dc36b`):** the reference gives Contact/
+Specials/Gallery/Journal deliberately compact hero heights via inline min-heights;
+live rendered them taller — conformed Contact (504→414px, `clamp(360,46vh,460)`),
+Gallery (`380/50vh/500`), Specials + Journal (`52vh/520`→`50vh/500`). About/Rooms/
+Experiences pheads already matched the base clamp. Verified live: contact phead
+414px (= reference 46vh@900), subtitle 558px (= 52ch), no overflow, one h1/page,
+all pages 200. Remaining deltas are sub-perceptible (±1px field label/input).
+
 ## 2026-07-23 — Royal conform: reference shape/type tokens + charcoal shadows.
 
 Pushed the Royal conform toward true pixel-parity with a computed-style diff of

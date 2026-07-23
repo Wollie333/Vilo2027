@@ -77,6 +77,27 @@
 > Comparison harness that worked: query the SAME ported class names on both (`.hero`,`.section`,`.wrap`,
 > `.sec-head`,`.btn`,`.room`,`.split`,`.mosaic`,`.tag`), live scoped to `.rhome`/`.rXXX`, ref unscoped.
 >
+> **THEN a per-page section diff of About + Contact (both tabs pinned to 1280×900 so vw/clamp values compare)
+> → two more conform commits (HEAD now `b4dc36b`, pushed):**
+> - **`1d12b05` phead subtitle → 52ch** — reference `.phead p` is `max-width: 52ch`; live had drifted to
+>   56/58ch (rooms had a SECOND `.phead p` rule overriding 52→58ch). Conformed About/Contact/Experiences/
+>   Gallery/Rooms. (Left the phead H1 max-widths — live has 20–22ch, ref has none — as-is: invisible on mana's
+>   short headings + removing risks over-wide titles. Noted as a deliberate keep.)
+> - **`b4dc36b` per-page phead HEIGHTS** — the reference sets compact hero heights PER PAGE via **inline**
+>   `min-height` on the `.phead` (read them from `docs/themes/royalhotel/pages/*.html`): Contact
+>   `clamp(360,46vh,460)`, Specials/Gallery/Journal `clamp(380,50vh,500)`; Home/About/Rooms/Experiences use
+>   the base `clamp(440,58vh,560)`. Live had Contact/Gallery at 56vh/540 and Specials/Journal at 52vh/520 →
+>   conformed all four. Verified: contact phead 414px = reference 46vh@900.
+> - **Method note:** the reference pages carry PER-PAGE inline `min-height` overrides on `.phead` — always
+>   read the reference `pages/*.html` inline styles, not just theme.css, when a phead height looks off.
+>
+> **Conformance status: Home token-for-token matched; About/Contact section-diffed + conformed; all pages
+> share the conformed token block + charcoal colours + 52ch subtitles + correct phead heights.** Remaining
+> deltas are sub-perceptible (±1px contact field label 11 vs 12px, input padding 13 vs 14px, radius 9 vs 7px)
+> and risk regressions from first-match mis-measurement — left for a future targeted pass if wanted. NOT yet
+> section-diffed at this depth: Journal-article, Special-detail, Room-detail bodies (structure already matched
+> in the earlier pass; only a fine spacing diff remains).
+>
 > **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
 > **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.
 > Supersedes the "NEXT UP" in `SAVEPOINT_2026-07-22.md` (that session's work is still valid; this is the
