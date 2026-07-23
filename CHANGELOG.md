@@ -33,6 +33,28 @@ live DB, then built the missing metric surfaces and proved the campaign layer en
   recompute, scoring snapshot (6 live listings). Both metric surfaces verified LIVE in the admin app
   with reconciling numbers (campaign R1149.60; programme lifetime R2348.40). Build + lint + tsc green.
 
+## 2026-07-24 (pt84) — Floor awards + campaign finalization (auto-close → winners → publish).
+
+Closed the two gaps the verification pass surfaced, both verified end-to-end live.
+
+- **Award/remove commission floors (audited)** — `awardCampaignFloorAction` /
+  `removeCampaignFloorAction` (validated, ladder-only guard, `recompute` so the floor bites now) +
+  `FloorAwardManager` on the campaign Partners tab. Fixes the "prizes = floors" gap (nothing ever
+  inserted affiliate_campaign_floors). Commit a583aeb6.
+- **Campaign finalization** — launch a competition and it runs itself to a published final:
+  - hourly `finalize-ended-campaigns` cron auto-closes any active campaign past its end date and
+    computes the placing winners (`compute_campaign_results`: rank by final live listings, tie-break
+    earliest-to-score), admin-only until published;
+  - a new **Results** tab (`CampaignResultsPanel`): review winners + cash/floor prizes, Close-now,
+    Recompute, **Accept & publish**;
+  - publish (audited) reveals winners on the public final leaderboard + **auto-awards the placing
+    floor prizes** via the floor engine + recompute;
+  - public `/competitions/[slug]` gets a "Final winners" section once published (anonymised names).
+  - Migration `20260724000000` adds results/results_computed_at/results_published_at + two
+    service_role-only SECDEF fns + the cron. Verified live: cron closed a past-dated test campaign →
+    🥇/🥈 computed → admin published → floors 20%/15% awarded + audit rows → public reveal, no PII
+    leak. Commit 9b60a3b6.
+
 ## 2026-07-24 (pt83) — Affiliate program verification sweep (14 aspects) + security + mobile.
 
 Worked the affiliate program one aspect at a time, proving each against the real code + live DB
