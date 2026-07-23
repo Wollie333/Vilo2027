@@ -122,9 +122,25 @@ other section heading is `<h2>`/`<h3>`. Verified home = 1 h1. Check each page as
 (⚠️ DELETE `apps/web/public/_royalref` before any merge — it was removed at session end), force-reveal,
 compare vs `?site=mana`. `royalAmenityIcon.tsx` `amenityIcon(fact)` is reusable theme-wide.
 
-**STILL OPEN (earlier punch-list, not the pixel work):** nearby-places Overpass 504 robustness; currency
-switcher on the /book checkout; header menu dropdowns (rooms/specials submenus — diverges from reference,
-confirm); one-step-at-a-time wizard. See sections above.
+**PUNCH-LIST — DONE this session:**
+- ✅ **One-step-at-a-time wizard** (`9ab49d1`): refactored WebsiteWizard to the founder's step-at-a-time
+  design (top numbered stepper + Step N/M + Save & exit + progress bar; per-step pill/title/card;
+  Back / Save & continue; final = review + preview + Build). New `WizardTopbar.tsx`. Design source:
+  Downloads `Wielo (11).zip` → top-level `setup/` (chrome.jsx/app.jsx). Verified live on /dev/wizard,
+  tokens pixel-match (Plus Jakarta Sans 800/28px, #10B981 button, #D1FAE5/#064E3B pill).
+- ✅ **Nearby Overpass robustness** (`491027f`): `runOverpass()` tries mirrors + throws NearbyServiceError
+  on total failure; action → distinct `service_unavailable`; card shows "service busy, try again".
+- ✅ **Currency switcher on checkout** (`a016fc5`): wrapped /book in SiteCurrencyProvider (switcher shows);
+  Total + all prices stay ZAR (non-converting money(), never <Money>); one muted "≈ estimate; charged in
+  ZAR" line under the Total for non-ZAR display. Verified switcher present on mana checkout.
+
+**STILL OPEN — needs a founder decision:**
+- **Header menu dropdowns (rooms→each room, specials→each special)** — CONFLICTS with the reference the
+  header was just conformed to (reference = "Explore ▾" grouping Experiences/Gallery/Offers + flat Rooms
+  link; NO per-room dropdown). Also needs plumbing: thread the rooms/specials lists into SiteChrome
+  (currently `menu` is built at SiteChrome.tsx:1245 from navigation.items/nav, with no rooms/specials
+  data). Decide: build per-room/per-special dropdowns (diverges from reference) OR keep the reference
+  header. Not implemented pending that call.
 - **Stats band** (90 / 2 / 24 / 4.9 in the reference; 3 / 4.7 / 3 / 4 in ours) — layout matches; ours is
   live data, fine.
 - Continue DOWN the home page + then each other page (Rooms/RoomDetail/About/Experiences/Gallery/Contact/
