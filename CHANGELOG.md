@@ -27,7 +27,8 @@ all 6 deployed Edge Functions read).
   (marketing-assets/host-brochures/quote-uploads) have **no client INSERT policy** → service-role write
   only, so "public + any-mime" on marketing-assets is not user-exploitable. ⚠️ **Flagged (low):**
   `website-assets` is public + host-writable + allows `image/svg+xml` (script-in-SVG on the storage
-  origin) — spawned a background task to drop SVG or serve as attachment after checking the builder.
+  origin) — left for the **website sub-branch** to weigh (founder directive: leave website features
+  alone); not actioned from main.
 
 Worked the two `SECURITY_CHECKLIST.md` sections the pt74 save
 point pointed at, probing PRODUCTION (anon + a real guest session) rather than reading from code.

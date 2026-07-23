@@ -17,8 +17,9 @@ vuln); §6 all ticked + 1 low flag. Key results:
   caller's JWT so RLS enforces ownership; `external-reviews-sync` fail-closed (pt63 no-op gone);
   `report-scheduler` refuses if secret unset. Rate-limiting covers abuse-prone WRITES only.
 - **§6:** allowlists match spec; private buckets `public=false` no `public_read`; every INSERT policy
-  is `auth.uid()`+owner-scoped; the 3 no-limit buckets are service-role-write-only. ⚠️ Flag +
-  background task: `website-assets` public + host-writable + allows SVG (task_ed05bf12).
+  is `auth.uid()`+owner-scoped; the 3 no-limit buckets are service-role-write-only. ⚠️ Flag (low,
+  **website sub-branch territory — leave alone from main**): `website-assets` public + host-writable
+  + allows SVG.
 
 **Next:** §5 Sentry-breadcrumb PII review; §1 (auth/session — app-side pieces; dashboard toggles are
 founder-only); §7 CSP (deferred to live-QA); go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4) deferred

@@ -418,12 +418,14 @@ Verified 2026-07-23 against the live `storage.buckets` + `storage.objects` RLS.
   to `get_my_host_id()` owning the property/website/addon; guest uploads keyed to
   `bookings.guest_id = auth.uid()`; avatar/lf-images keyed to the `auth.uid()`
   top-level folder. No unauthenticated or cross-owner write path exists.
-- ⚠️ **FLAGGED (low, defense-in-depth):** `website-assets` is **public + host-
-  writable + allows `image/svg+xml`**. An SVG can carry `<script>` that runs when the
-  object URL is opened as a top-level document. It's served from the storage origin
-  (not the app's cookie domain) and is the host's own content, so impact is limited —
-  but consider dropping `svg` from this bucket or serving it `Content-Disposition:
-  attachment`. Not yet changed (would touch bucket config outside this doc pass).
+- ⚠️ **FLAGGED (low, defense-in-depth) — WEBSITE SUB-BRANCH TERRITORY, do NOT action
+  from main:** `website-assets` is **public + host-writable + allows `image/svg+xml`**.
+  An SVG can carry `<script>` that runs when the object URL is opened as a top-level
+  document. It's served from the storage origin (not the app's cookie domain) and is
+  the host's own content, so impact is limited. The website builder is being built in
+  a separate sub-branch (founder directive: leave all website features alone) — this
+  note is for that branch to weigh (drop `svg`, or serve `Content-Disposition:
+  attachment`, only if the builder doesn't rely on SVG logos). Not changed here.
 
 ---
 
