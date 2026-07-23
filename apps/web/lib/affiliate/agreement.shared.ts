@@ -21,3 +21,16 @@ export function agreementParagraphs(rendered: string): string[] {
     .map((p) => p.trim())
     .filter(Boolean);
 }
+
+/**
+ * Terms are authored in a rich-text (WYSIWYG) editor and stored as HTML. Older
+ * terms were stored as blank-line-separated plain text. This detects the HTML
+ * form so a display can render it as markup, while legacy plain text still
+ * renders as paragraphs. The block tags below are exactly what the editor's
+ * StarterKit can emit.
+ */
+export function isAgreementHtml(rendered: string): boolean {
+  return /<(p|h2|h3|h4|ul|ol|li|strong|em|b|i|a|blockquote|br|hr|pre|code)\b/i.test(
+    rendered,
+  );
+}

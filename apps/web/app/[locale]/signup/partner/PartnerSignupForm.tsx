@@ -13,7 +13,7 @@ import {
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
-import { agreementParagraphs } from "@/lib/affiliate/agreement.shared";
+import { AgreementBody } from "@/components/affiliate/AgreementBody";
 
 import {
   createPartnerAccountAction,
@@ -341,12 +341,8 @@ export function PartnerSignupForm({
           {showAgreement ? "Hide agreement" : "Read the agreement"}
         </button>
         {showAgreement ? (
-          <div className="rounded-input mt-2 max-h-52 overflow-y-auto border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
-            {agreementParagraphs(agreementBody).map((p, i) => (
-              <p key={i} className={i > 0 ? "mt-2" : undefined}>
-                {p}
-              </p>
-            ))}
+          <div className="rounded-input mt-2 max-h-52 overflow-y-auto border border-brand-line bg-brand-light/50 p-3">
+            <AgreementBody rendered={agreementBody} className="text-[12px]" />
           </div>
         ) : null}
       </div>

@@ -4,18 +4,26 @@ import { Save } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { AgreementBody } from "@/components/affiliate/AgreementBody";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import {
+  agreementParagraphs,
+  isAgreementHtml,
+  renderAgreementBody,
+} from "@/lib/affiliate/agreement.shared";
 
 import { updateAffiliateTermsAction } from "../../actions";
 
-// Splits the body on blank lines into paragraphs and swaps the {brand} token —
-// matches how the gate renders it, so the preview is faithful.
-function renderParagraphs(body: string, brand: string): string[] {
-  return body
-    .replace(/\{brand\}/g, brand)
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Legacy terms were stored as blank-line plain text; seed the editor with real
+// paragraphs so the admin doesn't start from one collapsed blob.
+function toEditorHtml(content: string): string {
+  if (isAgreementHtml(content)) return content;
+  return agreementParagraphs(content)
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join("");
 }
 
 export function AffiliateTermsEditor({
@@ -27,15 +35,16 @@ export function AffiliateTermsEditor({
   initialVersion: string;
   brand: string;
 }) {
-  const [content, setContent] = useState(initialContent);
+  const [content, setContent] = useState(() => toEditorHtml(initialContent));
   const [version, setVersion] = useState(initialVersion);
   const [pending, start] = useTransition();
 
-  const dirty = content !== initialContent || version !== initialVersion;
-  const paragraphs = renderParagraphs(content, brand);
+  const dirty =
+    content !== toEditorHtml(initialContent) || version !== initialVersion;
 
   function save() {
-    if (!content.trim()) {
+    // stripHtml equivalent: reject an editor that's visually empty.
+    if (!content.replace(/<[^>]*>/g, "").trim()) {
       toast.error("The terms can't be empty.");
       return;
     }
@@ -55,32 +64,31 @@ export function AffiliateTermsEditor({
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Editor */}
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+      <section className="am-card p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="font-display text-base font-semibold text-brand-ink">
-            Edit terms
-          </h2>
+          <div className="smallcaps">Edit terms</div>
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-              Version
-            </span>
+            <span className="flabel">Version</span>
             <input
               value={version}
               onChange={(e) => setVersion(e.target.value)}
               placeholder="v1"
-              className="h-9 w-28 rounded-md border border-brand-line bg-white px-3 text-sm focus:border-brand-primary focus:outline-none"
+              className="fld h-9 w-28"
             />
           </label>
         </div>
 
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={18}
-          className="mt-4 block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm leading-relaxed focus:border-brand-primary focus:outline-none"
-        />
+        <div className="mt-4">
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Paste or write the affiliate terms — headings, lists and bold all work."
+          />
+        </div>
+
         <p className="mt-2 text-[12px] text-brand-mute">
-          Use a blank line between paragraphs. Type{" "}
+          Paste straight from your lawyer&apos;s document — headings, lists and
+          formatting are kept. Type{" "}
           <code className="rounded bg-brand-light px-1 py-0.5 text-[11px]">
             {"{brand}"}
           </code>{" "}
@@ -95,36 +103,37 @@ export function AffiliateTermsEditor({
               Unsaved changes
             </span>
           ) : null}
-          <Button
+          <button
+            type="button"
             onClick={save}
             disabled={pending || !dirty}
-            className="gap-1.5"
+            className="btn-pri h-9"
           >
             <Save className="h-4 w-4" />
             {pending ? "Saving…" : "Save terms"}
-          </Button>
+          </button>
         </div>
       </section>
 
       {/* Live preview — mirrors the gated programme */}
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h2 className="font-display text-base font-semibold text-brand-ink">
-          Preview
-        </h2>
+      <section className="am-card p-5">
+        <div className="smallcaps">Preview</div>
         <p className="mt-0.5 text-[12px] text-brand-mute">
           How it appears to guests and hosts on the affiliate sign-up gate.
         </p>
-        <div className="mt-4 rounded-card border border-brand-line bg-brand-light/30 p-5">
+        <div className="mt-4 rounded-[14px] border border-brand-line bg-brand-light/30 p-5">
           <h3 className="font-display text-lg font-semibold text-brand-ink">
             Affiliate terms
           </h3>
-          <div className="mt-3 space-y-3 text-sm leading-relaxed text-brand-mute">
-            {paragraphs.length > 0 ? (
-              paragraphs.map((p, i) => <p key={i}>{p}</p>)
+          <div className="mt-3">
+            {content.replace(/<[^>]*>/g, "").trim() ? (
+              <AgreementBody rendered={renderAgreementBody(content, brand)} />
             ) : (
-              <p className="italic">Nothing to show yet.</p>
+              <p className="text-sm italic text-brand-mute">
+                Nothing to show yet.
+              </p>
             )}
-            <p className="text-xs text-brand-mute/70">
+            <p className="mt-3 text-xs text-brand-mute/70">
               Terms version {version}
             </p>
           </div>

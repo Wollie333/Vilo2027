@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { AgreementBody } from "@/components/affiliate/AgreementBody";
 import { Button } from "@/components/ui/button";
-import {
-  agreementParagraphs,
-  renderAgreementBody,
-} from "@/lib/affiliate/agreement.shared";
+import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
 
 import { acceptAffiliateTermsAction } from "../actions";
 
@@ -51,9 +49,7 @@ export function AffiliateTermsGate({
 
   // The body must render through the SHARED helper — the acceptance snapshot is
   // taken from the same function, so what is stored is what was read.
-  const paragraphs = agreementParagraphs(
-    renderAgreementBody(termsContent, brand),
-  );
+  const rendered = renderAgreementBody(termsContent, brand);
 
   function handleAccept() {
     if (!agreed) return;
@@ -117,11 +113,9 @@ export function AffiliateTermsGate({
         <h2 className="font-display text-lg font-semibold text-brand-ink">
           Affiliate agreement
         </h2>
-        <div className="mt-3 space-y-3 text-sm leading-relaxed text-brand-mute">
-          {paragraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          <p className="text-xs text-brand-mute/70">
+        <div className="mt-3">
+          <AgreementBody rendered={rendered} />
+          <p className="mt-3 text-xs text-brand-mute/70">
             Agreement version {termsVersion}. Your acceptance is recorded with
             the date and your IP address, and kept as your signed copy.
           </p>
