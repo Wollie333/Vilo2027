@@ -33,6 +33,26 @@ live DB, then built the missing metric surfaces and proved the campaign layer en
   recompute, scoring snapshot (6 live listings). Both metric surfaces verified LIVE in the admin app
   with reconciling numbers (campaign R1149.60; programme lifetime R2348.40). Build + lint + tsc green.
 
+## 2026-07-24 (pt85) — Full prize engine + coherent campaign lifecycle controls.
+
+Rounded out finalization and fixed the admin control surface (all verified live end-to-end).
+
+- **B1 admin lifecycle**: `setCampaignStatusAction` now COMPUTES winners on →ended (builder
+  "End campaign" == Results "Close now" == cron; Results tab never blank). State-aware status bar:
+  draft→Launch, active→Pause/End, ended→Reopen+Archive (Reopen hidden once published), archived→
+  Restore + an ended hint.
+- **B2 all prize types**: `compute_campaign_results` now awards milestone (first_to_10,
+  any_reaching_5_in_30d) and monthly_top_net_change prizes, not just placing. Typed results
+  `{kind,placing/milestone/period,…}`; labels in `finalize.ts`; admin + public show every type.
+- **B3 winner emails**: new `affiliate_campaign_won` event (email `CampaignWon` + in-app + push);
+  `notifyCampaignWinners` summarises each winner's prizes on publish.
+- **B4 cash-prize payables**: new `affiliate_prize_awards` table (RLS own-read). Publish
+  auto-creates an 'owed' payable per cash prize; `settleCampaignPrizeAction` (audited) marks
+  paid/void from a new Cash-prizes table on the Results tab (transfer stays admin-initiated).
+- Migration `20260724010000`. Verified live: cron close → placing + monthly computed → published →
+  2 floors + 3 payables + winner notifications (in-app/push/email) → Mark paid + audit → public
+  reveal all types, anonymised, no PII leak. 7 tabs clean. Build + lint + 33 tests green.
+
 ## 2026-07-24 (pt84) — Floor awards + campaign finalization (auto-close → winners → publish).
 
 Closed the two gaps the verification pass surfaced, both verified end-to-end live.
