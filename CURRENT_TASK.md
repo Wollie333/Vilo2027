@@ -18,10 +18,14 @@ Building toward a **secure, working beta**. Shipped this session (all pushed, li
 
 **Founder decision LOCKED:** email verification = hard-required (was: soft nag).
 
-**▶️ NEXT (affiliate manager rework, per the founder):** the remaining partner screens
-(Links & products, Campaigns, Payouts, Founding Race detail) + the ADMIN affiliate manager — all
-pixel-perfect to `docs/design/affiliate-manager/*.html`, reusing `affiliate-manager.css`. Then the
-security-checklist tail (dashboard/founder items) and the other pt74 open items.
+**✅ DONE (pt78, `0d268d7b`): ALL user-facing affiliate pages pixel-perfect + verified live** —
+Overview, Links & products, Campaigns, Payouts, and the Founding Race detail (5 inner tabs). Nav = the
+design's 4 tabs. New components: LinkBuilderPanel, ProductRatesTable, CampaignJoinCard,
+RequestPayoutCard, PayoutAccountCard, RaceTabs. Money engine untouched.
+
+**▶️ NEXT:** the **ADMIN** affiliate manager (design mockups don't cover it yet — ask the founder for
+admin designs, or apply the same `affiliate-manager.css` system). Then the security-checklist tail
+(dashboard/founder items) + other pt74 open items. ⚠️ Clean-wipe affiliate demo data before launch.
 
 ⚠️ Note: affiliate DB has orphaned demo data (3 payouts, 0 commissions; test partners `wollie-steenkamp`
 + `sumarie`) — needs a clean wipe before launch. Design for the correct model, not the current rows.

@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-23 (pt78) — User-facing affiliate program complete (all pages pixel-perfect).
+
+Built out every remaining partner-facing affiliate page to match the approved design
+(`docs/design/affiliate-manager/*`), wired to real data. Money engine untouched.
+
+- **Nav → the design's 4 tabs** (Overview · Links & products · Campaigns · Payouts), `.tabbtn`-styled;
+  shell badge counts active campaigns. Marketing + Top-earners fold into pages/campaign detail.
+- **Links & products**: "Your links" (default + campaign links with real click/signup/active/earned
+  stats), the pixel-perfect Link builder (segmented page/product/campaign + live QR), and a
+  "Products & your rates" table (base × tier-bonus, duration, you-earn) with a client filter.
+- **Campaigns**: enrolled big cards (real rank/score/ladder-rate/earned/progress) + "Open to join"
+  cards (join flow with rules acceptance) + the layers explainer. **Fixed** a query selecting a
+  non-existent `affiliate_campaigns.description` column that had blanked the page.
+- **Payouts**: balance band, payout history, monthly statements, request-payout card (real fee/net),
+  how-money-moves, payout-account editor (reuses `savePayoutMethodAction`).
+- **Founding Race detail**: 5 inner tabs (Overview / Links & page / Leaderboard / Marketing / Rules &
+  prizes) via a client tab switcher; wired to `loadCampaignLeaderboard` + `loadMyRaceStats` +
+  `LiveStandings` + the co-branded `LandingPageCard`; real ladder, conversion bonuses, prizes.
+- New components: `LinkBuilderPanel`, `ProductRatesTable`, `CampaignJoinCard`, `RequestPayoutCard`,
+  `PayoutAccountCard`, `RaceTabs`.
+- **Verified live** on the founder's affiliate account: every page + inner tab renders pixel-perfect
+  with real data (rank #1/2, ladder "You are here", live standings), zero console errors. tsc + eslint
+  clean. Commits `c5c93e0b` (Overview) + `0d268d7b` (the rest).
+
 ## 2026-07-23 (pt77) — Affiliate partner dashboard rebuilt pixel-perfect from the approved design.
 
 Founder supplied an approved HTML/CSS design for the affiliate manager and asked for the partner-facing
