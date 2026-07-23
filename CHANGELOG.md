@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-23 — Royal conform verification pass + home sand-band rhythm fix.
+
+Confirmed production healthy first: `mana.wielo.co.za` renders 200 with no crash
+(the `b2ab4d7` FONT_STACKS hotfix is live in `main`). Then ran a section-by-section
+reference-vs-live conform pass over every mana-enabled Royal page (rule: keep our
+sections, fix within-section mismatches only). **One real fix (`63fc8a5`):**
+`RoyalHome.tsx` hardcoded its alternating tinted (`sand`) section backgrounds
+assuming the *conditional* Experiences section always rendered — on sites without
+experiences (e.g. mana) the parity shifted, leaving two plain bands adjacent and the
+gallery untinted vs the reference. Replaced with a running `band()` counter that only
+advances for sections that actually render, so the plain/sand alternation stays correct
+regardless of which optional sections are present; "A look inside" gallery is now `sand`
+matching the reference. Verified live (resolved bg colours alternate cleanly; 1 h1).
+Rooms / About / Specials / Journal / Room-detail / Contact / Special-detail all already
+conform (backgrounds + structure match, headers legible, one h1 each) — no change.
+**Experiences dark photo `.phead` hero now live-verified** via theme-preview (white h1 +
+white nav over a real full-bleed photo) — closes the one outstanding verify item from
+the 07-22 savepoint. Reference rig (`public/_royalref`) removed before commit. lint clean.
+
 ## 2026-07-22 — Wizard atoms: finish StepStory + remove dead WizardSidebar.
 
 Final fidelity pass. Routed the rest of **StepStory** through the shared atoms: the

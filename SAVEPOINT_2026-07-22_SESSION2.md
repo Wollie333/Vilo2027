@@ -1,5 +1,39 @@
 # 🧭 SAVEPOINT — 2026-07-22 (SESSION 2, live-testing punch-list) — read FIRST
 
+> ## ▶ 2026-07-23 UPDATE — Royal conform verification pass (HEAD `63fc8a5`)
+> Prod confirmed HEALTHY: `mana.wielo.co.za` renders 200 (h1 "Arrive somewhere grand"), **no crash /
+> no digest 405703985** — the `b2ab4d7` FONT_STACKS hotfix is live in `origin/main`. Feature branch
+> is fully pushed; tree clean.
+>
+> Founder chose to **finish the Royal conform** with rule: *keep our sections, fix within-section
+> mismatches only* (heritage monogram band STAYS; don't add the reference press strip). Did a
+> section-by-section reference-vs-live diff of every mana-enabled page (rig:
+> `docs/themes/royalhotel` → `public/_royalref`, force-reveal, compare vs `?site=mana`; **rig deleted
+> before commit**). Findings:
+> - **`63fc8a5` Home sand-band rhythm FIXED** — the alternating tinted (`sand`) backgrounds were
+>   hardcoded assuming the CONDITIONAL Experiences section always renders. On sites without experiences
+>   (mana) parity shifted → two plain bands adjacent + gallery untinted vs the reference. Added a
+>   running `band()` counter in `RoyalHome.tsx` that only advances for sections that actually render →
+>   perfect plain/sand alternation in BOTH cases; "A look inside" gallery now `sand` matching the
+>   reference. **Verified live on mana** (resolved bg colours: plain→sand→plain→sand→plain→sand→navy→plain,
+>   1 h1).
+> - **Rooms / About / Specials / Journal / Room-detail / Contact / Special-detail — all CONFORM** (no
+>   change): shared-section backgrounds + structure match the reference; headers legible (index/hero
+>   pages `nav over` with WHITE nav over dark heroes; detail pages `nav solid` dark nav); exactly 1 h1
+>   each. Rooms' `section-sm sand` intro band stays deliberately omitted (founder). About's one extra
+>   reference `section sand` before CTA stays omitted per the "keep our sections" rule.
+> - **Experiences photo hero — NOW LIVE-VERIFIED** (the outstanding item). Reached via theme-preview
+>   `…/site/experiences?site=mana&preview=1&theme=royal` (mana has no Experiences page row so the plain
+>   URL 404s). Renders the conformed dark `.phead` **photo** hero (`min-height 440px`, `object-fit:cover`,
+>   real image), h1 "Experiences" WHITE, header `nav over` white nav — legible. `d3c00a7` confirmed.
+> - Journal index currently shows the honest empty-state ("Your journal is almost here") — mana has no
+>   published posts right now (data state, not a regression); the `.phead` warm-fallback photo hero +
+>   white nav still render correctly.
+> - **Screenshots still flaky** (30s timeouts) — DOM/computed-style reads were the reliable proof, as noted.
+>
+> Only the Home fix changed code (`63fc8a5`). Everything else was verification. Remaining Royal conform
+> is minor/iterative (per-section spacing/typography nits) and can continue next session with the same rig.
+>
 > **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
 > **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.
 > Supersedes the "NEXT UP" in `SAVEPOINT_2026-07-22.md` (that session's work is still valid; this is the
