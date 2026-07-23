@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Heart,
   LogOut,
   Luggage,
   MessageSquare,
@@ -194,13 +193,6 @@ export function SiteHeader() {
               />
             ) : (
               <>
-                <button
-                  type="button"
-                  className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
-                >
-                  <Heart className="h-4 w-4" />
-                  {t("saved")}
-                </button>
                 <Link
                   href="/login"
                   className="hidden shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
