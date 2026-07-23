@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-23 (pt73) — VAT inclusive/exclusive toggle for Wielo product pricing.
+
+Founder spotted that a Wielo product receipt (Wielo Quotes R99) showed VAT **deducted** from the
+total (Subtotal R86.09 + VAT R12.91 = R99). For a VAT-registered seller the standard is the
+opposite — VAT is added **on top** (R99 + R14.85 = R113.85). Added an admin toggle.
+
+- **Admin → Platform settings → Business → Wielo business details:** a "Prices are"
+  inclusive/exclusive select + a configurable "VAT rate %" (founder's call; defaults 15). Only bites
+  when a VAT number is set — no VAT number = not registered = no VAT charged or shown (that part
+  already existed and is unchanged).
+- **The clean mechanism:** "exclusive" changes what the customer is *charged*, not how the invoice
+  splits. So a single gross-up happens at the charge (`applyWieloVatToCharge`), wired into
+  `createProductOrder` (checkout + admin send-link + revenue modals) and the subscription-renewal
+  amount so first charge and renewals match. **Not** applied to overrides (a manual recorded amount
+  or a prorated upgrade delta is already the exact figure). The invoice trigger then backs VAT out of
+  whatever total was charged — now with the configurable rate, and showing net line items in
+  exclusive mode. **Inclusive output is byte-for-byte unchanged.**
+- **Scope:** Wielo product side only (founder decision). Host→guest booking invoices already add VAT
+  on top via `effective_vat_rate(property_id)` and are untouched.
+- **Proven:** trigger in a rollback txn (exclusive charge 113.85 → sub 99.00 + VAT 14.85; inclusive
+  charge 99 → sub 86.09 + VAT 12.91, identical to before); and end-to-end with a real test purchase —
+  Wielo set exclusive, R99 product → order 113.85 → **Paystack charged ZAR 113.85** → INV-0128 sub
+  99.00 / VAT 15% 14.85 / total 113.85, line item R99.00. Test purchase then deleted.
+- ⚠️ Left INCLUSIVE on deploy so nothing changes until the founder chooses exclusive in the form.
+  ⚠️ Note for future: affiliate commission accrues on the charged (gross) amount in both modes —
+  unchanged behaviour, but in exclusive mode that includes VAT. Flagged, not changed.
+
 ## 2026-07-22 (pt72) — product-order reconciler: the webhook is no longer a single point of failure.
 
 Closes the coverage gap pt71 surfaced. Bookings have had `reconcile-host-card-payments` since
