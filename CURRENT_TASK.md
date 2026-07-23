@@ -2,7 +2,34 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-07-23 pt77) — **START HERE**
+## 🟢 SAVE POINT (2026-07-23 pt79) — **START HERE**
+
+**Pushed `ed6296e5`. Tree clean. 0 node procs.** Resume anchor = memory `project-savepoint-jul23-pt79`.
+
+**This session:** email-verification hard-gate (`17211254`); ALL user-facing affiliate pages
+pixel-perfect (`c5c93e0b`+`0d268d7b`); dead "Saved" header button removed (`fe0fe56e`); affiliate
+rework brief; and — **DEFAULT affiliate program PROVEN end-to-end through the REAL money path** via
+`apps/web/scripts/seed-affiliate-default.mjs` (`ed6296e5`).
+
+**🔑 Core finding:** no subscription product had a commission rate (all `affiliate_type='none'`) → the
+default program paid nothing. That's **config, not a bug** — the admin ProductEditor's "Commission" step
+already controls it. Seed set `pro`→20% forever (TEST value; founder sets the real rate in admin).
+Proven: 20% accrues (R999→R199.80), `forever` accrues every period, clearing works, refund voids the
+commission (clawback), idempotent re-accrual. Balance: Cleared/Available/Lifetime R599.40, clawed R199.80.
+
+**▶️ NEXT (founder's order — default first, then campaigns):**
+1. Exercise the payout **SETTLE** path (seed was correctly blocked at `below_threshold`, R599.40<R1000)
+   — bump the seed >R1000 so `create/settle_affiliate_payout` run + a remittance mints; verify in the
+   Payouts UI.
+2. Verify the default program in the partner UI (log in as `wollie-steenkamp` via `admin/generate_link`
+   → `/auth/confirm?token_hash=`).
+3. THEN campaigns (seed a `campaign_id`-tagged referral + listings for the leaderboard score + ladder +
+   conversion bonus + floor).
+Admin affiliate UI DEFERRED (founder designing it over the next few days).
+
+---
+
+## 🟢 SAVE POINT (2026-07-23 pt77)
 
 Building toward a **secure, working beta**. Shipped this session (all pushed, live-verified):
 1. **Email verification is now HARD-REQUIRED** (`17211254`) — unverified non-staff users are walled at
