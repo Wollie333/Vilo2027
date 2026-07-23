@@ -268,6 +268,14 @@ export function RoyalHome({
 
   const monogram = (brandName.trim()[0] || "R").toUpperCase();
 
+  // Alternating tinted-band rhythm (plain → sand → plain …) so no two adjacent
+  // body sections share a background — matching the reference. Robust to the
+  // conditional sections (rooms/experiences/gallery may be absent): only advance
+  // parity for a section that actually renders. welcome(0, plain) + stats(1,
+  // sand, always) are already consumed, so the counter starts at 2.
+  let bandN = 2;
+  const band = () => (bandN++ % 2 === 1 ? "section sand" : "section");
+
   return (
     <div className="rhome">
       {/* HERO — left-aligned, formal (matches the reference Royal design) */}
@@ -386,7 +394,7 @@ export function RoyalHome({
 
       {/* ROOMS & SUITES — centred head + refined grid */}
       {roomList.length > 0 ? (
-        <section className="section">
+        <section className={band()}>
           <div className="wrap">
             <div className="sec-head center" data-reveal>
               <span className="tag" style={{ justifyContent: "center" }}>
@@ -452,7 +460,7 @@ export function RoyalHome({
 
       {/* EXPERIENCES — only when the host has real ones */}
       {exps.length > 0 ? (
-        <section className="section sand" id="experiences">
+        <section className={band()} id="experiences">
           <div className="wrap">
             <div className="sec-head center" data-reveal>
               <span className="tag" style={{ justifyContent: "center" }}>
@@ -493,7 +501,7 @@ export function RoyalHome({
       ) : null}
 
       {/* HERITAGE — monogram band (grand-hotel signature) */}
-      <section className="section">
+      <section className={band()}>
         <div className="wrap">
           <div className="heritage" data-reveal>
             <span className="mono" aria-hidden>
@@ -509,7 +517,7 @@ export function RoyalHome({
       </section>
 
       {/* THE HOTEL — value tiles (centred) */}
-      <section className="section sand">
+      <section className={band()}>
         <div className="wrap">
           <div className="sec-head center" data-reveal>
             <span className="tag" style={{ justifyContent: "center" }}>
@@ -538,7 +546,7 @@ export function RoyalHome({
 
       {/* GALLERY — static grand-hotel mosaic */}
       {mosaic.length > 0 ? (
-        <section className="section">
+        <section className={band()}>
           <div className="wrap">
             <div className="sec-head center" data-reveal>
               <span className="tag" style={{ justifyContent: "center" }}>
