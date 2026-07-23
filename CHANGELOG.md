@@ -28,9 +28,17 @@ opposite — VAT is added **on top** (R99 + R14.85 = R113.85). Added an admin to
   charge 99 → sub 86.09 + VAT 12.91, identical to before); and end-to-end with a real test purchase —
   Wielo set exclusive, R99 product → order 113.85 → **Paystack charged ZAR 113.85** → INV-0128 sub
   99.00 / VAT 15% 14.85 / total 113.85, line item R99.00. Test purchase then deleted.
-- ⚠️ Left INCLUSIVE on deploy so nothing changes until the founder chooses exclusive in the form.
-  ⚠️ Note for future: affiliate commission accrues on the charged (gross) amount in both modes —
+- ⚠️ Note for future: affiliate commission accrues on the charged (gross) amount in both modes —
   unchanged behaviour, but in exclusive mode that includes VAT. Flagged, not changed.
+- **Wielo is now set to EXCLUSIVE** (founder's stated intent for a VAT-registered seller); one-click
+  revert in the admin form.
+- **Follow-up fix `3b647bca` — the invoice was rounding to whole rand.** The generated tax invoice
+  used `formatMoney` (Math.round), so R113.85 printed as "Subtotal R99 / VAT R15 / Total R114" —
+  where 99+15 ≠ 113.85 and the VAT line was wrong. Added `formatMoneyExact` (2dp, built manually so
+  Node/RSC and browser agree) and applied it to the hosted invoice page **and** the invoice PDF
+  (`InvoiceDocument` — also fixes host booking invoice PDFs). The hosted VAT label was hardcoded
+  "VAT (15%)"; now derived from the frozen snapshot rate. **Verified on the rendered PDF + hosted
+  page:** Subtotal R 99,00 / VAT (15%) R 14,85 / Total R 113,85, exact and consistent.
 
 ## 2026-07-22 (pt72) — product-order reconciler: the webhook is no longer a single point of failure.
 
