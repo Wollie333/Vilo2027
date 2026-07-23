@@ -60,6 +60,19 @@ export default async function CompetitionLeaderboardPage({
     notFound();
   }
 
+  // This route is UNAUTHENTICATED. The rows carry each partner's real full name
+  // and referral slug for the portal's own use — neither may reach a public
+  // visitor. Collapse them to the anonymised publicName / empty slug BEFORE they
+  // are handed to any client component (LiveStandings is "use client", so its
+  // props are serialised into the page payload). Matches toPublicRows(), which
+  // the poll endpoint already applies. The visible output is unchanged
+  // (usePublicNames already renders publicName).
+  const publicRows = rows.map((r) => ({
+    ...r,
+    name: r.publicName,
+    slug: "",
+  }));
+
   const brand = await getBrandName();
   const isLive =
     campaign.status === "active" &&
@@ -162,7 +175,7 @@ export default async function CompetitionLeaderboardPage({
                 Updated nightly · last recompute 01:15
               </span>
             </div>
-            <Podium rows={rows} prizes={prizes} usePublicNames />
+            <Podium rows={publicRows} prizes={prizes} usePublicNames />
           </>
         ) : null}
 
@@ -194,7 +207,7 @@ export default async function CompetitionLeaderboardPage({
           </div>
           <LiveStandings
             slug={campaign.slug}
-            initialRows={rows}
+            initialRows={publicRows}
             usePublicNames
           />
         </div>

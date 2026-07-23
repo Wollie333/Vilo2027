@@ -40,6 +40,9 @@ const BASE_CAMPAIGN = {
   max_participants: null,
   // null = the partner landing pages make no pricing claim at all.
   host_offer: null,
+  // null = the public leaderboard uses the plain dark hero (builder always
+  // sends the key, `?? null`), mirroring host_offer above.
+  hero_image_url: null,
   commission_structure: FOUNDING_LADDER,
   competition: { leaderboard_visibility: "public" as const, prizes: [] },
 };
