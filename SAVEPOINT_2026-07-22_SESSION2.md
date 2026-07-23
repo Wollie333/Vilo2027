@@ -134,13 +134,14 @@ compare vs `?site=mana`. `royalAmenityIcon.tsx` `amenityIcon(fact)` is reusable 
   Total + all prices stay ZAR (non-converting money(), never <Money>); one muted "≈ estimate; charged in
   ZAR" line under the Total for non-ZAR display. Verified switcher present on mana checkout.
 
-**STILL OPEN — needs a founder decision:**
-- **Header menu dropdowns (rooms→each room, specials→each special)** — CONFLICTS with the reference the
-  header was just conformed to (reference = "Explore ▾" grouping Experiences/Gallery/Offers + flat Rooms
-  link; NO per-room dropdown). Also needs plumbing: thread the rooms/specials lists into SiteChrome
-  (currently `menu` is built at SiteChrome.tsx:1245 from navigation.items/nav, with no rooms/specials
-  data). Decide: build per-room/per-special dropdowns (diverges from reference) OR keep the reference
-  header. Not implemented pending that call.
+- ✅ **Header menu dropdowns** (`d8c2621`): founder chose to build them (diverges from the reference
+  Explore-group header — their call). The expandAutoRooms/expandAutoSpecials machinery already existed but
+  ran only on `navigation.menu` (empty on wizard sites) and only auto-flagged Specials. Fix in
+  loadSiteContext: seed the menu from the page-derived nav when there's no custom menu + auto-flag Rooms
+  too. Verified live on mana: Rooms → each room, Specials → each special.
+
+**ALL punch-list items are now DONE.** Remaining is optional/verify-only: Experiences live-verify (needs a
+royal site with the page enabled); Gallery already conforms; the reference `_royalref` was removed.
 - **Stats band** (90 / 2 / 24 / 4.9 in the reference; 3 / 4.7 / 3 / 4 in ours) — layout matches; ours is
   live data, fine.
 - Continue DOWN the home page + then each other page (Rooms/RoomDetail/About/Experiences/Gallery/Contact/
