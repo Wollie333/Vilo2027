@@ -329,6 +329,8 @@ export function MarketingManager({
                   <AssetCard
                     key={a.id}
                     asset={a}
+                    icon={meta.icon}
+                    categoryLabel={meta.label}
                     onEdit={() => openEdit(a)}
                     onDelete={() => remove(a)}
                     onToggle={() => toggle(a)}
@@ -733,11 +735,15 @@ function WieloMediaLibrary({
 
 function AssetCard({
   asset,
+  icon: Icon,
+  categoryLabel,
   onEdit,
   onDelete,
   onToggle,
 }: {
   asset: MarketingAsset;
+  icon: LucideIcon;
+  categoryLabel: string;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
@@ -745,39 +751,58 @@ function AssetCard({
   const isImage = (asset.mime_type ?? "").startsWith("image/");
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-[14px] border bg-white shadow-[0_1px_2px_rgba(6,78,59,0.05)] ${
+      className={`group flex flex-col overflow-hidden rounded-[14px] border bg-white shadow-[0_1px_2px_rgba(6,78,59,0.05)] transition hover:border-[#cde6d8] hover:shadow-[0_10px_24px_-16px_rgba(6,78,59,0.25)] ${
         asset.is_active
           ? "border-brand-line"
-          : "border-dashed border-brand-line opacity-70"
+          : "border-dashed border-brand-line"
       }`}
     >
-      {isImage && asset.file_url ? (
-        <div className="flex aspect-[16/9] items-center justify-center overflow-hidden bg-brand-light">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={asset.file_url}
-            alt={asset.title}
-            className="h-full w-full object-contain"
-          />
-        </div>
-      ) : asset.body ? (
-        <p className="line-clamp-4 whitespace-pre-wrap bg-[#FAFCFB] p-3 text-[12px] leading-relaxed text-brand-ink">
-          {asset.body}
-        </p>
-      ) : null}
+      {/* Media zone — always present so every card reads the same height. */}
+      <div className="relative aspect-[16/9] overflow-hidden">
+        {isImage && asset.file_url ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset.file_url}
+              alt={asset.title}
+              className="h-full w-full bg-brand-light object-cover"
+            />
+          </>
+        ) : (
+          <div className="flex h-full w-full flex-col justify-center bg-gradient-to-br from-brand-accent/50 to-brand-light p-3">
+            <Icon className="mb-1 h-4 w-4 shrink-0 text-brand-primary/70" />
+            {asset.body ? (
+              <p className="line-clamp-3 whitespace-pre-wrap text-[11.5px] leading-relaxed text-brand-ink/80">
+                {asset.body}
+              </p>
+            ) : (
+              <span className="text-[11.5px] font-medium text-brand-mute">
+                {categoryLabel}
+              </span>
+            )}
+          </div>
+        )}
+        <span
+          className={`absolute right-2 top-2 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
+            asset.is_active
+              ? "bg-brand-primary/90 text-white"
+              : "bg-brand-ink/70 text-white"
+          }`}
+        >
+          {asset.is_active ? "Live" : "Hidden"}
+        </span>
+      </div>
 
       <div className="flex flex-1 flex-col p-3.5">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-[14px] font-semibold leading-snug text-brand-ink">
-            {asset.title}
-          </h3>
-          {!asset.is_active ? (
-            <span className="tag gray shrink-0">
-              <span className="d" />
-              Hidden
-            </span>
-          ) : null}
+        <div className="flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5 shrink-0 text-brand-primary" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+            {categoryLabel}
+          </span>
         </div>
+        <h3 className="mt-1 font-display text-[14px] font-semibold leading-snug text-brand-ink">
+          {asset.title}
+        </h3>
         {asset.description ? (
           <p className="mt-0.5 line-clamp-2 text-[12px] text-brand-mute">
             {asset.description}
