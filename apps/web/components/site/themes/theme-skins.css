@@ -1343,6 +1343,35 @@
   width: 56px;
 }
 
+/* Royal hover-lift cards (room / offer / journal / value tiles) carry
+   `data-reveal` (staggered reveal), and the base reveal rule sets
+   transition-property to opacity/translate/filter only — which drops each
+   card's OWN transform + box-shadow transition, so the hover LIFT snaps
+   instead of gliding like the reference. Re-declare the transition here (more
+   specific than the base reveal rule): keep the reveal's opacity/translate/
+   filter timing verbatim, and ADD transform + box-shadow at the reference's
+   0.4s hover glide. The reveal animates the independent `translate` (not
+   `transform`), so the reveal-in animation is untouched; reduced-motion still
+   zeroes everything via the @media in site-reveal.css. Cards without
+   data-reveal are unaffected (the attribute selector simply won't match). */
+.wielo-reveal-ready.wielo-royal .room[data-reveal],
+.wielo-reveal-ready.wielo-royal .spcard[data-reveal],
+.wielo-reveal-ready.wielo-royal .rj-card[data-reveal],
+.wielo-reveal-ready.wielo-royal .tile[data-reveal] {
+  transition-property: opacity, translate, filter, transform, box-shadow;
+  transition-duration:
+    var(--reveal-dur, 720ms), var(--reveal-dur, 720ms),
+    var(--reveal-dur, 720ms), 0.4s, 0.4s;
+  transition-timing-function:
+    var(--reveal-ease, cubic-bezier(0.16, 0.7, 0.3, 1)),
+    var(--reveal-ease, cubic-bezier(0.16, 0.7, 0.3, 1)),
+    var(--reveal-ease, cubic-bezier(0.16, 0.7, 0.3, 1)),
+    cubic-bezier(0.2, 0.9, 0.3, 1.1), ease;
+  transition-delay:
+    var(--reveal-delay, 0ms), var(--reveal-delay, 0ms),
+    var(--reveal-delay, 0ms), 0s, 0s;
+}
+
 /* MARMALADE — playful postcards: a springy overshoot settle (the tape/tilt on the
    cards already reads distinct, so the reveal stays a bouncy vertical rise — NOT a
    rotate, which on a full-width container would risk transient horizontal overflow).
