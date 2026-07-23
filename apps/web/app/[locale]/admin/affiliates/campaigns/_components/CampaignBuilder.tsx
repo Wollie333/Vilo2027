@@ -47,10 +47,8 @@ type Prize = {
   monthly_top_net_change?: number;
 };
 
-const LABEL =
-  "text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute";
-const FIELD =
-  "mt-1 w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm outline-none focus:border-brand-primary";
+const LABEL = "flabel";
+const FIELD = "fld";
 
 /** `datetime-local` needs `YYYY-MM-DDTHH:mm` in LOCAL time. */
 function toLocalInput(iso: string | null): string {
@@ -233,15 +231,10 @@ export function CampaignBuilder({
   return (
     <div className="space-y-5">
       {/* ---- Status bar ---- */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card border border-brand-line bg-white p-4 shadow-card">
-        <span
-          className={`inline-flex items-center rounded-pill border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
-            isLive
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-brand-line bg-brand-light text-brand-mute"
-          }`}
-        >
-          {status}
+      <div className="am-card flex flex-wrap items-center gap-3 p-4">
+        <span className={`tag ${isLive ? "green" : "gray"}`}>
+          <span className="d" />
+          <span className="capitalize">{status}</span>
         </span>
         <span className="text-[12.5px] text-brand-mute">
           {isLive
@@ -256,7 +249,7 @@ export function CampaignBuilder({
                 type="button"
                 onClick={() => changeStatus("draft")}
                 disabled={pending}
-                className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-4 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light disabled:opacity-50"
+                className="btn-sec h-9"
               >
                 <Pause className="h-4 w-4" />
                 Pause
@@ -265,7 +258,7 @@ export function CampaignBuilder({
                 type="button"
                 onClick={() => changeStatus("ended")}
                 disabled={pending}
-                className="rounded-pill border border-brand-line px-4 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light disabled:opacity-50"
+                className="btn-sec h-9"
               >
                 End campaign
               </button>
@@ -275,7 +268,7 @@ export function CampaignBuilder({
               type="button"
               onClick={() => changeStatus("active")}
               disabled={pending}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+              className="btn-pri h-9"
             >
               <Play className="h-4 w-4" />
               Launch campaign
@@ -285,7 +278,7 @@ export function CampaignBuilder({
       </div>
 
       {isLive ? (
-        <div className="flex items-start gap-2 rounded-card border border-amber-200 bg-amber-50 p-4 text-[12.5px] text-amber-800">
+        <div className="flex items-start gap-2 rounded-[14px] border border-amber-200 bg-amber-50 p-4 text-[12.5px] text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             This campaign is live. Changing the ladder or prizes changes what
@@ -618,7 +611,7 @@ export function CampaignBuilder({
                 onClick={() =>
                   setBands((b) => [...b, { max: 10_000, rate: 0.1 }])
                 }
-                className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-3 py-1 text-[12px] font-medium text-brand-ink hover:bg-brand-light"
+                className="btn-ghost h-8"
               >
                 <Plus className="h-3.5 w-3.5" /> Add rung
               </button>
@@ -867,7 +860,7 @@ export function CampaignBuilder({
               onClick={() =>
                 setPrizes((p) => [...p, { placing: p.length + 1 }])
               }
-              className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-3 py-1 text-[12px] font-medium text-brand-ink hover:bg-brand-light"
+              className="btn-ghost h-8"
             >
               <Plus className="h-3.5 w-3.5" /> Add prize
             </button>
@@ -881,7 +874,7 @@ export function CampaignBuilder({
             {prizes.map((p, i) => (
               <div
                 key={i}
-                className="flex flex-wrap items-end gap-2 rounded-card border border-brand-line p-3"
+                className="flex flex-wrap items-end gap-2 rounded-[13px] border border-brand-line p-3"
               >
                 <label className="block">
                   <span className="text-[10px] text-brand-mute">Place</span>
@@ -1030,7 +1023,7 @@ export function CampaignBuilder({
           type="button"
           onClick={save}
           disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+          className="btn-pri h-10"
         >
           <Save className="h-4 w-4" />
           {pending ? "Saving…" : "Save campaign"}
@@ -1050,7 +1043,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <section className="am-card p-5">
       <h2 className="font-display text-[15px] font-bold text-brand-ink">
         {title}
       </h2>

@@ -66,7 +66,7 @@ export function CampaignRulesEditor({
   }
 
   return (
-    <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <section className="am-card p-5">
       <h2 className="flex items-center gap-2 font-display text-[15px] font-bold text-brand-ink">
         <FileText className="h-4 w-4 text-brand-primary" />
         Competition rules
@@ -79,23 +79,17 @@ export function CampaignRulesEditor({
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-            Title
-          </span>
+          <span className="flabel">Title</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm outline-none focus:border-brand-primary"
+            className="fld"
           />
         </label>
         <label className="block">
-          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-            Live URL
-          </span>
-          <div className="mt-1 flex items-center gap-1.5">
-            <span className="font-mono text-[12px] text-brand-mute">
-              /legal/
-            </span>
+          <span className="flabel">Live URL</span>
+          <div className="flex items-center gap-1.5">
+            <span className="mono text-[12px] text-brand-mute">/legal/</span>
             <input
               value={slug}
               onChange={(e) =>
@@ -106,16 +100,14 @@ export function CampaignRulesEditor({
                     .replace(/^-+/, ""),
                 )
               }
-              className="w-full rounded-[10px] border border-brand-line px-3 py-2 font-mono text-[13px] outline-none focus:border-brand-primary"
+              className="fld mono text-[13px]"
             />
           </div>
         </label>
       </div>
 
       <div className="mt-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          The rules
-        </span>
+        <span className="flabel">The rules</span>
         <div className="mt-1">
           <RichTextEditor
             value={html}
@@ -130,7 +122,7 @@ export function CampaignRulesEditor({
           type="button"
           onClick={save}
           disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+          className="btn-pri h-9"
         >
           <Save className="h-4 w-4" />
           {pending
