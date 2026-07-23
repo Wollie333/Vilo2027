@@ -48,11 +48,34 @@
 >   'useEffect')` in SiteAnalytics — a stale React-module-cache glitch, NOT the CSS; a `preview_stop`+`start`
 >   clears it.
 >
-> Remaining Royal conform is finer per-section spacing nits (e.g. hero maxWidth 15ch already matches — the
-> px diff was a sandbox `ch` font-metric artifact). Continue next session with the same rig
-> (`cp -r docs/themes/royalhotel apps/web/public/_royalref && cp .../theme.css .../pages/theme.css`; DELETE
-> before commit — removed at session end). Compare computed font-weight/size/spacing/radius, not screenshots
-> (still flaky, 30s timeouts).
+> **THEN a deep computed-style diff of every Home section → three more theme-wide token/colour conform
+> commits (HEAD now `fcb6880`, pushed):**
+> - **`415605c` reference SHAPE + BODY-TYPE tokens** — adopted the reference `theme.css` "rounded" scale
+>   (radius-lg **12px** — room cards were 8px; img 10px; xl/base/sm 16/9/7) + body type (**17px** base / **1.65**
+>   leading, were 16/1.6) + pinned fixed small-label sizes (accent **12px**, sm 14px) so the bigger base doesn't
+>   inflate section eyebrows (were 13.3px). Added to the SAME `.wielo-royal .r*` scope block. **Gotcha:** base
+>   font-size + line-height are applied on an ANCESTOR of the page scope, so overriding the vars alone doesn't
+>   resize inherited body copy — had to re-apply `font-size`/`line-height` as real props on the scope too.
+> - **`3716707` charcoal card shadows** — the royal CSS was PORTED FROM OceansView (headers still say "Oceans
+>   View"; scoped `.rroom`/`.rrooms`) and kept OceansView's navy `rgba(10,34,48,…)` hardcoded on 11 card/frame
+>   shadows → swapped to royal charcoal `rgba(22,19,14,…)`.
+> - **`fcb6880` warm-charcoal hero overlays** — every `.phead`/hero image overlay used the cool navy
+>   `rgba(8,28,40,…)` gradient (blue cast on hero photos) vs the reference's warm `rgba(18,15,10,…)`; conformed
+>   ~18 stops across home/journal/room/rooms/specials. **No non-var OceansView colours remain rendered** in the
+>   royal CSS (checked — the rest are dormant `var(--site-x, #oceansview)` FALLBACKS, overridden by royal tokens).
+> - Verified live (computed styles) on home/rooms/about: card radius 12px, body 17px, hero-sub leading 33.79px,
+>   eyebrow 12px/0.14em, headings 800/-0.035em, buttons 6px — all matching the reference; no overflow, 1 h1/page,
+>   every royal page 200.
+>
+> **Home is now token-for-token matched to the reference.** The theme-wide token block
+> (`.wielo-royal .rhome, .rrooms, …` in theme-skins.css ~line 1034) carries: weight 800, tracking -0.035em,
+> btn-radius 6px, the rounded radius scale, 17px/1.65 body, fixed 12/14px small labels. Remaining conform is
+> per-section spacing nits on the OTHER pages (About/Contact/Journal/Specials/details already share the tokens
+> + verified 200 + no overflow; do a per-section computed diff of each next). Rig:
+> `cp -r docs/themes/royalhotel apps/web/public/_royalref && cp .../theme.css .../pages/theme.css` (DELETE
+> before commit — removed at session end). Compare computed values, NOT screenshots (still flaky, 30s timeouts).
+> Comparison harness that worked: query the SAME ported class names on both (`.hero`,`.section`,`.wrap`,
+> `.sec-head`,`.btn`,`.room`,`.split`,`.mosaic`,`.tag`), live scoped to `.rhome`/`.rXXX`, ref unscoped.
 >
 > **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
 > **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.

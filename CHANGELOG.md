@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-23 — Royal conform: reference shape/type tokens + charcoal shadows.
+
+Pushed the Royal conform toward true pixel-parity with a computed-style diff of
+every Home section against the reference, then fixed the token-level gaps
+(theme-wide, all `.wielo-royal`-scoped). **(1) Shape + body type (`415605c`):**
+adopted the reference `theme.css` "rounded" shape scale (radius-lg 12px — room
+cards were 8px; img 10px; xl/base/sm 16/9/7) and body type (17px base + 1.65
+leading — were 16px/1.6), re-applying font-size/line-height as real properties
+since they're set on an ancestor of the page scope; pinned the fixed small-label
+sizes (accent 12px, sm 14px) so the larger base doesn't inflate the section
+eyebrows (were 13.3px). **(2) Card shadows (`3716707`):** the ported royal CSS
+kept OceansView's navy `rgba(10,34,48,…)` on 11 hardcoded card/frame shadows —
+swapped to charcoal `rgba(22,19,14,…)`. **(3) Hero overlays (`fcb6880`):** every
+hero/image overlay used the cool navy `rgba(8,28,40,…)` gradient vs the reference's
+warm charcoal `rgba(18,15,10,…)` — conformed ~18 stops across home/journal/room/
+rooms/specials. Verified live on home/rooms/about: card radius 12px, body 17px,
+hero-sub leading 33.79px, eyebrow 12px/0.14em, headings 800/-0.035em, buttons 6px
+— all matching the reference; no overflow, one h1/page, every royal page 200. No
+non-var OceansView colours remain rendered (the rest are dormant var() fallbacks).
+
 ## 2026-07-23 — Royal conform: reference display scale + 6px button corners.
 
 Continued the section-by-section Royal conform with two theme-wide typographic
