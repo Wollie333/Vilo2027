@@ -110,11 +110,21 @@ other section heading is `<h2>`/`<h3>`. Verified home = 1 h1. Check each page as
 - **Font is correct** — Royal renders Archivo (heading) + Manrope (body), Google Fonts `<link>` emitted;
   only the sandbox's blocked font network makes local screenshots fall back. Don't "fix" the font.
 
-**REMAINING pages to conform:** Experiences, Gallery, Contact. Apply the amenity-icon helper anywhere a
-Royal section lists facts with a single check. Per page: match section order/layout, keep ONE h1, source
-real host data, verify live. `royalAmenityIcon.tsx` `amenityIcon(fact)` is reusable theme-wide.
-Reference-comparison rig: re-run the `cp … public/_royalref` command (still present locally this session —
-DELETE before any merge), force-reveal, compare vs `?site=mana`.
+- ✅ **Contact** — already matches (photo phead, two-column details+form, FAQ, one h1). No change.
+- ✅ **Experiences** — phead charcoal panel → dark photo hero (`d3c00a7`). ⚠️ NOT verified live: mana has no
+  Experiences page enabled (404s), so this couldn't be rendered against a real site. Verify when a royal
+  site enables the page.
+- ✅ **Gallery** — already conformed (photo phead, grid, matching "It's better in person" CTA). Also not on
+  mana. Only minor ref diff: an optional `section-sm` filter band between phead and grid.
+
+**All mana-enabled pages are conformed + verified.** Reference-comparison rig: re-run
+`cp -r docs/themes/royalhotel apps/web/public/_royalref && cp .../theme.css .../pages/theme.css`
+(⚠️ DELETE `apps/web/public/_royalref` before any merge — it was removed at session end), force-reveal,
+compare vs `?site=mana`. `royalAmenityIcon.tsx` `amenityIcon(fact)` is reusable theme-wide.
+
+**STILL OPEN (earlier punch-list, not the pixel work):** nearby-places Overpass 504 robustness; currency
+switcher on the /book checkout; header menu dropdowns (rooms/specials submenus — diverges from reference,
+confirm); one-step-at-a-time wizard. See sections above.
 - **Stats band** (90 / 2 / 24 / 4.9 in the reference; 3 / 4.7 / 3 / 4 in ours) — layout matches; ours is
   live data, fine.
 - Continue DOWN the home page + then each other page (Rooms/RoomDetail/About/Experiences/Gallery/Contact/
