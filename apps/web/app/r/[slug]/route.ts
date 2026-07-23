@@ -122,6 +122,9 @@ export async function GET(
         landing_path: dest,
         referer: req.headers.get("referer"),
         user_agent: ua || null,
+        // Campaign the link was tagged to (WS-1m), so the campaign funnel can
+        // measure clicks — null when the visit is on the default programme.
+        campaign_id: campaignId,
       })
       .select("id")
       .maybeSingle();

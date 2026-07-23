@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   LayoutDashboard,
   Megaphone,
   ScrollText,
@@ -16,6 +17,7 @@ import { useState } from "react";
 // bits (the builder form, pause buttons, rules editor).
 const TABS: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
+  { key: "metrics", label: "Metrics", icon: BarChart3 },
   { key: "standings", label: "Standings", icon: Trophy },
   { key: "partners", label: "Partners", icon: Users },
   { key: "marketing", label: "Marketing", icon: Megaphone },

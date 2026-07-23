@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   FileText,
   LayoutDashboard,
   Megaphone,
@@ -23,6 +24,11 @@ const TABS: {
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/admin/affiliates/metrics",
+    label: "Metrics",
+    icon: BarChart3,
   },
   {
     href: "/admin/affiliates/campaigns",

@@ -978,6 +978,7 @@ export type Database = {
       affiliate_clicks: {
         Row: {
           affiliate_id: string
+          campaign_id: string | null
           created_at: string
           id: string
           landing_path: string | null
@@ -988,6 +989,7 @@ export type Database = {
         }
         Insert: {
           affiliate_id: string
+          campaign_id?: string | null
           created_at?: string
           id?: string
           landing_path?: string | null
@@ -998,6 +1000,7 @@ export type Database = {
         }
         Update: {
           affiliate_id?: string
+          campaign_id?: string | null
           created_at?: string
           id?: string
           landing_path?: string | null
@@ -1012,6 +1015,13 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_clicks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
             referencedColumns: ["id"]
           },
         ]
@@ -12346,6 +12356,17 @@ export type Database = {
           affiliate_id: string
         }[]
       }
+      campaign_funnel: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          clicks: number
+          hosts: number
+          listed_hosts: number
+          live_listings: number
+          paying_hosts: number
+          referrals: number
+        }[]
+      }
       campaign_ladder_book: {
         Args: { p_affiliate_id: string; p_asof?: string; p_campaign_id: string }
         Returns: number
@@ -12901,6 +12922,18 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       product_units_sold: { Args: { p_product_id: string }; Returns: number }
+      program_affiliate_funnel: {
+        Args: never
+        Returns: {
+          active_partners: number
+          clicks: number
+          hosts: number
+          listed_hosts: number
+          live_listings: number
+          paying_hosts: number
+          referrals: number
+        }[]
+      }
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined

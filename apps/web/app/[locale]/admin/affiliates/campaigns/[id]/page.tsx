@@ -25,8 +25,11 @@ import {
   type LibraryImage,
   type MarketingAsset,
 } from "../../marketing/_components/MarketingManager";
+import { loadCampaignMetrics } from "@/lib/affiliate/metrics";
+
 import { CampaignAdminTabs } from "../_components/CampaignAdminTabs";
 import { CampaignBuilder } from "../_components/CampaignBuilder";
+import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
 import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
 import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
 
@@ -256,6 +259,9 @@ export default async function AdminCampaignPage({
   const competitionText = describeCompetition(
     (campaign.competition ?? null) as Competition | null,
   );
+
+  // Campaign performance metrics (funnel, commissions, scoring trend, partners).
+  const metrics = await loadCampaignMetrics(campaign.id);
 
   // ── OVERVIEW panel ──────────────────────────────────────────────
   const overview = (
@@ -670,6 +676,7 @@ export default async function AdminCampaignPage({
       <CampaignAdminTabs
         panels={{
           overview,
+          metrics: <CampaignMetricsPanel metrics={metrics} />,
           standings: standingsPanel,
           partners: partnersPanel,
           marketing: marketingPanel,

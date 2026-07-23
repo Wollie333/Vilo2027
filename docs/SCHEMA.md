@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-22
+> **Last generated:** 2026-07-23
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,10 +16,10 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **195** (195 with RLS) |
-| Functions | **182** (142 SECURITY DEFINER, 68 trigger fns) |
-| Cron jobs | **41** (15 Vault-gated, 0 inactive) |
-| Vault secrets set | **20** |
+| Tables | **196** (196 with RLS) |
+| Functions | **185** (145 SECURITY DEFINER, 68 trigger fns) |
+| Cron jobs | **42** (16 Vault-gated, 0 inactive) |
+| Vault secrets set | **21** |
 
 ## 🚩 Automated red flags
 
@@ -68,6 +68,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `recalculate-rankings` | `*/15 * * * *` | yes | — |
 | `recompute-affiliate-campaign-rates` | `35 1 * * *` | yes | — |
 | `reconcile-host-card-payments` | `*/5 * * * *` | yes | yes |
+| `reconcile-product-orders` | `*/5 * * * *` | yes | yes |
 | `reconcile-subscriptions` | `20 * * * *` | yes | yes |
 | `renew-subscriptions` | `0 6 * * *` | yes | yes |
 | `restrict-overdue-subscriptions` | `0 * * * *` | yes | — |
@@ -93,6 +94,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `_materialize_booking_party` | **yes** | yes | callable |
 | `_trg_materialize_booking_party` | — | — | trigger |
 | `accrue_affiliate_commission` | **yes** | yes | callable |
+| `admin_set_user_active` | **yes** | yes | callable |
 | `affiliate_tier_bonus` | **yes** | yes | callable |
 | `app_purge_user_account` | **yes** | yes | callable |
 | `apply_booking_vat` | **yes** | yes | trigger |
@@ -108,6 +110,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `calculate_looking_for_match_score` | **yes** | yes | callable |
 | `calculate_policy_refund_amount` | **yes** | yes | callable |
 | `campaign_active_listings` | **yes** | yes | callable |
+| `campaign_funnel` | **yes** | yes | callable |
 | `campaign_ladder_book` | **yes** | yes | callable |
 | `can_send_broadcast` | **yes** | yes | callable |
 | `check_feature_permission` | **yes** | yes | callable |
@@ -214,6 +217,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `on_subscription_change` | **yes** | yes | trigger |
 | `on_subscription_insert` | **yes** | yes | trigger |
 | `product_units_sold` | **yes** | yes | callable |
+| `program_affiliate_funnel` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
 | `recalculate_listing_ranking` | — | — | callable |
 | `recompute_affiliate_campaign_rates` | **yes** | yes | callable |
@@ -364,7 +368,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'feature_request'::text, 'changelog_entry'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'looking_for_post'::text, 'conversation'::text, 'feature_request'::text, 'changelog_entry'::text])))`
 
 **Triggers:**
 - `trg_admin_audit_log_immutable` → `forbid_admin_audit_log_mutation()`
@@ -542,12 +546,15 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `activated_by` | uuid | yes | — |
 | `signup_campaign_id` | uuid | yes | — |
 | `public_phone` | text | yes | — |
+| `verified_at` | timestamp with time zone | yes | — |
+| `verified_by` | uuid | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (activated_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (signup_campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE SET NULL`
 - `FOREIGN KEY (suspended_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
+- `FOREIGN KEY (verified_by) REFERENCES auth.users(id) ON DELETE SET NULL`
 
 **Unique:**
 - `UNIQUE (slug)`
@@ -731,6 +738,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `max_participants` | integer | yes | — |
 | `host_offer` | text | yes | — |
+| `hero_image_url` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -760,9 +768,11 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `referer` | text | yes | — |
 | `user_agent` | text | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
+| `campaign_id` | uuid | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE SET NULL`
 
 **RLS policies:**
 - `affiliate_clicks_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
@@ -3397,8 +3407,10 @@ CASE
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `body` | text | yes | — |
 | `link_url` | text | yes | — |
+| `campaign_id` | uuid | yes | — |
 
 **Foreign keys:**
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **RLS policies:**
@@ -6054,6 +6066,19 @@ UNION
 - `system_insert_profile` (INSERT) — `CHECK (id = auth.uid())`
 - `users_read_own` (SELECT) — `USING (id = auth.uid())`
 - `users_update_own` (UPDATE) — `USING (id = auth.uid()) CHECK ((id = auth.uid()) AND (role = get_my_role()))`
+
+### `webhook_deliveries`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `provider` | text | — | `'paystack'::text` |
+| `event_type` | text | yes | — |
+| `reference` | text | yes | — |
+| `environment` | text | yes | — |
+| `outcome` | text | — | `'received'::text` |
+| `payload` | jsonb | yes | — |
+| `received_at` | timestamp with time zone | — | `now()` |
 
 ### `website_analytics_events`
 

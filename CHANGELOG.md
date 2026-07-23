@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-23 (pt82) — Affiliate metrics + money-path audit + campaign path proven.
+
+Hardened and refined the affiliate program: audited the whole commission money path against the
+live DB, then built the missing metric surfaces and proved the campaign layer end-to-end.
+
+- **Money-path audit (live DB proof)**: read every SQL fn (accrue / clear / clawback / create+settle
+  payout / recompute-rates / snapshot-scores / ladder-book / emit-ledger). All correct + **exact
+  ledger parity** (`platform_ledger` commission sum == cleared/paid accruals + clawbacks, R1198.80).
+  Accrual wired at all charge-completion paths + Paystack renewal; clawback via refund trigger +
+  backstop cron; clearing/scoring/recompute crons active; click log + campaign cookie + binding wired.
+- **Per-campaign Metrics tab** (`CampaignMetricsPanel`): attribution funnel (clicks→referred→hosts→
+  listed→paying), commission position (signed-row balance derivation), per-kind breakdown, a daily
+  live-listing sparkline, and a per-partner table — all scoped to the campaign.
+- **Program-wide analytics page** (`/admin/affiliates/metrics`, new nav tab): programme totals,
+  full funnel, commission ledger position, payouts owed, per-kind, and a per-campaign comparison
+  (incl. the default programme). Commission figures reuse `summariseCommissions`.
+- **Shared read layer**: `lib/affiliate/metrics.ts` (`loadCampaignMetrics` / `loadProgramMetrics`)
+  + `components/affiliate/metrics-ui.tsx` (server-rendered funnel / stat tiles / kind bars / SVG
+  sparkline). Migration `20260723050000` adds `affiliate_clicks.campaign_id` (funnel starts at
+  clicks — the `/r` route now stamps it) + `campaign_funnel` / `program_affiliate_funnel` SECDEF RPCs.
+- **Security**: the two funnel RPCs were still anon-executable (`REVOKE … FROM PUBLIC` is a Supabase
+  no-op — anon/authenticated hold explicit grants). Follow-up `20260723050001` revokes them and
+  grants service_role only. Verified `has_function_privilege('anon', …)` → false.
+- **Campaign money path PROVEN**: `scripts/seed-affiliate-campaign.mjs` drove the real RPCs — 4
+  subscription accruals at the 10% ladder band (book R3996), 3 conversion bonuses (R250), whole-book
+  recompute, scoring snapshot (6 live listings). Both metric surfaces verified LIVE in the admin app
+  with reconciling numbers (campaign R1149.60; programme lifetime R2348.40). Build + lint + tsc green.
+
 ## 2026-07-23 (pt78) — User-facing affiliate program complete (all pages pixel-perfect).
 
 Built out every remaining partner-facing affiliate page to match the approved design
