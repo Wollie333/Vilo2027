@@ -9,7 +9,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const MARKETING_TARGET = "00000000-0000-0000-0000-0000000ad5e7";
 const BUCKET = "marketing-assets";
 
-export const MARKETING_CATEGORIES = [
+// NOT exported: a "use server" module may only export async functions, so a
+// runtime const here would break the whole action module. It's used internally
+// for the zod enum; the exported MarketingCategory type below is erased at build.
+const MARKETING_CATEGORIES = [
   "banner",
   "social",
   "email",
