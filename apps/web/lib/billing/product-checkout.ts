@@ -12,6 +12,10 @@ import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { isFoundingOffersOpen } from "@/lib/billing/recurring";
 import { applyPaidUpgrade } from "@/lib/billing/upgrade-apply";
 import {
+  applyWieloVatToCharge,
+  getWieloBusinessProfile,
+} from "@/lib/billing/wielo-invoice";
+import {
   grantCreditsForOrder,
   grantSubscriptionCredits,
 } from "@/lib/credits/wallet";
@@ -225,7 +229,16 @@ export async function createProductOrder(
     couponId = promo.couponId;
     discount = promo.discount;
   }
-  const amount = subtotal - discount;
+  // VAT-exclusive Wielo pricing: the list price (and setup/discount) are NET, and
+  // the customer is charged that net grossed up by VAT. Only the FINAL charged
+  // amount is grossed — setup_fee_amount and discount_amount stay net on the
+  // order, and the invoice trigger backs the same VAT out of the grossed total so
+  // the two always reconcile. Never grossed for an override (a manual amount or a
+  // prorated upgrade delta is already the exact figure the caller intends).
+  const netAmount = subtotal - discount;
+  const amount = isOverride
+    ? netAmount
+    : applyWieloVatToCharge(netAmount, await getWieloBusinessProfile());
 
   const payToken = token();
   const { error } = await admin.from("product_orders").insert({

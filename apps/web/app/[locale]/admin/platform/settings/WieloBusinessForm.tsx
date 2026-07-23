@@ -33,7 +33,7 @@ const FIELDS: {
   {
     key: "vat_number",
     label: "VAT number",
-    hint: "When set, invoices split out 15% VAT and read “Tax Invoice”.",
+    hint: "When set, invoices split out VAT and read “Tax Invoice”. Leave blank if not VAT-registered — no VAT is then charged or shown.",
     placeholder: "4123456789",
   },
   {
@@ -91,7 +91,10 @@ export function WieloBusinessForm({
   );
 
   function set(key: Field, v: string) {
-    setValues((prev) => ({ ...prev, [key]: v }));
+    // Cast: every text field is a string, and vat_mode only ever receives a
+    // valid WieloVatMode from its <select> below — so the computed-key write is
+    // safe even though vat_mode is narrower than string.
+    setValues((prev) => ({ ...prev, [key]: v }) as WieloBusinessProfile);
   }
 
   const logoPreview = values.logo_path ? logoUrlFor(values.logo_path) : null;
@@ -135,6 +138,8 @@ export function WieloBusinessForm({
           country: values.country.trim().toUpperCase(),
           email: values.email.trim(),
           logo_path: values.logo_path.trim(),
+          vat_mode: values.vat_mode,
+          vat_rate: String(Number(values.vat_rate) || 0),
         });
         toast.success("Wielo business details saved");
         router.refresh();
@@ -236,6 +241,56 @@ export function WieloBusinessForm({
             ) : null}
           </label>
         ))}
+
+        {/* VAT pricing — only bites when a VAT number is set above. */}
+        <div className="rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            VAT pricing
+          </span>
+          {!values.vat_number.trim() ? (
+            <p className="mt-1 text-[11px] text-brand-mute">
+              Not VAT-registered (no VAT number above), so no VAT is charged or
+              shown on invoices. Add a VAT number to enable these.
+            </p>
+          ) : null}
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[11px] font-medium text-brand-ink">
+                Prices are
+              </span>
+              <select
+                value={values.vat_mode}
+                onChange={(e) => set("vat_mode", e.target.value)}
+                disabled={!values.vat_number.trim()}
+                className={`${inputCls} disabled:opacity-50`}
+              >
+                <option value="inclusive">VAT inclusive</option>
+                <option value="exclusive">VAT exclusive (added on top)</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-brand-ink">
+                VAT rate %
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={values.vat_rate}
+                onChange={(e) => set("vat_rate", e.target.value)}
+                disabled={!values.vat_number.trim()}
+                placeholder="15"
+                className={`${inputCls} disabled:opacity-50`}
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-[11px] text-brand-mute">
+            {values.vat_mode === "exclusive"
+              ? `Exclusive: a R100 product bills R${(100 * (1 + (Number(values.vat_rate) || 0) / 100)).toFixed(2)} (VAT added on top).`
+              : `Inclusive: a R100 product bills R100, with VAT shown as ${(100 - 100 / (1 + (Number(values.vat_rate) || 0) / 100)).toFixed(2)} of it.`}
+          </p>
+        </div>
       </div>
 
       <div className="mt-5">

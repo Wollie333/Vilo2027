@@ -16,6 +16,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // snapshot is frozen at issue time by the mint_wielo_invoice trigger; this helper
 // is for the admin form (current values) + rendering historic snapshots.
 
+export type WieloVatMode = "inclusive" | "exclusive";
+
 export type WieloBusinessProfile = {
   legal_name: string;
   vat_number: string;
@@ -27,7 +29,18 @@ export type WieloBusinessProfile = {
   country: string;
   email: string;
   logo_path: string;
+  // How a VAT-registered Wielo prices its products:
+  //   inclusive → the list price already includes VAT (R99 → R86.09 + R12.91).
+  //   exclusive → VAT is added on top (R99 → R99 + R14.85 = R113.85).
+  // Only has an effect when vat_number is set. Kept as strings so they round-trip
+  // through the same jsonb + admin form as every other field.
+  vat_mode: WieloVatMode;
+  vat_rate: string; // percentage, e.g. "15"
 };
+
+// SA standard rate — the default when nothing is configured, and the fallback
+// the invoice trigger uses so a blank never means "0% VAT" for a registered seller.
+export const DEFAULT_WIELO_VAT_RATE = "15";
 
 const EMPTY: WieloBusinessProfile = {
   legal_name: "",
@@ -40,6 +53,8 @@ const EMPTY: WieloBusinessProfile = {
   country: "",
   email: "",
   logo_path: "",
+  vat_mode: "inclusive",
+  vat_rate: DEFAULT_WIELO_VAT_RATE,
 };
 
 // Read the saved Wielo business details (admin form values). Missing keys fall
@@ -65,9 +80,52 @@ export const getWieloBusinessProfile = cache(
     if (!profile.legal_name.trim()) {
       profile.legal_name = await getCompanyLegalName();
     }
+    // Sanitise the two VAT fields — jsonb can hold anything a past write left.
+    profile.vat_mode =
+      profile.vat_mode === "exclusive" ? "exclusive" : "inclusive";
+    const rate = Number(profile.vat_rate);
+    profile.vat_rate =
+      Number.isFinite(rate) && rate >= 0 && rate <= 100
+        ? String(rate)
+        : DEFAULT_WIELO_VAT_RATE;
     return profile;
   },
 );
+
+// Resolve the effective VAT posture from a business profile.
+export function wieloVatConfig(profile: WieloBusinessProfile): {
+  registered: boolean;
+  mode: WieloVatMode;
+  rate: number;
+} {
+  const registered = profile.vat_number.trim().length > 0;
+  const rate = Number(profile.vat_rate) || 0;
+  return {
+    registered,
+    mode: profile.vat_mode === "exclusive" ? "exclusive" : "inclusive",
+    rate,
+  };
+}
+
+/**
+ * Gross a NET list price up to the amount the customer is actually charged.
+ *
+ * The single rule for "exclusive" pricing (mirrors the invoice trigger, which
+ * backs the same VAT out again): only a VAT-registered seller on the exclusive
+ * mode adds VAT on top. Inclusive sellers and non-registered sellers charge the
+ * price exactly as listed, so the returned amount is unchanged and every existing
+ * flow keeps its current behaviour.
+ *
+ * Rounds to 2dp — currency is whole Rand units in this codebase.
+ */
+export function applyWieloVatToCharge(
+  net: number,
+  profile: WieloBusinessProfile,
+): number {
+  const { registered, mode, rate } = wieloVatConfig(profile);
+  if (!registered || mode !== "exclusive" || rate <= 0) return net;
+  return Math.round(net * (1 + rate / 100) * 100) / 100;
+}
 
 // The Wielo platform logo (uploaded in admin → platform settings) shown top-left
 // on every Wielo → user document. Read LIVE from the current profile so a new

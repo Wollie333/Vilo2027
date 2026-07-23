@@ -4,6 +4,10 @@ import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { isPaystackRecurringEnabled } from "@/lib/billing/recurring";
 import { nextPeriod, renewalReference } from "@/lib/billing/renewal-schedule";
+import {
+  applyWieloVatToCharge,
+  getWieloBusinessProfile,
+} from "@/lib/billing/wielo-invoice";
 import { grantSubscriptionCredits } from "@/lib/credits/wallet";
 import {
   countHostListings,
@@ -149,7 +153,7 @@ async function renewOne(
     .maybeSingle();
   if (!product || product.product_type === "product") return "skipped";
   const listingCount = await countHostListings(admin, sub.host_id);
-  const amount = resolveMembershipAmount({
+  const netAmount = resolveMembershipAmount({
     cycle,
     listingCount,
     product,
@@ -159,6 +163,13 @@ async function renewOne(
       locked_per_listing_amount: sub.locked_per_listing_amount,
     },
   });
+  // Match the checkout: a VAT-exclusive Wielo grosses the renewal charge up too,
+  // so a renewal bills the same total as the first payment did (and the invoice
+  // trigger backs the same VAT out again). Inclusive / unregistered → unchanged.
+  const amount = applyWieloVatToCharge(
+    netAmount,
+    await getWieloBusinessProfile(),
+  );
   if (!(amount > 0)) return "skipped"; // free / unpriced → nothing to charge
   // H1.1 — Wielo subscription revenue is ALWAYS ZAR (MODEL-2): the platform
   // Paystack account is ZAR and no Plane-B row may carry a host currency. A

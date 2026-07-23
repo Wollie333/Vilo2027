@@ -246,6 +246,17 @@ const wieloBusinessSchema = z.object({
   country: z.string().trim().max(2),
   email: z.string().trim().max(160),
   logo_path: z.string().trim().max(400),
+  // VAT pricing mode + rate. Only takes effect when vat_number is set; rate is a
+  // percentage 0–100 (SA is 15). Stored as a string to match the jsonb shape.
+  vat_mode: z.enum(["inclusive", "exclusive"]).default("inclusive"),
+  vat_rate: z
+    .string()
+    .trim()
+    .refine((v) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 && n <= 100;
+    }, "VAT rate must be a number between 0 and 100.")
+    .default("15"),
   reason: z.string().optional(),
 });
 
