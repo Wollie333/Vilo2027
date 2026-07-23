@@ -1,5 +1,3 @@
-import { Wallet } from "lucide-react";
-
 import { requirePermission } from "@/lib/admin";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -164,29 +162,16 @@ export default async function AdminPayoutsPage({
   }));
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="flex items-center gap-2 font-display text-2xl font-bold text-brand-ink">
-          <Wallet className="h-6 w-6 text-brand-primary" />
-          Payouts
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          Commission owed and paid, per partner. Filter by campaign to see what
-          a competition has earned its partners.
-        </p>
-      </header>
-
-      <PayoutsManager
-        campaigns={(campaigns ?? []).map((c) => ({
-          id: c.id as string,
-          name: c.name as string,
-          status: c.status as string,
-        }))}
-        selected={selected}
-        totals={totals}
-        partners={partnerRows}
-        payouts={payoutRows}
-      />
-    </div>
+    <PayoutsManager
+      campaigns={(campaigns ?? []).map((c) => ({
+        id: c.id as string,
+        name: c.name as string,
+        status: c.status as string,
+      }))}
+      selected={selected}
+      totals={totals}
+      partners={partnerRows}
+      payouts={payoutRows}
+    />
   );
 }

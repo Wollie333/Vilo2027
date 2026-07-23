@@ -5,22 +5,15 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import {
-  AdminStatBand,
-  type AdminStat,
-} from "@/app/[locale]/admin/_components/AdminStatBand";
-import {
-  AdminTable,
-  type AdminColumn,
-} from "@/app/[locale]/admin/_components/AdminTable";
 import { Link } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
 
 import { settleAffiliatePayoutAction } from "../../actions";
 
-// Payout management. The campaign picker scopes the COMMISSION figures; payout
-// requests are per-partner by design (a payout settles a partner's whole cleared
-// balance), so those are labelled rather than silently filtered.
+// Payout management, styled to the affiliate-manager design system. The campaign
+// picker scopes the COMMISSION figures; payout requests are per-partner by design
+// (a payout settles a partner's whole cleared balance), so those are labelled
+// rather than silently filtered.
 
 type Balance = {
   pending: number;
@@ -56,13 +49,24 @@ type PayoutRow = {
   inSelectedCampaign: boolean;
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  requested: "border-amber-200 bg-amber-50 text-amber-700",
-  approved: "border-sky-200 bg-sky-50 text-sky-700",
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  rejected: "border-rose-200 bg-rose-50 text-rose-600",
-  failed: "border-rose-200 bg-rose-50 text-rose-600",
-};
+function payoutTag(status: string): { cls: string; label: string } {
+  switch (status) {
+    case "paid":
+      return { cls: "green", label: "Paid" };
+    case "approved":
+      return { cls: "sky", label: "Approved" };
+    case "processing":
+      return { cls: "indigo", label: "Processing" };
+    case "rejected":
+      return { cls: "red", label: "Rejected" };
+    case "failed":
+      return { cls: "red", label: "Failed" };
+    case "cancelled":
+      return { cls: "gray", label: "Cancelled" };
+    default:
+      return { cls: "amber", label: "Requested" };
+  }
+}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -125,146 +129,19 @@ export function PayoutsManager({
     });
   }
 
-  const stats: AdminStat[] = [
-    {
-      label: "Payable now",
-      value: formatMoney(totals.available, totals.currency),
-      sub: "cleared, not yet in a payout",
-      tone: totals.available > 0 ? "primary" : "default",
-    },
-    {
-      label: "On hold",
-      value: formatMoney(totals.pending, totals.currency),
-      sub: "inside the refund window",
-    },
-    {
-      label: "In flight",
-      value: formatMoney(totals.inPayout, totals.currency),
-      sub: "attached to an open payout",
-    },
-    {
-      label: "Paid to date",
-      value: formatMoney(totals.paid, totals.currency),
-    },
-    {
-      label: "Lifetime earned",
-      value: formatMoney(totals.lifetime, totals.currency),
-      sub: "net of clawbacks",
-    },
-  ];
-
-  const partnerColumns: AdminColumn<PartnerRow>[] = [
-    {
-      header: "Partner",
-      cell: (r) => (
-        <div className="min-w-0">
-          <Link
-            href={`/admin/affiliates/${r.id}`}
-            className="truncate font-medium text-brand-ink hover:text-brand-primary hover:underline"
-          >
-            {r.name}
-          </Link>
-          <div className="truncate font-mono text-[11px] text-brand-mute">
-            /r/{r.slug}
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Entries",
-      align: "right",
-      cell: (r) => <span className="num text-brand-mute">{r.entries}</span>,
-    },
-    {
-      header: "On hold",
-      align: "right",
-      cell: (r) => (
-        <span className="num text-brand-mute">
-          {formatMoney(r.pending, r.currency)}
-        </span>
-      ),
-    },
-    {
-      header: "Payable now",
-      align: "right",
-      cell: (r) => (
-        <span
-          className={`num font-semibold ${r.available > 0 ? "text-brand-primary" : "text-brand-mute"}`}
-        >
-          {formatMoney(r.available, r.currency)}
-        </span>
-      ),
-    },
-    {
-      header: "Paid",
-      align: "right",
-      cell: (r) => (
-        <span className="num text-brand-ink">
-          {formatMoney(r.paid, r.currency)}
-        </span>
-      ),
-    },
-  ];
-
-  const historyColumns: AdminColumn<PayoutRow>[] = [
-    { header: "Partner", cell: (p) => <span>{p.name}</span> },
-    {
-      header: "Requested",
-      cell: (p) => (
-        <span className="text-brand-mute">{fmtDate(p.requestedAt)}</span>
-      ),
-    },
-    {
-      header: "Method",
-      cell: (p) => <span className="capitalize">{p.method}</span>,
-    },
-    {
-      header: "Net",
-      align: "right",
-      cell: (p) => (
-        <span className="num font-medium">
-          {formatMoney(p.net, p.currency)}
-        </span>
-      ),
-    },
-    {
-      header: "Status",
-      cell: (p) => (
-        <span
-          className={`inline-flex items-center rounded-pill border px-2 py-0.5 text-[10px] font-semibold capitalize ${
-            STATUS_STYLE[p.status] ??
-            "border-brand-line bg-brand-light text-brand-mute"
-          }`}
-        >
-          {p.status}
-        </span>
-      ),
-    },
-    {
-      header: "Reference",
-      cell: (p) => (
-        <span className="font-mono text-[11px] text-brand-mute">
-          {p.reference ?? p.failureReason ?? "—"}
-        </span>
-      ),
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Campaign filter */}
+      {/* CAMPAIGN FILTER */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          Campaign
-        </span>
-        <Chip
+        <span className="smallcaps mr-1">Campaign</span>
+        <FilterChip
           href="/admin/affiliates/payouts?campaign=all"
           active={selected === "all"}
         >
           All commission
-        </Chip>
+        </FilterChip>
         {campaigns.map((c) => (
-          <Chip
+          <FilterChip
             key={c.id}
             href={`/admin/affiliates/payouts?campaign=${c.id}`}
             active={selected === c.id}
@@ -273,29 +150,61 @@ export function PayoutsManager({
             {c.status !== "active" ? (
               <span className="ml-1 text-[10px] opacity-70">({c.status})</span>
             ) : null}
-          </Chip>
+          </FilterChip>
         ))}
-        <Chip
+        <FilterChip
           href="/admin/affiliates/payouts?campaign=none"
           active={selected === "none"}
         >
           Outside any campaign
-        </Chip>
+        </FilterChip>
       </div>
 
-      <AdminStatBand stats={stats} cols={5} />
+      {/* BALANCE BAND */}
+      <section className="fade grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line md:grid-cols-5">
+        <div className="bg-brand-secondary p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+            Payable now
+          </div>
+          <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-white">
+            {formatMoney(totals.available, totals.currency)}
+          </div>
+          <div className="mt-1 text-[11px] text-brand-accent">
+            Cleared, not yet in a payout
+          </div>
+        </div>
+        <BandCell
+          label="On hold"
+          value={formatMoney(totals.pending, totals.currency)}
+          sub="Inside the refund window"
+        />
+        <BandCell
+          label="In flight"
+          value={formatMoney(totals.inPayout, totals.currency)}
+          sub="Attached to an open payout"
+        />
+        <BandCell
+          label="Paid to date"
+          value={formatMoney(totals.paid, totals.currency)}
+          sub="Settled to partners"
+        />
+        <BandCell
+          label="Lifetime earned"
+          value={formatMoney(totals.lifetime, totals.currency)}
+          sub="Net of clawbacks"
+        />
+      </section>
 
-      {/* Open payout requests */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      {/* OPEN PAYOUT REQUESTS */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="font-display text-lg font-semibold text-brand-ink">
+            <h2 className="font-display text-[17px] font-bold text-brand-ink">
               Payout requests to action
             </h2>
-            <p className="text-[12.5px] text-brand-mute">
+            <p className="mt-0.5 text-[12.5px] text-brand-mute">
               A payout settles a partner&apos;s whole cleared balance, not one
-              campaign&apos;s share — the amounts below may include commission
-              earned outside the campaign you picked.
+              campaign&apos;s share.
             </p>
           </div>
           {scoped ? (
@@ -312,27 +221,27 @@ export function PayoutsManager({
         </div>
 
         {openPayouts.length === 0 ? (
-          <div className="rounded-card border border-brand-line bg-white p-8 text-center text-[13px] text-brand-mute shadow-card">
+          <div className="am-card px-5 py-8 text-center text-[13px] text-brand-mute">
             No payouts awaiting action.
           </div>
         ) : (
-          <div className="space-y-3">
-            {openPayouts.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-card border border-brand-line bg-white p-4 shadow-card"
-              >
+          openPayouts.map((p) => {
+            const tag = payoutTag(p.status);
+            return (
+              <div key={p.id} className="am-card fade p-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-medium text-brand-ink">{p.name}</span>
-                  <span
-                    className={`inline-flex items-center rounded-pill border px-2 py-0.5 text-[10px] font-semibold capitalize ${
-                      STATUS_STYLE[p.status] ?? ""
-                    }`}
-                  >
-                    {p.status}
+                  <span className="text-[14px] font-semibold text-brand-ink">
+                    {p.name}
                   </span>
-                  <span className="text-[12.5px] capitalize text-brand-mute">
-                    {p.method} · requested {fmtDate(p.requestedAt)}
+                  <span className={`tag ${tag.cls}`}>
+                    <span className="d" />
+                    {tag.label}
+                  </span>
+                  <span className="text-[12.5px] uppercase text-brand-mute">
+                    {p.method}
+                  </span>
+                  <span className="text-[12.5px] text-brand-mute">
+                    requested {fmtDate(p.requestedAt)}
                   </span>
                   <span className="ml-auto text-right">
                     <span className="num font-display text-[18px] font-bold text-brand-ink">
@@ -355,14 +264,14 @@ export function PayoutsManager({
                       }))
                     }
                     placeholder="Bank / PayPal reference"
-                    className="w-56 rounded-[10px] border border-brand-line px-3 py-1.5 text-[13px] outline-none focus:border-brand-primary"
+                    className="fld h-9 w-56"
                   />
                   {p.status === "requested" ? (
                     <button
                       type="button"
                       onClick={() => settle(p.id, "approve")}
                       disabled={pending}
-                      className="rounded-pill border border-brand-line px-4 py-1.5 text-[13px] font-medium text-brand-ink hover:bg-brand-light disabled:opacity-50"
+                      className="btn-sec h-9"
                     >
                       Approve
                     </button>
@@ -371,7 +280,7 @@ export function PayoutsManager({
                     type="button"
                     onClick={() => settle(p.id, "paid")}
                     disabled={pending}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+                    className="btn-pri h-9"
                   >
                     <Check className="h-4 w-4" />
                     Mark paid
@@ -380,7 +289,7 @@ export function PayoutsManager({
                     type="button"
                     onClick={() => settle(p.id, "reject")}
                     disabled={pending}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-4 py-1.5 text-[13px] font-medium text-status-cancelled hover:bg-brand-light disabled:opacity-50"
+                    className="btn-danger h-9"
                   >
                     <X className="h-4 w-4" />
                     Reject
@@ -394,47 +303,156 @@ export function PayoutsManager({
                   </Link>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })
         )}
       </section>
 
-      {/* Per-partner commission in the selected scope */}
-      <section>
-        <h2 className="mb-1 font-display text-lg font-semibold text-brand-ink">
-          Commission by partner
-        </h2>
-        <p className="mb-3 text-[12.5px] text-brand-mute">
-          {selected === "all"
-            ? "Every commission entry on the platform."
-            : selected === "none"
-              ? "Commission earned outside any campaign."
-              : "Commission earned in this campaign only."}
-        </p>
-        <AdminTable
-          columns={partnerColumns}
-          rows={partners}
-          getKey={(r) => r.id}
-          empty="No commission recorded for this selection yet."
-        />
+      {/* COMMISSION BY PARTNER */}
+      <section className="am-card overflow-hidden">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Commission by partner</div>
+          <p className="mt-0.5 text-[11.5px] text-brand-mute">
+            {selected === "all"
+              ? "Every commission entry on the platform."
+              : selected === "none"
+                ? "Commission earned outside any campaign."
+                : "Commission earned in this campaign only."}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th className="r">Entries</th>
+                <th className="r">On hold</th>
+                <th className="r">Payable now</th>
+                <th className="r">Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partners.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-brand-mute">
+                    No commission recorded for this selection yet.
+                  </td>
+                </tr>
+              ) : (
+                partners.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <Link
+                        href={`/admin/affiliates/${r.id}`}
+                        className="min-w-0"
+                      >
+                        <span className="block truncate text-[13.5px] font-semibold text-brand-ink hover:text-brand-primary">
+                          {r.name}
+                        </span>
+                        <span className="mono block truncate text-[11px] text-brand-mute">
+                          /r/{r.slug}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="num r text-brand-mute">{r.entries}</td>
+                    <td className="num r text-brand-mute">
+                      {formatMoney(r.pending, r.currency)}
+                    </td>
+                    <td
+                      className={`num r font-semibold ${r.available > 0 ? "text-brand-primary" : "text-brand-mute"}`}
+                    >
+                      {formatMoney(r.available, r.currency)}
+                    </td>
+                    <td className="num r text-brand-ink">
+                      {formatMoney(r.paid, r.currency)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section>
-        <h2 className="mb-3 font-display text-lg font-semibold text-brand-ink">
-          Payout history
-        </h2>
-        <AdminTable
-          columns={historyColumns}
-          rows={historyPayouts}
-          getKey={(p) => p.id}
-          empty="No settled payouts yet."
-        />
+      {/* PAYOUT HISTORY */}
+      <section className="am-card overflow-hidden">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Payout history</div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ttable">
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th>Requested</th>
+                <th>Method</th>
+                <th className="r">Net</th>
+                <th>Status</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyPayouts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-brand-mute">
+                    No settled payouts yet.
+                  </td>
+                </tr>
+              ) : (
+                historyPayouts.map((p) => {
+                  const tag = payoutTag(p.status);
+                  return (
+                    <tr key={p.id}>
+                      <td className="font-semibold text-brand-ink">{p.name}</td>
+                      <td className="num text-brand-mute">
+                        {fmtDate(p.requestedAt)}
+                      </td>
+                      <td className="uppercase text-brand-mute">{p.method}</td>
+                      <td className="num r font-medium">
+                        {formatMoney(p.net, p.currency)}
+                      </td>
+                      <td>
+                        <span className={`tag ${tag.cls}`}>
+                          <span className="d" />
+                          {tag.label}
+                        </span>
+                      </td>
+                      <td className="mono text-[11px] text-brand-mute">
+                        {p.reference ?? p.failureReason ?? "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
 }
 
-function Chip({
+function BandCell({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="smallcaps">{label}</div>
+      <div className="num mt-1.5 font-display text-[18px] font-bold leading-none text-brand-ink">
+        {value}
+      </div>
+      <div className="mt-1 text-[11px] text-brand-mute">{sub}</div>
+    </div>
+  );
+}
+
+function FilterChip({
   href,
   active,
   children,
@@ -448,8 +466,8 @@ function Chip({
       href={href}
       className={
         active
-          ? "rounded-pill bg-brand-primary px-3 py-1.5 text-[12.5px] font-semibold text-white"
-          : "rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-mute hover:border-brand-primary/40"
+          ? "rounded-pill bg-brand-secondary px-3 py-1.5 text-[12.5px] font-semibold text-white"
+          : "rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-mute hover:border-brand-primary/40 hover:text-brand-ink"
       }
     >
       {children}
