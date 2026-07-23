@@ -173,7 +173,7 @@
 /* -- page head: dark image hero (keeps the transparent header legible) --- */
 .rspecials .phead {
   position: relative;
-  min-height: clamp(380px, 52vh, 520px);
+  min-height: clamp(380px, 50vh, 500px);
   display: flex;
   align-items: flex-end;
   overflow: hidden;

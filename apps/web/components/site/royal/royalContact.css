@@ -176,7 +176,7 @@
 /* -- page head — centred, champagne-ruled -------------------------------- */
 .rcontact .phead {
   position: relative;
-  min-height: clamp(420px, 56vh, 540px);
+  min-height: clamp(360px, 46vh, 460px);
   display: flex;
   align-items: flex-end;
   overflow: hidden;

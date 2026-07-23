@@ -148,7 +148,7 @@
 /* -- page head — centred, champagne-ruled -------------------------------- */
 .rgallery .phead {
   position: relative;
-  min-height: clamp(420px, 56vh, 540px);
+  min-height: clamp(380px, 50vh, 500px);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
