@@ -180,9 +180,9 @@ export default async function CompetitionLeaderboardPage({
               The {campaign.name} has ended — congratulations to our champions.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              {publishedWinners.map((w) => (
+              {publishedWinners.map((w, i) => (
                 <div
-                  key={w.affiliateId}
+                  key={`${w.affiliateId}-${w.label}-${i}`}
                   className="rounded-2xl border bg-white p-4"
                   style={{ borderColor: LINE }}
                 >
@@ -193,9 +193,12 @@ export default async function CompetitionLeaderboardPage({
                         ? "🥈"
                         : w.placing === 3
                           ? "🥉"
-                          : `#${w.placing}`}
+                          : "🏅"}
                   </div>
-                  <div className="mt-2 font-display text-[16px] font-bold text-brand-ink">
+                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+                    {w.label}
+                  </div>
+                  <div className="mt-1 font-display text-[16px] font-bold text-brand-ink">
                     {w.publicName}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-[12px]">

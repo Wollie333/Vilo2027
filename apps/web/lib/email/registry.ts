@@ -6,6 +6,7 @@ import {
   AffiliateCommissionEarned,
   AffiliatePayoutPaid,
   CampaignPauseChanged,
+  CampaignWon,
   BookingCancelledGuest,
   BroadcastCritical,
   NotificationDigest,
@@ -75,6 +76,13 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
       p.paused === "true"
         ? `You've been paused in ${str(p.campaignName, "the competition")}`
         : `You're back in ${str(p.campaignName, "the competition")}`,
+  },
+
+  affiliate_campaign_won: {
+    Template: CampaignWon as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `🏆 You won a prize in ${str(p.campaignName, "the competition")}`,
   },
 
   welcome_host: {

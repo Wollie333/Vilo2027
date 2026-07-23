@@ -1187,6 +1187,27 @@ export const NOTIFICATION_REGISTRY = {
       link: "/portal/affiliates/competitions",
     }),
   } satisfies EventBuilder<AffiliateRefs>,
+
+  affiliate_campaign_won: {
+    category: "payments_refunds",
+    feature: "subscription",
+    severity: "high",
+    emailTemplate: "affiliate_campaign_won",
+    push: (r) => ({
+      title: "You won a competition prize 🏆",
+      body: clip(
+        `${r.campaignName ?? "The competition"} results are in — ${r.detail ?? "you placed"}.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: `You won — ${r.campaignName ?? "competition"} 🏆`,
+      body: r.detail ?? "The final results are in and you're a winner.",
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
 } as const;
 
 export type EventKind = keyof typeof NOTIFICATION_REGISTRY;

@@ -16,7 +16,7 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **196** (196 with RLS) |
+| Tables | **197** (197 with RLS) |
 | Functions | **187** (147 SECURITY DEFINER, 68 trigger fns) |
 | Cron jobs | **43** (16 Vault-gated, 0 inactive) |
 | Vault secrets set | **21** |
@@ -920,6 +920,41 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **RLS policies:**
 - `affiliate_payouts_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
+   FROM affiliate_accounts
+  WHERE (affiliate_accounts.user_id = auth.uid())))`
+
+### `affiliate_prize_awards`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `campaign_id` | uuid | — | — |
+| `affiliate_id` | uuid | — | — |
+| `label` | text | — | — |
+| `amount` | numeric | — | — |
+| `currency` | text | — | `'ZAR'::text` |
+| `status` | text | — | `'owed'::text` |
+| `awarded_at` | timestamp with time zone | — | `now()` |
+| `awarded_by` | uuid | yes | — |
+| `paid_at` | timestamp with time zone | yes | — |
+| `paid_by` | uuid | yes | — |
+| `reference` | text | yes | — |
+
+**Foreign keys:**
+- `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (awarded_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+- `FOREIGN KEY (campaign_id) REFERENCES affiliate_campaigns(id) ON DELETE CASCADE`
+- `FOREIGN KEY (paid_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (campaign_id, affiliate_id, label)`
+
+**Checks:**
+- `CHECK ((amount > (0)::numeric))`
+- `CHECK ((status = ANY (ARRAY['owed'::text, 'paid'::text, 'void'::text])))`
+
+**RLS policies:**
+- `affiliate_prize_awards_own_read` (SELECT) — `USING (affiliate_id IN ( SELECT affiliate_accounts.id
    FROM affiliate_accounts
   WHERE (affiliate_accounts.user_id = auth.uid())))`
 

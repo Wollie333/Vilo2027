@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Flag,
   Pause,
   Play,
   Plus,
@@ -69,6 +70,7 @@ export function CampaignBuilder({
   legalDocs,
   enrolledActive,
   libraryImages,
+  resultsPublished = false,
 }: {
   campaignId: string;
   initial: CampaignInput;
@@ -77,6 +79,8 @@ export function CampaignBuilder({
   enrolledActive: number;
   /** Wielo media-library images the hero image can be assigned from. */
   libraryImages: { path: string; url: string }[];
+  /** True once the final results are published — reopening is then withheld. */
+  resultsPublished?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -252,7 +256,7 @@ export function CampaignBuilder({
           <FieldHelp help={CAMPAIGN_HELP.status} />
         </span>
         <div className="ml-auto flex gap-2">
-          {isLive ? (
+          {status === "active" ? (
             <>
               <button
                 type="button"
@@ -272,7 +276,7 @@ export function CampaignBuilder({
                 End campaign
               </button>
             </>
-          ) : (
+          ) : status === "draft" ? (
             <button
               type="button"
               onClick={() => changeStatus("active")}
@@ -281,6 +285,39 @@ export function CampaignBuilder({
             >
               <Play className="h-4 w-4" />
               Launch campaign
+            </button>
+          ) : status === "ended" ? (
+            <>
+              {/* A published final is a public record — reopening it is withheld. */}
+              {!resultsPublished ? (
+                <button
+                  type="button"
+                  onClick={() => changeStatus("active")}
+                  disabled={pending}
+                  className="btn-sec h-9"
+                >
+                  <Play className="h-4 w-4" />
+                  Reopen
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => changeStatus("archived")}
+                disabled={pending}
+                className="btn-sec h-9"
+              >
+                Archive
+              </button>
+            </>
+          ) : (
+            // archived
+            <button
+              type="button"
+              onClick={() => changeStatus("draft")}
+              disabled={pending}
+              className="btn-sec h-9"
+            >
+              Restore to draft
             </button>
           )}
         </div>
@@ -293,6 +330,18 @@ export function CampaignBuilder({
             This campaign is live. Changing the ladder or prizes changes what
             enrolled partners earn from now on — every edit is recorded in the
             audit log.
+          </span>
+        </div>
+      ) : null}
+
+      {status === "ended" ? (
+        <div className="flex items-start gap-2 rounded-[14px] border border-brand-line bg-brand-light p-4 text-[12.5px] text-brand-mute">
+          <Flag className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+          <span>
+            This campaign has ended.{" "}
+            {resultsPublished
+              ? "The final results are published on the public leaderboard."
+              : "Review and publish the winners on the Results tab — nothing is public until you do."}
           </span>
         </div>
       ) : null}

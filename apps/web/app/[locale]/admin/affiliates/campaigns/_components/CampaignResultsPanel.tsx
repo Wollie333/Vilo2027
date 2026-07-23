@@ -6,12 +6,13 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/ui/modal";
-import type { CampaignWinner } from "@/lib/affiliate/finalize";
+import type { CampaignWinner, PrizeAward } from "@/lib/affiliate/finalize";
 
 import {
   closeCampaignNowAction,
   publishCampaignResultsAction,
   recomputeCampaignResultsAction,
+  settleCampaignPrizeAction,
 } from "../actions";
 
 // The campaign "Results" tab. Drives the finalization flow:
@@ -45,6 +46,7 @@ export function CampaignResultsPanel({
   computedAt,
   publishedAt,
   winners,
+  prizes,
 }: {
   campaignId: string;
   campaignSlug: string;
@@ -53,6 +55,7 @@ export function CampaignResultsPanel({
   computedAt: string | null;
   publishedAt: string | null;
   winners: CampaignWinner[];
+  prizes: PrizeAward[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -94,18 +97,23 @@ export function CampaignResultsPanel({
         <table className="ttable">
           <thead>
             <tr>
-              <th>Place</th>
+              <th>Prize</th>
               <th>Partner</th>
-              <th className="r">Final score</th>
+              <th className="r">Score</th>
               <th className="r">Cash prize</th>
               <th className="r">Rate floor</th>
             </tr>
           </thead>
           <tbody>
-            {winners.map((w) => (
-              <tr key={w.affiliateId}>
-                <td className="whitespace-nowrap text-[15px]">
-                  {MEDAL[w.placing] ?? `#${w.placing}`}
+            {winners.map((w, i) => (
+              <tr key={`${w.affiliateId}-${w.label}-${i}`}>
+                <td className="whitespace-nowrap">
+                  <span className="mr-1.5 text-[15px]">
+                    {w.placing ? (MEDAL[w.placing] ?? `#${w.placing}`) : "🏅"}
+                  </span>
+                  <span className="text-[12.5px] font-medium text-brand-ink">
+                    {w.label}
+                  </span>
                 </td>
                 <td>
                   <div className="min-w-0">
@@ -118,7 +126,7 @@ export function CampaignResultsPanel({
                   </div>
                 </td>
                 <td className="num r font-semibold text-brand-ink">
-                  {w.score}
+                  {w.score ?? "—"}
                 </td>
                 <td className="num r text-brand-ink">
                   {w.cash > 0 ? fmtR(w.cash) : "—"}
@@ -217,9 +225,9 @@ export function CampaignResultsPanel({
                 Cash prizes total{" "}
                 <span className="num font-semibold text-brand-ink">
                   {fmtR(totalCash)}
-                </span>{" "}
-                — paid out-of-band. Rate floors are applied automatically on
-                publish.
+                </span>
+                . On publish they become payables to settle below, and rate
+                floors are applied automatically.
               </>
             ) : (
               "Rate floors are applied automatically on publish."
@@ -227,6 +235,97 @@ export function CampaignResultsPanel({
           </div>
         ) : null}
       </section>
+
+      {/* Cash prizes to settle — only exist once published. */}
+      {prizes.length > 0 ? (
+        <section className="am-card overflow-hidden">
+          <div className="border-b border-brand-line px-5 py-3.5">
+            <div className="smallcaps">Cash prizes</div>
+            <p className="mt-0.5 text-[11.5px] text-brand-mute">
+              Recorded automatically on publish. Pay the partner, then mark it
+              settled here — the money transfer itself stays your call.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="ttable">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Prize</th>
+                  <th className="r">Amount</th>
+                  <th>Status</th>
+                  <th className="r" />
+                </tr>
+              </thead>
+              <tbody>
+                {prizes.map((p) => (
+                  <tr key={p.id}>
+                    <td className="font-semibold text-brand-ink">{p.name}</td>
+                    <td className="text-brand-mute">{p.label}</td>
+                    <td className="num r font-semibold text-brand-ink">
+                      {fmtR(p.amount)}
+                    </td>
+                    <td>
+                      <span
+                        className={`tag ${p.status === "paid" ? "green" : p.status === "void" ? "gray" : "amber"}`}
+                      >
+                        <span className="d" />
+                        <span className="capitalize">{p.status}</span>
+                      </span>
+                    </td>
+                    <td className="r">
+                      {p.status === "owed" ? (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  settleCampaignPrizeAction({
+                                    campaignId,
+                                    prizeId: p.id,
+                                    action: "paid",
+                                  }),
+                                `${p.name}'s prize marked paid.`,
+                              )
+                            }
+                            className="btn-pri h-8 px-3 text-[12px] disabled:opacity-50"
+                          >
+                            Mark paid
+                          </button>
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  settleCampaignPrizeAction({
+                                    campaignId,
+                                    prizeId: p.id,
+                                    action: "void",
+                                  }),
+                                "Prize voided.",
+                              )
+                            }
+                            className="inline-flex h-8 items-center rounded-md border border-brand-line px-3 text-[12px] font-semibold text-brand-ink hover:bg-brand-light disabled:opacity-50"
+                          >
+                            Void
+                          </button>
+                        </div>
+                      ) : p.reference ? (
+                        <span className="mono text-[11px] text-brand-mute">
+                          {p.reference}
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       {/* Close-early confirm */}
       <Modal

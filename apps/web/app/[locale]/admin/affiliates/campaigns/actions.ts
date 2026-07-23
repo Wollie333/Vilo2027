@@ -9,7 +9,8 @@ import {
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
 import { findFreeSlug } from "@/lib/affiliate/account";
-import { ordinal } from "@/lib/affiliate/finalize";
+import { winnerLabel, type RawWinner } from "@/lib/affiliate/finalize";
+import { notifyCampaignWinners } from "@/lib/affiliate/notify";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 // WS-1i — the campaign builder's writes. Campaign config drives REAL commission
@@ -329,9 +330,38 @@ export const setCampaignStatusAction = withAdminAudit<
       }
     }
 
+    // Ending a campaign here must behave exactly like the Results-tab "Close
+    // now" and the finalize-ended-campaigns cron: compute the winners for review
+    // (admin-only) so the Results tab is never left blank. Only when it wasn't
+    // already an ended-and-published record — a published final is immutable.
+    const patch: {
+      status: string;
+      updated_at: string;
+      results?: unknown;
+      results_computed_at?: string;
+    } = { status: args.status, updated_at: new Date().toISOString() };
+
+    if (args.status === "ended") {
+      const { data: cur } = await service
+        .from("affiliate_campaigns")
+        .select("results_published_at")
+        .eq("id", args.campaignId)
+        .maybeSingle();
+      if (!cur?.results_published_at) {
+        const { data: results } = await service.rpc(
+          "compute_campaign_results",
+          {
+            p_campaign_id: args.campaignId,
+          },
+        );
+        patch.results = results ?? [];
+        patch.results_computed_at = new Date().toISOString();
+      }
+    }
+
     const { data, error } = await service
       .from("affiliate_campaigns")
-      .update({ status: args.status, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq("id", args.campaignId)
       .select("slug")
       .single();
@@ -735,14 +765,13 @@ export const publishCampaignResultsAction = withAdminAudit<
       return { result: { ok: false, error: "Results are already published." } };
     }
 
-    const winners = (Array.isArray(camp.results) ? camp.results : []) as {
-      placing: number;
-      affiliate_id: string;
-      floor: number;
-    }[];
-
-    // Award every placing FLOOR prize (> 0) — permanent, keyed per partner.
+    const winners = (
+      Array.isArray(camp.results) ? camp.results : []
+    ) as RawWinner[];
     const now = new Date().toISOString();
+
+    // 1. Award every FLOOR prize (> 0; only placing prizes carry one) — permanent,
+    //    one per partner per campaign, labelled by how it was won.
     for (const w of winners) {
       if (Number(w.floor) > 0) {
         await service.from("affiliate_campaign_floors").upsert(
@@ -750,7 +779,7 @@ export const publishCampaignResultsAction = withAdminAudit<
             campaign_id: args.campaignId,
             affiliate_id: w.affiliate_id,
             floor_rate: Number(w.floor),
-            won_via: `${ordinal(w.placing)} place — ${camp.name}`,
+            won_via: `${winnerLabel(w)} — ${camp.name}`,
             awarded_by: admin.userId,
             awarded_at: now,
           },
@@ -761,11 +790,39 @@ export const publishCampaignResultsAction = withAdminAudit<
     // Let any not-yet-cleared commissions pick up the freshly-awarded floors.
     await service.rpc("recompute_affiliate_campaign_rates");
 
+    // 2. Record every CASH prize as an 'owed' payable for admin settlement. A
+    //    partner can win several (placing + monthly + milestone) — distinct
+    //    labels keep them apart; upsert makes a re-publish a no-op.
+    const prizeRows = winners
+      .filter((w) => Number(w.cash) > 0)
+      .map((w) => ({
+        campaign_id: args.campaignId,
+        affiliate_id: w.affiliate_id,
+        label: `${winnerLabel(w)} — ${camp.name}`,
+        amount: Number(w.cash),
+        currency: "ZAR",
+        status: "owed",
+        awarded_by: admin.userId,
+        awarded_at: now,
+      }));
+    if (prizeRows.length) {
+      await service
+        .from("affiliate_prize_awards")
+        .upsert(prizeRows, { onConflict: "campaign_id,affiliate_id,label" });
+    }
+
+    // 3. Publish.
     const { error } = await service
       .from("affiliate_campaigns")
       .update({ results_published_at: now })
       .eq("id", args.campaignId);
     if (error) return { result: { ok: false, error: error.message } };
+
+    // 4. Tell the winners (best-effort — never blocks the publish).
+    await notifyCampaignWinners(service, {
+      campaignId: args.campaignId,
+      campaignName: camp.name,
+    });
 
     revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
     if (camp.slug) revalidatePath(`/competitions/${camp.slug}`);
@@ -773,6 +830,65 @@ export const publishCampaignResultsAction = withAdminAudit<
       result: { ok: true },
       before: { published: false },
       after: { published: true, winners: winners.length },
+    };
+  },
+);
+
+/** Settle a cash prize: mark it paid (with an optional reference) or void it.
+ *  The money transfer itself is done out-of-band by the founder; this records
+ *  that it happened, mirroring how affiliate payouts are settled. */
+export const settleCampaignPrizeAction = withAdminAudit<
+  {
+    campaignId: string;
+    prizeId: string;
+    action: "paid" | "void";
+    reference?: string;
+    reason?: string;
+  },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_prize_settle",
+    targetType: "affiliate",
+    getTargetId: (a) => a.prizeId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const { data: prize } = await service
+      .from("affiliate_prize_awards")
+      .select("status")
+      .eq("id", args.prizeId)
+      .maybeSingle();
+    if (!prize) return { result: { ok: false, error: "Unknown prize." } };
+    if (prize.status !== "owed") {
+      return {
+        result: { ok: false, error: `That prize is already ${prize.status}.` },
+      };
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await service
+      .from("affiliate_prize_awards")
+      .update(
+        args.action === "paid"
+          ? {
+              status: "paid",
+              paid_at: now,
+              paid_by: admin.userId,
+              reference: args.reference?.trim() || null,
+            }
+          : { status: "void", paid_by: admin.userId },
+      )
+      .eq("id", args.prizeId)
+      .eq("status", "owed"); // guard against a concurrent settle
+    if (error) return { result: { ok: false, error: error.message } };
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    return {
+      result: { ok: true },
+      before: { status: "owed" },
+      after: { status: args.action },
     };
   },
 );

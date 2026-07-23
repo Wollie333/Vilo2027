@@ -1321,6 +1321,80 @@ export type Database = {
           },
         ]
       }
+      affiliate_prize_awards: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          awarded_at: string
+          awarded_by: string | null
+          campaign_id: string
+          currency: string
+          id: string
+          label: string
+          paid_at: string | null
+          paid_by: string | null
+          reference: string | null
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          awarded_at?: string
+          awarded_by?: string | null
+          campaign_id: string
+          currency?: string
+          id?: string
+          label: string
+          paid_at?: string | null
+          paid_by?: string | null
+          reference?: string | null
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          awarded_at?: string
+          awarded_by?: string | null
+          campaign_id?: string
+          currency?: string
+          id?: string
+          label?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_prize_awards_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_prize_awards_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_prize_awards_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_prize_awards_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_referrals: {
         Row: {
           affiliate_id: string

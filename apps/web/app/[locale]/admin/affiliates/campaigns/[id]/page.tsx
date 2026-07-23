@@ -339,6 +339,7 @@ export default async function AdminCampaignPage({
         }))}
         enrolledActive={activeEnrolled}
         libraryImages={libraryImages}
+        resultsPublished={Boolean(results?.publishedAt)}
       />
     </div>
   );
@@ -666,6 +667,7 @@ export default async function AdminCampaignPage({
               computedAt={results?.computedAt ?? null}
               publishedAt={results?.publishedAt ?? null}
               winners={results?.winners ?? []}
+              prizes={results?.prizes ?? []}
             />
           ),
           partners: partnersPanel,

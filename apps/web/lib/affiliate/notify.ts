@@ -4,6 +4,8 @@ import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { formatMoney } from "@/lib/format";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
+import { loadCampaignResults } from "./finalize";
+
 type Db = ReturnType<typeof createAdminClient>;
 
 // Accrue affiliate commission for a settled charge. The "commission earned"
@@ -104,5 +106,68 @@ export async function notifyAffiliatePayoutPaid(
     });
   } catch {
     // Notification must never break the payout settlement.
+  }
+}
+
+// Tell each winning partner their placing + prizes once a campaign's final
+// results are published. One email/in-app per winner, summarising everything
+// they won (a partner can take several prizes). Never throws into publish.
+export async function notifyCampaignWinners(
+  admin: Db,
+  args: { campaignId: string; campaignName: string },
+): Promise<void> {
+  try {
+    const results = await loadCampaignResults(args.campaignId);
+    if (!results || results.winners.length === 0) return;
+
+    // One line per prize, grouped per partner.
+    const phrasesByAffiliate = new Map<string, string[]>();
+    for (const w of results.winners) {
+      const bits = [w.label];
+      if (w.cash > 0) bits.push(formatMoney(w.cash, "ZAR"));
+      if (w.floorPct > 0) bits.push(`${w.floorPct}% rate floor`);
+      const list = phrasesByAffiliate.get(w.affiliateId) ?? [];
+      list.push(bits.join(" · "));
+      phrasesByAffiliate.set(w.affiliateId, list);
+    }
+    const ids = [...phrasesByAffiliate.keys()];
+    if (!ids.length) return;
+
+    const { data: accts } = await admin
+      .from("affiliate_accounts")
+      .select("id, user_id")
+      .in("id", ids);
+    const userIds = (accts ?? []).map((a) => a.user_id);
+    const { data: profs } = userIds.length
+      ? await admin
+          .from("user_profiles")
+          .select("id, email, full_name")
+          .in("id", userIds)
+      : {
+          data: [] as {
+            id: string;
+            email: string | null;
+            full_name: string | null;
+          }[],
+        };
+    const profByUser = new Map((profs ?? []).map((p) => [p.id, p]));
+
+    for (const a of accts ?? []) {
+      const p = profByUser.get(a.user_id);
+      const detail = (phrasesByAffiliate.get(a.id) ?? []).join("; ");
+      await dispatchEvent({
+        kind: "affiliate_campaign_won",
+        recipientUserId: a.user_id,
+        refs: {
+          campaignName: args.campaignName,
+          firstName: (p?.full_name ?? "").trim().split(/\s+/)[0] || "",
+          detail,
+          recipient_email: p?.email ?? undefined,
+        },
+        supabase: admin,
+      });
+    }
+  } catch {
+    // Winners must still be published even if we could not email them.
   }
 }
