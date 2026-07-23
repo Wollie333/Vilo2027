@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-24 — Royal conform: micro-interactions (hover motion).
+
+Audited every hover/transition in the reference `theme.css` (31 hover rules) against
+the live royal CSS and conformed the motion, all scoped to the royal page classes.
+Most were already correct from the port (button lift `translateY(-3px)` + 0.3s ease,
+arrow-link nudge `translateX(5px)`, image transition `1s cubic-bezier`, card lift
+`translateY(-8px)`). Two fixes: **(1) Zoom scales (`c6f9d78`)** — image zoom-on-hover
+amounts had drifted: room-detail hero `.frame img` 1.04→1.05, room-detail other-room
+card image 1.05→1.06, gallery mosaic tile 1.05→1.07. **(2) Card-lift glide (`95fc885`)**
+— royal hover-lift cards (room/offer/journal/tile) carry `data-reveal`, whose base rule
+sets `transition-property: opacity, translate, filter` — which dropped each card's own
+`transform`+`box-shadow` transition, so the hover LIFT *snapped* instead of gliding.
+Added a more-specific royal rule that keeps the reveal's opacity/translate/filter timing
+verbatim and appends transform+box-shadow at the reference's 0.4s glide; since the reveal
+animates the independent `translate` (not `transform`), the reveal-in animation is
+untouched and reduced-motion still zeroes it. Verified live on home + specials: the room
+image zoom transition (1s) is intact, and cards now transition
+`opacity,translate,filter,transform,box-shadow` at `0.9s,0.9s,0.9s,0.4s,0.4s` while still
+revealing (opacity 1), no overflow, one h1.
+
 ## 2026-07-24 — Royal conform: detail-page bodies (section-heading scale).
 
 Section-level diff of the detail-page bodies (room-detail, special-detail) against

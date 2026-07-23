@@ -108,7 +108,27 @@
 > 404 ("site isn't published yet") after many edits/reloads — ENVIRONMENTAL (a `preview_stop`+`start` clears
 > it), not a code bug; take measurements right after a restart.
 >
-> **Royal conform is now comprehensive** across structure, type, shape, colour, page-headers AND detail bodies.
+> **THEN micro-interaction / hover-motion audit (founder: "take special care on the button + image-zoom
+> animations, scoped to royal") → two commits (HEAD now `95fc885`):**
+> - Audited all 31 reference `theme.css` `:hover` rules vs the live royal CSS. Most already matched from the
+>   port (button lift `translateY(-3px)`/0.3s, arrow-link `translateX(5px)`, image `transition transform 1s
+>   cubic-bezier(.2,.8,.3,1)`, card lift `translateY(-8px)`, `.spcard/.exp/.mosaic/.tile` hovers).
+> - **`c6f9d78` zoom-scale drift** — room-detail `.frame img` 1.04→1.05, room-detail other-room card img
+>   1.05→1.06, gallery mosaic 1.05→1.07 (ref values).
+> - **`95fc885` card-lift SNAP → glide** — the real find: royal hover-lift cards carry `data-reveal`, and
+>   `site-reveal.css` sets `transition-property: opacity, translate, filter` on every `[data-reveal]`, which
+>   REPLACED each card's own transform+box-shadow transition → the hover lift snapped. Fix in theme-skins.css
+>   (`.wielo-reveal-ready.wielo-royal .room/.spcard/.rj-card/.tile[data-reveal]`): keep the reveal's
+>   opacity/translate/filter timing verbatim, APPEND transform+box-shadow at 0.4s. Safe because the reveal
+>   animates the independent `translate` (not `transform`) — reveal-in untouched, reduced-motion still zeroes.
+>   Verified live (home+specials): transition-property now `opacity,translate,filter,transform,box-shadow` @
+>   `0.9s,0.9s,0.9s,0.4s,0.4s`; cards still reveal (opacity 1), image zoom (1s) intact, no overflow.
+>   **Motion gotcha for future:** the shared reveal runtime clobbers `transition-property` on any `[data-reveal]`
+>   card — if a themed card hover-lift/shadow snaps, extend its transition-property (per-property durations)
+>   under `.wielo-reveal-ready.wielo-<theme> .<card>[data-reveal]`, keeping the reveal props verbatim.
+>
+> **Royal conform is now comprehensive** across structure, type, shape, colour, page-headers, detail bodies
+> AND hover motion (buttons, image zoom, card lift, arrow nudge).
 > The only unconformed items left are the sub-perceptible ±1px contact form-field metrics (label/input/radius)
 > and a full live pass of the Journal ARTICLE body (blocked until mana has a published post). Everything else
 > is token-for-token / rule-for-rule matched to `docs/themes/royalhotel`.
