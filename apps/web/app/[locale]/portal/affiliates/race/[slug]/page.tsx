@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import {
-  CalendarDays,
+  ArrowRight,
   ChevronRight,
-  ExternalLink,
   Flag,
+  Megaphone,
   Trophy,
-  Zap,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
-import { LINE, NetPill } from "@/components/affiliate/race/RaceBits";
-import { Link } from "@/i18n/navigation";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import type { LadderBand } from "@/lib/affiliate/campaigns";
 import {
   loadCampaignLeaderboard,
   loadMyRaceStats,
@@ -20,13 +18,17 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-// The partner's own view of a race — same standings as the public page, plus
-// where THEY stand, what their rate is, and how far the next rung is.
+import { AffiliateBaseLink } from "../../_components/AffiliateBaseLink";
+import { CopyLinkButton } from "../../_components/CopyLinkButton";
+import { LandingPageCard } from "../../_components/LandingPageCard";
+
+import { RaceTabs } from "./RaceTabs";
+
 export const metadata: Metadata = { title: "The Race" };
 export const dynamic = "force-dynamic";
 
 function zar(n: number): string {
-  return `R${Math.round(n).toLocaleString("en-ZA")}`;
+  return "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
 }
 
 export default async function PartnerRacePage({
@@ -42,12 +44,11 @@ export default async function PartnerRacePage({
 
   const admin = createAdminClient();
   const me = await getAffiliateForUser(admin, user.id);
-  if (!me) return null; // the shell renders the terms gate
+  if (!me) return null;
 
   const data = await loadCampaignLeaderboard(params.slug);
   if (!data) notFound();
   const { campaign, rows, pausedRows, prizes } = data;
-
   const mine = await loadMyRaceStats(
     campaign.id,
     me.id,
@@ -56,295 +57,430 @@ export default async function PartnerRacePage({
     pausedRows,
   );
 
-  const monthsLeft =
-    campaign.endsAt != null
-      ? Math.max(
-          0,
-          Math.ceil(
-            (Date.parse(campaign.endsAt) - Date.now()) / (30 * 86_400_000),
-          ),
-        )
-      : null;
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://wielo.co.za";
+  const raceLink = `${appUrl}/c/${campaign.slug}/${me.slug}`;
+  const raceLinkShort = raceLink.replace(/^https?:\/\//, "");
 
-  const leaderNet = rows.length
-    ? Math.max(...rows.map((r) => r.netThisMonth))
-    : 0;
-  const monthlyPrize = prizes.find((p) => p.monthly_top_net_change);
-  const milestonePrizes = prizes.filter((p) => p.milestone).slice(0, 2);
-  const perHost = 599;
+  const endsLabel = campaign.endsAt
+    ? new Date(campaign.endsAt).toLocaleDateString("en-ZA", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+  const daysLeft = campaign.endsAt
+    ? Math.max(
+        0,
+        Math.ceil((Date.parse(campaign.endsAt) - Date.now()) / 86_400_000),
+      )
+    : null;
 
-  return (
-    <div>
-      {/* ── Header ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
-        <div>
-          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
-            <span>Affiliates</span>
-            <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-brand-ink">{campaign.name}</span>
-          </nav>
-          <h1 className="mt-1 font-display text-[24px] font-extrabold leading-none text-brand-ink">
-            {campaign.name}
-          </h1>
-        </div>
-        <div className="ml-auto flex items-center gap-2 pb-0.5">
-          {monthsLeft != null ? (
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-[#FDE9C8] bg-[#FFFBEB] px-2.5 py-[3px] text-[11.5px] font-semibold text-[#B45309]">
-              <span className="h-1.5 w-1.5 rounded-pill bg-[#F59E0B]" />
-              {monthsLeft} months left
-            </span>
-          ) : null}
-          {data.monthsTotal ? (
-            <span className="text-[12px] text-brand-mute">
-              Season 1 · {data.monthsTotal} months
-            </span>
-          ) : null}
-        </div>
-      </div>
+  const bands: LadderBand[] =
+    campaign.structure?.model === "ladder"
+      ? (campaign.structure.bands ?? [])
+      : [];
+  const sortedBands = [...bands].sort(
+    (a, b) =>
+      (a.max ?? Number.POSITIVE_INFINITY) - (b.max ?? Number.POSITIVE_INFINITY),
+  );
 
-      {/* Paused out of the race. Shown before the stat strip so the "—" rank
-          below is explained rather than alarming. */}
-      {mine.paused ? (
-        <div className="mt-5 rounded-card border border-amber-200 bg-amber-50 px-5 py-4">
-          <div className="text-[13.5px] font-semibold text-amber-900">
-            You&rsquo;re paused in this competition
+  // Conversion bonus earned (kind='conversion_bonus') for this campaign.
+  const { data: bonusRows } = await admin
+    .from("affiliate_commissions")
+    .select("commission_amount, kind, campaign_id, referral_id, status")
+    .eq("affiliate_id", me.id)
+    .eq("campaign_id", campaign.id)
+    .neq("status", "voided");
+  const bonusEarned = (bonusRows ?? [])
+    .filter((r) => r.kind === "conversion_bonus")
+    .reduce((s, r) => s + Number(r.commission_amount), 0);
+  const bonusHosts = new Set(
+    (bonusRows ?? [])
+      .filter((r) => r.kind === "conversion_bonus")
+      .map((r) => r.referral_id),
+  ).size;
+  const earnedHere = (bonusRows ?? []).reduce(
+    (s, r) => s + Number(r.commission_amount),
+    0,
+  );
+
+  // Co-branded landing presentation.
+  const { data: presentation } = await admin
+    .from("affiliate_accounts")
+    .select("display_headline, bio, photo_url, public_phone")
+    .eq("id", me.id)
+    .maybeSingle();
+
+  const currentBandIdx = sortedBands.findIndex(
+    (b) => b.max !== null && mine.book <= (b.max ?? 0),
+  );
+
+  // ── OVERVIEW panel ──────────────────────────────────────────────
+  const overview = (
+    <section>
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4">
+        <div className="bg-brand-dark p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+            Your rank
           </div>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-amber-900/90">
-            You won&rsquo;t appear on the leaderboard or be in the running for
-            prizes for now.{" "}
-            <strong>Your commission isn&rsquo;t affected</strong> — your links
-            keep working and every host you&rsquo;ve referred still earns you
-            your usual rate. Your listings below keep counting, so if
-            you&rsquo;re resumed you pick up where you actually are. Check your
-            email for the reason, or reply to it if you think it&rsquo;s a
-            mistake.
-          </p>
-        </div>
-      ) : null}
-
-      {/* ── Personal stat strip ─────────────────────────────── */}
-      <div className="mb-5 mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Your rank">
-          <span className="font-display text-[30px] font-extrabold tabular-nums leading-none text-brand-ink">
-            {mine.rank ?? "—"}
-          </span>
-          <span className="pb-1 text-[12px] text-brand-mute">
-            of {data.partnerSlots} partners
-          </span>
-        </StatCard>
-
-        <StatCard label="Hosts live · your score">
-          <span className="font-display text-[30px] font-extrabold tabular-nums leading-none text-brand-ink">
-            {mine.listings}
-          </span>
-          <span className="mb-1">
-            <NetPill net={mine.netThisMonth} />
-          </span>
-        </StatCard>
-
-        <StatCard label="Your commission rate">
-          <span className="font-display text-[30px] font-extrabold tabular-nums leading-none text-brand-primary">
-            {mine.ratePct}%
-          </span>
-          <span className="pb-1 text-[12px] text-brand-mute">
-            {mine.nextRatePct != null && mine.toNextBook != null
-              ? `${zar(mine.toNextBook)} more → ${mine.nextRatePct}%`
-              : "top rate"}
-          </span>
-        </StatCard>
-
-        <div
-          className="rounded-card border bg-brand-dark p-4 text-white shadow-card"
-          style={{ borderColor: "#0A1510" }}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-emerald-200/70">
-            Your book at full conversion
-          </span>
-          <div className="mt-1.5 flex items-end gap-2">
-            <span className="font-display text-[30px] font-extrabold tabular-nums leading-none">
-              {zar(mine.listings * perHost)}
-            </span>
-            <span className="pb-1 text-[12px] text-emerald-100/60">/mo</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Distance to next rung ───────────────────────────── */}
-      {mine.nextRatePct != null && mine.toNextBook != null ? (
-        <div
-          className="mb-5 rounded-card border bg-white p-5 shadow-card"
-          style={{ borderColor: LINE }}
-        >
-          <div className="mb-2.5 flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-brand-ink">
-              {zar(mine.toNextBook)} more monthly book takes your whole book to{" "}
-              {mine.nextRatePct}%
-            </span>
-            <span className="text-[12px] text-brand-mute">
-              {zar(mine.book)} → {zar(mine.book + mine.toNextBook)}
+          <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-white">
+            {mine.rank ? `#${mine.rank}` : "—"}{" "}
+            <span className="text-[12px] font-semibold text-white/50">
+              of {data.partnerSlots}
             </span>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#E4EFE8]">
-            <div
-              className="h-full rounded-full bg-brand-primary transition-all"
-              style={{ width: `${mine.progressPct}%` }}
-            />
+          <div className="mt-1 text-[11px] text-brand-accent">
+            {mine.paused ? "paused" : "in the race"}
           </div>
-          <p className="mt-2.5 text-[12px] text-brand-mute">
-            When your rate climbs it climbs on your{" "}
-            <span className="font-semibold text-brand-ink">whole book</span> —
-            including the hosts you signed on day one. It&rsquo;s recalculated
-            monthly on what&rsquo;s actually collected, so it can move down too.
-          </p>
         </div>
-      ) : null}
-
-      {/* ── Standings ───────────────────────────────────────── */}
-      <div
-        className="overflow-hidden rounded-card border bg-white shadow-card"
-        style={{ borderColor: LINE }}
-      >
-        <div
-          className="flex flex-wrap items-center gap-3 border-b px-5 py-4"
-          style={{ borderColor: LINE }}
-        >
-          <Trophy className="h-[18px] w-[18px] text-brand-primary" />
-          <h3 className="font-display text-[16px] font-bold text-brand-ink">
-            Standings
-          </h3>
-          <span
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border bg-[#F4F7F5] px-2.5 py-[3px] text-[11.5px] font-semibold text-[#5B7065]"
-            style={{ borderColor: LINE }}
-          >
-            <span className="h-1.5 w-1.5 rounded-pill bg-[#94A3B8]" />
-            Updated nightly
-          </span>
-          {campaign.status === "active" ? (
-            <a
-              href={`/competitions/${campaign.slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand-primary hover:text-brand-secondary"
-            >
-              View public page <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : null}
-        </div>
-        <LiveStandings
-          slug={campaign.slug}
-          initialRows={rows}
-          highlightAffiliateId={me.id}
-          usePublicNames={false}
-        />
+        <StatCell label="Score · active listings" value={String(mine.listings)}>
+          {mine.netThisMonth >= 0 ? `+${mine.netThisMonth}` : mine.netThisMonth}{" "}
+          this month
+        </StatCell>
+        <StatCell label="Current race rate" value={`${mine.ratePct}%`}>
+          on {zar(mine.book)} /mo book
+        </StatCell>
+        <StatCell label="Earned in this race" value={zar(earnedHere)}>
+          {bonusEarned > 0
+            ? `incl. ${zar(bonusEarned)} bonuses`
+            : "ladder + bonuses"}
+        </StatCell>
       </div>
 
-      {/* ── Prize reminders ─────────────────────────────────── */}
-      <div className="mb-2 mt-5 grid gap-3 sm:grid-cols-3">
-        {monthlyPrize ? (
-          <ReminderCard
-            icon={<CalendarDays className="h-4 w-4" />}
-            title="This month"
-          >
-            You added{" "}
-            <span className="font-semibold text-brand-ink">
-              {mine.netThisMonth}
-            </span>{" "}
-            live listings. Leader added{" "}
-            <span className="font-semibold text-brand-ink">{leaderNet}</span>.{" "}
-            {zar(monthlyPrize.monthly_top_net_change!)} to whoever adds most.
-          </ReminderCard>
-        ) : null}
-        {milestonePrizes.map((p) => (
-          <ReminderCard
-            key={p.milestone}
-            icon={
-              p.milestone?.startsWith("first_to") ? (
-                <Flag className="h-4 w-4" />
-              ) : (
-                <Zap className="h-4 w-4" />
-              )
-            }
-            title={MILESTONE_TITLES[p.milestone ?? ""] ?? "Milestone"}
-          >
-            {p.cash ? zar(p.cash) : "A prize"} —{" "}
-            {MILESTONE_BODY[p.milestone ?? ""] ??
-              "for reaching this milestone."}
-          </ReminderCard>
-        ))}
-      </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="min-w-0 space-y-6">
+          {/* LADDER */}
+          <section className="am-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+              <div className="smallcaps">
+                Commission ladder · trailing-month book
+              </div>
+              <span className="tag green">
+                <span className="d" />
+                Lifetime on race referrals
+              </span>
+            </div>
+            <div className="space-y-2.5 p-5">
+              {sortedBands.map((b, i) => {
+                const isNow = i === currentBandIdx;
+                const passed = currentBandIdx >= 0 && i < currentBandIdx;
+                const lo = i === 0 ? 0 : (sortedBands[i - 1].max ?? 0);
+                const range =
+                  b.max === null
+                    ? `${zar(lo)}+ /mo`
+                    : `${zar(lo)} – ${zar(b.max)} /mo`;
+                return (
+                  <div key={i} className={`rung ${isNow ? "now" : ""}`}>
+                    <span
+                      className={`num w-12 font-display text-[16px] font-bold ${isNow ? "text-brand-secondary" : "text-brand-mute"}`}
+                    >
+                      {Math.round(b.rate * 100)}%
+                    </span>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-semibold text-brand-ink">
+                        {range}
+                      </div>
+                      {isNow ? (
+                        <div className="mt-1.5 flex items-center gap-3">
+                          <div className="flex-1">
+                            <div className="pbar">
+                              <div style={{ width: `${mine.progressPct}%` }} />
+                            </div>
+                          </div>
+                          <span className="num text-[11px] font-semibold text-brand-secondary">
+                            {zar(mine.book)}
+                          </span>
+                        </div>
+                      ) : !passed &&
+                        i === currentBandIdx + 1 &&
+                        mine.toNextBook != null ? (
+                        <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                          {zar(mine.toNextBook)} more book to reach
+                        </div>
+                      ) : null}
+                    </div>
+                    {passed ? (
+                      <span className="tag gray">
+                        <span className="d" />
+                        Passed
+                      </span>
+                    ) : isNow ? (
+                      <span className="tag green">
+                        <span className="d" />
+                        You are here
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t border-brand-line bg-brand-light/60 px-5 py-3 text-[11.5px] text-brand-mute">
+              Your rate applies to your whole race book and re-checks monthly as
+              hosts join or leave. If you win a prize floor, you never drop
+              below it.
+            </div>
+          </section>
+        </div>
 
+        <div className="min-w-0 space-y-6">
+          {/* SHARE */}
+          <section className="am-card overflow-hidden">
+            <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+              Share your race link
+            </div>
+            <div className="p-5">
+              <div className="copyfield">
+                <Flag className="h-4 w-4 shrink-0 text-brand-mute" />
+                <span className="mono flex-1 truncate text-[12px] text-brand-ink">
+                  {raceLinkShort}
+                </span>
+                <CopyLinkButton
+                  value={raceLink}
+                  className="btn-pri h-9 px-3.5"
+                />
+              </div>
+              <div className="mt-2.5 flex items-center gap-2">
+                <a
+                  className="btn-ghost"
+                  href={`https://wa.me/?text=${encodeURIComponent(raceLink)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </a>
+                <a
+                  className="btn-ghost"
+                  href={`mailto:?body=${encodeURIComponent(raceLink)}`}
+                >
+                  Email
+                </a>
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-brand-mute">
+                Hosts who sign up through this link count toward your score and
+                earn the race ladder — for life.
+              </p>
+            </div>
+          </section>
+          {/* CONVERSION BONUS */}
+          <section className="am-card overflow-hidden">
+            <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+              Conversion bonuses
+            </div>
+            <div className="space-y-2 p-5 text-[12.5px]">
+              <div className="flex justify-between">
+                <span className="text-brand-mute">Monthly plan activates</span>
+                <span className="num font-bold text-brand-ink">R 250</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-brand-mute">Annual plan activates</span>
+                <span className="num font-bold text-brand-ink">R 400</span>
+              </div>
+              <div className="flex justify-between border-t border-brand-line pt-2">
+                <span className="font-semibold text-brand-ink">
+                  Earned so far
+                </span>
+                <span className="num font-bold text-brand-secondary">
+                  {zar(bonusEarned)} · {bonusHosts} host
+                  {bonusHosts === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+                Paid once per referred host, when their first paid subscription
+                starts. Separate from ladder commission.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  );
+
+  // ── LINKS & PAGE panel ──────────────────────────────────────────
+  const links = (
+    <div className="space-y-6">
+      <p className="max-w-2xl text-[13px] leading-relaxed text-brand-mute">
+        Your race link opens your own co-branded landing page. Fill in the
+        personal parts below — hosts see a familiar face, not a cold ad.
+      </p>
+      <LandingPageCard
+        slug={me.slug}
+        headline={(presentation?.display_headline as string | null) ?? null}
+        bio={(presentation?.bio as string | null) ?? null}
+        photoUrl={(presentation?.photo_url as string | null) ?? null}
+        publicPhone={(presentation?.public_phone as string | null) ?? null}
+      />
+      <section className="am-card overflow-hidden">
+        <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+          Your race link
+        </div>
+        <div className="p-5">
+          <div className="copyfield">
+            <Flag className="h-4 w-4 shrink-0 text-brand-mute" />
+            <span className="mono flex-1 truncate text-[12.5px] text-brand-ink">
+              {raceLinkShort}
+            </span>
+            <CopyLinkButton value={raceLink} />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  // ── LEADERBOARD panel ───────────────────────────────────────────
+  const leaderboard = (
+    <section className="am-card overflow-hidden">
+      <div className="flex flex-wrap items-center gap-3 border-b border-brand-line px-5 py-4">
+        <Trophy className="h-[18px] w-[18px] text-brand-primary" />
+        <h3 className="font-display text-[16px] font-bold text-brand-ink">
+          Standings
+        </h3>
+        <span className="tag gray">
+          <span className="d" />
+          Updated nightly
+        </span>
+      </div>
+      <LiveStandings
+        slug={campaign.slug}
+        initialRows={rows}
+        highlightAffiliateId={me.id}
+        usePublicNames={false}
+      />
+    </section>
+  );
+
+  // ── MARKETING panel ─────────────────────────────────────────────
+  const marketing = (
+    <AffiliateBaseLink suffix="/marketing" className="brow">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+        <Megaphone className="h-[18px] w-[18px]" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] font-semibold text-brand-ink">
+          Marketing library
+        </div>
+        <div className="text-[12.5px] text-brand-mute">
+          Ready-to-share posts, banners and captions for the race.
+        </div>
+      </div>
+      <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+    </AffiliateBaseLink>
+  );
+
+  // ── RULES & PRIZES panel ────────────────────────────────────────
+  const rules = (
+    <div className="space-y-6">
+      <section className="am-card overflow-hidden">
+        <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+          Prizes
+        </div>
+        <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
+          {prizes.length === 0 ? (
+            <div className="text-[12.5px] text-brand-mute">
+              No cash prizes on this campaign — the ladder rate is the reward.
+            </div>
+          ) : (
+            prizes.map((p, i) => (
+              <div key={i} className="rung">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFFBEB] text-[#B45309]">
+                  <Trophy className="h-[18px] w-[18px]" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[13px] font-semibold text-brand-ink">
+                    {p.placing
+                      ? `Placing #${p.placing}`
+                      : p.milestone
+                        ? p.milestone.replace(/_/g, " ")
+                        : p.monthly_top_net_change
+                          ? "Monthly top mover"
+                          : "Prize"}
+                  </div>
+                  <div className="num text-[11.5px] text-brand-mute">
+                    {p.cash ? zar(p.cash) : ""}
+                    {p.monthly_top_net_change
+                      ? zar(p.monthly_top_net_change)
+                      : ""}
+                    {p.floor ? ` · ${Math.round(p.floor * 100)}% floor` : ""}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
       {campaign.rulesDocSlug ? (
-        <p className="mt-4 text-[12px] text-brand-mute">
-          <Link
+        <p className="text-[12px] text-brand-mute">
+          <a
             href={`/legal/${campaign.rulesDocSlug}`}
+            target="_blank"
+            rel="noreferrer"
             className="font-medium text-brand-primary hover:underline"
           >
             Full competition rules
-          </Link>{" "}
+          </a>{" "}
           · standings recompute nightly from currently-active listings.
         </p>
       ) : null}
     </div>
   );
-}
 
-const MILESTONE_TITLES: Record<string, string> = {
-  first_to_5: "First to 5",
-  first_to_10: "First to 10",
-  first_to_25: "First to 25",
-  any_reaching_5_in_30d: "Fast start",
-  any_reaching_10_in_30d: "Fast start",
-  first_host_live: "First host live",
-};
-
-const MILESTONE_BODY: Record<string, string> = {
-  first_to_5: "first partner to five points takes it.",
-  first_to_10: "first partner to ten points takes it.",
-  first_to_25: "first partner to twenty-five points takes it.",
-  any_reaching_5_in_30d: "five points in your first 30 days.",
-  any_reaching_10_in_30d: "ten points in your first 30 days.",
-  first_host_live: "first partner to get a host live.",
-};
-
-function StatCard({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
   return (
-    <div
-      className="rounded-card border bg-white p-4 shadow-card"
-      style={{ borderColor: LINE }}
-    >
-      <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-brand-mute">
-        {label}
-      </span>
-      <div className="mt-1.5 flex items-end gap-2">{children}</div>
+    <div>
+      {/* Header */}
+      <div>
+        <nav className="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+          <AffiliateBaseLink suffix="/competitions" className="hover:underline">
+            Campaigns
+          </AffiliateBaseLink>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-medium text-brand-ink">{campaign.name}</span>
+        </nav>
+        <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-display text-[20px] font-extrabold leading-none text-brand-ink">
+                {campaign.name}
+              </h1>
+              <span className="tag amber">
+                <span className="d" />
+                {campaign.status === "active" ? "Live" : campaign.status}
+                {endsLabel ? ` · ends ${endsLabel}` : ""}
+              </span>
+            </div>
+            <div className="mt-1.5 text-[12.5px] text-brand-mute">
+              {daysLeft != null ? `${daysLeft} days left · ` : ""}your campaign
+              link: <span className="mono text-brand-ink">{raceLinkShort}</span>
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-2 pb-0.5">
+            <CopyLinkButton value={raceLink} className="btn-sec h-9" />
+          </div>
+        </div>
+      </div>
+
+      <RaceTabs panels={{ overview, links, leaderboard, marketing, rules }} />
     </div>
   );
 }
 
-function ReminderCard({
-  icon,
-  title,
+function StatCell({
+  label,
+  value,
   children,
 }: {
-  icon: React.ReactNode;
-  title: string;
+  label: string;
+  value: string;
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="rounded-card border bg-white p-4 shadow-card"
-      style={{ borderColor: LINE }}
-    >
-      <div className="flex items-center gap-2 text-brand-secondary">
-        {icon}
-        <span className="font-display text-[13px] font-bold">{title}</span>
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="smallcaps">{label}</div>
+      <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">
+        {value}
       </div>
-      <p className="mt-1.5 text-[12px] text-brand-mute">{children}</p>
+      <div className="num mt-1 text-[11px] text-brand-mute">{children}</div>
     </div>
   );
 }

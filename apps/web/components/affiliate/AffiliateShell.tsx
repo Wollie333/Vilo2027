@@ -74,11 +74,11 @@ export async function AffiliateShell({
     if (activated) status = "active";
   }
 
-  const { count: productCount } = await admin
-    .from("products")
+  // Tab badge = active campaigns the partner could join / is in.
+  const { count: campaignCount } = await admin
+    .from("affiliate_campaigns")
     .select("id", { count: "exact", head: true })
-    .eq("is_active", true)
-    .neq("affiliate_type", "none");
+    .eq("status", "active");
 
   const memberSince = account.accepted_at
     ? new Date(account.accepted_at).toLocaleDateString("en-ZA", {
@@ -155,7 +155,10 @@ export async function AffiliateShell({
         </div>
       ) : (
         <>
-          <AffiliateNav productCount={productCount ?? 0} basePath={basePath} />
+          <AffiliateNav
+            campaignCount={campaignCount ?? 0}
+            basePath={basePath}
+          />
           <div className="pt-6">{children}</div>
         </>
       )}
