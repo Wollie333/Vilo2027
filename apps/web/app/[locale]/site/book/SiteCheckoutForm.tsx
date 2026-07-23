@@ -37,7 +37,7 @@ import { SiteThemeModal } from "@/components/site/SiteThemeModal";
 // informational — the charge is always the host's settlement currency, so the
 // line spells that out. Renders nothing while the display matches the charge
 // currency (no conversion to show). Uses <Money>, which only ever converts a ZAR
-// base and marks it "≈"; a non-ZAR settlement amount renders natively.
+// base; a non-ZAR settlement amount renders natively.
 function TotalEstimate({
   total,
   chargeCurrency,

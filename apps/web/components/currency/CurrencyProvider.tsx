@@ -34,7 +34,7 @@ type CurrencyCtx = {
   /**
    * Source-aware string formatter for labels/template literals (where a <Money>
    * JSX node can't go). `amount` is held in `sourceCurrency` (default ZAR); only
-   * ZAR converts, and a converted estimate is prefixed "≈". Mirrors <Money>.
+   * ZAR converts. Mirrors <Money>.
    */
   formatFrom: (amount: number, sourceCurrency?: string) => string;
 };
@@ -86,13 +86,8 @@ export function CurrencyProvider({
   );
   const formatFrom = useCallback(
     (amount: number, sourceCurrency = "ZAR") => {
-      const { text, converted } = displayAmount(
-        amount,
-        sourceCurrency,
-        currency,
-        rates,
-      );
-      return converted ? `≈ ${text}` : text;
+      const { text } = displayAmount(amount, sourceCurrency, currency, rates);
+      return text;
     },
     [currency, rates],
   );

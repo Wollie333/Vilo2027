@@ -111,7 +111,6 @@ export async function SpecialCard({
                 <Money
                   amount={grossVat(s.wasPrice, s.vatRate)}
                   currency={s.currency}
-                  approx={false}
                 />
               </span>
             ) : null}
@@ -123,7 +122,6 @@ export async function SpecialCard({
             <Money
               amount={grossVat(s.savingsAmount, s.vatRate)}
               currency={s.currency}
-              approx={false}
             />
           </div>
         ) : null}

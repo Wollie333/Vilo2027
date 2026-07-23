@@ -118,8 +118,8 @@ export function OceansBookCard({
             style={{ borderTop: "1px solid var(--site-line)", paddingTop: 14 }}
           >
             <span>
-              <Money amount={rate} currency={ccy} approx={false} /> × {nights}{" "}
-              night{nights === 1 ? "" : "s"}
+              <Money amount={rate} currency={ccy} /> × {nights} night
+              {nights === 1 ? "" : "s"}
             </span>
             <b>
               <Money amount={subtotal} currency={ccy} />

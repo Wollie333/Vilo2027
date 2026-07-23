@@ -161,12 +161,7 @@ export function RoyalRooms({
                 >
                   {hasPrice ? (
                     <>
-                      Book ·{" "}
-                      <Money
-                        amount={r.price}
-                        currency={r.currency}
-                        approx={false}
-                      />
+                      Book · <Money amount={r.price} currency={r.currency} />
                     </>
                   ) : (
                     "Book now"

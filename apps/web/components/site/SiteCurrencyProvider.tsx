@@ -12,7 +12,7 @@ import { getDisplayRates } from "@/lib/fx";
  * regardless of the global `CURRENCY_SWITCHER_ENABLED` flag (which gates the
  * main Wielo app). Guests browsing a host's site can preview prices in their own
  * currency; the actual charge is always in the host's settlement currency (ZAR),
- * so converted amounts render with the "≈" estimate marker (see <Money>).
+ * spelled out on the checkout total line (see <Money>).
  *
  * This nests INSIDE the app-root CurrencyProvider (which stays disabled) and its
  * context wins for the tenant subtree — so the header switcher + every <Money>

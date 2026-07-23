@@ -816,7 +816,6 @@ export default async function SpecialDetailPage({
                               vatRate,
                             )}
                             currency={special.currency}
-                            approx={false}
                           />
                         </span>
                       ) : null}
@@ -840,7 +839,6 @@ export default async function SpecialDetailPage({
                               vatRate,
                             )}
                             currency={special.currency}
-                            approx={false}
                           />
                           {offSuffix}
                         </span>

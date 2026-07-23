@@ -159,11 +159,7 @@ export function RoyalSpecials({
                           ) : saveAmt != null ? (
                             <span className="sp-save">
                               Save{" "}
-                              <Money
-                                amount={saveAmt}
-                                currency={s.currency}
-                                approx={false}
-                              />
+                              <Money amount={saveAmt} currency={s.currency} />
                             </span>
                           ) : null}
                         </div>

@@ -16,7 +16,7 @@ export type HomeListingCard = {
   reviews: string | null;
   detail: string;
   /** Raw base price + its settlement currency, so the card can convert for
-   *  display (the <Money> component handles ZAR→display + the "≈" marker). */
+   *  display (the <Money> component handles the ZAR→display conversion). */
   priceAmount: number | null;
   priceCurrency: string;
   fromLabel: boolean;
