@@ -1899,12 +1899,14 @@ export async function assembleSiteDataByType(
     province: string | null;
     postalCode: string | null;
     country: string | null;
+    latitude: number | null;
+    longitude: number | null;
   } | null = null;
   if (needsSlugs) {
     const { data: props } = await sb
       .from("properties")
       .select(
-        "id, slug, address_line1, address_line2, city, province, postal_code, country",
+        "id, slug, address_line1, address_line2, city, province, postal_code, country, latitude, longitude",
       )
       .in("id", ids);
     for (const p of props ?? []) {
@@ -1922,6 +1924,8 @@ export async function assembleSiteDataByType(
         province: (first as { province: string | null }).province,
         postalCode: (first as { postal_code: string | null }).postal_code,
         country: (first as { country: string | null }).country,
+        latitude: (first as { latitude: number | null }).latitude,
+        longitude: (first as { longitude: number | null }).longitude,
       };
   }
 
@@ -2203,6 +2207,8 @@ export async function assembleSiteDataByType(
         address: address || null,
         fullAddress,
         mapEmbedUrl,
+        latitude: primaryProperty.latitude,
+        longitude: primaryProperty.longitude,
         pois,
       };
     })(),

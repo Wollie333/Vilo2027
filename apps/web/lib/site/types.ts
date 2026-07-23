@@ -410,6 +410,9 @@ export type LocationData = {
    * the locality `address`). */
   fullAddress?: string | null;
   mapEmbedUrl?: string | null;
+  /** Property coordinates (for schema.org geo / map pin). Null when ungeocoded. */
+  latitude?: number | null;
+  longitude?: number | null;
   pois: Poi[];
 };
 

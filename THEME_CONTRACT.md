@@ -254,6 +254,21 @@ them (or fall through to the generic fallback, which already handles them):
   art-direct; every required marketing page + the system templates it omits are
   filled with a default spine that still renders in the theme's scoped CSS. **A new
   theme therefore does NOT re-list the whole page set** — it overrides by `kind`.
+- **Google structured data (JSON-LD) — theme-agnostic, do NOT re-implement.**
+  `lib/site/structuredData.ts` is the single source of truth; the SHARED page
+  views (`SitePageView`, `SiteRoomView`, the blog route) emit it via `<JsonLd>`
+  BEFORE dispatching to the per-theme component, so it is identical for every
+  theme (present + bespoke) and a new theme gets correct rich-result markup for
+  free: `LodgingBusiness` (home — address, geo, aggregateRating, priceRange,
+  room `makesOffer`), `HotelRoom` (room detail — `containedInPlace` → the
+  business, occupancy/bed/`amenityFeature`, an `Offer` with availability +
+  `priceValidUntil`, and `aggregateRating` from the room's reviews), `BlogPosting`,
+  and `BreadcrumbList`. Because bespoke themes render from `assembleSiteDataByType`
+  (not `result.data`), the home schema is fed the assembled data explicitly in
+  `SitePageView`. **A new theme must NOT fork or re-emit JSON-LD** — enrich it
+  once in `structuredData.ts` and every theme benefits. The builder stays PURE
+  (dates/clients passed in) so it's trivially testable against Google's Rich
+  Results Test format.
 
 ## Rule of thumb when building
 

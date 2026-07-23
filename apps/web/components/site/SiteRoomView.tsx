@@ -9,8 +9,12 @@ import {
   loadSiteRoomPage,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
-import { buildRoomJsonLd } from "@/lib/site/structuredData";
+import {
+  buildRoomJsonLd,
+  schemaPriceValidUntil,
+} from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
+import type { ReviewsData } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { FirePixelEvent } from "./FirePixelEvent";
@@ -94,12 +98,19 @@ export async function SiteRoomView({
         host.startsWith("localhost") || host.startsWith("127.")
           ? "http"
           : "https";
+      // Reviews shown on this room page (if any) → the room's star snippet.
+      const reviewsDatum = Object.values(data).find(
+        (e) => e?.type === "reviews",
+      );
+      const reviews = (reviewsDatum?.data as ReviewsData | undefined) ?? null;
       jsonLdGraph = buildRoomJsonLd({
         ctx,
         room,
         roomSlug,
         roomsHref,
         origin: `${scheme}://${host}`,
+        reviews,
+        priceValidUntil: schemaPriceValidUntil(),
       });
     }
   }

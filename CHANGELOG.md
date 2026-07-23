@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-24 — SEO: enrich site JSON-LD (theme-agnostic, all themes benefit).
+
+Closed the accommodation structured-data gaps so room-detail pages are eligible
+for richer Google results. All in the SHARED layer (`lib/site/structuredData.ts`
++ `SiteRoomView`/`SitePageView` + the location data), so it's identical for every
+theme and future themes get it free (documented in THEME_CONTRACT.md + a header
+banner in structuredData.ts — never fork JSON-LD per theme).
+
+**HotelRoom (room detail):** added `aggregateRating` from the reviews shown on the
+page (the "biggest miss" — enables star snippets), `containedInPlace` → the site's
+LodgingBusiness (+ a minimal business node in the graph so the @id resolves),
+`occupancy` (from max guests), `bed` (from a "… bed(s)" fact), `amenityFeature`
+(from the room amenities), and on the `Offer`: `availability: InStock` +
+`priceValidUntil`. **LodgingBusiness (home):** added `geo` (property lat/long — now
+selected in loadSitePage + carried on `LocationData`) and `availability`/
+`priceValidUntil` on each `makesOffer`. Offer `url`s are now absolute.
+
+**Also fixed a latent bug:** bespoke themes render the home from
+`assembleSiteDataByType`, not `result.data`, so the home `LodgingBusiness` was
+minimal (name/url only — no address/rating/offers) on every bespoke theme. The
+home schema is now fed the assembled location/rooms/reviews/gallery explicitly, so
+address, geo, aggregateRating, priceRange and room offers all populate. Verified
+live on the Royal mana site: room = HotelRoom(rating 4.7/3, occupancy 2, bed,
+2 amenities, InStock offer) + LodgingBusiness link; home = full LodgingBusiness
+(geo -25.0361/31.1265, Hazyview address, 4.7/3, ZAR 4850–6200, 3 offers). tsc +
+lint clean. `schemaPriceValidUntil()` computed at the server call site keeps the
+builders pure.
+
 ## 2026-07-24 — Royal conform: micro-interactions (hover motion).
 
 Audited every hover/transition in the reference `theme.css` (31 hover rules) against

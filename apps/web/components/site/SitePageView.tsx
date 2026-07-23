@@ -15,7 +15,10 @@ import {
   siteBookHref,
 } from "@/lib/site/loadSitePage";
 import { pageKeyFor } from "@/lib/site/menuPage";
-import { buildSiteJsonLd } from "@/lib/site/structuredData";
+import {
+  buildSiteJsonLd,
+  schemaPriceValidUntil,
+} from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -130,11 +133,36 @@ export async function SitePageView({
         host.startsWith("localhost") || host.startsWith("127.")
           ? "http"
           : "https";
+      // Bespoke themes render the home from assembleSiteDataByType (not
+      // result.data), so assemble the home's live data here for the
+      // LodgingBusiness schema (address/geo/offers/rating). Home only.
+      const schemaData =
+        pathSlug.length === 0
+          ? await assembleSiteDataByType(
+              createAdminClient(),
+              ctx,
+              new Set([
+                "location",
+                "rooms_preview",
+                "reviews",
+                "gallery",
+              ] as const),
+            )
+          : undefined;
       jsonLdGraph = buildSiteJsonLd({
         ctx,
         result,
         pathSlug,
         origin: `${scheme}://${host}`,
+        priceValidUntil: schemaPriceValidUntil(),
+        assembled: schemaData
+          ? {
+              location: schemaData.location,
+              rooms: schemaData.rooms_preview,
+              reviews: schemaData.reviews,
+              gallery: schemaData.gallery,
+            }
+          : undefined,
       });
     }
   }
