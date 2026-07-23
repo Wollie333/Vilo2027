@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-
 import {
   deleteMarketingAssetAction,
   updateAffiliateSettingsAction,
@@ -100,12 +98,10 @@ export function AffiliateSettingsClient({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Programme settings */}
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <h2 className="font-display text-base font-semibold text-brand-ink">
-          Tracking & payouts
-        </h2>
+      <section className="am-card p-6">
+        <div className="smallcaps">Tracking &amp; payouts</div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <NumberField
             label="Cookie window (days)"
@@ -123,19 +119,15 @@ export function AffiliateSettingsClient({
             onChange={(v) => setS({ ...s, minPayoutThreshold: v })}
           />
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              Terms version
-            </span>
+            <span className="flabel">Terms version</span>
             <input
               value={s.termsVersion}
               onChange={(e) => setS({ ...s, termsVersion: e.target.value })}
-              className="mt-1 w-full rounded-md border border-brand-line px-3 py-2 text-sm"
+              className="fld"
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              Attribution
-            </span>
+            <span className="flabel">Attribution</span>
             <select
               value={s.attributionModel}
               onChange={(e) =>
@@ -145,7 +137,7 @@ export function AffiliateSettingsClient({
                     .value as Settings["attributionModel"],
                 })
               }
-              className="mt-1 w-full rounded-md border border-brand-line px-3 py-2 text-sm"
+              className="fld"
             >
               <option value="last_click">Last click wins</option>
               <option value="first_click">First click wins</option>
@@ -153,18 +145,21 @@ export function AffiliateSettingsClient({
           </label>
         </div>
         <div className="mt-4 flex justify-end">
-          <Button onClick={saveSettings} disabled={pending}>
+          <button
+            type="button"
+            onClick={saveSettings}
+            disabled={pending}
+            className="btn-pri h-9"
+          >
             Save settings
-          </Button>
+          </button>
         </div>
       </section>
 
       {/* Payout fees */}
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <h2 className="font-display text-base font-semibold text-brand-ink">
-          Payout processor fees
-        </h2>
-        <p className="mt-0.5 text-xs text-brand-mute">
+      <section className="am-card p-6">
+        <div className="smallcaps">Payout processor fees</div>
+        <p className="mt-1 text-[12px] text-brand-mute">
           Deducted from each affiliate payout. fee = min(cap, fixed + gross ×
           percent%).
         </p>
@@ -209,25 +204,23 @@ export function AffiliateSettingsClient({
                   )
                 }
               />
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
                 disabled={pending}
                 onClick={() => saveFee(feeState[i])}
+                className="btn-sec h-[42px]"
               >
                 Save
-              </Button>
+              </button>
             </div>
           ))}
         </div>
       </section>
 
       {/* Marketing assets */}
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <h2 className="font-display text-base font-semibold text-brand-ink">
-          Marketing material
-        </h2>
-        <p className="mt-0.5 text-xs text-brand-mute">
+      <section className="am-card p-6">
+        <div className="smallcaps">Marketing material</div>
+        <p className="mt-1 text-[12px] text-brand-mute">
           Banners and images affiliates download or embed. Max 10MB each.
         </p>
 
@@ -239,23 +232,12 @@ export function AffiliateSettingsClient({
           className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              Title
-            </span>
-            <input
-              name="title"
-              required
-              className="mt-1 w-full rounded-md border border-brand-line px-3 py-2 text-sm"
-            />
+            <span className="flabel">Title</span>
+            <input name="title" required className="fld" />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              Category
-            </span>
-            <select
-              name="category"
-              className="mt-1 w-full rounded-md border border-brand-line px-3 py-2 text-sm"
-            >
+            <span className="flabel">Category</span>
+            <select name="category" className="fld">
               <option value="banner">Banner</option>
               <option value="social">Social</option>
               <option value="email">Email</option>
@@ -264,23 +246,25 @@ export function AffiliateSettingsClient({
             </select>
           </label>
           <label className="block sm:col-span-2 lg:col-span-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              File
-            </span>
+            <span className="flabel">File</span>
             <input
               ref={fileRef}
               name="file"
               type="file"
               required
               accept="image/*"
-              className="mt-1 w-full rounded-md border border-brand-line px-3 py-1.5 text-sm"
+              className="fld py-2"
             />
           </label>
           <div className="flex items-end">
-            <Button type="submit" disabled={pending} className="gap-1.5">
+            <button
+              type="submit"
+              disabled={pending}
+              className="btn-pri h-[42px]"
+            >
               <Upload className="h-4 w-4" />
               Upload
-            </Button>
+            </button>
           </div>
         </form>
 
@@ -289,7 +273,7 @@ export function AffiliateSettingsClient({
             {assets.map((a) => (
               <li
                 key={a.id}
-                className="overflow-hidden rounded-card border border-brand-line"
+                className="overflow-hidden rounded-[13px] border border-brand-line"
               >
                 <div className="flex aspect-[16/9] items-center justify-center bg-brand-light">
                   {(a.mimeType ?? "").startsWith("image/") ? (
@@ -357,15 +341,13 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </span>
+      <span className="flabel">{label}</span>
       <input
         type="number"
         step={step ?? "1"}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-1 w-full rounded-md border border-brand-line px-3 py-2 text-sm"
+        className="fld"
       />
     </label>
   );

@@ -1,6 +1,3 @@
-import { ArrowLeft } from "lucide-react";
-
-import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,27 +34,8 @@ export default async function AffiliateTermsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <Link
-          href="/admin/affiliates"
-          className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to affiliates
-        </Link>
-        <h1 className="mt-2 font-display text-2xl font-bold text-brand-ink">
-          Affiliate terms
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          The terms guests and hosts must accept to join the affiliate
-          programme. Changes go live immediately on the sign-up gate.
-        </p>
-      </header>
-
-      <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-        <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          Signatures on version {version}
-        </div>
+      <div className="am-card p-4">
+        <div className="smallcaps">Signatures on version {version}</div>
         <div className="num mt-1.5 font-display text-[26px] font-bold leading-none text-brand-ink">
           {signed}
           <span className="text-[15px] font-semibold text-brand-mute">

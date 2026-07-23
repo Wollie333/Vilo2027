@@ -23,17 +23,17 @@ export default async function AdminAffiliateMarketingPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
+      <div>
+        <h2 className="font-display text-[17px] font-bold text-brand-ink">
           Marketing material
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
+        </h2>
+        <p className="mt-0.5 text-[12.5px] text-brand-mute">
           Create and manage the banners, social posts, email templates, AI
           prompts, videos and blogs affiliates use. Published items appear in
           the affiliate portal with each affiliate&apos;s referral link baked
           in.
         </p>
-      </header>
+      </div>
 
       <MarketingManager assets={(data ?? []) as MarketingAsset[]} />
     </div>

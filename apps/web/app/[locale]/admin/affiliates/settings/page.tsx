@@ -1,6 +1,3 @@
-import { Link } from "@/i18n/navigation";
-import { ArrowLeft } from "lucide-react";
-
 import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -41,23 +38,6 @@ export default async function AffiliateSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <Link
-          href="/admin/affiliates"
-          className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to affiliates
-        </Link>
-        <h1 className="mt-2 font-display text-2xl font-bold text-brand-ink">
-          Affiliate programme settings
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          Tracking window, refund hold, payout threshold, processor fees and the
-          marketing material affiliates can use.
-        </p>
-      </header>
-
       <AffiliateSettingsClient
         settings={{
           cookieDays: settings?.cookie_days ?? 30,

@@ -67,12 +67,10 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
   };
 
   return (
-    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <div className="am-card p-6">
       <div className="flex items-center gap-2">
         <Trophy className="h-4 w-4 text-brand-primary" />
-        <h2 className="font-display text-[15px] font-bold text-brand-ink">
-          Tiers &amp; bonus rates
-        </h2>
+        <div className="smallcaps">Tiers &amp; bonus rates</div>
       </div>
       <p className="mt-1 text-[12.5px] text-brand-mute">
         A tier adds its bonus % on top of each product&apos;s base commission
@@ -83,7 +81,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[520px] text-sm">
           <thead>
-            <tr className="border-b border-brand-line text-left text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            <tr className="border-b border-brand-line text-left text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
               <th className="py-2 pr-3">Tier name</th>
               <th className="py-2 pr-3">Unlock at (earned)</th>
               <th className="py-2 pr-3">Bonus %</th>
@@ -101,7 +99,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
                     value={r.name}
                     onChange={(e) => setField(r.id, "name", e.target.value)}
                     placeholder="Silver"
-                    className="w-full rounded-md border border-brand-line px-2.5 py-1.5 text-sm outline-none focus:border-brand-primary"
+                    className="fld h-9"
                   />
                 </td>
                 <td className="py-2 pr-3">
@@ -112,7 +110,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
                     onChange={(e) =>
                       setField(r.id, "minEarnings", Number(e.target.value) || 0)
                     }
-                    className="w-32 rounded-md border border-brand-line px-2.5 py-1.5 font-mono text-sm outline-none focus:border-brand-primary"
+                    className="fld mono h-9 w-32"
                   />
                 </td>
                 <td className="py-2 pr-3">
@@ -127,7 +125,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
                         Number(e.target.value) || 0,
                       )
                     }
-                    className="w-24 rounded-md border border-brand-line px-2.5 py-1.5 font-mono text-sm outline-none focus:border-brand-primary"
+                    className="fld mono h-9 w-24"
                   />
                 </td>
                 <td className="py-2">
@@ -136,7 +134,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
                       type="button"
                       onClick={() => save(r)}
                       disabled={pending}
-                      className="inline-flex h-8 items-center gap-1 rounded-md bg-brand-primary px-2.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+                      className="btn-pri h-9"
                     >
                       <Save className="h-3.5 w-3.5" /> Save
                     </button>
@@ -144,7 +142,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
                       type="button"
                       onClick={() => remove(r)}
                       disabled={pending}
-                      className="inline-flex h-8 items-center rounded-md border border-brand-line px-2 text-brand-mute hover:bg-brand-light hover:text-rose-600 disabled:opacity-60"
+                      className="btn-ghost h-9 hover:text-rose-600"
                       title="Remove tier"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -157,11 +155,7 @@ export function AffiliateTiersEditor({ tiers }: { tiers: TierRow[] }) {
         </table>
       </div>
 
-      <button
-        type="button"
-        onClick={addRow}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-semibold text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-      >
+      <button type="button" onClick={addRow} className="btn-ghost mt-3">
         <Plus className="h-3.5 w-3.5" /> Add tier
       </button>
     </div>
