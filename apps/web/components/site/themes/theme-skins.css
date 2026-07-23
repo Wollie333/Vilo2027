@@ -1031,6 +1031,31 @@
   --site-intro-eyebrow-fg: var(--site-secondary);
 }
 
+/* --- Royal reference display scale ---------------------------------------- *
+ * The Royal reference (docs/themes/royalhotel/theme.css §FONTS default) sets
+ * display headings to weight 800 + tracking -0.035em. buildSiteVars emits the
+ * platform TYPE_DEFAULTS (weight 600, tracking -0.01em) INLINE on the root,
+ * which was overriding the reference and leaving Royal headings noticeably
+ * light. Lift them back to the reference scale by declaring the vars on each
+ * royal PAGE scope: a descendant custom-property value wins over the root's
+ * inline one for that subtree WITHOUT !important (same technique as
+ * `.wielo-oceansview [data-section-type]`), so a host's concrete per-element
+ * weight edit (a resolved value, not a var) still overrides it. */
+.wielo-royal .rhome,
+.wielo-royal .rrooms,
+.wielo-royal .rroom,
+.wielo-royal .rabout,
+.wielo-royal .rcontact,
+.wielo-royal .rspecials,
+.wielo-royal .rspecial,
+.wielo-royal .rjournal,
+.wielo-royal .rarticle,
+.wielo-royal .rexp,
+.wielo-royal .rgallery {
+  --site-weight-heading: 800;
+  --site-tracking-heading: -0.035em;
+}
+
 /* --- Section eyebrow "tag" (ochre uppercase + dot) ----------------------- */
 .wielo-safari .site-eyebrow {
   display: inline-flex;
