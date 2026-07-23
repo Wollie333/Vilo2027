@@ -17,6 +17,7 @@ import { LINE, Medal, Podium } from "@/components/affiliate/race/RaceBits";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { loadCampaignLeaderboard } from "@/lib/affiliate/leaderboard";
+import { loadCampaignResults } from "@/lib/affiliate/finalize";
 
 // Public per-campaign leaderboard. Unauthenticated, live day one, built to the
 // approved Founding Race design. Only first name + last initial is shown — the
@@ -72,6 +73,13 @@ export default async function CompetitionLeaderboardPage({
     name: r.publicName,
     slug: "",
   }));
+
+  // Official final winners — only revealed once an admin has published them.
+  const finalResults = await loadCampaignResults(campaign.id);
+  const publishedWinners =
+    finalResults?.publishedAt && finalResults.winners.length > 0
+      ? finalResults.winners
+      : [];
 
   const brand = await getBrandName();
   const isLive =
@@ -159,6 +167,55 @@ export default async function CompetitionLeaderboardPage({
       </section>
 
       <main className="mx-auto max-w-[1120px] px-5 py-10 lg:px-8 lg:py-12">
+        {/* ── Official final winners (only once an admin has published) ── */}
+        {publishedWinners.length > 0 ? (
+          <section className="mb-8 rounded-card border border-amber-300 bg-gradient-to-br from-amber-50 to-white p-5 shadow-card sm:p-6">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              <h2 className="font-display text-[21px] font-extrabold text-brand-ink">
+                Final winners
+              </h2>
+            </div>
+            <p className="mt-1 text-[13px] text-brand-mute">
+              The {campaign.name} has ended — congratulations to our champions.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {publishedWinners.map((w) => (
+                <div
+                  key={w.affiliateId}
+                  className="rounded-2xl border bg-white p-4"
+                  style={{ borderColor: LINE }}
+                >
+                  <div className="text-[26px] leading-none">
+                    {w.placing === 1
+                      ? "🥇"
+                      : w.placing === 2
+                        ? "🥈"
+                        : w.placing === 3
+                          ? "🥉"
+                          : `#${w.placing}`}
+                  </div>
+                  <div className="mt-2 font-display text-[16px] font-bold text-brand-ink">
+                    {w.publicName}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
+                    {w.cash > 0 ? (
+                      <span className="rounded-pill bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                        {zar(w.cash)} cash
+                      </span>
+                    ) : null}
+                    {w.floorPct > 0 ? (
+                      <span className="rounded-pill bg-brand-primary/10 px-2 py-0.5 font-semibold text-brand-primary">
+                        {w.floorPct}% rate floor
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {/* ── Podium ──────────────────────────────────────────── */}
         {rows.length > 0 ? (
           <>

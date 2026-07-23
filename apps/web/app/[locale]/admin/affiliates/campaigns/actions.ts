@@ -9,6 +9,7 @@ import {
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
 import { findFreeSlug } from "@/lib/affiliate/account";
+import { ordinal } from "@/lib/affiliate/finalize";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 // WS-1i — the campaign builder's writes. Campaign config drives REAL commission
@@ -598,6 +599,180 @@ export const removeCampaignFloorAction = withAdminAudit<
       result: { ok: true },
       before: { floor_rate: before.floor_rate, won_via: before.won_via },
       after: null,
+    };
+  },
+);
+
+// ── Finalization ────────────────────────────────────────────────────────────
+// Close a campaign → compute winners (admin-only) → admin accepts → publish the
+// public final leaderboard + award the placing floor prizes. Auto-close at the
+// end date is handled by the finalize-ended-campaigns cron; these are the manual
+// close + the admin publish/recompute controls.
+
+/** Close a running campaign early. The cron does this automatically at the end
+ *  date; this lets the founder end one ahead of time. Computes winners for
+ *  review — it does NOT publish them. */
+export const closeCampaignNowAction = withAdminAudit<
+  { campaignId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_close",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+  },
+  async (args, service) => {
+    await requirePermission(PERMISSION);
+    const { data: camp } = await service
+      .from("affiliate_campaigns")
+      .select("status")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    if (!camp) return { result: { ok: false, error: "Unknown campaign." } };
+    if (camp.status !== "active") {
+      return {
+        result: {
+          ok: false,
+          error: `Only an active campaign can be closed (this one is ${camp.status}).`,
+        },
+      };
+    }
+    const { data: results } = await service.rpc("compute_campaign_results", {
+      p_campaign_id: args.campaignId,
+    });
+    const { error } = await service
+      .from("affiliate_campaigns")
+      .update({
+        status: "ended",
+        results: results ?? [],
+        results_computed_at: new Date().toISOString(),
+      })
+      .eq("id", args.campaignId);
+    if (error) return { result: { ok: false, error: error.message } };
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    return {
+      result: { ok: true },
+      before: { status: camp.status },
+      after: { status: "ended" },
+    };
+  },
+);
+
+/** Re-run the winner computation while the campaign is ended but NOT yet
+ *  published (e.g. after a late listing correction). Refused once published — a
+ *  published result is a public record. */
+export const recomputeCampaignResultsAction = withAdminAudit<
+  { campaignId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_results_recompute",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+  },
+  async (args, service) => {
+    await requirePermission(PERMISSION);
+    const { data: camp } = await service
+      .from("affiliate_campaigns")
+      .select("status, results_published_at")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    if (!camp) return { result: { ok: false, error: "Unknown campaign." } };
+    if (camp.status !== "ended" || camp.results_published_at) {
+      return {
+        result: {
+          ok: false,
+          error: "Recompute is only available before results are published.",
+        },
+      };
+    }
+    const { data: results } = await service.rpc("compute_campaign_results", {
+      p_campaign_id: args.campaignId,
+    });
+    const { error } = await service
+      .from("affiliate_campaigns")
+      .update({
+        results: results ?? [],
+        results_computed_at: new Date().toISOString(),
+      })
+      .eq("id", args.campaignId);
+    if (error) return { result: { ok: false, error: error.message } };
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    return { result: { ok: true } };
+  },
+);
+
+/** Accept & publish: reveal the winners on the PUBLIC final leaderboard and
+ *  permanently award the placing FLOOR prizes (via the same floors table the
+ *  manual tool uses). One-way — a published final is a public record. */
+export const publishCampaignResultsAction = withAdminAudit<
+  { campaignId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_results_publish",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const { data: camp } = await service
+      .from("affiliate_campaigns")
+      .select("status, results, results_published_at, name, slug")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    if (!camp) return { result: { ok: false, error: "Unknown campaign." } };
+    if (camp.status !== "ended") {
+      return {
+        result: { ok: false, error: "Close the campaign before publishing." },
+      };
+    }
+    if (camp.results_published_at) {
+      return { result: { ok: false, error: "Results are already published." } };
+    }
+
+    const winners = (Array.isArray(camp.results) ? camp.results : []) as {
+      placing: number;
+      affiliate_id: string;
+      floor: number;
+    }[];
+
+    // Award every placing FLOOR prize (> 0) — permanent, keyed per partner.
+    const now = new Date().toISOString();
+    for (const w of winners) {
+      if (Number(w.floor) > 0) {
+        await service.from("affiliate_campaign_floors").upsert(
+          {
+            campaign_id: args.campaignId,
+            affiliate_id: w.affiliate_id,
+            floor_rate: Number(w.floor),
+            won_via: `${ordinal(w.placing)} place — ${camp.name}`,
+            awarded_by: admin.userId,
+            awarded_at: now,
+          },
+          { onConflict: "affiliate_id,campaign_id" },
+        );
+      }
+    }
+    // Let any not-yet-cleared commissions pick up the freshly-awarded floors.
+    await service.rpc("recompute_affiliate_campaign_rates");
+
+    const { error } = await service
+      .from("affiliate_campaigns")
+      .update({ results_published_at: now })
+      .eq("id", args.campaignId);
+    if (error) return { result: { ok: false, error: error.message } };
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    if (camp.slug) revalidatePath(`/competitions/${camp.slug}`);
+    return {
+      result: { ok: true },
+      before: { published: false },
+      after: { published: true, winners: winners.length },
     };
   },
 );

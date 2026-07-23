@@ -17,8 +17,8 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **196** (196 with RLS) |
-| Functions | **185** (145 SECURITY DEFINER, 68 trigger fns) |
-| Cron jobs | **42** (16 Vault-gated, 0 inactive) |
+| Functions | **187** (147 SECURITY DEFINER, 68 trigger fns) |
+| Cron jobs | **43** (16 Vault-gated, 0 inactive) |
 | Vault secrets set | **21** |
 
 ## 🚩 Automated red flags
@@ -59,6 +59,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `expire-pending-bookings` | `*/5 * * * *` | yes | — |
 | `expire-quotes` | `5 * * * *` | yes | — |
 | `expire-specials` | `15 2 * * *` | yes | — |
+| `finalize-ended-campaigns` | `30 * * * *` | yes | — |
 | `looking_for_auto_expire` | `0 * * * *` | yes | — |
 | `looking_for_expiry_notify` | `0 10 * * *` | yes | — |
 | `looking_for_region_digest` | `0 9 * * *` | yes | — |
@@ -122,6 +123,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clear_all` | **yes** | yes | callable |
 | `compute_addon_subtotal` | — | — | callable |
+| `compute_campaign_results` | **yes** | yes | callable |
 | `count_broadcast_recipients` | **yes** | yes | callable |
 | `create_affiliate_payout` | **yes** | yes | callable |
 | `current_user_has_password` | **yes** | yes | callable |
@@ -158,6 +160,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `fetch_seasonality_heatmap` | **yes** | yes | callable |
 | `fetch_secondary_metrics` | **yes** | yes | callable |
 | `fetch_time_to_book` | **yes** | yes | callable |
+| `finalize_ended_campaigns` | **yes** | yes | callable |
 | `forbid_admin_audit_log_mutation` | — | — | trigger |
 | `forbid_affiliate_agreement_mutation` | — | — | trigger |
 | `forbid_campaign_rule_acceptance_mutation` | — | — | trigger |
@@ -739,6 +742,9 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `max_participants` | integer | yes | — |
 | `host_offer` | text | yes | — |
 | `hero_image_url` | text | yes | — |
+| `results` | jsonb | yes | — |
+| `results_computed_at` | timestamp with time zone | yes | — |
+| `results_published_at` | timestamp with time zone | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`

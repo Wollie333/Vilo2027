@@ -921,6 +921,9 @@ export type Database = {
           id: string
           max_participants: number | null
           name: string
+          results: Json | null
+          results_computed_at: string | null
+          results_published_at: string | null
           rules_doc_slug: string | null
           slug: string
           starts_at: string | null
@@ -940,6 +943,9 @@ export type Database = {
           id?: string
           max_participants?: number | null
           name: string
+          results?: Json | null
+          results_computed_at?: string | null
+          results_published_at?: string | null
           rules_doc_slug?: string | null
           slug: string
           starts_at?: string | null
@@ -959,6 +965,9 @@ export type Database = {
           id?: string
           max_participants?: number | null
           name?: string
+          results?: Json | null
+          results_computed_at?: string | null
+          results_published_at?: string | null
           rules_doc_slug?: string | null
           slug?: string
           starts_at?: string | null
@@ -12450,6 +12459,10 @@ export type Database = {
         }
         Returns: number
       }
+      compute_campaign_results: {
+        Args: { p_campaign_id: string }
+        Returns: Json
+      }
       count_broadcast_recipients: {
         Args: { p_audience: string; p_host_id: string }
         Returns: Json
@@ -12678,6 +12691,7 @@ export type Database = {
         }
         Returns: Json
       }
+      finalize_ended_campaigns: { Args: never; Returns: number }
       gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {

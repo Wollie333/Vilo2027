@@ -26,10 +26,12 @@ import {
   type MarketingAsset,
 } from "../../marketing/_components/MarketingManager";
 import { loadCampaignMetrics } from "@/lib/affiliate/metrics";
+import { loadCampaignResults } from "@/lib/affiliate/finalize";
 
 import { CampaignAdminTabs } from "../_components/CampaignAdminTabs";
 import { CampaignBuilder } from "../_components/CampaignBuilder";
 import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
+import { CampaignResultsPanel } from "../_components/CampaignResultsPanel";
 import { FloorAwardManager } from "../_components/FloorAwardManager";
 import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
 import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
@@ -274,6 +276,8 @@ export default async function AdminCampaignPage({
 
   // Campaign performance metrics (funnel, commissions, scoring trend, partners).
   const metrics = await loadCampaignMetrics(campaign.id);
+  // Finalization state: computed/published winners for the Results tab.
+  const results = await loadCampaignResults(campaign.id);
 
   // ── OVERVIEW panel ──────────────────────────────────────────────
   const overview = (
@@ -653,6 +657,17 @@ export default async function AdminCampaignPage({
           overview,
           metrics: <CampaignMetricsPanel metrics={metrics} />,
           standings: standingsPanel,
+          results: (
+            <CampaignResultsPanel
+              campaignId={campaign.id}
+              campaignSlug={campaign.slug}
+              status={campaign.status}
+              endsAt={campaign.ends_at as string | null}
+              computedAt={results?.computedAt ?? null}
+              publishedAt={results?.publishedAt ?? null}
+              winners={results?.winners ?? []}
+            />
+          ),
           partners: partnersPanel,
           marketing: marketingPanel,
           rules: rulesPanel,

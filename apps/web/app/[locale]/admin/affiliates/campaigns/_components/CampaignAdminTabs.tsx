@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Flag,
   LayoutDashboard,
   Megaphone,
   ScrollText,
@@ -19,6 +20,7 @@ const TABS: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "metrics", label: "Metrics", icon: BarChart3 },
   { key: "standings", label: "Standings", icon: Trophy },
+  { key: "results", label: "Results", icon: Flag },
   { key: "partners", label: "Partners", icon: Users },
   { key: "marketing", label: "Marketing", icon: Megaphone },
   { key: "rules", label: "Rules & prizes", icon: ScrollText },
