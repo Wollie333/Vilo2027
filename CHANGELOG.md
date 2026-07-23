@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-23 (pt75) — SECURITY_CHECKLIST §2 (RLS-by-role) + §5 (sensitive data), verified live.
+
+Doc-only session — no code changed. Worked the two `SECURITY_CHECKLIST.md` sections the pt74 save
+point pointed at, probing PRODUCTION (anon + a real guest session) rather than reading from code.
+
+- **§5 Sensitive Data — 5/6 ticked.** EFT `account_number` **encryption proven live**: all 3 rows in
+  `eft_banking_details` are `v1.<nonce>.<ct>.<tag>` (zero plaintext). Corrected two stale expectations:
+  the guest-facing EFT path is a **Server Component gated by RLS booking-ownership → service-role
+  fetch**, NOT an Edge Function (a guest reading `eft_banking_details` over PostgREST gets `[]`); and
+  `refund_requests.guest_banking_details` is **N/A** — the app never collects guest bank details
+  (refunds return via the original provider), 0 write sites, the 1 live row is NULL. `admin_audit_log`
+  inserts confirmed live (236 rows, 23 in 48 h). No secret values / PII in prod logs. Left open
+  honestly: a full Sentry-breadcrumb PII review.
+- **§2 Row-Level Security — every item ticked.** Guest scoping proven by count comparison: sees exactly
+  its own **14/29 bookings**, **2/16 conversations**, **3/3 payments** (all its own bookings'), and `[]`
+  from `eft_banking_details`/`subscriptions`; reviews are the 4 published ones (public by design).
+  Staff matrix is least-privilege for money (only `finance`+`super_admin` hold `payments.refund`/
+  `subscriptions.edit`; `content_mod`/`ops` hold zero). `service_role` = 0 client hits.
+- **SECDEF owner-id re-check — the checklist's own trap query flags 11, all safe.** 10 have EXECUTE
+  revoked from PUBLIC (service_role-only, incl. the money fn `apply_wielo_credit` — proven 403
+  `permission denied` to a guest); the 1 anon-callable hit `host_public_suppressed` returns only a
+  public-visibility boolean with no existence oracle. **Lesson: a locked-down ACL is a valid guard —
+  the in-body `auth.uid()` heuristic produces false positives.**
+- Also corrected: `plan_features` is `authenticated_read` only (NOT anon-readable as the checklist
+  claimed) — stricter, so fine, but a public pricing surface must read it server-side.
+
 ## 2026-07-23 (pt73) — VAT inclusive/exclusive toggle for Wielo product pricing.
 
 Founder spotted that a Wielo product receipt (Wielo Quotes R99) showed VAT **deducted** from the

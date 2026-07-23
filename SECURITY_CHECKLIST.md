@@ -76,16 +76,52 @@ WHERE schemaname = 'public'
 ORDER BY tablename;
 ```
 
-- [ ] All tables show `rowsecurity = true`
-- [ ] `anon` role cannot read: `payments`, `refund_requests`, `eft_banking_details`, `admin_audit_log`, `subscriptions`, `host_feature_overrides`, `booking_notes`
-- [ ] `anon` role CAN read: `listings` (published only), `hosts` (active only), `reviews` (published only), `plan_features`, `platform_settings`
-- [ ] Guests can only read/modify their own `bookings`, `conversations`, `messages`, `reviews`
-- [ ] Hosts can only read/modify their own `listings`, `bookings`, `conversations`, `blocked_dates`
-- [ ] Staff access matches documented permission matrix (cannot access billing/subscriptions)
-- [ ] `super_admin` role has full access where expected
-- [ ] `service_role` key is only used in Edge Functions (never in client-side code)
-- [ ] **SECURITY DEFINER functions that take a `p_host_id` (or any owner id) verify
-  ownership internally** — they bypass RLS, so a signed-in user could otherwise
+- [x] All tables show `rowsecurity = true` (only PostGIS `spatial_ref_sys` off — reference data; see the 2026-07-22 audit block above)
+- [x] `anon` cannot read `payments`/`eft_banking_details`/`subscriptions`/… — 2026-07-22 audit block, all `[]`
+- [x] `anon` CAN read **published** listings, not unpublished — proven live
+  2026-07-23: `properties?is_published=eq.true` → rows; `is_published=eq.false` →
+  `[]`. ⚠️ **Spec correction:** `plan_features` is NOT anon-readable — its only
+  SELECT policy is `authenticated_read_plan_features` (6 rows exist; anon gets
+  `[]`). That is *stricter* than this line claimed, so it's fine security-wise, but
+  any public pricing surface must read it server-side/authenticated, not as anon.
+- [x] **Guests can only read their own `bookings`, `conversations`, `messages`,
+  `reviews`** — proven live 2026-07-23 (guest `guest@wielostarter.com`): sees
+  **14/29 bookings — exactly their own 14**, **2/16 conversations — exactly their
+  own 2**, 8 messages (all within those 2 conversations), and 4 reviews (all 4 are
+  `is_published=true` — reviews are public when published, no unpublished leak).
+- [x] **Guests can only read their own `payments`** — proven live 2026-07-23: the
+  same session reads exactly 3 `payments` rows and **all 3 are their own bookings'
+  payments** (`guest_read_own_payments` scopes SELECT to `booking_id IN (bookings
+  WHERE guest_id = auth.uid())`); reads `[]` from `eft_banking_details` and
+  `subscriptions`.
+- [x] Hosts can only read/modify their own `listings`, `bookings`, `conversations`, `blocked_dates` — cross-host IDOR read **and** write proven scoped in the 2026-07-22 audit block (UPDATE/DELETE on another host's property affect 0 rows; row verified unchanged)
+- [x] **Staff permission matrix is least-privilege for money** — proven live
+  2026-07-23 from `admin_role_permissions`: only `finance` + `super_admin` hold
+  the *mutating* finance keys (`payments.refund`, `subscriptions.edit`);
+  `content_mod` (8 keys) and `ops` (4 keys) hold **zero** billing/subscription
+  keys; `support_agent` is read-only here (`payments.view` only, no refund/edit).
+  (⚠️ `payments.refund` still has zero call sites — §6.8/§9; the grant is
+  forward-looking.)
+- [x] `super_admin` has full access — 24 permission keys (every key), and the
+  `admin_full_*` RLS policies gate on `is_super_admin()`.
+- [x] `service_role` key is only used server-side (never client) — grep below
+  returns **zero** in `apps/web/src` + `apps/mobile`; the key appears only in
+  server-only libs (`lib/supabase/admin.ts`, `lib/auth/rateLimit.ts`,
+  `lib/finance/statement-token.ts`, `lib/ical.ts`, API-route workers).
+- [x] **SECDEF owner-scoped functions re-checked 2026-07-23 — the heuristic below
+  flags 11, but ALL are safe.** The trap query (in-body `_can_read_host`/`auth.uid`
+  guard) produces FALSE POSITIVES when EXECUTE is locked down instead — which is
+  the real defence here. Of the 11 `p_host_id` functions it flags, **10 have
+  EXECUTE revoked from PUBLIC and granted only to `postgres` + `service_role`**
+  (incl. the money fn `apply_wielo_credit`), so a forged-id caller can't reach them
+  over PostgREST — **proven live**: as an authenticated guest, `apply_wielo_credit`
+  and `ensure_host_default_policies` both return `42501 permission denied` (403).
+  The **one** anon/authenticated-callable hit, `host_public_suppressed`, returns a
+  single boolean (`hidden_from_directory OR user-inactive`) that the public
+  directory *must* be able to ask, with `COALESCE(...,false)` so a nonexistent id
+  is not an existence oracle — returns `false` (200) to the guest. No IDOR.
+- [x] **SECURITY DEFINER functions that take a `p_host_id` (or any owner id) verify
+  ownership internally** (re-confirmed 2026-07-23, see the bullet above) — they bypass RLS, so a signed-in user could otherwise
   forge the id over PostgREST and read another host's data (an IDOR). Fixed
   2026-07-17 (`20260717000500` + `..0600`): 17 analytics functions now call
   `_assert_can_read_host(p_host_id)`, which RAISEs 42501 for a non-owner and is a
@@ -286,12 +322,44 @@ its own `callback_url` per transaction).
 
 ## 5. Sensitive Data
 
-- [ ] EFT `account_number` encrypted at application layer before DB storage — never stored in plain text
-- [ ] EFT banking details only accessible to guests with `payment_method = 'eft'` confirmed bookings — enforced via Edge Function, not PostgREST
-- [ ] Guest banking details (for EFT refunds) encrypted before storage in `refund_requests.guest_banking_details`
-- [ ] No PII in error logs (no emails, phone numbers, or names in Sentry breadcrumbs)
-- [ ] No secrets in application logs (no API keys, webhook secrets in `console.log`)
-- [ ] `admin_audit_log` captures all super admin actions — confirm inserts are happening in production
+Verified 2026-07-23 against the live database (probed, not read from code).
+
+- [x] **EFT `account_number` encrypted at rest** — AES-256-GCM, storage format
+  `v1.<nonce>.<ct>.<tag>` (`lib/crypto/banking.ts`, matching Deno impl in
+  `supabase/functions/_shared/banking-crypto.ts`). **Proven live: all 3 rows in
+  `eft_banking_details` are `v1.…` (4 dot-parts, not plain-numeric)** — zero
+  plaintext. Encryption is deliberately *optional* (no key ⇒ plain, host EFT
+  deposit accounts are a public business detail), but the key IS set in prod so
+  every stored row is encrypted. Decrypt sniffs the format so legacy-plain rows
+  round-trip without a migration.
+- [x] **EFT banking is gated by booking ownership, NOT read by the guest over
+  PostgREST.** ⚠️ The old wording "enforced via Edge Function" was stale (like the
+  §4 phantom names). The real path: `app/[locale]/booking/[id]/success/page.tsx`
+  (a Server Component) loads the booking with the **RLS-scoped user client**
+  (`guest_read_own_bookings` ⇒ the guest can only reach *their own* booking, else
+  `notFound()`), and only THEN uses the service-role admin client to fetch +
+  decrypt the host's deposit account for that booking. **Proven live**: an
+  authenticated guest session reading `eft_banking_details` over PostgREST returns
+  `[]` (its only RLS policies are super-admin + `host_id = own host`; no
+  guest-facing SELECT policy exists).
+- [x] **Guest-banking-for-EFT-refunds — N/A, the feature does not exist.**
+  `refund_requests.guest_banking_details` has **zero write sites** in app code and
+  the one live row is NULL. Refunds return through the **original** payment
+  provider (Paystack/PayPal), so no guest bank account is ever collected. The
+  column is unused schema — don't "wire encryption" for data that is never stored.
+- [ ] No PII in error logs (no emails, phone numbers, or names in Sentry
+  breadcrumbs) — obvious grep is clean (see next item); a full Sentry-breadcrumb
+  review is still outstanding.
+- [x] **No secret VALUES or PII in production logs.** Grepped every
+  `console.*` in `apps/web` for `account_number|secret|password|api_key|token|
+  cipher`: the only hits are (1) dev **seed scripts** printing *test* account
+  creds to the operator's terminal (not shipped runtime), (2) `passwordReset.ts`
+  logging the send *error message* (not the password), (3) `ical-sync-worker`
+  logging the *name* of an unset secret, not its value. `lib/crypto/banking.ts`
+  carries an explicit "NEVER log ciphertext/plaintext/field-name+row-id" rule.
+- [x] **`admin_audit_log` inserts ARE happening in production** — proven live:
+  236 rows, latest `2026-07-23 08:26 UTC`, **23 in the last 48 h**. (Append-only:
+  anonymise-not-delete, `forbid_admin_audit_log_mutation`.)
 
 ---
 

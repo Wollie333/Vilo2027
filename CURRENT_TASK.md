@@ -2,7 +2,22 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-07-23 pt74) — **START HERE** (supersedes pt66 below)
+## 🟢 SAVE POINT (2026-07-23 pt75) — **START HERE**
+
+**Doc-only session — `SECURITY_CHECKLIST.md` §2 (RLS-by-role) + §5 (sensitive data) verified LIVE**
+(anon + a real guest session against production; no code changed). §2 fully ticked; §5 5/6 (full
+Sentry-breadcrumb PII review still open). Key results: EFT `account_number` encryption proven (all 3
+rows `v1.…`, zero plaintext); guest scoping proven by count (14/29 bookings = its own 14, 2/16
+conversations = own 2, 3/3 payments = own, `[]` from banking/subscriptions); the SECDEF `p_host_id`
+trap query flags 11 but ALL are safe (10 EXECUTE-locked to service_role incl. `apply_wielo_credit`
+— proven 403 to a guest; 1 anon-callable returns only a public boolean). Stale wording corrected:
+guest EFT path is a Server Component (not an Edge Function); `guest_banking_details` is N/A;
+`plan_features` is authenticated-only (not anon). **Next:** §5 Sentry-breadcrumb PII review; §1/§3/§6
+long tail; go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4) still deferred on purpose.
+
+---
+
+## 🟢 SAVE POINT (2026-07-23 pt74) — supersedes pt66 below
 
 **Pushed `0c61ecf1`. Build + lint + tsc green. Tree clean. 0 node procs. Migrations synced.**
 The living resume anchor is the memory save point **`project-savepoint-jul23-pt74`** — read it first.
