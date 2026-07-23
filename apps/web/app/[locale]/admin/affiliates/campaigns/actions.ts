@@ -22,7 +22,7 @@ export type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 const CAMPAIGN_COLS =
-  "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer";
+  "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer, hero_image_url";
 
 /** Create a DRAFT campaign. A campaign is never born live — the founder
  *  configures the ladder and prizes first, then launches it explicitly. */
@@ -147,6 +147,7 @@ export const updateCampaignAction = withAdminAudit<
         rules_doc_slug: c.rules_doc_slug || null,
         max_participants: c.max_participants,
         host_offer: c.host_offer || null,
+        hero_image_url: c.hero_image_url || null,
         commission_structure: c.commission_structure,
         competition: c.competition,
         updated_at: new Date().toISOString(),

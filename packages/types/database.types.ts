@@ -916,6 +916,7 @@ export type Database = {
           eligible_partners: string
           eligible_referrals: string
           ends_at: string | null
+          hero_image_url: string | null
           host_offer: string | null
           id: string
           max_participants: number | null
@@ -934,6 +935,7 @@ export type Database = {
           eligible_partners?: string
           eligible_referrals?: string
           ends_at?: string | null
+          hero_image_url?: string | null
           host_offer?: string | null
           id?: string
           max_participants?: number | null
@@ -952,6 +954,7 @@ export type Database = {
           eligible_partners?: string
           eligible_referrals?: string
           ends_at?: string | null
+          hero_image_url?: string | null
           host_offer?: string | null
           id?: string
           max_participants?: number | null

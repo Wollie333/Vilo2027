@@ -84,6 +84,7 @@ export type LeaderboardData = {
     maxParticipants: number | null;
     competition: Competition | null;
     structure: CommissionStructure | null;
+    heroImageUrl: string | null;
   };
   rows: LeaderboardRow[];
   /**
@@ -176,7 +177,7 @@ export async function loadCampaignLeaderboard(
   const { data: campaign } = await admin
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, rules_doc_slug, max_participants, competition, commission_structure",
+      "id, slug, name, status, starts_at, ends_at, rules_doc_slug, max_participants, competition, commission_structure, hero_image_url",
     )
     .ilike("slug", slug)
     .maybeSingle();
@@ -307,6 +308,7 @@ export async function loadCampaignLeaderboard(
       competition,
       structure: (campaign.commission_structure ??
         null) as CommissionStructure | null,
+      heroImageUrl: (campaign.hero_image_url as string | null) ?? null,
     },
     rows,
     pausedRows,

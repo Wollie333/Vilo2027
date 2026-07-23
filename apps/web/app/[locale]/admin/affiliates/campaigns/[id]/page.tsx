@@ -70,11 +70,23 @@ export default async function AdminCampaignPage({
   const { data: campaign } = await service
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer",
+      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer, hero_image_url",
     )
     .eq("id", params.id)
     .maybeSingle();
   if (!campaign) notFound();
+
+  // Wielo media-library images the hero image can be assigned from.
+  const { data: libObjects } = await service.storage
+    .from("marketing-assets")
+    .list("", { limit: 500, sortBy: { column: "created_at", order: "desc" } });
+  const libraryImages = (libObjects ?? [])
+    .filter((o) => o.id && o.name)
+    .map((o) => ({
+      path: o.name,
+      url: service.storage.from("marketing-assets").getPublicUrl(o.name).data
+        .publicUrl,
+    }));
 
   const [
     { data: legalDocs },
@@ -260,6 +272,7 @@ export default async function AdminCampaignPage({
           max_participants:
             (campaign.max_participants as number | null) ?? null,
           host_offer: (campaign.host_offer as string | null) ?? null,
+          hero_image_url: (campaign.hero_image_url as string | null) ?? null,
           commission_structure: (campaign.commission_structure ?? {
             model: "inherit",
           }) as never,
@@ -270,6 +283,7 @@ export default async function AdminCampaignPage({
           title: d.title as string,
         }))}
         enrolledActive={activeEnrolled}
+        libraryImages={libraryImages}
       />
     </div>
   );

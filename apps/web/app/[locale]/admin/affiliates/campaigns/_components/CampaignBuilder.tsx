@@ -31,6 +31,8 @@ import {
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
 
+import { LibraryImagePicker } from "@/components/affiliate/LibraryImagePicker";
+
 import { setCampaignStatusAction, updateCampaignAction } from "../actions";
 import { CAMPAIGN_HELP, FieldHelp, type HelpEntry } from "./FieldHelp";
 
@@ -66,12 +68,15 @@ export function CampaignBuilder({
   initial,
   legalDocs,
   enrolledActive,
+  libraryImages,
 }: {
   campaignId: string;
   initial: CampaignInput;
   legalDocs: { slug: string; title: string }[];
   /** Places already taken — shown against the cap so it can't be set blind. */
   enrolledActive: number;
+  /** Wielo media-library images the hero image can be assigned from. */
+  libraryImages: { path: string; url: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -92,6 +97,9 @@ export function CampaignBuilder({
     initial.max_participants != null ? String(initial.max_participants) : "",
   );
   const [hostOffer, setHostOffer] = useState(initial.host_offer ?? "");
+  const [heroImage, setHeroImage] = useState<string | null>(
+    initial.hero_image_url ?? null,
+  );
 
   const cs = initial.commission_structure;
   const [model, setModel] = useState(cs.model);
@@ -161,6 +169,7 @@ export function CampaignBuilder({
         ? Math.max(1, Math.round(Number(maxParticipants)))
         : null,
       host_offer: hostOffer.trim() || null,
+      hero_image_url: heroImage,
       commission_structure: {
         model,
         scope,
@@ -487,6 +496,22 @@ export function CampaignBuilder({
               is a commercial promise published under a partner&rsquo;s name and
               photo — leave it blank and the page makes no pricing claim at all,
               rather than inventing one.
+            </span>
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className={LABEL}>Hero image</span>
+            <div className="mt-1">
+              <LibraryImagePicker
+                images={libraryImages}
+                value={heroImage}
+                onChange={setHeroImage}
+              />
+            </div>
+            <span className="mt-1 block text-[11px] text-brand-mute">
+              Assigned from the Wielo media library — shows as the background of
+              the public leaderboard (/competitions/&lt;slug&gt;). Leave empty
+              for the plain dark hero.
             </span>
           </label>
 

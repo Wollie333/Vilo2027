@@ -216,6 +216,8 @@ export const campaignInputSchema = z
      * here rather than hardcoded in the page.
      */
     host_offer: z.string().trim().max(60).nullable(),
+    /** Public leaderboard hero background — a URL from the Wielo media library. */
+    hero_image_url: z.string().trim().max(500).nullable(),
     commission_structure: commissionStructureSchema,
     competition: competitionSchema,
   })

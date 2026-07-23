@@ -82,6 +82,20 @@ export default async function CompetitionLeaderboardPage({
         className="relative overflow-hidden border-b bg-brand-dark text-white"
         style={{ borderColor: LINE }}
       >
+        {/* Admin-assigned hero image (from the Wielo media library), behind a
+            dark scrim so the white hero text stays legible. */}
+        {campaign.heroImageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={campaign.heroImageUrl}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/80 to-brand-dark/50" />
+          </>
+        ) : null}
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="relative mx-auto max-w-[1120px] px-5 py-14 lg:px-8 lg:py-16">
