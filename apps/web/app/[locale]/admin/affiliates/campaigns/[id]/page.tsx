@@ -142,7 +142,7 @@ export default async function AdminCampaignPage({
     service.rpc("campaign_active_listings", { p_campaign_id: campaign.id }),
     service
       .from("affiliate_campaign_floors")
-      .select("affiliate_id, floor_rate, reason, awarded_at")
+      .select("affiliate_id, floor_rate, won_via, awarded_at")
       .eq("campaign_id", campaign.id),
     service
       .from("affiliate_campaign_rule_acceptances")
@@ -232,7 +232,7 @@ export default async function AdminCampaignPage({
     id: `${f.affiliate_id}-${f.awarded_at}`,
     name: nameById.get(f.affiliate_id)?.name ?? "—",
     rate: `${rateToPct(Number(f.floor_rate))}%`,
-    reason: (f.reason as string | null) ?? "—",
+    reason: (f.won_via as string | null) ?? "—",
     awarded_at: f.awarded_at as string | null,
   }));
 
