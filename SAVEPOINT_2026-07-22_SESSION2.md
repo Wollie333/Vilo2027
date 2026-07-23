@@ -31,8 +31,28 @@
 >   white nav still render correctly.
 > - **Screenshots still flaky** (30s timeouts) — DOM/computed-style reads were the reliable proof, as noted.
 >
-> Only the Home fix changed code (`63fc8a5`). Everything else was verification. Remaining Royal conform
-> is minor/iterative (per-section spacing/typography nits) and can continue next session with the same rig.
+> **THEN two theme-wide typographic conform fixes** (measured vs the reference `theme.css`, HEAD now `9a35e91`):
+> - **`abb2580` heading display scale** — reference sets headings to weight **800** + tracking **-0.035em**
+>   (theme.css §FONTS default), but buildSiteVars emits TYPE_DEFAULTS (600 / -0.01em) INLINE on the
+>   `.wielo-royal` root → every Royal heading rendered light. Declared the reference vars on each royal
+>   PAGE scope (`.wielo-royal .rhome, .rrooms, …` — descendant custom-prop wins over the inline root without
+>   `!important`, same trick OceansView uses). Verified live: hero/section/welcome headings = 800 / -0.035em
+>   exactly, on home AND rooms.
+> - **`9a35e91` 6px button corners** — reference `.btn` = 6px (grand-hotel refinement), NOT pills. Royal
+>   buttons were full pills (0.5rem token inline + 5 files hardcoding `border-radius:999px` on base `.btn`).
+>   Set `--site-btn-*-radius: 6px` on the royal scopes + repointed the 5 hardcoded rules to the token.
+>   Chips/tags/rating-pills/social icons keep their own 999px. Verified live on home/contact/specials: every
+>   `.btn` = 6px, round chips unchanged, no layout regression (11 secs, 1 h1, no overflow, no stuck reveals).
+> - Both are `.wielo-royal`-scoped → other themes untouched. **Gotcha seen:** editing a globally-imported CSS
+>   (theme-skins.css) sometimes triggers a transient dev-server `Cannot read properties of null (reading
+>   'useEffect')` in SiteAnalytics — a stale React-module-cache glitch, NOT the CSS; a `preview_stop`+`start`
+>   clears it.
+>
+> Remaining Royal conform is finer per-section spacing nits (e.g. hero maxWidth 15ch already matches — the
+> px diff was a sandbox `ch` font-metric artifact). Continue next session with the same rig
+> (`cp -r docs/themes/royalhotel apps/web/public/_royalref && cp .../theme.css .../pages/theme.css`; DELETE
+> before commit — removed at session end). Compare computed font-weight/size/spacing/radius, not screenshots
+> (still flaky, 30s timeouts).
 >
 > **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
 > **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.

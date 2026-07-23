@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-23 — Royal conform: reference display scale + 6px button corners.
+
+Continued the section-by-section Royal conform with two theme-wide typographic
+fixes measured directly against the reference `theme.css`. **(1) Heading display
+scale (`abb2580`):** the reference sets display headings to `font-weight: 800` +
+`letter-spacing: -0.035em`, but `buildSiteVars` emits the platform TYPE_DEFAULTS
+(weight 600, -0.01em) inline on the `.wielo-royal` root, leaving every Royal
+heading noticeably light. Declared the reference vars on each royal page scope
+(`.wielo-royal .rhome`, `.rrooms`, … — a descendant custom-property wins over the
+root's inline value without `!important`, same technique OceansView uses), so a
+host's concrete per-element weight edit still overrides. Verified: hero/section/
+welcome headings now resolve to 800 / -0.035em, matching the reference exactly.
+**(2) Button corners (`9a35e91`):** the reference `.btn` uses refined 6px corners,
+not pills; Royal buttons rendered as full pills (0.5rem token inline + five files
+hardcoding `border-radius: 999px` on the base `.btn`). Set `--site-btn-*-radius: 6px`
+on the royal scopes and repointed the five hardcoded rules to the token; chips,
+tags, rating pills and social icons keep their explicit 999px. Verified live on
+mana home/contact/specials: every `.btn` is 6px, round chips/pills unchanged, no
+layout regression (11 sections, 1 h1, no overflow, no stuck reveals). Other themes
+untouched (all selectors `.wielo-royal`-scoped). Reference rig removed before commit.
+
 ## 2026-07-23 — Royal conform verification pass + home sand-band rhythm fix.
 
 Confirmed production healthy first: `mana.wielo.co.za` renders 200 with no crash
