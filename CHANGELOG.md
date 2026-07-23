@@ -5,9 +5,31 @@
 
 ---
 
-## 2026-07-23 (pt75) — SECURITY_CHECKLIST §2 (RLS-by-role) + §5 (sensitive data), verified live.
+## 2026-07-23 (pt75) — SECURITY_CHECKLIST §2 + §3 + §5 + §6 verified live.
 
-Doc-only session — no code changed. Worked the two `SECURITY_CHECKLIST.md` sections the pt74 save
+Doc-only session — no code changed. Worked the `SECURITY_CHECKLIST.md` sections the pt74 save point
+pointed at (§2 RLS-by-role, §5 sensitive data) then continued into §3 (API/Edge Functions) and §6
+(file uploads), probing PRODUCTION (anon + a real guest session; live `storage.buckets`/`objects`;
+all 6 deployed Edge Functions read).
+
+- **§3 API & Edge Functions — 4/5 ticked.** All 6 deployed functions read. `track-listing-view`
+  (public beacon) is exemplary: UUID-regex input gate, allowlisted device/country, clamped duration,
+  the property-existence oracle removed (pt65), generic `{code,message}` errors. `external-review-reply`
+  uses the **caller's JWT** so RLS enforces review ownership (non-owner ⇒ 404). `external-reviews-sync`
+  fail-closed auth (cron secret OR service_role role-claim; the pt63 `return true` no-op is gone, gate
+  proven wired). `report-scheduler` refuses if its secret is unset. **Correction:** the "directory
+  endpoints 60 req/min" line is aspirational — read endpoints have NO per-IP limit; `lib/auth/rateLimit.ts`
+  (salted-IP ledger, fail-open behind Turnstile) covers the abuse-prone WRITES (signups 8/60min, re-auth,
+  enquiries, checkout). DoS/scraping gap on reads, not a vulnerability — left unticked + documented.
+- **§6 File Uploads — all ticked + 1 flag.** Bucket allowlists match spec exactly (listing-photos/
+  eft-proofs/refund-requests); all private buckets `public=false` with no `public_read` policy; every
+  INSERT policy is `auth.uid()` + folder-ownership scoped. The 3 no-MIME/no-size buckets
+  (marketing-assets/host-brochures/quote-uploads) have **no client INSERT policy** → service-role write
+  only, so "public + any-mime" on marketing-assets is not user-exploitable. ⚠️ **Flagged (low):**
+  `website-assets` is public + host-writable + allows `image/svg+xml` (script-in-SVG on the storage
+  origin) — spawned a background task to drop SVG or serve as attachment after checking the builder.
+
+Worked the two `SECURITY_CHECKLIST.md` sections the pt74 save
 point pointed at, probing PRODUCTION (anon + a real guest session) rather than reading from code.
 
 - **§5 Sensitive Data — 5/6 ticked.** EFT `account_number` **encryption proven live**: all 3 rows in

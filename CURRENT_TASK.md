@@ -4,16 +4,25 @@
 
 ## 🟢 SAVE POINT (2026-07-23 pt75) — **START HERE**
 
-**Doc-only session — `SECURITY_CHECKLIST.md` §2 (RLS-by-role) + §5 (sensitive data) verified LIVE**
-(anon + a real guest session against production; no code changed). §2 fully ticked; §5 5/6 (full
-Sentry-breadcrumb PII review still open). Key results: EFT `account_number` encryption proven (all 3
-rows `v1.…`, zero plaintext); guest scoping proven by count (14/29 bookings = its own 14, 2/16
-conversations = own 2, 3/3 payments = own, `[]` from banking/subscriptions); the SECDEF `p_host_id`
-trap query flags 11 but ALL are safe (10 EXECUTE-locked to service_role incl. `apply_wielo_credit`
-— proven 403 to a guest; 1 anon-callable returns only a public boolean). Stale wording corrected:
-guest EFT path is a Server Component (not an Edge Function); `guest_banking_details` is N/A;
-`plan_features` is authenticated-only (not anon). **Next:** §5 Sentry-breadcrumb PII review; §1/§3/§6
-long tail; go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4) still deferred on purpose.
+**Doc-only session — `SECURITY_CHECKLIST.md` §2 + §3 + §5 + §6 verified LIVE** (anon + a real guest
+session; live storage config; all 6 Edge Functions read; no code changed). §2 fully ticked; §5 5/6
+(Sentry-breadcrumb PII review open); §3 4/5 (directory-read rate-limit is a documented DoS gap, not a
+vuln); §6 all ticked + 1 low flag. Key results:
+- **§2/§5:** EFT `account_number` encryption proven (all 3 rows `v1.…`); guest scoping proven by
+  COUNT (14/29 bookings = its own 14, 2/16 convos, 3/3 payments; `[]` from banking/subscriptions); the
+  SECDEF `p_host_id` trap flags 11 but ALL safe (10 EXECUTE-locked to service_role incl.
+  `apply_wielo_credit` → proven 403 to a guest; 1 anon returns only a public bool). Corrected: guest
+  EFT path = Server Component not Edge Fn; `guest_banking_details`=N/A; `plan_features`=authenticated-only.
+- **§3:** `track-listing-view` exemplary (UUID gate, oracle removed); `external-review-reply` uses the
+  caller's JWT so RLS enforces ownership; `external-reviews-sync` fail-closed (pt63 no-op gone);
+  `report-scheduler` refuses if secret unset. Rate-limiting covers abuse-prone WRITES only.
+- **§6:** allowlists match spec; private buckets `public=false` no `public_read`; every INSERT policy
+  is `auth.uid()`+owner-scoped; the 3 no-limit buckets are service-role-write-only. ⚠️ Flag +
+  background task: `website-assets` public + host-writable + allows SVG (task_ed05bf12).
+
+**Next:** §5 Sentry-breadcrumb PII review; §1 (auth/session — app-side pieces; dashboard toggles are
+founder-only); §7 CSP (deferred to live-QA); go-live flips (`docs/SMOKE_TESTS.md` §0.5 G1–G4) deferred
+on purpose.
 
 ---
 

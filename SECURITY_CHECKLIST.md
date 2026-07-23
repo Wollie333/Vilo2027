@@ -150,11 +150,43 @@ grep -r "NEXT_PUBLIC_SUPABASE_SERVICE" apps/
 
 ## 3. API & Edge Functions
 
-- [ ] All public Edge Functions have input validation via Zod before any DB operation
-- [ ] All public Edge Functions validate the JWT before performing any action requiring auth
-- [ ] Rate limiting confirmed: directory endpoints at 60 req/min per IP
-- [ ] Edge Functions return `{ success: false, error: { code, message } }` on all error paths — no stack traces leaked to clients
-- [ ] No Edge Function exposes internal implementation details in error messages
+Verified 2026-07-23 by reading all **6** deployed functions (`supabase functions
+list`: `_shared`, `external-review-reply`, `external-reviews-sync`,
+`paystack-webhook`, `report-scheduler`, `track-listing-view`; PayPal is a Next.js
+API route, see §4).
+
+- [x] **Public Edge Functions validate input before any DB write** — ⚠️ *manual*
+  validation, not Zod (the Deno functions predate the shared schema pkg), but it is
+  strict: `track-listing-view` (the public beacon) UUID-regex-gates `property_id`
+  → 400, allowlists `device`/`country`, clamps `duration`; `external-review-reply`
+  requires `review_id`+`reply` → 400; the two webhooks gate on signature before
+  anything. `external-reviews-sync` takes no user input (reads sources from the DB).
+- [x] **Auth validated before any action that needs it, and it FAILS CLOSED.**
+  `external-review-reply` builds the client with the **caller's JWT** so RLS
+  enforces review ownership (non-owner ⇒ 404 "access denied"), not the service
+  role. `external-reviews-sync` requires a cron secret (timing-safe) **or** a
+  `service_role` role-CLAIM bearer — the pt63 `return true` no-op is gone (proven
+  wired: `isAuthorized` gates at line 99 → 401). `report-scheduler` refuses if
+  `REPORT_SCHEDULER_SECRET` is unset → 401. `paystack-webhook` = HMAC + constant-time
+  + `--no-verify-jwt` (§4).
+- [ ] **Rate limiting — abuse-prone WRITES are covered; directory READS are not.**
+  ⚠️ Correction: there is no per-IP limit on directory read endpoints (the "60
+  req/min" line was aspirational — `track-listing-view` and public browse have
+  none). What EXISTS (`lib/auth/rateLimit.ts`, salted-IP-hash ledger in
+  `signup_rate_limits`, independent per-`purpose` buckets, **fail-open** behind
+  Turnstile) guards the endpoints that actually matter for abuse: all signup flows
+  (8/60 min), re-auth/password-verify (tighter), public enquiries, looking-for
+  posts, website enquiries, and site checkout. Directory reads are stateless +
+  RLS-safe, so this is a DoS/scraping-hardening gap, not a vulnerability — revisit
+  with a real limiter (Vercel edge / Upstash) at scale.
+- [x] **All error paths return `{ success: false, error: { code, message } }`
+  with a GENERIC message** — every top-level `catch` in the 4 non-webhook functions
+  returns `INTERNAL_ERROR` / a scoped code, never `error.message`, to the caller.
+- [x] **No internal details leaked** — the `track-listing-view` property-existence
+  oracle and the `external-reviews-sync` bare-string leak are both fixed (pt63/pt65).
+  The only surviving `error.message` returns are (a) into per-source `results` for
+  the **authenticated** sync caller (external-API text, not Postgres internals) and
+  (b) DB columns (`last_sync_error`) — neither reaches an anonymous client.
 
 ---
 
@@ -365,13 +397,33 @@ Verified 2026-07-23 against the live database (probed, not read from code).
 
 ## 6. File Uploads
 
-- [ ] Supabase Storage bucket policies restrict file types:
-  - `listing-photos`: image/jpeg, image/png, image/webp only
-  - `eft-proofs`: image/jpeg, image/png, application/pdf only
-  - `refund-requests`: image/jpeg, image/png, application/pdf only
-- [ ] File size limits enforced per bucket (10 MB max for most — see `supabase_database.md` Section 20)
-- [ ] Private buckets (`eft-proofs`, `message-attachments`, `refund-requests`) have no public read access
-- [ ] Storage RLS policies restrict uploads to authenticated users scoped to their own data
+Verified 2026-07-23 against the live `storage.buckets` + `storage.objects` RLS.
+
+- [x] **Bucket file-type allowlists match spec** — `listing-photos` =
+  jpeg/png/webp; `eft-proofs` = jpeg/png/pdf; `refund-requests` = jpeg/png/pdf
+  (exact match). All image buckets are jpeg/png/webp(+gif/svg where noted).
+- [x] **Size limits enforced** — 5–20 MB per bucket. ⚠️ Three buckets carry NO
+  MIME/size limit (`marketing-assets`, `host-brochures`, `quote-uploads`) — but
+  **none of them has a client INSERT policy**, so only the service role (Server
+  Actions, which validate server-side) can write them. `marketing-assets` being
+  *public + any-mime* is therefore NOT user-writable — the "any" is safe.
+- [x] **Private buckets have no public read** — `eft-proofs`, `message-attachments`,
+  `refund-requests`, plus `invoice-pdfs`, `credit-note-pdfs`, `quote-uploads`,
+  `host-brochures` are all `public=false` with **no `public_read` policy**; their
+  SELECT policies scope to booking/conversation participants or the owner host/guest
+  (+ super-admin for refund docs). The Storage CDN won't serve them without a signed
+  URL.
+- [x] **Every upload (INSERT) policy is authenticated + owner-scoped** — each
+  `with_check` requires `auth.uid()` AND a folder-ownership match: host uploads keyed
+  to `get_my_host_id()` owning the property/website/addon; guest uploads keyed to
+  `bookings.guest_id = auth.uid()`; avatar/lf-images keyed to the `auth.uid()`
+  top-level folder. No unauthenticated or cross-owner write path exists.
+- ⚠️ **FLAGGED (low, defense-in-depth):** `website-assets` is **public + host-
+  writable + allows `image/svg+xml`**. An SVG can carry `<script>` that runs when the
+  object URL is opened as a top-level document. It's served from the storage origin
+  (not the app's cookie domain) and is the host's own content, so impact is limited —
+  but consider dropping `svg` from this bucket or serving it `Content-Disposition:
+  attachment`. Not yet changed (would touch bucket config outside this doc pass).
 
 ---
 
