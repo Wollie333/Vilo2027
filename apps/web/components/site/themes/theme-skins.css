@@ -1054,6 +1054,12 @@
 .wielo-royal .rgallery {
   --site-weight-heading: 800;
   --site-tracking-heading: -0.035em;
+  /* Reference buttons are refined 6px corners, NOT pills (theme.css §.btn).
+     buildSiteVars emits 0.5rem inline on the root; override for royal here so
+     the var-driven .btn rules resolve to 6px. Chips/tags/rating-dots/social
+     icons keep their own explicit 999px — only .btn consumes these tokens. */
+  --site-btn-primary-radius: 6px;
+  --site-btn-secondary-radius: 6px;
 }
 
 /* --- Section eyebrow "tag" (ochre uppercase + dot) ----------------------- */
