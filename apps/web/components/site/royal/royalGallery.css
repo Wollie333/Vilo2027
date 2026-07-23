@@ -219,7 +219,7 @@
 .rgallery .phead p {
   color: rgba(255, 255, 255, 0.9);
   margin-top: 22px;
-  max-width: 56ch;
+  max-width: 52ch;
   font-size: 1.1rem;
   line-height: 1.55;
 }
