@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-24 — Royal conform: detail-page bodies (section-heading scale).
+
+Section-level diff of the detail-page bodies (room-detail, special-detail) against
+the reference. Their bodies already matched (`.section` 64/115px, `.amen` 2-col grid
++ gaps, `.room` cards 12px, sticky booking `aside`, `.stotal .amt` 35.2px all equal
+to the reference) — the one delta was the section headings ("Reviews", "Other rooms",
+"More offers") rendering at the larger page `h2.lg` size (56.32px) instead of the
+reference sec-head scale (`clamp(2rem,4.2vw,3.4rem)` = 53.76px), because royalRoom/
+Special/Contact/Experiences/Journal/Article CSS lacked the `.sec-head h2` font-size
+rule that home/about already carry. Added it to all six (`3c40a12`). Verified live:
+room-detail, special-detail and contact section heads now 53.76px; room-detail sticky
+book card + amenities + other-rooms render; no overflow, one h1. (Article body isn't
+live-verifiable — mana has no published posts, so /blog + /blog/[post] 404; the rule
+was added for parity.) An intermittent dev-server 404 on the site routes was confirmed
+environmental — a preview restart cleared it; all measured values are post-restart.
+
 ## 2026-07-23 — Royal conform: per-page phead heights + subtitle width.
 
 Section-level computed-style diff of About/Contact against the reference (both

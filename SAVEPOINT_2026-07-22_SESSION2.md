@@ -94,9 +94,24 @@
 > **Conformance status: Home token-for-token matched; About/Contact section-diffed + conformed; all pages
 > share the conformed token block + charcoal colours + 52ch subtitles + correct phead heights.** Remaining
 > deltas are sub-perceptible (±1px contact field label 11 vs 12px, input padding 13 vs 14px, radius 9 vs 7px)
-> and risk regressions from first-match mis-measurement — left for a future targeted pass if wanted. NOT yet
-> section-diffed at this depth: Journal-article, Special-detail, Room-detail bodies (structure already matched
-> in the earlier pass; only a fine spacing diff remains).
+> and risk regressions from first-match mis-measurement — left for a future targeted pass if wanted.
+>
+> **THEN detail-page bodies section-diffed (room-detail + special-detail) → one more commit (`3c40a12`,
+> HEAD now `3c40a12`):** their bodies already matched the reference (`.section` 64/115px, `.amen` 2-col grid
+> + 14/30 gaps, `.room` 12px, sticky book `aside`, `.stotal .amt` 35.2px) — the single delta was the
+> **section headings** ("Reviews"/"Other rooms"/"More offers") at the larger page `h2.lg` (56.32px) instead
+> of the reference sec-head scale `clamp(2rem,4.2vw,3.4rem)` (53.76px). royalRoom/Special/Contact/Experiences/
+> Journal/Article lacked the `.sec-head h2` font-size rule that home/about carry → added it to all six.
+> Verified live: room/special/contact section heads 53.76px; room-detail sticky book card + amenities +
+> other-rooms render; no overflow, 1 h1. Article body NOT live-verifiable (mana has no published posts →
+> /blog + /blog/[post] 404; rule added for parity). **Dev-server gotcha:** the site routes intermittently
+> 404 ("site isn't published yet") after many edits/reloads — ENVIRONMENTAL (a `preview_stop`+`start` clears
+> it), not a code bug; take measurements right after a restart.
+>
+> **Royal conform is now comprehensive** across structure, type, shape, colour, page-headers AND detail bodies.
+> The only unconformed items left are the sub-perceptible ±1px contact form-field metrics (label/input/radius)
+> and a full live pass of the Journal ARTICLE body (blocked until mana has a published post). Everything else
+> is token-for-token / rule-for-rule matched to `docs/themes/royalhotel`.
 >
 > **Branch:** `feature/website-cms-10min-wizard` (Journal `353d841` + Specials `7994015` committed) ·
 > **prod hotfix on `main`:** `b2ab4d7` (FONT_STACKS guard, deploying). Push the feature branch before ending.
