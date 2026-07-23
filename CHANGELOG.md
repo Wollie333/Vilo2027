@@ -33,6 +33,34 @@ live DB, then built the missing metric surfaces and proved the campaign layer en
   recompute, scoring snapshot (6 live listings). Both metric surfaces verified LIVE in the admin app
   with reconciling numbers (campaign R1149.60; programme lifetime R2348.40). Build + lint + tsc green.
 
+## 2026-07-24 (pt83) — Affiliate program verification sweep (14 aspects) + security + mobile.
+
+Worked the affiliate program one aspect at a time, proving each against the real code + live DB
+(never assuming a 2xx). Found + fixed 3 real bugs and 1 PII leak; flagged 1 gap.
+
+- **Money engine PROVEN end-to-end** through the real RPCs (ephemeral, self-cleaning tests):
+  duration gating (once=1 / months=N / forever), tier bonus (×1.10), setup-fee split, upgrade-delta
+  (no sub row), campaign ladder band-crossing (10→15%) + whole-book recompute + floor override (25%),
+  clawback (full void / proportional −40% offset / idempotent backstop), payout threshold-deny +
+  request fee (2%) + reject-returns-to-available. Capacity trigger + rule-acceptance immutability
+  proven via rollback SQL.
+- 🐛 **fix**: admin campaign floors table selected `reason` (column is `won_via`) → PostgREST error →
+  floors silently never displayed (537c520a).
+- 🔒 **fix (PII leak)**: public /competitions/[slug] shipped partner real names + referral slugs to
+  the browser via LiveStandings ("use client") props; scrub to publicName/"" first. Proven: payload
+  now has 0 full-name/slug occurrences (5436a419).
+- 🧪 **fix**: stale campaignConfig test (missing hero_image_url) (5436a419).
+- **SECURITY**: cross-partner RLS isolation proven live (partner A sees 0 of B's commissions/referrals/
+  payouts/methods/clicks/account); every money RPC service_role-only; payout action derives affiliate
+  from the session (no IDOR); account_number encrypted at rest + never rendered; public leaderboard
+  anonymised.
+- **MOBILE**: public competition, dashboard, payouts, race all 0 horizontal overflow at 375px (wide
+  tables scroll in-container).
+- **GAP flagged**: nothing inserts affiliate_campaign_floors — the "prizes = permanent floors" mechanic
+  has no award path (no admin action, no auto-award at campaign end). Needs a decision/build.
+- Correction: affiliate_tiers is NOT empty — Silver (5%@R250k) + Gold (7%@R500k) exist; they just
+  don't trigger until a partner earns R250k. 446 tests / build / lint green.
+
 ## 2026-07-23 (pt78) — User-facing affiliate program complete (all pages pixel-perfect).
 
 Built out every remaining partner-facing affiliate page to match the approved design
