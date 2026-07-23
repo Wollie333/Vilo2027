@@ -33,7 +33,14 @@ export type DocHostParty = {
 export async function getHostParty(
   admin: Admin,
   hostId: string,
-  bookingRef?: string | null,
+  /**
+   * The EFT payment reference to print, verbatim — the DOCUMENT's own number
+   * (invoice/statement number) so the payer copy-pastes an exact, matchable
+   * value. Booking-only documents pass the booking reference. Deliberately NOT
+   * run through the bank's `reference_format` ("WIELO-{booking_ref}") — a payment
+   * reference must be the plain id, not a prefixed/instructional string.
+   */
+  docReference?: string | null,
   /**
    * VAT number to print, overriding the business one. Pass the booking's
    * listing VAT number so a tax invoice shows the VAT identity that actually
@@ -144,10 +151,9 @@ export async function getHostParty(
         accountType: bank.account_type ?? "",
         branchCode: bank.branch_code ?? "",
         swiftCode: bank.swift_code ?? null,
-        reference:
-          bookingRef && bank.reference_format
-            ? bank.reference_format.replace(/\{booking_ref\}/g, bookingRef)
-            : null,
+        // The document number verbatim — never wrapped in reference_format, so
+        // no "WIELO-…" prefix; the payer needs the exact id to copy-paste.
+        reference: docReference?.trim() || null,
       };
     }
   }

@@ -8,7 +8,7 @@ import {
 } from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyExact } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -109,7 +109,9 @@ export default async function PublicInvoicePage({
   const party = await getHostParty(
     admin,
     invoice.host_id,
-    bookingRef,
+    // The EFT reference is this invoice's own number — the exact value the payer
+    // copy-pastes — not the booking ref wrapped in "WIELO-…".
+    invoice.invoice_number,
     listingVatNumber,
     businessId,
   );
@@ -132,12 +134,12 @@ export default async function PublicInvoicePage({
         lineRows.push({
           title: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
           sub: stayNote,
-          amount: formatMoney(r.base_amount, c),
+          amount: formatMoneyExact(r.base_amount, c),
         });
         if (r.cleaning_fee > 0) {
           lineRows.push({
             title: `Cleaning — ${r.room_name}`,
-            amount: formatMoney(r.cleaning_fee, c),
+            amount: formatMoneyExact(r.cleaning_fee, c),
           });
         }
       }
@@ -145,12 +147,12 @@ export default async function PublicInvoicePage({
       lineRows.push({
         title: `${lines.listing_name ?? "Stay"} — base`,
         sub: stayNote,
-        amount: formatMoney(lines.base_amount, c),
+        amount: formatMoneyExact(lines.base_amount, c),
       });
       if (lines.cleaning_fee > 0) {
         lineRows.push({
           title: "Cleaning",
-          amount: formatMoney(lines.cleaning_fee, c),
+          amount: formatMoneyExact(lines.cleaning_fee, c),
         });
       }
     }
@@ -159,7 +161,7 @@ export default async function PublicInvoicePage({
     lineRows.push({
       title: a.label,
       mid: a.quantity > 1 ? `× ${a.quantity}` : null,
-      amount: formatMoney(a.subtotal, c),
+      amount: formatMoneyExact(a.subtotal, c),
     });
   }
 
@@ -197,7 +199,7 @@ export default async function PublicInvoicePage({
       }}
       balance={{
         label: isPaid ? "Amount Paid" : "Balance Due",
-        value: formatMoney(invoice.total_amount, c),
+        value: formatMoneyExact(invoice.total_amount, c),
         positive: isPaid,
       }}
       metaRows={[
@@ -216,12 +218,12 @@ export default async function PublicInvoicePage({
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
       totals={[
-        { label: "Subtotal", value: formatMoney(subtotalGross, c) },
+        { label: "Subtotal", value: formatMoneyExact(subtotalGross, c) },
         ...(stayDiscount > 0
           ? [
               {
                 label: "Discount",
-                value: `− ${formatMoney(stayDiscount, c)}`,
+                value: `− ${formatMoneyExact(stayDiscount, c)}`,
                 tone: "mute" as const,
               },
             ]
@@ -232,7 +234,7 @@ export default async function PublicInvoicePage({
                 label: lines.coupon_code
                   ? `Discount (${lines.coupon_code})`
                   : "Discount",
-                value: `− ${formatMoney(discount, c)}`,
+                value: `− ${formatMoneyExact(discount, c)}`,
                 tone: "mute" as const,
               },
             ]
@@ -241,14 +243,14 @@ export default async function PublicInvoicePage({
           ? [
               {
                 label: bookingVatRate > 0 ? `VAT (${bookingVatRate}%)` : "VAT",
-                value: formatMoney(vat, c),
+                value: formatMoneyExact(vat, c),
               },
             ]
           : []),
       ]}
       grandTotal={{
         label: isPaid ? "Total paid" : "Total due",
-        value: formatMoney(invoice.total_amount, c),
+        value: formatMoneyExact(invoice.total_amount, c),
       }}
       banking={party.banking}
       bankingLabel={isPaid ? "Banking details" : "Payment details"}

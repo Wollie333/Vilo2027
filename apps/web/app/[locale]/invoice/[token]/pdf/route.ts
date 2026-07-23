@@ -122,7 +122,7 @@ function buildBusiness(
 
 function buildBanking(
   snap: BankingSnap | null | undefined,
-  bookingRef: string | null,
+  docReference: string | null,
 ): InvoiceBanking | null {
   if (!snap || !snap.account_number) return null;
   let accountNumber: string;
@@ -131,10 +131,9 @@ function buildBanking(
   } catch {
     return null;
   }
-  const reference =
-    bookingRef && snap.reference_format
-      ? snap.reference_format.replace(/\{booking_ref\}/g, bookingRef)
-      : null;
+  // The EFT reference is the document's own number, verbatim — never wrapped in
+  // reference_format ("WIELO-…"), so the payer copies the exact matchable id.
+  const reference = docReference?.trim() || null;
   return {
     bankName: snap.bank_name ?? "",
     accountHolder: snap.account_holder ?? "",
@@ -239,7 +238,9 @@ export async function GET(
     });
   }
 
-  const banking = buildBanking(host.banking, host.booking_ref ?? null);
+  // Reference = this invoice's own number (not the booking ref) — matches the
+  // hosted invoice page and the payment reference the payer must quote.
+  const banking = buildBanking(host.banking, invoice.invoice_number);
   const business = buildBusiness(host.business);
   const isPaid = invoice.status === "paid";
 
