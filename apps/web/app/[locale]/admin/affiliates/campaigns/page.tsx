@@ -1,5 +1,3 @@
-import { Trophy } from "lucide-react";
-
 import { requirePermission } from "@/lib/admin";
 import {
   describeCompetition,
@@ -68,21 +66,5 @@ export default async function AdminCampaignsPage() {
     ),
   }));
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="flex items-center gap-2 font-display text-2xl font-bold text-brand-ink">
-          <Trophy className="h-6 w-6 text-brand-primary" />
-          Campaigns
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          Competitions and their commission ladders. A campaign pays its own
-          rates to enrolled partners while it is live, so nothing goes active
-          until you launch it here.
-        </p>
-      </header>
-
-      <CampaignsList campaigns={list} />
-    </div>
-  );
+  return <CampaignsList campaigns={list} />;
 }
