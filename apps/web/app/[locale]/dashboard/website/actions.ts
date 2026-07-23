@@ -65,7 +65,10 @@ import {
   type ContentProfile,
   type DerivedContent,
 } from "@/lib/website/contentProfile.schema";
-import { fetchNearbyForProperty } from "@/lib/site/nearbyFetch";
+import {
+  fetchNearbyForProperty,
+  NearbyServiceError,
+} from "@/lib/site/nearbyFetch";
 import type { NearbyPlace } from "@/lib/site/nearby";
 import type {
   FormField,
@@ -2555,11 +2558,20 @@ export async function refreshNearbyExperiencesAction(
     .filter((s) => s && s.trim())
     .join(", ");
 
-  const places = await fetchNearbyForProperty({
-    lat: prop.latitude,
-    lng: prop.longitude,
-    address: address || null,
-  });
+  let places: NearbyPlace[];
+  try {
+    places = await fetchNearbyForProperty({
+      lat: prop.latitude,
+      lng: prop.longitude,
+      address: address || null,
+    });
+  } catch (e) {
+    // Every Overpass mirror was down — a transient outage, NOT "no places". Tell
+    // the host to try again rather than falsely reporting an empty area.
+    if (e instanceof NearbyServiceError)
+      return { ok: false, error: "service_unavailable" };
+    throw e;
+  }
   if (places.length === 0) return { ok: false, error: "none_found" };
 
   // Merge into the canonical content profile (preserving every other slot).

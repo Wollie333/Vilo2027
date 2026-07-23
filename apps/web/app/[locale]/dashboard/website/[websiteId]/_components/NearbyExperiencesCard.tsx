@@ -23,6 +23,8 @@ export function NearbyExperiencesCard({ websiteId }: { websiteId: string }) {
       "Add a property (listing) first — that's where we look around.",
     none_found:
       "No taggable places found near this listing yet. Check the listing's address or map pin, then try again.",
+    service_unavailable:
+      "The places service (OpenStreetMap) is busy right now — this isn't about your listing. Give it a minute and try again.",
     not_found: "Couldn't find this website.",
     save_failed: "Couldn't save the places just now. Please try again.",
     locked: "The website builder isn't enabled on your plan yet.",

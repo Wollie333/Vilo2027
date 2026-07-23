@@ -11,9 +11,54 @@
 // drafts, not silent auto-publish.
 import type { NearbyPlace } from "./nearby";
 
-const OVERPASS = "https://overpass-api.de/api/interpreter";
+// Overpass is a free, community-run, frequently-overloaded service — the main
+// endpoint routinely answers 429/504. Try a set of public mirrors in turn so a
+// single busy server doesn't look like "no places nearby". Order = most reliable
+// first.
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 const UA = "WieloSite/1.0 (nearby-experiences; +https://wielo.site)";
+
+/** Thrown when EVERY Overpass mirror failed (timeout/overload/network) — a
+ *  TRANSIENT outage, NOT "genuinely no places". Callers must surface this as a
+ *  "try again" state, never as an empty result. */
+export class NearbyServiceError extends Error {
+  constructor(message = "nearby_service_unavailable") {
+    super(message);
+    this.name = "NearbyServiceError";
+  }
+}
+
+/** POST an Overpass query, trying each mirror until one answers with JSON.
+ *  Throws NearbyServiceError only when ALL mirrors fail. */
+async function runOverpass(query: string): Promise<OverpassEl[]> {
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": UA,
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        next: { revalidate: 86400 },
+      });
+      // Overload/rate-limit/gateway errors → try the next mirror.
+      if (!res.ok) continue;
+      const json = (await res.json()) as { elements?: OverpassEl[] };
+      return json.elements ?? [];
+    } catch {
+      // Network error / abort — try the next mirror.
+      continue;
+    }
+  }
+  throw new NearbyServiceError();
+}
 
 /** Haversine distance in km between two lat/lng points. */
 function distanceKm(
@@ -165,23 +210,9 @@ export async function fetchNearbyPlaces(opts: {
     60,
   )};`;
 
-  let els: OverpassEl[];
-  try {
-    const res = await fetch(OVERPASS, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": UA,
-      },
-      body: `data=${encodeURIComponent(query)}`,
-      next: { revalidate: 86400 },
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { elements?: OverpassEl[] };
-    els = json.elements ?? [];
-  } catch {
-    return [];
-  }
+  // Throws NearbyServiceError when every mirror is down, so the caller can tell a
+  // transient outage apart from a genuinely empty area (never a silent []).
+  const els = await runOverpass(query);
 
   const seen = new Set<string>();
   const out: (NearbyPlace & { _km: number })[] = [];
