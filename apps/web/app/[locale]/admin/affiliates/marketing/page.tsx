@@ -15,26 +15,34 @@ export default async function AdminAffiliateMarketingPage() {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
-  const [{ data: assets }, { data: objects }] = await Promise.all([
-    service
-      .from("marketing_assets")
-      .select(
-        "id, category, title, description, body, link_url, file_path, file_url, mime_type, width, height, sort_order, is_active",
-      )
-      .order("category", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false }),
-    // The Wielo media library = every object in the marketing-assets bucket.
-    service.storage.from(BUCKET).list("", {
-      limit: 500,
-      sortBy: { column: "created_at", order: "desc" },
-    }),
-  ]);
+  const [{ data: assets }, { data: objects }, { data: usedRows }] =
+    await Promise.all([
+      // Default-programme archive only — a campaign's own assets live on its tab.
+      service
+        .from("marketing_assets")
+        .select(
+          "id, category, title, description, body, link_url, file_path, file_url, mime_type, width, height, sort_order, is_active",
+        )
+        .is("campaign_id", null)
+        .order("category", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false }),
+      // The Wielo media library = every object in the marketing-assets bucket.
+      service.storage.from(BUCKET).list("", {
+        limit: 500,
+        sortBy: { column: "created_at", order: "desc" },
+      }),
+      // In-use guard spans EVERY asset (campaign + default) referencing a file.
+      service
+        .from("marketing_assets")
+        .select("file_path")
+        .not("file_path", "is", null),
+    ]);
 
-  // Which library files a marketing asset already references — those are marked
+  // Which library files any marketing asset already references — those are marked
   // "in use" and protected from deletion (the asset would break otherwise).
   const inUse = new Set(
-    (assets ?? [])
+    (usedRows ?? [])
       .map((a) => a.file_path)
       .filter((p): p is string => Boolean(p)),
   );

@@ -5983,6 +5983,7 @@ export type Database = {
       marketing_assets: {
         Row: {
           body: string | null
+          campaign_id: string | null
           category: string
           created_at: string
           created_by: string | null
@@ -6001,6 +6002,7 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          campaign_id?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
@@ -6019,6 +6021,7 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          campaign_id?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
@@ -6036,6 +6039,13 @@ export type Database = {
           width?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "marketing_assets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "marketing_assets_created_by_fkey"
             columns: ["created_by"]

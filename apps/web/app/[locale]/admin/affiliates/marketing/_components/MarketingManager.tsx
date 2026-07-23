@@ -163,9 +163,14 @@ function readImageDimensions(url: string): Promise<{ w: number; h: number }> {
 export function MarketingManager({
   assets,
   library,
+  campaignId = null,
+  campaignName,
 }: {
   assets: MarketingAsset[];
   library: LibraryImage[];
+  /** null = the default-programme archive; set = this campaign's own assets. */
+  campaignId?: string | null;
+  campaignName?: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -242,6 +247,8 @@ export function MarketingManager({
         height: form.height,
         sortOrder: 0,
         isActive: form.isActive,
+        // Only stamps on creation; the server ignores it for edits.
+        campaignId,
       });
       if (res.ok) {
         toast.success(form.id ? "Asset updated." : "Asset added.");
@@ -282,13 +289,15 @@ export function MarketingManager({
         }
       />
 
-      {/* SHARED WITH AFFILIATES — the categorized assets partners actually see. */}
+      {/* SHARED ASSETS — the categorized assets partners actually see. */}
       <div>
-        <div className="smallcaps">Shared with affiliates</div>
+        <div className="smallcaps">
+          {campaignId ? "This campaign's assets" : "Default programme assets"}
+        </div>
         <p className="mt-1 text-[12.5px] text-brand-mute">
-          Only what you publish here shows in a partner&apos;s marketing
-          library, with their referral link baked in. Images are assigned from
-          the media library above.
+          {campaignId
+            ? `Only shown to partners in ${campaignName ?? "this campaign"} — with their referral link baked in. Images are assigned from the shared media library above.`
+            : "The general archive every affiliate sees, with their referral link baked in. Images are assigned from the media library above."}
         </p>
       </div>
 

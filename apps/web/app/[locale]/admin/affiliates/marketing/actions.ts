@@ -48,6 +48,9 @@ const upsertSchema = z.object({
   height: z.number().int().min(0).max(20000).optional().nullable(),
   sortOrder: z.number().int().min(0).max(9999).default(0),
   isActive: z.boolean().default(true),
+  // NULL = default-programme asset; set = belongs to this campaign only. Set at
+  // creation and never changed afterwards.
+  campaignId: z.string().uuid().optional().nullable(),
   reason: z.string().optional(),
 });
 
@@ -99,7 +102,11 @@ export const upsertMarketingAssetAction = withAdminAudit<
     } else {
       const { data, error } = await service
         .from("marketing_assets")
-        .insert({ ...row, created_by: admin.userId })
+        .insert({
+          ...row,
+          campaign_id: d.campaignId ?? null,
+          created_by: admin.userId,
+        })
         .select("id")
         .single();
       if (error) throw new Error(error.message);
@@ -107,6 +114,7 @@ export const upsertMarketingAssetAction = withAdminAudit<
     }
 
     revalidatePath("/admin/affiliates/marketing");
+    revalidatePath("/admin/affiliates/campaigns", "layout");
     revalidatePath("/portal/affiliates/marketing");
     return { result: { ok: true, id }, after: { id } };
   },

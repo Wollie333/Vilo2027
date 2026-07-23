@@ -20,6 +20,11 @@ import type {
 } from "@/lib/affiliate/campaigns";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import {
+  MarketingManager,
+  type LibraryImage,
+  type MarketingAsset,
+} from "../../marketing/_components/MarketingManager";
 import { CampaignAdminTabs } from "../_components/CampaignAdminTabs";
 import { CampaignBuilder } from "../_components/CampaignBuilder";
 import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
@@ -76,16 +81,44 @@ export default async function AdminCampaignPage({
     .maybeSingle();
   if (!campaign) notFound();
 
-  // Wielo media-library images the hero image can be assigned from.
-  const { data: libObjects } = await service.storage
-    .from("marketing-assets")
-    .list("", { limit: 500, sortBy: { column: "created_at", order: "desc" } });
-  const libraryImages = (libObjects ?? [])
+  // Wielo media library (shared) + this campaign's own marketing assets.
+  const [{ data: libObjects }, { data: campaignAssets }, { data: usedRows }] =
+    await Promise.all([
+      service.storage.from("marketing-assets").list("", {
+        limit: 500,
+        sortBy: { column: "created_at", order: "desc" },
+      }),
+      service
+        .from("marketing_assets")
+        .select(
+          "id, category, title, description, body, link_url, file_path, file_url, mime_type, width, height, sort_order, is_active",
+        )
+        .eq("campaign_id", params.id)
+        .order("category", { ascending: true })
+        .order("sort_order", { ascending: true }),
+      service
+        .from("marketing_assets")
+        .select("file_path")
+        .not("file_path", "is", null),
+    ]);
+  const inUsePaths = new Set(
+    (usedRows ?? [])
+      .map((r) => r.file_path)
+      .filter((p): p is string => Boolean(p)),
+  );
+  const libraryImages: LibraryImage[] = (libObjects ?? [])
     .filter((o) => o.id && o.name)
     .map((o) => ({
       path: o.name,
       url: service.storage.from("marketing-assets").getPublicUrl(o.name).data
         .publicUrl,
+      sizeBytes:
+        (o.metadata?.size as number | undefined) ??
+        (o.metadata?.contentLength as number | undefined) ??
+        null,
+      mime: (o.metadata?.mimetype as string | undefined) ?? null,
+      createdAt: o.created_at ?? null,
+      inUse: inUsePaths.has(o.name),
     }));
 
   const [
@@ -473,24 +506,26 @@ export default async function AdminCampaignPage({
   );
 
   // ── MARKETING panel ─────────────────────────────────────────────
-  // Mirrors the partner race Marketing tab: a link into the marketing library.
-  // Assets are program-wide, so this is a jump-off, not a per-campaign store.
+  // This campaign's OWN marketing assets (campaign_id = this campaign). Images
+  // are assigned from the shared Wielo media library; the general/default
+  // archive lives on the top-level Marketing tab.
   const marketingPanel = (
-    <Link href="/admin/affiliates/marketing" className="brow">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
-        <Megaphone className="h-[18px] w-[18px]" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-semibold text-brand-ink">
-          Marketing material
-        </div>
-        <div className="text-[12.5px] text-brand-mute">
-          Manage the banners, posts and templates affiliates use — shared across
-          every campaign.
-        </div>
-      </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
-    </Link>
+    <div className="space-y-4">
+      <Link
+        href="/admin/affiliates/marketing"
+        className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-primary hover:underline"
+      >
+        <Megaphone className="h-3.5 w-3.5" />
+        Manage the default-programme archive
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+      <MarketingManager
+        assets={(campaignAssets ?? []) as MarketingAsset[]}
+        library={libraryImages}
+        campaignId={campaign.id}
+        campaignName={campaign.name}
+      />
+    </div>
   );
 
   // ── RULES & PRIZES panel ────────────────────────────────────────

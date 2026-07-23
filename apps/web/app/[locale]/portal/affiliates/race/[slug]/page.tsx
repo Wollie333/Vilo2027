@@ -21,6 +21,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { AffiliateBaseLink } from "../../_components/AffiliateBaseLink";
 import { CopyLinkButton } from "../../_components/CopyLinkButton";
 import { LandingPageCard } from "../../_components/LandingPageCard";
+import {
+  type LibraryAsset,
+  MarketingLibrary,
+} from "../../_components/MarketingLibrary";
 
 import { RaceTabs } from "./RaceTabs";
 
@@ -113,6 +117,17 @@ export default async function PartnerRacePage({
     .select("display_headline, bio, photo_url, public_phone")
     .eq("id", me.id)
     .maybeSingle();
+
+  // This campaign's OWN marketing assets — shown only inside its race.
+  const { data: campaignAssets } = await admin
+    .from("marketing_assets")
+    .select(
+      "id, category, title, description, body, link_url, file_url, mime_type, width",
+    )
+    .eq("campaign_id", campaign.id)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
 
   const currentBandIdx = sortedBands.findIndex(
     (b) => b.max !== null && mine.book <= (b.max ?? 0),
@@ -352,22 +367,46 @@ export default async function PartnerRacePage({
   );
 
   // ── MARKETING panel ─────────────────────────────────────────────
-  const marketing = (
-    <AffiliateBaseLink suffix="/marketing" className="brow">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
-        <Megaphone className="h-[18px] w-[18px]" />
+  // This campaign's own assets (with the race link baked in). If it has none,
+  // fall back to a link to the general marketing library.
+  const marketing =
+    campaignAssets && campaignAssets.length > 0 ? (
+      <div className="space-y-6">
+        <MarketingLibrary
+          assets={campaignAssets as LibraryAsset[]}
+          referralLink={raceLink}
+        />
+        <AffiliateBaseLink suffix="/marketing" className="brow">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+            <Megaphone className="h-[18px] w-[18px]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold text-brand-ink">
+              General marketing library
+            </div>
+            <div className="text-[12.5px] text-brand-mute">
+              The programme-wide posts, banners and captions.
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+        </AffiliateBaseLink>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-semibold text-brand-ink">
-          Marketing library
+    ) : (
+      <AffiliateBaseLink suffix="/marketing" className="brow">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+          <Megaphone className="h-[18px] w-[18px]" />
         </div>
-        <div className="text-[12.5px] text-brand-mute">
-          Ready-to-share posts, banners and captions for the race.
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-semibold text-brand-ink">
+            Marketing library
+          </div>
+          <div className="text-[12.5px] text-brand-mute">
+            Ready-to-share posts, banners and captions for the race.
+          </div>
         </div>
-      </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
-    </AffiliateBaseLink>
-  );
+        <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+      </AffiliateBaseLink>
+    );
 
   // ── RULES & PRIZES panel ────────────────────────────────────────
   const rules = (

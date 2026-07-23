@@ -29,6 +29,8 @@ export default async function AffiliateMarketingPage() {
       "id, category, title, description, body, link_url, file_url, mime_type, width",
     )
     .eq("is_active", true)
+    // Default-programme archive only — a campaign's assets show inside its race.
+    .is("campaign_id", null)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
