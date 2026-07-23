@@ -2,7 +2,33 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-07-23 pt75) — **START HERE**
+## 🟢 SAVE POINT (2026-07-23 pt77) — **START HERE**
+
+Building toward a **secure, working beta**. Shipped this session (all pushed, live-verified):
+1. **Email verification is now HARD-REQUIRED** (`17211254`) — unverified non-staff users are walled at
+   `/verify-email-required` (dashboard + portal layouts) and blocked server-side in
+   `requireHost`/`assertFullHost`. Guest booking is deliberately NOT blocked (it creates the account +
+   sends the email). Seed scripts pre-stamp `email_verified_at`.
+2. **Affiliate partner dashboard rebuilt PIXEL-PERFECT** from the founder's approved design (`c5c93e0b`).
+   Design source saved in `docs/design/affiliate-manager/`; shared component CSS in
+   `components/affiliate/affiliate-manager.css`; Overview (`/portal/affiliates`) fully rewired to real
+   data (earnings band, referral link, Founding Race strip, recent activity, tier, calculator). Money
+   engine untouched. Verified on the founder's real affiliate account, mobile + desktop, zero console errors.
+3. **`docs/strategy/AFFILIATE_MANAGER_REWORK_BRIEF.md`** — brief for the broader affiliate-manager rework.
+
+**Founder decision LOCKED:** email verification = hard-required (was: soft nag).
+
+**▶️ NEXT (affiliate manager rework, per the founder):** the remaining partner screens
+(Links & products, Campaigns, Payouts, Founding Race detail) + the ADMIN affiliate manager — all
+pixel-perfect to `docs/design/affiliate-manager/*.html`, reusing `affiliate-manager.css`. Then the
+security-checklist tail (dashboard/founder items) and the other pt74 open items.
+
+⚠️ Note: affiliate DB has orphaned demo data (3 payouts, 0 commissions; test partners `wollie-steenkamp`
++ `sumarie`) — needs a clean wipe before launch. Design for the correct model, not the current rows.
+
+---
+
+## 🟢 SAVE POINT (2026-07-23 pt75)
 
 **Doc-only session — `SECURITY_CHECKLIST.md` §2 + §3 + §5 + §6 verified LIVE** (anon + a real guest
 session; live storage config; all 6 Edge Functions read; no code changed). §2 fully ticked; §5 5/6

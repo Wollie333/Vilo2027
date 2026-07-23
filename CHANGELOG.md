@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-23 (pt77) — Affiliate partner dashboard rebuilt pixel-perfect from the approved design.
+
+Founder supplied an approved HTML/CSS design for the affiliate manager and asked for the partner-facing
+dashboard to match it exactly. Also wrote a rework design brief and saved the design source.
+
+- **Design source saved** to `docs/design/affiliate-manager/` (6 HTML screens + affiliate-ui.css) for
+  future reference.
+- **`docs/strategy/AFFILIATE_MANAGER_REWORK_BRIEF.md`** — a self-contained UI/UX brief (two-layer model,
+  commission engine as read-only domain truth, partner + admin surfaces, data model, design principles,
+  current state/gaps) to hand to a fresh session for the broader rework.
+- **Partner Overview (`/portal/affiliates`, shared with `/dashboard/affiliates`) rebuilt pixel-perfect**,
+  wired to real data, money engine untouched:
+  - `components/affiliate/affiliate-manager.css` — the mockup's component classes (`.am-card`, `.tag`,
+    `.btn-*`, `.smallcaps`, `.copyfield`, `.arow`, `.pbar`, `.av-*`, `.tabbtn`…); tokens already matched
+    the brand palette; imported once in `AffiliateShell`, no collisions.
+  - `AffiliateShell` header now matches: "Affiliate program" + "Partner since <month> · <link>" + status
+    tag + Request payout.
+  - Overview: 4-cell earnings band (cleared/pending/lifetime/active hosts), referral link card
+    (copyfield + WhatsApp/Email/QR + live stats), Founding Race strip (real rank/score/ladder-rate/book
+    via `campaign_active_listings` + `campaign_ladder_book`, graceful "join" state), recent commission
+    activity, tier card, CPA-safe potential-earnings calculator (client slider).
+  - **Verified live on the founder's real affiliate account**: pixel-perfect at mobile + desktop, real
+    (paused) campaign standings, correct empty states, zero console errors. tsc + eslint clean.
+
 ## 2026-07-23 (pt76) — Email verification is now HARD-REQUIRED (founder directive).
 
 Flipped email verification from a soft nag to a hard wall. Every signed-in non-staff user must
