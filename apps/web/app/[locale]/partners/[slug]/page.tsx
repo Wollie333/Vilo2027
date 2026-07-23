@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { VerifiedBadge } from "@/components/affiliate/VerifiedBadge";
 import { getBrandName } from "@/lib/brand";
 import { SITE_URL } from "@/lib/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -72,6 +73,7 @@ type PartnerAccount = {
   region: string | null;
   public_phone: string | null;
   user_id: string;
+  verified_at: string | null;
 };
 
 type CampaignInfo = {
@@ -94,7 +96,7 @@ async function getPartner(slug: string): Promise<PartnerAccount | null> {
   const { data } = await admin
     .from("affiliate_accounts")
     .select(
-      "id, slug, status, display_headline, bio, photo_url, community_name, community_members, region, public_phone, user_id",
+      "id, slug, status, display_headline, bio, photo_url, community_name, community_members, region, public_phone, user_id, verified_at",
     )
     .ilike("slug", slug)
     .maybeSingle();
@@ -471,6 +473,9 @@ export default async function PartnerLandingPage({
               <div className="inline-flex items-center gap-2 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12px] font-semibold text-brand-secondary">
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-primary" />
                 Invited by {name}
+                {partner.verified_at ? (
+                  <VerifiedBadge className="h-3.5 w-3.5" />
+                ) : null}
               </div>
               <h1 className="mt-6 font-display text-[42px] font-extrabold leading-[.96] tracking-tight text-brand-ink sm:text-[62px]">
                 Your guests.

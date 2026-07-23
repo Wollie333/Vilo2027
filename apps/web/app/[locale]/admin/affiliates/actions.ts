@@ -38,6 +38,35 @@ export const setAffiliateStatusAction = withAdminAudit<
   },
 );
 
+// ─── Verified-partner badge ─────────────────────────────────────────────────
+// An admin marks an affiliate a "verified partner"; the badge then shows on
+// their public profile. verified_by records who set it (audit trail).
+export const setAffiliateVerifiedAction = withAdminAudit<
+  { affiliateId: string; verified: boolean; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.set_verified",
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const { error } = await service
+      .from("affiliate_accounts")
+      .update({
+        verified_at: args.verified ? new Date().toISOString() : null,
+        verified_by: args.verified ? admin.userId : null,
+      })
+      .eq("id", args.affiliateId);
+    if (error) return { result: { ok: false, error: error.message } };
+    revalidatePath("/admin/affiliates");
+    revalidatePath(`/admin/affiliates/${args.affiliateId}`);
+    return { result: { ok: true }, after: { verified: args.verified } };
+  },
+);
+
 // ─── Activate a pending affiliate by hand ───────────────────────────────────
 //
 // The manual half of the activation model: a partner who signed up through the

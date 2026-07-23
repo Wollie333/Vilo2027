@@ -8,9 +8,12 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { VerifiedBadge } from "@/components/affiliate/VerifiedBadge";
 import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import { listAcceptances } from "@/lib/affiliate/agreement";
+
+import { VerifyPartnerButton } from "../_components/VerifyPartnerButton";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -64,7 +67,7 @@ export default async function AdminAffiliateFunnelPage({
 
   const { data: account } = await service
     .from("affiliate_accounts")
-    .select("id, user_id, slug, status, currency, created_at")
+    .select("id, user_id, slug, status, currency, created_at, verified_at")
     .eq("id", params.id)
     .maybeSingle();
   if (!account) notFound();
@@ -185,6 +188,7 @@ export default async function AdminAffiliateFunnelPage({
   const signups = rows.length;
   const paidCount = rows.filter((r) => r.paid).length;
   const isActive = account.status === "active";
+  const isVerified = Boolean(account.verified_at);
 
   return (
     <div className="space-y-6">
@@ -198,18 +202,25 @@ export default async function AdminAffiliateFunnelPage({
         </Link>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold text-brand-ink">
+            <h1 className="flex items-center gap-2 font-display text-2xl font-bold text-brand-ink">
               {owner?.full_name || "Affiliate"}
+              {isVerified ? <VerifiedBadge className="h-5 w-5" /> : null}
             </h1>
             <p className="mono mt-0.5 text-[12px] text-brand-mute">
               /r/{account.slug}
               {owner?.email ? ` · ${owner.email}` : ""}
             </p>
           </div>
-          <span className={`tag ${isActive ? "green" : "red"}`}>
-            <span className="d" />
-            {isActive ? "Active partner" : "Suspended"}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <VerifyPartnerButton
+              affiliateId={account.id}
+              verified={isVerified}
+            />
+            <span className={`tag ${isActive ? "green" : "red"}`}>
+              <span className="d" />
+              {isActive ? "Active partner" : "Suspended"}
+            </span>
+          </div>
         </div>
       </div>
 

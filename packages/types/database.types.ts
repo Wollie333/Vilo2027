@@ -535,6 +535,8 @@ export type Database = {
           terms_version: string
           updated_at: string
           user_id: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           accepted_at?: string
@@ -561,6 +563,8 @@ export type Database = {
           terms_version: string
           updated_at?: string
           user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           accepted_at?: string
@@ -587,6 +591,8 @@ export type Database = {
           terms_version?: string
           updated_at?: string
           user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -11052,6 +11058,39 @@ export type Database = {
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          environment: string | null
+          event_type: string | null
+          id: string
+          outcome: string
+          payload: Json | null
+          provider: string
+          received_at: string
+          reference: string | null
+        }
+        Insert: {
+          environment?: string | null
+          event_type?: string | null
+          id?: string
+          outcome?: string
+          payload?: Json | null
+          provider?: string
+          received_at?: string
+          reference?: string | null
+        }
+        Update: {
+          environment?: string | null
+          event_type?: string | null
+          id?: string
+          outcome?: string
+          payload?: Json | null
+          provider?: string
+          received_at?: string
+          reference?: string | null
         }
         Relationships: []
       }
