@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   ArrowRight,
   ChevronRight,
   ExternalLink,
@@ -553,9 +554,18 @@ export default async function AdminCampaignPage({
 
   return (
     <div>
-      {/* HEADER — mirrors the partner race detail header. */}
+      {/* HEADER — the campaign is its own workspace: the program nav is hidden,
+          so this carries the back button + full breadcrumb trail. */}
       <div>
-        <nav className="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+        <nav className="flex flex-wrap items-center gap-1.5 text-[11.5px] text-brand-mute">
+          <Link href="/admin" className="hover:underline">
+            Admin
+          </Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link href="/admin/affiliates" className="hover:underline">
+            Affiliates
+          </Link>
+          <ChevronRight className="h-3 w-3" />
           <Link href="/admin/affiliates/campaigns" className="hover:underline">
             Campaigns
           </Link>
@@ -565,6 +575,13 @@ export default async function AdminCampaignPage({
         <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/admin/affiliates/campaigns"
+                aria-label="Back to campaigns"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-line bg-white text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
               <h1 className="font-display text-[20px] font-extrabold leading-none text-brand-ink">
                 {campaign.name}
               </h1>
