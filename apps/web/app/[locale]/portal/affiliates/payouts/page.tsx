@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Banknote, Check, Clock3, Download, FileText } from "lucide-react";
 
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
+import { decryptAndMask } from "@/lib/crypto/banking";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import type { PayoutFeeConfig, PayoutMethod } from "@/lib/affiliate/fees";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -125,8 +126,18 @@ export default async function AffiliatePayoutsPage() {
   const net = Math.max(0, available - fee);
   const minThreshold = Number(settings?.min_payout_threshold ?? 0);
 
-  const last4 = (n: string | null) =>
-    n && n.length >= 4 ? `•••• ${n.slice(-4)}` : (n ?? "");
+  // account_number is encrypted at rest — decrypt, then mask to the real last 4
+  // digits. A naive slice of the stored value would leak the ciphertext tail.
+  // If a row can't be decrypted (missing/rotated key) fall back to a bare mask:
+  // never leak ciphertext and never 500 the whole page over a masked number.
+  const last4 = (n: string | null) => {
+    if (!n) return "";
+    try {
+      return decryptAndMask(n);
+    } catch {
+      return "••••";
+    }
+  };
   const accountLabel = defaultMethod
     ? defaultMethod.method === "eft"
       ? `${defaultMethod.bank_name || "Bank"} · Cheque`

@@ -16,6 +16,7 @@ import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
 import { getBrandName } from "@/lib/brand";
+import { encryptAccountNumber } from "@/lib/crypto/banking";
 import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -396,7 +397,12 @@ export async function savePayoutMethodAction(
     is_default: makeDefault,
     bank_name: d.bank_name || null,
     account_name: d.account_name || null,
-    account_number: d.account_number || null,
+    // Encrypt at rest, mirroring the host banking path. encryptAccountNumber
+    // returns v1.… when BANKING_CIPHER_KEY is set, plaintext otherwise; both
+    // round-trip through decryptAccountNumber on read.
+    account_number: d.account_number
+      ? encryptAccountNumber(d.account_number)
+      : null,
     branch_code: d.branch_code || null,
     paystack_recipient_code: d.paystack_recipient_code || null,
     paypal_email: d.paypal_email || null,
