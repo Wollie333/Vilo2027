@@ -16,6 +16,30 @@ export function formatMoney(
 }
 
 /**
+ * Money to the cent — for INVOICES, RECEIPTS and any tax document, where the
+ * exact amount and its VAT split must be shown (a rounded "R 114" on a tax
+ * invoice for a R 113,85 charge is wrong, and 99 + 15 ≠ 113,85 reads as broken).
+ * `formatMoney` (whole rand) stays the default for dashboards / cards / summaries.
+ * en-ZA renders "R 1 234,56" — space thousands, comma decimal.
+ */
+export function formatMoneyExact(
+  amount: number | null | undefined,
+  currency = "ZAR",
+): string {
+  if (amount == null || !Number.isFinite(amount)) return "—";
+  // Built manually rather than via Intl currency so the output is identical in
+  // Node (RSC) and the browser — ICU's en-ZA currency separators differ between
+  // runtimes. SA convention: space thousands, comma decimal → "R 1 234,56".
+  const neg = amount < 0;
+  const cents = Math.round(Math.abs(amount) * 100);
+  const rand = Math.floor(cents / 100);
+  const frac = String(cents % 100).padStart(2, "0");
+  const grouped = rand.toLocaleString("en-ZA").replace(/,/g, " ");
+  const prefix = currency === "ZAR" ? "R " : `${currency} `;
+  return `${neg ? "-" : ""}${prefix}${grouped},${frac}`;
+}
+
+/**
  * Round to 2 decimals (cents), the single rounding helper for all money maths.
  * The `Number.EPSILON` nudge avoids float artefacts like `1.005 → 1.00`.
  * Import this everywhere instead of re-deriving `Math.round(n * 100) / 100`.

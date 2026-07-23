@@ -365,6 +365,28 @@ export function formatMoney(
   return `${symbol} ${formatted}`;
 }
 
+/**
+ * Money to the cent, for INVOICE / CREDIT-NOTE documents where the exact amount
+ * and its VAT split must appear (a tax invoice rounding R 113,85 to "R 114" —
+ * where 99 + 15 ≠ 113,85 — is wrong). `formatMoney` (whole rand) stays for the
+ * PDF's summary chrome. en-ZA gives "R 1 234,56": space thousands, comma decimal.
+ */
+export function formatMoneyExact(
+  amount: number | null | undefined,
+  currency = "ZAR",
+): string {
+  const symbol = currency === "ZAR" ? "R" : currency + " ";
+  if (amount == null || !Number.isFinite(amount)) return `${symbol} —`;
+  // Manual build (not Intl currency) so Node and the browser agree. SA
+  // convention: space thousands, comma decimal -> "R 1 234,56".
+  const neg = amount < 0;
+  const cents = Math.round(Math.abs(amount) * 100);
+  const rand = Math.floor(cents / 100);
+  const frac = String(cents % 100).padStart(2, "0");
+  const grouped = rand.toLocaleString("en-ZA").replace(/,/g, " ");
+  return `${neg ? "-" : ""}${symbol} ${grouped},${frac}`;
+}
+
 export function formatDate(d: string | Date | null | undefined): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;

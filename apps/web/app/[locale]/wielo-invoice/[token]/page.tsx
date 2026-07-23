@@ -12,7 +12,7 @@ import {
   type WieloBusinessProfile,
 } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyExact } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -67,6 +67,24 @@ export default async function PublicWieloInvoicePage({
   const vat = Number(invoice.vat_amount ?? 0);
   const isTaxInvoice = vat > 0.005;
   const isPaid = invoice.status === "paid";
+
+  // The VAT rate shown on the label. Prefer the rate frozen into the snapshot at
+  // issue time; fall back to the true rate implied by the amounts (vat/subtotal)
+  // so an older invoice — or any drift — still labels itself correctly rather
+  // than always claiming 15%. Trailing ".0" is dropped (15, not 15.0).
+  const snapRate = Number(
+    (invoice.wielo_snapshot as { vat_rate?: string | number } | null)?.vat_rate,
+  );
+  const subtotalNum = Number(invoice.subtotal ?? 0);
+  const vatRatePct =
+    snapRate > 0
+      ? snapRate
+      : subtotalNum > 0
+        ? Math.round((vat / subtotalNum) * 1000) / 10
+        : 15;
+  const vatRateLabel = Number.isInteger(vatRatePct)
+    ? String(vatRatePct)
+    : vatRatePct.toFixed(1);
   // Wielo's bank details always print on the invoice (bottom-left card). The
   // payment reference is always the invoice number (rendered by the card).
   const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
@@ -79,8 +97,8 @@ export default async function PublicWieloInvoicePage({
   const lineRows: DocLine[] = lines.map((l) => ({
     title: l.description,
     qty: String(l.quantity),
-    rate: formatMoney(l.unit_price, c),
-    amount: formatMoney(l.subtotal, c),
+    rate: formatMoneyExact(l.unit_price, c),
+    amount: formatMoneyExact(l.subtotal, c),
   }));
 
   return (
@@ -106,7 +124,7 @@ export default async function PublicWieloInvoicePage({
       }}
       balance={{
         label: isPaid ? "Amount Paid" : "Balance Due",
-        value: formatMoney(invoice.total_amount, c),
+        value: formatMoneyExact(invoice.total_amount, c),
         positive: isPaid,
       }}
       metaRows={[
@@ -124,14 +142,19 @@ export default async function PublicWieloInvoicePage({
       }}
       lines={lineRows}
       totals={[
-        { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
+        { label: "Subtotal", value: formatMoneyExact(invoice.subtotal, c) },
         ...(isTaxInvoice
-          ? [{ label: "VAT (15%)", value: formatMoney(vat, c) }]
+          ? [
+              {
+                label: `VAT (${vatRateLabel}%)`,
+                value: formatMoneyExact(vat, c),
+              },
+            ]
           : []),
       ]}
       grandTotal={{
         label: isPaid ? "Total paid" : "Total due",
-        value: formatMoney(invoice.total_amount, c),
+        value: formatMoneyExact(invoice.total_amount, c),
       }}
       banking={banking}
       bankingLabel={isPaid ? "Banking details" : "Payment details"}

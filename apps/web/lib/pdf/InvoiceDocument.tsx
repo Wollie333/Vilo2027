@@ -1,4 +1,4 @@
-import { BRAND, formatDate, formatMoney } from "./styles";
+import { BRAND, formatDate, formatMoneyExact } from "./styles";
 import {
   PdfPaper,
   type PdfCell,
@@ -166,17 +166,17 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
     { text: String(i + 1), align: "center", color: BRAND.mute },
     { text: l.description, sub: l.note ?? null, align: "left" },
     { text: String(l.quantity), align: "right" },
-    { text: formatMoney(l.unit_price, c), align: "right" },
-    { text: formatMoney(l.subtotal, c), align: "right", bold: true },
+    { text: formatMoneyExact(l.unit_price, c), align: "right" },
+    { text: formatMoneyExact(l.subtotal, c), align: "right", bold: true },
   ]);
 
   const totals: PdfTotal[] = [
-    { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
+    { label: "Subtotal", value: formatMoneyExact(invoice.subtotal, c) },
   ];
   if (invoice.stayDiscount && invoice.stayDiscount > 0) {
     totals.push({
       label: "Discount",
-      value: `- ${formatMoney(invoice.stayDiscount, c)}`,
+      value: `- ${formatMoneyExact(invoice.stayDiscount, c)}`,
       mute: true,
     });
   }
@@ -185,7 +185,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
       label: invoice.discountLabel
         ? `Discount (${invoice.discountLabel})`
         : "Discount",
-      value: `- ${formatMoney(invoice.discountAmount, c)}`,
+      value: `- ${formatMoneyExact(invoice.discountAmount, c)}`,
       mute: true,
     });
   }
@@ -197,7 +197,10 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
     });
   }
   if (isTax)
-    totals.push({ label: "VAT", value: formatMoney(invoice.vatAmount, c) });
+    totals.push({
+      label: "VAT",
+      value: formatMoneyExact(invoice.vatAmount, c),
+    });
 
   const facts: PdfFact[] = invoice.facts ?? [
     { label: "Invoice date", value: formatDate(invoice.issuedAt) },
@@ -230,7 +233,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
       facts={facts}
       balance={{
         label: isPaid ? "Amount Paid" : "Balance Due",
-        value: formatMoney(invoice.totalAmount, c),
+        value: formatMoneyExact(invoice.totalAmount, c),
         positive: isPaid,
       }}
       summary={
@@ -248,7 +251,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
       totals={totals}
       grand={{
         label: isPaid ? "Total paid" : "Total due",
-        value: formatMoney(invoice.totalAmount, c),
+        value: formatMoneyExact(invoice.totalAmount, c),
       }}
       footBox={
         invoice.host.banking
