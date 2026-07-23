@@ -1060,6 +1060,30 @@
      icons keep their own explicit 999px — only .btn consumes these tokens. */
   --site-btn-primary-radius: 6px;
   --site-btn-secondary-radius: 6px;
+  /* Reference SHAPE scale (theme.css §SHAPE "rounded") + reference body type
+     (17px base, 1.65 leading). buildSiteVars emits a flatter 0.5rem scale +
+     16px/1.6 body inline on the root; restore the reference values on the royal
+     subtree so cards (radius-lg → 12px) and imagery (10px) round like the
+     design and body copy reads at the reference size. */
+  --site-radius-xl: 16px;
+  --site-radius-lg: 12px;
+  --site-radius: 9px;
+  --site-radius-sm: 7px;
+  --site-radius-img: 10px;
+  --site-card-radius: 12px;
+  --site-img-radius: 10px;
+  --site-text-base: 17px;
+  --site-leading-body: 1.65;
+  /* Small-label sizes are FIXED in the reference (eyebrow 12px, small 14px),
+     not scaled off the base — pin them so the 17px base doesn't inflate the
+     section eyebrows. */
+  --site-text-sm: 14px;
+  --site-text-accent: 12px;
+  /* The base font-size/line-height are applied on an ANCESTOR of the page
+     scope, so overriding the vars alone doesn't resize inherited body copy —
+     re-apply them here so royal body text reads at the reference 17px/1.65. */
+  font-size: var(--site-text-base, 17px);
+  line-height: var(--site-leading-body, 1.65);
 }
 
 /* --- Section eyebrow "tag" (ochre uppercase + dot) ----------------------- */
