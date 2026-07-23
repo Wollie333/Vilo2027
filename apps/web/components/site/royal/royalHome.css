@@ -297,9 +297,9 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(8, 28, 40, 0.34) 0%,
-    rgba(8, 28, 40, 0.12) 38%,
-    rgba(8, 28, 40, 0.55) 100%
+    rgba(18, 15, 10, 0.34) 0%,
+    rgba(18, 15, 10, 0.12) 38%,
+    rgba(18, 15, 10, 0.55) 100%
   );
 }
 .rhome .hero-in {
@@ -654,8 +654,8 @@
   z-index: 1;
   background: linear-gradient(
     180deg,
-    rgba(8, 28, 40, 0) 35%,
-    rgba(8, 28, 40, 0.82)
+    rgba(18, 15, 10, 0) 35%,
+    rgba(18, 15, 10, 0.82)
   );
 }
 .rhome .exp:hover img {
@@ -846,8 +846,8 @@
   z-index: 1;
   background: linear-gradient(
     120deg,
-    rgba(8, 28, 40, 0.7),
-    rgba(8, 28, 40, 0.45)
+    rgba(18, 15, 10, 0.7),
+    rgba(18, 15, 10, 0.45)
   );
 }
 .rhome .banner-in {

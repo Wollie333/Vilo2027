@@ -286,8 +286,8 @@
   z-index: 1;
   background: linear-gradient(
     180deg,
-    rgba(8, 28, 40, 0.3),
-    rgba(8, 28, 40, 0.66)
+    rgba(18, 15, 10, 0.3),
+    rgba(18, 15, 10, 0.66)
   );
 }
 .rrooms .phead .wrap {
@@ -352,8 +352,8 @@
   z-index: 1;
   background: linear-gradient(
     120deg,
-    rgba(8, 28, 40, 0.7),
-    rgba(8, 28, 40, 0.45)
+    rgba(18, 15, 10, 0.7),
+    rgba(18, 15, 10, 0.45)
   );
 }
 .rrooms .banner-in {

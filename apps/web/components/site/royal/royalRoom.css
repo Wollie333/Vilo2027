@@ -336,8 +336,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(8, 28, 40, 0) 62%,
-    rgba(8, 28, 40, 0.34)
+    rgba(18, 15, 10, 0) 62%,
+    rgba(18, 15, 10, 0.34)
   );
   opacity: 0;
   transition: opacity 0.4s;
@@ -937,7 +937,7 @@
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(8, 28, 40, 0.92);
+  background: rgba(18, 15, 10, 0.92);
   display: none;
   align-items: center;
   justify-content: center;
