@@ -261,7 +261,7 @@
   transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .rgallery .mosaic .m:hover img {
-  transform: scale(1.05);
+  transform: scale(1.07);
 }
 .rgallery .m.w2 {
   grid-column: span 2;
