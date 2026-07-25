@@ -33,6 +33,26 @@ live DB, then built the missing metric surfaces and proved the campaign layer en
   recompute, scoring snapshot (6 live listings). Both metric surfaces verified LIVE in the admin app
   with reconciling numbers (campaign R1149.60; programme lifetime R2348.40). Build + lint + tsc green.
 
+## 2026-07-24 (pt86) — Affiliate MVP-ready: partner winnings view, dead-code purge, clean wipe.
+
+Final pass to get the affiliate program MVP 100% ready (the "three fast-follows" were already done in
+pt85 — re-confirmed live).
+
+- **C1 — Partner "Your winnings"** (`b74f4449`): the race page Overview now shows the partner's own
+  won rate floors (Locked for life) + cash prizes (Being processed / Paid), scoped to the signed-in
+  partner, voided hidden. Verified live + mobile.
+- **C2 — MVP readiness audit**: all 5 affiliate crons active (incl. `finalize-ended-campaigns`);
+  every surface wired, secure (RLS isolation, service_role-only money RPCs, no IDOR, encryption,
+  anonymised public), mobile-ready. **Dead-code purge** (`75e24543`): removed 6 orphans left from the
+  pt77/78 portal rebuild (AffiliateLinkBuilder, CampaignCard, PartnerProfileCard, PayoutPanel,
+  ProductLinkRow + the never-called suggestCampaignSlugAction/findFreeSlug) — each proven dead, own
+  commit, build-verified.
+- **C3 — Clean wipe (seed/test only)**: removed the test referred hosts (0c/0e) + all seed
+  referrals/commissions/payouts/clicks/floors/prize-awards/daily-scores + un-verified the
+  wollie-steenkamp demo badge + deleted 13 affiliate-test auth users. KEPT both real partner accounts
+  (wollie + sumarie's genuine signup referral/clicks), the founding-race competition, and all config
+  (settings/tiers/commission products). Program now starts clean: 0 test rows, real data intact.
+
 ## 2026-07-24 (pt85) — Full prize engine + coherent campaign lifecycle controls.
 
 Rounded out finalization and fixed the admin control surface (all verified live end-to-end).
