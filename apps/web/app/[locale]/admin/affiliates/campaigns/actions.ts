@@ -8,7 +8,6 @@ import {
   campaignInputSchema,
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
-import { findFreeSlug } from "@/lib/affiliate/account";
 import { winnerLabel, type RawWinner } from "@/lib/affiliate/finalize";
 import { notifyCampaignWinners } from "@/lib/affiliate/notify";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
@@ -892,24 +891,3 @@ export const settleCampaignPrizeAction = withAdminAudit<
     };
   },
 );
-
-// Re-exported so the create form can suggest a free slug from the name without
-// duplicating the slugify rules.
-export async function suggestCampaignSlugAction(name: string): Promise<string> {
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  const admin = createAdminClient();
-  // findFreeSlug checks affiliate_accounts; campaigns live in their own table,
-  // so only borrow the slugify + fallback shape, then check campaigns here.
-  const base = (await findFreeSlug(admin, name)).replace(/-[a-z0-9]{5}$/, "");
-  let candidate = base;
-  for (let i = 2; i < 20; i++) {
-    const { data } = await admin
-      .from("affiliate_campaigns")
-      .select("id")
-      .ilike("slug", candidate)
-      .maybeSingle();
-    if (!data) return candidate;
-    candidate = `${base}-${i}`;
-  }
-  return `${base}-${Date.now().toString(36).slice(-4)}`;
-}
