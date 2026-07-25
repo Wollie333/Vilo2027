@@ -133,9 +133,83 @@ export default async function PartnerRacePage({
     (b) => b.max !== null && mine.book <= (b.max ?? 0),
   );
 
+  // What this partner has actually WON in this campaign — the rate floors (locked
+  // for life) and any cash prizes (owed/paid). RLS would already scope these, but
+  // we key on me.id explicitly since we read with the service client.
+  const [{ data: myFloors }, { data: myPrizes }] = await Promise.all([
+    admin
+      .from("affiliate_campaign_floors")
+      .select("floor_rate, won_via, awarded_at")
+      .eq("campaign_id", campaign.id)
+      .eq("affiliate_id", me.id)
+      .order("awarded_at", { ascending: false }),
+    admin
+      .from("affiliate_prize_awards")
+      .select("label, amount, currency, status, paid_at")
+      .eq("campaign_id", campaign.id)
+      .eq("affiliate_id", me.id)
+      .neq("status", "void") // a voided prize is not shown to the partner
+      .order("amount", { ascending: false }),
+  ]);
+  const wonFloors = myFloors ?? [];
+  const wonPrizes = myPrizes ?? [];
+  const hasWinnings = wonFloors.length > 0 || wonPrizes.length > 0;
+
   // ── OVERVIEW panel ──────────────────────────────────────────────
   const overview = (
     <section>
+      {/* Your winnings — shown once you've been awarded a floor or a cash prize. */}
+      {hasWinnings ? (
+        <section className="am-card mb-6 overflow-hidden border-amber-300">
+          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3.5">
+            <Trophy className="h-[18px] w-[18px] text-amber-500" />
+            <div className="smallcaps">Your winnings</div>
+          </div>
+          <div className="space-y-2.5 p-5">
+            {wonFloors.map((f, i) => (
+              <div
+                key={`floor-${i}`}
+                className="flex flex-wrap items-center justify-between gap-2 text-[13px]"
+              >
+                <span className="min-w-0 font-medium text-brand-ink">
+                  {Math.round(Number(f.floor_rate) * 100)}% rate floor
+                  {f.won_via ? (
+                    <span className="text-brand-mute"> — {f.won_via}</span>
+                  ) : null}
+                </span>
+                <span className="tag green shrink-0">
+                  <span className="d" />
+                  Locked for life
+                </span>
+              </div>
+            ))}
+            {wonPrizes.map((p, i) => (
+              <div
+                key={`prize-${i}`}
+                className="flex flex-wrap items-center justify-between gap-2 text-[13px]"
+              >
+                <span className="min-w-0 font-medium text-brand-ink">
+                  <span className="num">{zar(Number(p.amount))}</span> cash
+                  {p.label ? (
+                    <span className="text-brand-mute"> — {p.label}</span>
+                  ) : null}
+                </span>
+                <span
+                  className={`tag shrink-0 ${p.status === "paid" ? "green" : "amber"}`}
+                >
+                  <span className="d" />
+                  {p.status === "paid" ? "Paid" : "Being processed"}
+                </span>
+              </div>
+            ))}
+            <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+              Rate floors are locked to your account for life. Cash prizes are
+              paid out by our team — we&apos;ll be in touch.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4">
         <div className="bg-brand-dark p-4">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
