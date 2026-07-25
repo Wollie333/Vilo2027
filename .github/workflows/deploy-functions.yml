@@ -29,7 +29,9 @@ jobs:
       - uses: supabase/setup-cli@v1
         if: steps.secrets.outputs.configured == 'true'
         with:
-          version: latest
+          # Pinned to avoid `latest` resolving via the GitHub API, which
+          # intermittently rate-limits and fails the job.
+          version: 2.105.0
 
       - name: Deploy all Edge Functions
         if: steps.secrets.outputs.configured == 'true'

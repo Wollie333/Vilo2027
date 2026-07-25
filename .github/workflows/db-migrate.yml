@@ -31,7 +31,10 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: `latest` resolves the newest release via the GitHub API,
+          # which intermittently rate-limits and fails the job before any
+          # migration runs. A fixed version downloads directly.
+          version: 2.105.0
 
       - name: Run migrations
         run: supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
