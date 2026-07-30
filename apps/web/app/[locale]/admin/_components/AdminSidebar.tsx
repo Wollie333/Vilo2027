@@ -15,10 +15,8 @@ import {
   Lightbulb,
   ListChecks,
   Mail,
-  Megaphone,
   Package,
   ScrollText,
-  Send,
   ShieldAlert,
   Sparkles,
   Star,
@@ -170,20 +168,10 @@ const PLATFORM: GmailNavItem[] = [
     match: "prefix",
   },
   {
-    href: "/admin/broadcasts",
-    label: "Broadcasts",
-    icon: Megaphone,
-    match: "prefix",
-  },
-  {
-    href: "/admin/notifications/sent",
-    label: "Send to users",
-    icon: Send,
-    match: "prefix",
-  },
-  {
-    href: "/admin/emails",
-    label: "Email templates",
+    // One hub over broadcasts + send-to-users + email templates (the old routes
+    // still work directly; this is the consolidated entry point).
+    href: "/admin/communications",
+    label: "Communications",
     icon: Mail,
     match: "prefix",
   },

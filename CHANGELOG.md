@@ -49,6 +49,22 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88m) — Communications hub UI (P4).
+
+Built the admin Communications hub from the founder's design (`/admin/communications`), consolidating
+the scattered Broadcasts / Send-to-users / Email-templates entries into one.
+
+- **Automated messages** tab: the full message catalogue grouped by area, with per-channel chips
+  (email/push/in-app, toggle → `saveMessageOverrideAction`), a master on/off (`toggleMasterAction`),
+  New/Customised badges, 24h health, search + area/channel/status filters, and an **edit drawer**
+  (subject + intro override with a locked/editable email preview, reset-to-default).
+- **Send & broadcast** tab: unified compose (audience Everyone/Hosts/Guests/Staff, one-off vs banner,
+  severity, link) wired to the existing `createBroadcastAction`, plus recent-sends history.
+- **Delivery health** tab: 24h sent/failed/queue stats, failure log, volume-by-channel — from real
+  queries. Sidebar consolidated to one "Communications" entry (old routes still work directly).
+- Design CSS ported to `communications.css`. Build + lint green. ⚠️ **Not yet browser-verified** — the
+  piece to click through together; the campaign Email tab (P5) is next.
+
 ## 2026-07-30 (pt88l) — Competition-link presentation (§3.3) — §10.7 complete.
 
 While a partner is enrolled in a live competition, the partner Overview now surfaces the **competition
