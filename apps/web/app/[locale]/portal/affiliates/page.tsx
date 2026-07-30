@@ -470,6 +470,17 @@ export default async function AffiliateOverviewPage() {
                   {clicks} clicks · {signups} signups · {paidCount} active
                 </span>
               </div>
+              {race ? (
+                <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-[#F5D9A8] bg-[#FEF9F0] px-3 py-2.5">
+                  <span className="text-[12px] leading-relaxed text-[#8A5A00]">
+                    <strong>You&apos;re in {race.name}.</strong> This is your{" "}
+                    <strong>default</strong> link — hosts you send here earn the
+                    standard {standardRatePct}% and score no competition points.
+                    Use your <strong>{race.name} link</strong> (in the panel
+                    below) to earn {race.ratePct}% and climb the leaderboard.
+                  </span>
+                </div>
+              ) : null}
               <p className="mt-3 text-[12.5px] leading-relaxed text-brand-mute">
                 Every host who joins through this link earns you your{" "}
                 <strong className="text-brand-ink">
@@ -504,6 +515,19 @@ export default async function AffiliateOverviewPage() {
                 >
                   Open race <ArrowRight className="h-3.5 w-3.5" />
                 </AffiliateBaseLink>
+              </div>
+              {/* Competition link, surfaced prominently (SoT §3.3) */}
+              <div className="border-b border-brand-line bg-brand-light/40 px-5 py-3">
+                <div className="smallcaps">
+                  Your {race.name} link — earns {race.ratePct}% &amp; scores
+                  points
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <code className="min-w-0 flex-1 truncate rounded-[8px] border border-brand-line bg-white px-3 py-2 font-mono text-[12px] text-brand-ink">
+                    {refUrlShort}?c={race.slug}
+                  </code>
+                  <CopyLinkButton value={`${refUrl}?c=${race.slug}`} />
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-px bg-brand-line">
                 <div className="bg-white p-4">

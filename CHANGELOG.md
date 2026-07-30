@@ -49,6 +49,14 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88l) — Competition-link presentation (§3.3) — §10.7 complete.
+
+While a partner is enrolled in a live competition, the partner Overview now surfaces the **competition
+link prominently** (a copyable `…/r/<slug>?c=<campaign>` row at the top of the race strip, labelled with
+the rate + "scores points") and attaches a **warning to the default link** ("hosts you send here earn the
+standard rate and score no points — use your competition link"). Prevents the week-one wrong-URL mistake
+(rule 4). Completes the Dashboards §10.7 work. Build + lint green.
+
 ## 2026-07-30 (pt88k) — Partner dashboard: per-referral rates + flat-rate fix (§2.5 / §10.7).
 
 - **Per-referral rates** on the partner Overview: a "Your referrals & rates" table listing each host
