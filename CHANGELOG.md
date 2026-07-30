@@ -49,6 +49,20 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88f) — Click-time rate capture + first-click attribution (§3, §10.4).
+
+Fixes the shipped gap where the rate was taken from the live campaign at signup: a host who clicked a
+competition link during the Race but signed up after it closed would have dropped to the default rate.
+
+- **Server-side rate-at-click**: `affiliate_clicks.commission_snapshot` captures the competition's
+  `commission_structure` at click (`/r/[slug]`). `bindAffiliateReferral` reads it back via the cookie's
+  click id and stamps the referral snapshot — **regardless of the campaign's current status**. Server-
+  trusted (not the cookie), so the rate is fixed at click and cannot be forged. Migration `20260730050000`.
+- **First-touch-wins** (SoT §3.2 rule 1): `attribution_model → 'first_click'` (the /r/[slug] guard was
+  already wired). A closed competition link already drops its tag → behaves as the default link (§10.2).
+- Proven live (rolled back): click row → referral → **60% (R599.40) with the campaign ended**.
+- Remaining §10.4: "Referred by" signup field + admin reassignment tool (30-day + audit).
+
 ## 2026-07-30 (pt88e) — Founding annual price aligned to R4,999 (§10.1 products).
 
 The SoT's "founding products" already exist as the shipped WS-5 price-lock on `pro` (not separate

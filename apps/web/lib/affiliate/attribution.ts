@@ -100,27 +100,40 @@ export async function bindAffiliateReferral(
       return;
     }
 
-    // Campaign tag (WS-1.2). Only stamp campaign_id if the cookie carries one AND
-    // the campaign is still 'active' at bind time; otherwise NULL → the referral
-    // stays on the default program (the safe default). Original binding always
-    // wins: UNIQUE(referred_user_id) makes a repeat a no-op, so a campaign link
-    // for an already-bound user never overwrites the first tag.
-    //
-    // When a campaign IS stamped we also SNAPSHOT its commission structure onto
-    // the referral. The accrual resolver reads this snapshot — not the live
-    // campaign — so the rate is locked to this referral permanently: it survives
-    // the competition ending and any later edit to the campaign's rate. This is
-    // the "60% lifetime, locked at referral time" guarantee (see
-    // docs/strategy/AFFILIATE_COMPETITION_DECISIONS.md).
+    // Competition rate resolution (SoT §3.2 rule 2, §10.4). The rate is taken at
+    // CLICK, not signup: the /r/<slug> handler captured the competition's
+    // commission_structure into the SERVER-SIDE affiliate_clicks row. We read it
+    // back here via the cookie's click id — server-trusted, so it is fixed at
+    // click and cannot be forged via the cookie — and stamp it onto the referral
+    // as commission_snapshot. The accrual resolver reads that snapshot (not the
+    // live campaign), so the rate survives the competition ending and any later
+    // edit. There is deliberately NO "campaign still active at bind" gate: a host
+    // who clicked during the Race but signs up after it closes still gets the
+    // competition rate. Original binding always wins: UNIQUE(referred_user_id)
+    // makes a repeat a no-op (rules 1 & 3, first-touch-wins).
     let campaignId: string | null = null;
     let commissionSnapshot: unknown = null;
-    if (payload?.camp) {
+    if (payload?.click) {
+      const { data: click } = await admin
+        .from("affiliate_clicks")
+        .select("campaign_id, commission_snapshot")
+        .eq("id", payload.click)
+        .maybeSingle();
+      if (click?.campaign_id) {
+        campaignId = click.campaign_id;
+        commissionSnapshot = click.commission_snapshot ?? null;
+      }
+    }
+    // Fallback when the click row is missing (e.g. click logging failed): the
+    // cookie carried `camp` only because the competition was valid at click, so
+    // re-resolve the structure from the campaign — still no status gate.
+    if (!campaignId && payload?.camp) {
       const { data: camp } = await admin
         .from("affiliate_campaigns")
-        .select("id, status, commission_structure")
+        .select("id, commission_structure")
         .eq("id", payload.camp)
         .maybeSingle();
-      if (camp?.status === "active") {
+      if (camp) {
         campaignId = camp.id;
         commissionSnapshot = camp.commission_structure ?? null;
       }

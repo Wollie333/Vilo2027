@@ -988,6 +988,7 @@ export type Database = {
         Row: {
           affiliate_id: string
           campaign_id: string | null
+          commission_snapshot: Json | null
           created_at: string
           id: string
           landing_path: string | null
@@ -999,6 +1000,7 @@ export type Database = {
         Insert: {
           affiliate_id: string
           campaign_id?: string | null
+          commission_snapshot?: Json | null
           created_at?: string
           id?: string
           landing_path?: string | null
@@ -1010,6 +1012,7 @@ export type Database = {
         Update: {
           affiliate_id?: string
           campaign_id?: string | null
+          commission_snapshot?: Json | null
           created_at?: string
           id?: string
           landing_path?: string | null

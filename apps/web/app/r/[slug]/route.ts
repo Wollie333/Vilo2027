@@ -51,13 +51,20 @@ export async function GET(
 
   // Optional campaign tag. Resolve the slug to an ACTIVE, in-window campaign that
   // this partner is eligible for; otherwise leave it null (→ default program).
+  // A campaign link for a CLOSED competition therefore drops the tag and behaves
+  // as the partner's default link (SoT §10.2 auto-redirect-to-default).
   let campaignId: string | null = null;
   let campaignSlug: string | null = null;
+  // The competition's commission structure, captured server-side so the rate is
+  // fixed at click and cannot be forged via the cookie (SoT §3.2 rule 2).
+  let commissionSnapshot: unknown = null;
   const campParam = url.searchParams.get("c")?.trim();
   if (campParam) {
     const { data: camp } = await admin
       .from("affiliate_campaigns")
-      .select("id, slug, status, starts_at, ends_at, eligible_partners")
+      .select(
+        "id, slug, status, starts_at, ends_at, eligible_partners, commission_structure",
+      )
       .ilike("slug", campParam)
       .maybeSingle();
     if (camp && camp.status === "active") {
@@ -79,6 +86,7 @@ export async function GET(
       if (started && notEnded && eligible) {
         campaignId = camp.id;
         campaignSlug = camp.slug;
+        commissionSnapshot = camp.commission_structure ?? null;
       }
     }
   }
@@ -125,6 +133,9 @@ export async function GET(
         // Campaign the link was tagged to (WS-1m), so the campaign funnel can
         // measure clicks — null when the visit is on the default programme.
         campaign_id: campaignId,
+        // Rate captured at click (server-trusted). bind copies this onto the
+        // referral so the rate is fixed at click and survives campaign end.
+        commission_snapshot: commissionSnapshot,
       })
       .select("id")
       .maybeSingle();
