@@ -1198,6 +1198,21 @@ export async function togglePublishAction(
     });
   }
 
+  // If this host was referred through a live competition, their first live
+  // listing is a point on the partner's board — tell the partner. Service-role:
+  // the partner's account isn't readable by the host's own client. First-publish
+  // only, and the helper further guards to the host's first-ever activation.
+  if (!listing.published_at) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { notifyCampaignReferralActivated } =
+      await import("@/lib/affiliate/notify");
+    await notifyCampaignReferralActivated(createAdminClient(), {
+      hostId: listing.host_id,
+      listingId,
+      listingName: listing.name,
+    });
+  }
+
   revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard");
   revalidatePath(`/property/${slug}`);

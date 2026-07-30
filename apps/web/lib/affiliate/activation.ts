@@ -1,6 +1,7 @@
 import "server-only";
 
 import { hasSignedVersion } from "@/lib/affiliate/agreement";
+import { notifyCampaignPartnerEnrolled } from "@/lib/affiliate/notify";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -199,12 +200,22 @@ async function enrolInSignupCampaign(
   if (campaign?.status !== "active") return;
   if (campaign.eligible_partners === "invite") return;
 
-  await admin.from("affiliate_campaign_enrollments").upsert(
-    {
-      affiliate_id: affiliateId,
-      campaign_id: campaignId,
-      status: "active",
-    },
-    { onConflict: "affiliate_id,campaign_id", ignoreDuplicates: true },
-  );
+  const { data: inserted } = await admin
+    .from("affiliate_campaign_enrollments")
+    .upsert(
+      {
+        affiliate_id: affiliateId,
+        campaign_id: campaignId,
+        status: "active",
+      },
+      { onConflict: "affiliate_id,campaign_id", ignoreDuplicates: true },
+    )
+    .select("affiliate_id");
+
+  // Welcome them — but only on a genuinely NEW enrolment. ignoreDuplicates
+  // returns no row when they were already enrolled (e.g. an admin pre-added
+  // them), so this can't double-send on a re-activation.
+  if (inserted && inserted.length > 0) {
+    await notifyCampaignPartnerEnrolled(admin, { campaignId, affiliateId });
+  }
 }

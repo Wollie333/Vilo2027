@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
-import { notifyCampaignPauseChanged } from "@/lib/affiliate/notify";
+import {
+  notifyCampaignKickoff,
+  notifyCampaignPauseChanged,
+} from "@/lib/affiliate/notify";
 import {
   campaignInputSchema,
   type CampaignInput,
@@ -347,6 +350,14 @@ export const setCampaignStatusAction = withAdminAudit<
     },
   },
   async (args, service) => {
+    // Prior status decides whether this is a genuine launch (for the kickoff).
+    const { data: prior } = await service
+      .from("affiliate_campaigns")
+      .select("status")
+      .eq("id", args.campaignId)
+      .maybeSingle();
+    const wasActive = prior?.status === "active";
+
     // Going live is the one transition that starts paying campaign rates, so it
     // is refused unless the structure actually resolves to something payable.
     if (args.status === "active") {
@@ -410,6 +421,12 @@ export const setCampaignStatusAction = withAdminAudit<
       .select("slug")
       .single();
     if (error) return { result: { ok: false, error: error.message } };
+
+    // Kickoff announcement — only on a genuine launch (into active from a
+    // non-active state), never on a re-save of an already-live campaign.
+    if (args.status === "active" && !wasActive) {
+      await notifyCampaignKickoff(service, { campaignId: args.campaignId });
+    }
 
     revalidatePath("/admin/affiliates/campaigns");
     revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
