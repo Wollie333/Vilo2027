@@ -6402,6 +6402,50 @@ export type Database = {
           },
         ]
       }
+      notification_overrides: {
+        Row: {
+          email_enabled: boolean
+          event_kind: string
+          in_app_enabled: boolean
+          intro_override: string | null
+          master_enabled: boolean
+          push_enabled: boolean
+          subject_override: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          email_enabled?: boolean
+          event_kind: string
+          in_app_enabled?: boolean
+          intro_override?: string | null
+          master_enabled?: boolean
+          push_enabled?: boolean
+          subject_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          email_enabled?: boolean
+          event_kind?: string
+          in_app_enabled?: boolean
+          intro_override?: string | null
+          master_enabled?: boolean
+          push_enabled?: boolean
+          subject_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_overrides_event_kind_fkey"
+            columns: ["event_kind"]
+            isOneToOne: true
+            referencedRelation: "notification_events"
+            referencedColumns: ["kind"]
+          },
+        ]
+      }
       notification_queue: {
         Row: {
           category_id: string | null

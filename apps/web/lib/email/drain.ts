@@ -156,10 +156,16 @@ export async function drainEmailQueue(): Promise<DrainResult> {
     }
 
     try {
+      // Admin subject override (Communications) wins over the registry subject.
+      const subjectOverride =
+        typeof payload.__subject === "string" && payload.__subject.trim()
+          ? (payload.__subject as string)
+          : null;
+
       const { error: sendError } = await resend.emails.send({
         from: emailFrom(),
         to: recipientEmail,
-        subject: entry.subject(payload),
+        subject: subjectOverride ?? entry.subject(payload),
         react: createElement(entry.Template, payload),
       });
 

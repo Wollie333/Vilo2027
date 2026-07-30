@@ -79,6 +79,13 @@ async function dispatchEventInner<K extends EventKind>(
   const event = getEvent(input.kind);
 
   const supabase = input.supabase ?? createAdminClient();
+
+  // ─── Admin message-config override (Communications hub).
+  // master-off kills the whole event; channel flags gate each channel;
+  // subject/intro overrides flow into the email payload below.
+  const cfg = await resolveOverride(supabase, input.kind);
+  if (cfg && cfg.master_enabled === false) return;
+
   const prefs = await resolvePrefs(
     supabase,
     input.recipientUserId,
@@ -96,6 +103,11 @@ async function dispatchEventInner<K extends EventKind>(
     brand_name:
       (input.refs as { brand_name?: string }).brand_name ??
       (await getBrandName()),
+    // Admin intro override (Communications) → the template's `intro` prop.
+    // A caller-supplied intro (rare) still wins.
+    ...(cfg?.intro_override && !(input.refs as { intro?: string }).intro
+      ? { intro: cfg.intro_override }
+      : {}),
   } as RefsFor<K>;
 
   const dedupeKey =
@@ -138,7 +150,16 @@ async function dispatchEventInner<K extends EventKind>(
   }
 
   const override = input.overrideChannels;
+  // Admin config gate: a channel switched off in Communications is never sent,
+  // regardless of user prefs or per-send overrides.
+  const cfgAllows = (ch: "email" | "push" | "in_app"): boolean => {
+    if (!cfg) return true;
+    if (ch === "email") return cfg.email_enabled;
+    if (ch === "push") return cfg.push_enabled;
+    return cfg.in_app_enabled;
+  };
   const channelEnabled = (ch: "email" | "push" | "in_app"): boolean => {
+    if (!cfgAllows(ch)) return false;
     if (override && override[ch] !== undefined) return override[ch] === true;
     if (prefs.is_locked) return true;
     if (ch === "email") return prefs.email_enabled;
@@ -152,9 +173,17 @@ async function dispatchEventInner<K extends EventKind>(
       settings.dedupe_enabled &&
       (await shouldSkipEmail(supabase, input.recipientUserId, dedupeKey));
     if (!skip) {
+      // Persist the admin copy overrides alongside the refs so drain.ts renders
+      // them: `intro` (template prop) + `__subject` (drain prefers it over the
+      // registry subject).
+      const emailPayload: Record<string, unknown> = {
+        ...(input.refs as Record<string, unknown>),
+        ...(cfg?.intro_override ? { intro: cfg.intro_override } : {}),
+        ...(cfg?.subject_override ? { __subject: cfg.subject_override } : {}),
+      };
       const { error } = await supabase.from("notification_queue").insert({
         type: event.emailTemplate,
-        payload: input.refs as Record<string, unknown>,
+        payload: emailPayload,
         host_id: input.hostId ?? null,
         guest_id: input.guestId ?? null,
         user_id: input.recipientUserId,
@@ -225,6 +254,33 @@ async function dispatchEventInner<K extends EventKind>(
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
+
+type MessageOverride = {
+  master_enabled: boolean;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  in_app_enabled: boolean;
+  subject_override: string | null;
+  intro_override: string | null;
+};
+
+// The admin's Communications config for a message kind. Absent row → null →
+// default behaviour (all channels on, code-default copy). Never throws: a
+// failed lookup must not drop the notification.
+async function resolveOverride(
+  supabase: AdminClient,
+  kind: string,
+): Promise<MessageOverride | null> {
+  const { data, error } = await supabase
+    .from("notification_overrides")
+    .select(
+      "master_enabled, email_enabled, push_enabled, in_app_enabled, subject_override, intro_override",
+    )
+    .eq("event_kind", kind)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as MessageOverride;
+}
 
 async function resolvePrefs(
   supabase: AdminClient,

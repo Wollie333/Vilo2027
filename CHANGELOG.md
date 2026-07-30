@@ -36,6 +36,19 @@ foundation — templates + registry rows only; firing wiring follows once the ov
 - **`notification_events`** rows (`20260730010000`) so settings/override/audit recognise the kinds;
   sample payloads added. Email render suite 47/47 green (was 41).
 
+## 2026-07-30 (pt88c) — Message override layer (Communications backbone).
+
+The config store the Communications hub + campaign Email tab sit on: admin control over each system
+message's on/off, channels, and copy — enforced in the dispatcher.
+
+- **`notification_overrides`** (`20260730020000`): one row per event kind (global) — `master_enabled`,
+  per-channel `email/push/in_app_enabled`, `subject_override`, `intro_override`. Admin/service only.
+- **Dispatcher enforcement** (`dispatch.ts`): master-off skips the whole event; a channel switched off
+  is never sent (wins over user prefs); `intro_override` → the template's `intro` prop; `subject_override`
+  → `__subject` in the email payload. Absent row = default (all-on, code-default copy) — zero behaviour
+  change until an admin touches a message.
+- **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
+
 ## 2026-07-23 (pt82) — Affiliate metrics + money-path audit + campaign path proven.
 
 Hardened and refined the affiliate program: audited the whole commission money path against the
