@@ -4,12 +4,15 @@ import { QRCodeCanvas } from "qrcode.react";
 import { Download, Link2, Mail, MessageCircle } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
+import { campaignPartnerLink } from "@/lib/affiliate/links";
+
 import { CopyLinkButton } from "./CopyLinkButton";
 
 // Link builder — pixel-match of the design's "Link builder" card. Turns the
 // affiliate's code into a link for any page / a product / a campaign signup,
-// with a live QR. Routes through /r/<slug>?next= (or /c/<campaign>/<slug> for a
-// campaign) exactly as the attribution spine expects.
+// with a live QR. Routes through /r/<slug>?next= for pages/products; a campaign
+// uses the partner's co-branded page /partners/<slug>?c=<campaign> (whose CTAs
+// still drop the /r/<slug>?c= cookie) exactly as the attribution spine expects.
 type ProductOpt = { id: string; name: string; slug: string | null };
 type CampaignOpt = { slug: string; name: string };
 type Mode = "page" | "product" | "campaign";
@@ -33,7 +36,7 @@ export function LinkBuilderPanel({
 
   const link = useMemo(() => {
     if (mode === "campaign" && campaignSlug) {
-      return `${baseUrl}/c/${campaignSlug}/${slug}`;
+      return campaignPartnerLink(baseUrl, slug, campaignSlug);
     }
     if (mode === "product") {
       const p = products.find((x) => x.id === productId);

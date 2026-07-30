@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import type { LadderBand } from "@/lib/affiliate/campaigns";
+import { campaignPartnerLink, displayLink } from "@/lib/affiliate/links";
 import {
   loadCampaignLeaderboard,
   loadMyRaceStats,
@@ -65,8 +66,8 @@ export default async function PartnerRacePage({
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
     "https://wielo.co.za";
-  const raceLink = `${appUrl}/c/${campaign.slug}/${me.slug}`;
-  const raceLinkShort = raceLink.replace(/^https?:\/\//, "");
+  const raceLink = campaignPartnerLink(appUrl, me.slug, campaign.slug);
+  const raceLinkShort = displayLink(raceLink);
 
   const endsLabel = campaign.endsAt
     ? new Date(campaign.endsAt).toLocaleDateString("en-ZA", {

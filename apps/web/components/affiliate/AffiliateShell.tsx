@@ -3,6 +3,7 @@ import { ChevronRight, Wallet } from "lucide-react";
 import "./affiliate-manager.css";
 
 import { Link } from "@/i18n/navigation";
+import { AffiliateChrome } from "@/components/affiliate/AffiliateChrome";
 import { AffiliateNav } from "@/app/[locale]/portal/affiliates/_components/AffiliateNav";
 import { AffiliateTermsGate } from "@/app/[locale]/portal/affiliates/_components/AffiliateTermsGate";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
@@ -102,66 +103,78 @@ export async function AffiliateShell({
       ? "Finishing setup"
       : "Suspended";
 
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
-        <div>
-          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
-            <span>{crumbLabel}</span>
-            <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-brand-ink">Affiliates</span>
-          </nav>
-          <h1 className="mt-1 font-display text-[24px] font-extrabold leading-none text-brand-ink">
-            Affiliate program
-          </h1>
-          <div className="mt-1.5 text-[12.5px] text-brand-mute">
-            {memberSince ? `Partner since ${memberSince} · ` : null}
-            <span className="font-medium text-brand-primary">
-              {refUrlShort}
-            </span>
-          </div>
-        </div>
-        <div className="ml-auto flex items-center gap-2 pb-0.5">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[11.5px] font-semibold ${
-              isActive
-                ? "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]"
-                : "border-[#FDE9C8] bg-[#FFFBEB] text-[#B45309]"
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isActive ? "bg-brand-primary" : "bg-status-pending"
-              }`}
-            />
-            {statusLabel}
-          </span>
-          {isActive ? (
-            <Link href={`${basePath}/payouts`} className="btn-pri h-9">
-              <Wallet className="h-4 w-4" /> Request payout
-            </Link>
-          ) : null}
+  const header = (
+    <div className="flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
+      <div>
+        <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
+          <span>{crumbLabel}</span>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-medium text-brand-ink">Affiliates</span>
+        </nav>
+        <h1 className="mt-1 font-display text-[24px] font-extrabold leading-none text-brand-ink">
+          Affiliate program
+        </h1>
+        <div className="mt-1.5 text-[12.5px] text-brand-mute">
+          {memberSince ? `Partner since ${memberSince} · ` : null}
+          <span className="font-medium text-brand-primary">{refUrlShort}</span>
         </div>
       </div>
+      <div className="ml-auto flex items-center gap-2 pb-0.5">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[11.5px] font-semibold ${
+            isActive
+              ? "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]"
+              : "border-[#FDE9C8] bg-[#FFFBEB] text-[#B45309]"
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              isActive ? "bg-brand-primary" : "bg-status-pending"
+            }`}
+          />
+          {statusLabel}
+        </span>
+        {isActive ? (
+          <Link href={`${basePath}/payouts`} className="btn-pri h-9">
+            <Wallet className="h-4 w-4" /> Request payout
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
 
-      {/* A pending partner sees the remaining steps rather than the portal — the
-          tabs would offer referral links and payouts that cannot work yet. */}
-      {isPending ? (
+  // A pending partner sees the remaining steps rather than the portal — the tabs
+  // would offer referral links and payouts that cannot work yet.
+  if (isPending) {
+    return (
+      <div>
+        {header}
         <div className="pt-6">
           <AffiliateActivationChecklist
             checklist={await evaluateAffiliateActivation(admin, account.id)}
           />
         </div>
-      ) : (
+      </div>
+    );
+  }
+
+  // AffiliateChrome shows the header + tabs normally, but inside a single
+  // competition (…/race/<slug>) swaps them for a "back to dashboard" link so the
+  // whole content area is that one competition.
+  return (
+    <AffiliateChrome
+      basePath={basePath}
+      chrome={
         <>
+          {header}
           <AffiliateNav
             campaignCount={campaignCount ?? 0}
             basePath={basePath}
           />
-          <div className="pt-6">{children}</div>
         </>
-      )}
-    </div>
+      }
+    >
+      {children}
+    </AffiliateChrome>
   );
 }

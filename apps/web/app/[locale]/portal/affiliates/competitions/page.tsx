@@ -8,6 +8,7 @@ import {
   type LadderBand,
 } from "@/lib/affiliate/campaigns";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import { campaignPartnerLink } from "@/lib/affiliate/links";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -180,7 +181,7 @@ export default async function AffiliateCampaignsPage() {
             ? `${zar(rung.toNext)} to the ${Math.round(rung.nextRate * 100)}% rung`
             : null,
         progressPct,
-        link: `${appUrl}/c/${c.slug}/${me.slug}`,
+        link: campaignPartnerLink(appUrl, me.slug, c.slug as string),
       });
     } else if (!enrolledIds.has(c.id as string)) {
       const runs =

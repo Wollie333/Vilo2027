@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Flag, Globe } from "lucide-react";
 
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import { campaignPartnerLink, displayLink } from "@/lib/affiliate/links";
 import { getAffiliateTier } from "@/lib/affiliate/tiers";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -162,10 +163,9 @@ export default async function AffiliateLinksPage() {
     return {
       id: c.id,
       name: c.name as string,
-      url: `${baseUrl}/c/${c.slug}/${account.slug}`,
-      display: `${baseUrl}/c/${c.slug}/${account.slug}`.replace(
-        /^https?:\/\//,
-        "",
+      url: campaignPartnerLink(baseUrl, account.slug, c.slug as string),
+      display: displayLink(
+        campaignPartnerLink(baseUrl, account.slug, c.slug as string),
       ),
       ...s,
     };
