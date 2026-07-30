@@ -1,6 +1,12 @@
 # Affiliate Program & Competition — Updated Decisions (Launch)
 
-> **Status:** decided 2026-07-30. This is the canonical source for the affiliate
+> ⛔ **SUPERSEDED (2026-07-30) by [`WIELO_FOUNDING_PROGRAMME.md`](WIELO_FOUNDING_PROGRAMME.md)** —
+> the canonical source of truth. That document expands and, in places, revises what is below
+> (90-day cookie with the rate in the payload, click-time rate stamping, two link namespaces,
+> R999/R4,999/R599 products, monthly + Fast-Start prizes, day-33 payouts, per-referral dashboards).
+> Read the SoT, not this file, for current rules. Kept for history only.
+
+> **Status:** ~~decided 2026-07-30~~ superseded. This was the canonical source for the affiliate
 > **commission model** and the **Founding Race** competition rules at launch.
 >
 > **Supersedes** the growing-ladder + prize-floors design described in
