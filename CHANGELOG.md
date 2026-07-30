@@ -49,6 +49,21 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88i) — Prize engine: Fast Start + all milestones (§5.5 / §10.5).
+
+`compute_campaign_results` previously computed only the `first_to_10` milestone and a single-winner
+30-day prize. Now it produces the full SoT prize set.
+
+- **All three milestones** computed (first past the post): `first_host_live` (≥1), `first_to_10` (≥10),
+  `first_to_25` (≥25) — generalised by threshold.
+- **Fast Start** (new, NON-competitive): R1 000 to EVERY partner who reaches ≥5 live listings within
+  their first 30 days (from enrolment where present, else their first scored day). Added to the Founding
+  Race config (now 8 prizes). Migration `20260730070000`.
+- Proven live (rolled back): Fast Start awards each qualifier and excludes a partner who reached 5 too
+  late; all three milestones award. TS `winnerLabel`/`PrizeKind`/rank updated for the new kinds.
+- Awards are still created as 'owed' rows on publish and require admin **settle** = the approval gate.
+  Mid-race milestone auto-flagging (award the moment hit, not only at close) remains a follow-up.
+
 ## 2026-07-30 (pt88h) — "Referred by" signup field (§3.2 rule 6) — §10.4 complete.
 
 The host signup form now carries a "Referred by" field, closing the last attribution item.

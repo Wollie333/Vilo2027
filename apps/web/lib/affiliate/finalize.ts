@@ -13,7 +13,7 @@ import { anonName } from "./leaderboard";
 // Here we resolve names + build human labels (real name for admin, anonymised
 // publicName for the public final).
 
-export type PrizeKind = "placing" | "milestone" | "monthly";
+export type PrizeKind = "placing" | "milestone" | "monthly" | "fast_start";
 
 export type RawWinner = {
   kind: PrizeKind;
@@ -98,10 +98,13 @@ export function winnerLabel(w: {
 }): string {
   if (w.kind === "placing" && w.placing) return `${ordinal(w.placing)} place`;
   if (w.kind === "milestone") {
+    if (w.milestone === "first_host_live") return "First host live";
     if (w.milestone === "first_to_10") return "First to 10 listings";
+    if (w.milestone === "first_to_25") return "First to 25 listings";
     if (w.milestone === "any_reaching_5_in_30d") return "First to 5 in 30 days";
     return "Milestone prize";
   }
+  if (w.kind === "fast_start") return "Fast Start bonus";
   if (w.kind === "monthly" && w.period) {
     return `Top mover — ${monthLabel(w.period)}`;
   }
@@ -146,7 +149,8 @@ export async function loadCampaignResults(
   const kindRank: Record<string, number> = {
     placing: 0,
     milestone: 1,
-    monthly: 2,
+    fast_start: 2,
+    monthly: 3,
   };
   const winners: CampaignWinner[] = raw
     .map((w) => {
