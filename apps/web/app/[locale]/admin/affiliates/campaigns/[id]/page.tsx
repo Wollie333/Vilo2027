@@ -7,6 +7,10 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+// The Email tab reuses the Communications hub's message-row / drawer / modal
+// styles (mrow, chp, mailmodal, drawer, lockzone…) — affiliate-manager.css
+// (loaded by the affiliates layout) covers card/smallcaps/tgl/ttable only.
+import "@/app/[locale]/admin/communications/communications.css";
 import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import {
@@ -18,6 +22,10 @@ import type {
   CommissionStructure,
   Competition,
 } from "@/lib/affiliate/campaigns";
+import { parseEmailSchedule } from "@/lib/affiliate/emailSchedule";
+import { EMAIL_REGISTRY } from "@/lib/email/registry";
+import { listMessageConfigs } from "@/lib/notifications/admin-config";
+import { COMPETITION_KINDS } from "@/lib/notifications/catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -28,8 +36,10 @@ import {
 import { loadCampaignMetrics } from "@/lib/affiliate/metrics";
 import { loadCampaignResults } from "@/lib/affiliate/finalize";
 
+import { getSamplePayload } from "../../../emails/samplePayloads";
 import { CampaignAdminTabs } from "../_components/CampaignAdminTabs";
 import { CampaignBuilder } from "../_components/CampaignBuilder";
+import { CampaignEmailPanel } from "../_components/CampaignEmailPanel";
 import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
 import { CampaignResultsPanel } from "../_components/CampaignResultsPanel";
 import { FloorAwardManager } from "../_components/FloorAwardManager";
@@ -81,7 +91,7 @@ export default async function AdminCampaignPage({
   const { data: campaign } = await service
     .from("affiliate_campaigns")
     .select(
-      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer, hero_image_url",
+      "id, slug, name, status, starts_at, ends_at, eligible_partners, eligible_referrals, commission_structure, competition, rules_doc_slug, max_participants, host_offer, hero_image_url, email_schedule",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -278,6 +288,25 @@ export default async function AdminCampaignPage({
   const metrics = await loadCampaignMetrics(campaign.id);
   // Finalization state: computed/published winners for the Results tab.
   const results = await loadCampaignResults(campaign.id);
+
+  // Email tab: the competition-scoped lens over the global override store. Load
+  // the message configs (each merged with its override + 24h health) and keep
+  // just this campaign's messages — the comp kinds + the two partner-money mails
+  // that matter to a competitor (commission earned, payout sent).
+  const emailConfigs = (await listMessageConfigs()).filter(
+    (c) =>
+      (COMPETITION_KINDS as string[]).includes(c.kind) ||
+      c.kind === "affiliate_commission_earned" ||
+      c.kind === "affiliate_payout_paid",
+  );
+  const emailDefaults: Record<string, { subject: string }> = {};
+  for (const c of emailConfigs) {
+    const entry = EMAIL_REGISTRY[c.kind];
+    emailDefaults[c.kind] = {
+      subject: entry ? entry.subject(getSamplePayload(c.kind)) : c.label,
+    };
+  }
+  const emailSchedule = parseEmailSchedule(campaign.email_schedule);
 
   // ── OVERVIEW panel ──────────────────────────────────────────────
   const overview = (
@@ -672,6 +701,14 @@ export default async function AdminCampaignPage({
           ),
           partners: partnersPanel,
           marketing: marketingPanel,
+          email: (
+            <CampaignEmailPanel
+              campaignId={campaign.id}
+              configs={emailConfigs}
+              defaults={emailDefaults}
+              schedule={emailSchedule}
+            />
+          ),
           rules: rulesPanel,
         }}
       />

@@ -4,6 +4,7 @@ import {
   BarChart3,
   Flag,
   LayoutDashboard,
+  Mail,
   Megaphone,
   ScrollText,
   Trophy,
@@ -23,6 +24,7 @@ const TABS: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "results", label: "Results", icon: Flag },
   { key: "partners", label: "Partners", icon: Users },
   { key: "marketing", label: "Marketing", icon: Megaphone },
+  { key: "email", label: "Email", icon: Mail },
   { key: "rules", label: "Rules & prizes", icon: ScrollText },
 ];
 

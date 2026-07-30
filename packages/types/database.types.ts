@@ -915,6 +915,7 @@ export type Database = {
           created_by: string | null
           eligible_partners: string
           eligible_referrals: string
+          email_schedule: Json
           ends_at: string | null
           hero_image_url: string | null
           host_offer: string | null
@@ -937,6 +938,7 @@ export type Database = {
           created_by?: string | null
           eligible_partners?: string
           eligible_referrals?: string
+          email_schedule?: Json
           ends_at?: string | null
           hero_image_url?: string | null
           host_offer?: string | null
@@ -959,6 +961,7 @@ export type Database = {
           created_by?: string | null
           eligible_partners?: string
           eligible_referrals?: string
+          email_schedule?: Json
           ends_at?: string | null
           hero_image_url?: string | null
           host_offer?: string | null
@@ -6439,15 +6442,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notification_overrides_event_kind_fkey"
-            columns: ["event_kind"]
-            isOneToOne: true
-            referencedRelation: "notification_events"
-            referencedColumns: ["kind"]
-          },
-        ]
+        Relationships: []
       }
       notification_queue: {
         Row: {

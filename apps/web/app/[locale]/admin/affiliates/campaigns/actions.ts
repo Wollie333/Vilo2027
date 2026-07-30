@@ -8,6 +8,11 @@ import {
   campaignInputSchema,
   type CampaignInput,
 } from "@/lib/affiliate/campaignConfig";
+import {
+  parseEmailSchedule,
+  serialiseEmailSchedule,
+  type CampaignEmailSchedule,
+} from "@/lib/affiliate/emailSchedule";
 import { winnerLabel, type RawWinner } from "@/lib/affiliate/finalize";
 import { notifyCampaignWinners } from "@/lib/affiliate/notify";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
@@ -165,6 +170,46 @@ export const updateCampaignAction = withAdminAudit<
     revalidatePath(`/competitions/${c.slug}`);
     revalidatePath("/portal/affiliates/competitions");
     return { result: { ok: true }, after: c };
+  },
+);
+
+/** Save the scheduled-sequence cadence (standings digest + ending-soon lead
+ *  time) for a campaign's Email tab. Normalised server-side — never trusting the
+ *  form — and stored on affiliate_campaigns.email_schedule for the P2b scheduler
+ *  to read. The override layer still governs whether each mail actually sends. */
+export const saveCampaignEmailScheduleAction = withAdminAudit<
+  { campaignId: string; schedule: CampaignEmailSchedule; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_email_schedule",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+    captureBefore: async (service, a) => {
+      const { data } = await service
+        .from("affiliate_campaigns")
+        .select("email_schedule")
+        .eq("id", a.campaignId)
+        .maybeSingle();
+      return data;
+    },
+  },
+  async (args, service) => {
+    // Round-trip through the parser so a malformed client payload can only ever
+    // land as the safe, fully-defaulted shape.
+    const normalised = parseEmailSchedule(args.schedule);
+    const { error } = await service
+      .from("affiliate_campaigns")
+      .update({
+        email_schedule: serialiseEmailSchedule(normalised),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", args.campaignId);
+    if (error) return { result: { ok: false, error: error.message } };
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    return { result: { ok: true }, after: normalised };
   },
 );
 
