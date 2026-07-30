@@ -13072,6 +13072,12 @@ export type Database = {
           referrals: number
         }[]
       }
+      reassign_affiliate_referral: {
+        Args: { p_new_affiliate_id: string; p_referral_id: string }
+        Returns: {
+          moved_commissions: number
+        }[]
+      }
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined

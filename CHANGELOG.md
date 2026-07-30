@@ -49,6 +49,19 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88g) — Admin referral reassignment tool (§3.2 rule 5).
+
+Wielo can now reassign a mis-bound referral to the correct partner within 30 days of the bind, from the
+admin partner page.
+
+- **`reassign_affiliate_referral` RPC** (`20260730060000`, SECDEF, service_role only): 30-day-window
+  guard, target must be an active partner, no self-referral; moves the referral + its **pending**
+  commissions (cleared/paid stay put), keeps `campaign_id` + snapshot (a mis-bind fixes WHO earns, not
+  the rate). Proven live (rolled back): within window → moved; 40 days → blocked.
+- **Audited action** `reassignReferralAction` (`subscriptions.edit` + `withAdminAudit`, reason required)
+  + a per-row **Reassign** control on the admin partner page, shown only inside the 30-day window.
+- Remaining §10.4: the "Referred by" signup field.
+
 ## 2026-07-30 (pt88f) — Click-time rate capture + first-click attribution (§3, §10.4).
 
 Fixes the shipped gap where the rate was taken from the live campaign at signup: a host who clicked a

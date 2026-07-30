@@ -14,6 +14,7 @@ import { requirePermission } from "@/lib/admin";
 import { listAcceptances } from "@/lib/affiliate/agreement";
 
 import { VerifyPartnerButton } from "../_components/VerifyPartnerButton";
+import { ReassignReferralControl } from "./ReassignReferralControl";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -170,6 +171,10 @@ export default async function AdminAffiliateFunnelPage({
       plan: isPaid ? (sub!.plan as string) : hostId ? "free" : "guest",
       joined: r.bound_at,
       commission: commByReferral.get(r.id) ?? 0,
+      // 30-day admin correction window (SoT §3.2 rule 5).
+      withinWindow:
+        r.bound_at != null &&
+        Date.now() - Date.parse(r.bound_at) < 30 * 24 * 60 * 60 * 1000,
     };
   });
 
@@ -292,12 +297,13 @@ export default async function AdminAffiliateFunnelPage({
                 <th>Plan</th>
                 <th>Joined</th>
                 <th className="r">Commission</th>
+                <th className="r">Attribution</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-brand-mute">
+                  <td colSpan={5} className="py-8 text-center text-brand-mute">
                     No referrals yet.
                   </td>
                 </tr>
@@ -330,6 +336,13 @@ export default async function AdminAffiliateFunnelPage({
                     <td className="num text-brand-mute">{fmtDate(r.joined)}</td>
                     <td className="num r font-semibold text-brand-ink">
                       {formatMoney(r.commission, account.currency)}
+                    </td>
+                    <td className="r align-top">
+                      <ReassignReferralControl
+                        referralId={r.id}
+                        referredName={r.name}
+                        withinWindow={r.withinWindow}
+                      />
                     </td>
                   </tr>
                 ))
