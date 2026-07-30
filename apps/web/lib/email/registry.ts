@@ -7,6 +7,12 @@ import {
   AffiliatePayoutPaid,
   CampaignPauseChanged,
   CampaignWon,
+  CampaignPartnerEnrolled,
+  CampaignReferralActivated,
+  CampaignMilestoneHit,
+  CampaignKickoff,
+  CampaignStandingsDigest,
+  CampaignEndingSoon,
   BookingCancelledGuest,
   BroadcastCritical,
   NotificationDigest,
@@ -83,6 +89,48 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "custom",
     subject: (p) =>
       `🏆 You won a prize in ${str(p.campaignName, "the competition")}`,
+  },
+
+  campaign_partner_enrolled: {
+    Template: CampaignPartnerEnrolled as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) => `You're in ${str(p.campaignName, "the Founding Race")} 🎉`,
+  },
+
+  campaign_referral_activated: {
+    Template: CampaignReferralActivated as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "custom",
+    subject: (p) =>
+      `${str(p.hostName, "A host you referred")} just went live 🚀`,
+  },
+
+  campaign_milestone_hit: {
+    Template: CampaignMilestoneHit as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `🏆 Milestone unlocked: ${str(p.milestoneLabel, "a milestone")}`,
+  },
+
+  campaign_kickoff: {
+    Template: CampaignKickoff as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) => `${str(p.campaignName, "The Founding Race")} is on 🏁`,
+  },
+
+  campaign_standings_digest: {
+    Template: CampaignStandingsDigest as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `You're ${str(p.rank, "on the board")} in ${str(p.campaignName, "the Founding Race")}`,
+  },
+
+  campaign_ending_soon: {
+    Template: CampaignEndingSoon as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `${str(p.timeLeft, "Not long")} left in ${str(p.campaignName, "the Founding Race")} ⏳`,
   },
 
   welcome_host: {

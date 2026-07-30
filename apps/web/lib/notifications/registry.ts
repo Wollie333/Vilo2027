@@ -219,6 +219,30 @@ export type AffiliateRefs = {
   recipient_email?: string;
   /** Injected by dispatchEvent for branded push/in-app copy. */
   brand_name?: string;
+  // ── Competition-sequence refs (partner_enrolled / referral_activated /
+  //    milestone_hit / kickoff / standings_digest / ending_soon) ────────────
+  /** Referred host's display name (referral_activated). */
+  hostName?: string;
+  /** Listing that went live (referral_activated). */
+  listingName?: string;
+  /** Human milestone label, e.g. "First to 10 live listings". */
+  milestoneLabel?: string;
+  /** Formatted cash prize, e.g. "R 2 000". */
+  prizeAmount?: string;
+  /** Rank string, e.g. "#3" (standings_digest / ending_soon). */
+  rank?: string;
+  /** Live-listings score, e.g. "14". */
+  score?: string;
+  /** Gap to the leader, e.g. "6 listings". */
+  gap?: string;
+  /** Time left, e.g. "17 weeks" (standings_digest). */
+  weeksLeft?: string;
+  /** Time remaining, e.g. "2 weeks" (ending_soon). */
+  timeLeft?: string;
+  /** Human end date, e.g. "30 November 2026" (kickoff). */
+  endsOn?: string;
+  /** Admin-editable intro paragraph (Communications override → template prop). */
+  intro?: string;
 };
 
 // Helpers
@@ -1205,6 +1229,128 @@ export const NOTIFICATION_REGISTRY = {
     inApp: (r) => ({
       title: `You won — ${r.campaignName ?? "competition"} 🏆`,
       body: r.detail ?? "The final results are in and you're a winner.",
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  // ─── Competition sequence (WS-comms) ──────────────────────────────────────
+  campaign_partner_enrolled: {
+    category: "account_security",
+    feature: "subscription",
+    severity: "default",
+    emailTemplate: "campaign_partner_enrolled",
+    push: (r) => ({
+      title: "You're in the competition 🎉",
+      body: clip(
+        `You've joined ${r.campaignName ?? "the Founding Race"}. Start referring to climb the leaderboard.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: `You're in ${r.campaignName ?? "the competition"} 🎉`,
+      body: "Share your link and compete for the prizes.",
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_referral_activated: {
+    category: "payments_refunds",
+    feature: "subscription",
+    severity: "default",
+    emailTemplate: "campaign_referral_activated",
+    push: (r) => ({
+      title: "A referral just went live 🚀",
+      body: clip(
+        `${r.hostName ?? "A host you referred"} published a listing — another point on your ${r.campaignName ?? "competition"} board.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: "A referral just went live 🚀",
+      body: `${r.hostName ?? "A referred host"}${r.listingName ? ` · ${r.listingName}` : ""}`,
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_milestone_hit: {
+    category: "payments_refunds",
+    feature: "subscription",
+    severity: "high",
+    emailTemplate: "campaign_milestone_hit",
+    push: (r) => ({
+      title: "Milestone unlocked 🏆",
+      body: clip(
+        `${r.milestoneLabel ?? "A milestone"}${r.prizeAmount ? ` — ${r.prizeAmount}` : ""} in ${r.campaignName ?? "the competition"}.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: `Milestone: ${r.milestoneLabel ?? "unlocked"} 🏆`,
+      body: r.prizeAmount ? `You've earned ${r.prizeAmount}.` : "Nicely done.",
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_kickoff: {
+    category: "marketing_tips",
+    feature: "subscription",
+    severity: "default",
+    emailTemplate: "campaign_kickoff",
+    push: (r) => ({
+      title: "The competition is on 🏁",
+      body: clip(
+        `${r.campaignName ?? "The Founding Race"} is live. Grab your link and get on the board early.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: `${r.campaignName ?? "The competition"} is on 🏁`,
+      body: "The leaderboard is live from today.",
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_standings_digest: {
+    category: "marketing_tips",
+    feature: "subscription",
+    severity: "info",
+    emailTemplate: "campaign_standings_digest",
+    push: (r) => ({
+      title: `You're ${r.rank ?? "on the board"} this week`,
+      body: clip(
+        `${r.score ? `${r.score} live listings` : "Your standings"}${r.gap ? ` · ${r.gap} off the lead` : ""} in ${r.campaignName ?? "the competition"}.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: `You're ${r.rank ?? "on the board"} in ${r.campaignName ?? "the competition"}`,
+      body: `${r.score ? `${r.score} live listings` : "See your standings"}${r.gap ? ` · ${r.gap} behind the leader` : ""}.`,
+      link: "/portal/affiliates/competitions",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  campaign_ending_soon: {
+    category: "marketing_tips",
+    feature: "subscription",
+    severity: "default",
+    emailTemplate: "campaign_ending_soon",
+    push: (r) => ({
+      title: `${r.timeLeft ?? "Not long"} left ⏳`,
+      body: clip(
+        `${r.campaignName ?? "The competition"} wraps up soon${r.rank ? ` — you're ${r.rank}` : ""}. Time for a final push.`,
+      ),
+      data: link("/portal/affiliates/competitions"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: `Final stretch — ${r.timeLeft ?? "not long"} left ⏳`,
+      body: `${r.campaignName ?? "The competition"} is closing${r.rank ? ` · you're ${r.rank}` : ""}.`,
       link: "/portal/affiliates/competitions",
     }),
   } satisfies EventBuilder<AffiliateRefs>,

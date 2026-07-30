@@ -351,6 +351,53 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     paused: "true",
     reason: "Under review following a referral-quality query.",
   },
+
+  campaign_partner_enrolled: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+  },
+
+  campaign_referral_activated: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+    hostName: "Karoo Sunset Guest Farm",
+    listingName: "Karoo Sunset Guest Farm",
+  },
+
+  campaign_milestone_hit: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+    milestoneLabel: "First to 10 live listings",
+    prizeAmount: "R 2 000",
+  },
+
+  campaign_kickoff: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+    endsOn: "30 November 2026",
+  },
+
+  campaign_standings_digest: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+    rank: "#3",
+    score: "14",
+    gap: "6 listings",
+    weeksLeft: "17 weeks",
+  },
+
+  campaign_ending_soon: {
+    recipient_email: "partner@example.com",
+    firstName: "Thandi",
+    campaignName: "the Founding Race",
+    timeLeft: "2 weeks",
+    rank: "#3",
+  },
 };
 
 export function getSamplePayload(type: string): Record<string, unknown> {

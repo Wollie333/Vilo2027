@@ -23,6 +23,19 @@ replacing the old growing-ladder + prize-floor design.
 - **Prize floors stripped** from the Founding Race config — cash prizes only (flat 60% makes a rate
   floor redundant). Default (`campaign_id IS NULL`) money path is byte-identical.
 
+## 2026-07-30 (pt88b) — Competition email set: 6 templates + registries + events.
+
+Added the competition-sequence emails the Communications hub / campaign Email tab will manage. Inert
+foundation — templates + registry rows only; firing wiring follows once the override layer lands.
+
+- **6 React email templates** (`emails/templates/`): PartnerEnrolled, ReferralActivated, MilestoneHit,
+  Kickoff, StandingsDigest, EndingSoon. Each takes an optional `intro` prop so the admin's intro
+  override replaces the default paragraph (the "editable intro" contract).
+- **Both registries wired**: `EMAIL_REGISTRY` (Template + subject) and `NOTIFICATION_REGISTRY`
+  (push + in-app + `AffiliateRefs` extended with rank/score/gap/milestone/etc.).
+- **`notification_events`** rows (`20260730010000`) so settings/override/audit recognise the kinds;
+  sample payloads added. Email render suite 47/47 green (was 41).
+
 ## 2026-07-23 (pt82) — Affiliate metrics + money-path audit + campaign path proven.
 
 Hardened and refined the affiliate program: audited the whole commission money path against the

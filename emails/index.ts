@@ -45,6 +45,12 @@ export { default as AffiliateCommissionEarned } from "./templates/AffiliateCommi
 export { default as AffiliatePayoutPaid } from "./templates/AffiliatePayoutPaid";
 export { default as CampaignPauseChanged } from "./templates/CampaignPauseChanged";
 export { default as CampaignWon } from "./templates/CampaignWon";
+export { default as CampaignPartnerEnrolled } from "./templates/CampaignPartnerEnrolled";
+export { default as CampaignReferralActivated } from "./templates/CampaignReferralActivated";
+export { default as CampaignMilestoneHit } from "./templates/CampaignMilestoneHit";
+export { default as CampaignKickoff } from "./templates/CampaignKickoff";
+export { default as CampaignStandingsDigest } from "./templates/CampaignStandingsDigest";
+export { default as CampaignEndingSoon } from "./templates/CampaignEndingSoon";
 export { default as PasswordReset } from "./templates/PasswordReset";
 export { default as ClaimAccount } from "./templates/ClaimAccount";
 export { default as ConfirmEmail } from "./templates/ConfirmEmail";
