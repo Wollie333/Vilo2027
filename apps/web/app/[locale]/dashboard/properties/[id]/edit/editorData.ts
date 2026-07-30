@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { hostHasFeature } from "@/lib/products/featureGate";
 import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 import { getCategoriesForKind } from "@/lib/taxonomy/getCategories";
@@ -56,12 +57,32 @@ export type ListingEditorData = {
   // business's site (null when the business has no website yet).
   channels: {
     hasBusiness: boolean;
+    // Booking-management channel — the property may use the internal booking
+    // system. `entitled` is the product/plan permission (admin-controlled); when
+    // false the card renders a locked "Coming soon" state. `enabled` is the
+    // host's per-property switch. `externalWebsiteUrl` is shown when booking is
+    // off so a directory-only listing can link out to the host's own site.
+    booking: {
+      entitled: boolean;
+      enabled: boolean;
+      externalWebsiteUrl: string | null;
+    };
+    // Wielo Directory channel — `entitled` is the `directory_listing` permission;
+    // the per-property state is the already-loaded `listing.is_published`.
+    directory: {
+      entitled: boolean;
+    };
     website: {
+      // `entitled` is the `website_builder` permission — false ⇒ "Coming soon".
+      entitled: boolean;
       websiteId: string;
       subdomain: string;
       status: "draft" | "published" | "unpublished";
       isVisible: boolean;
     } | null;
+    // Website entitlement is also surfaced independently of `website` (which is
+    // null until a site exists) so the card can show "Coming soon" correctly.
+    websiteEntitled: boolean;
   };
 };
 
@@ -114,6 +135,8 @@ export async function loadListingEditorData(
         "instant_booking",
         "is_published",
         "booking_mode",
+        "direct_booking_enabled",
+        "external_website_url",
       ].join(", "),
     )
     .eq("id", listingId)
@@ -341,6 +364,17 @@ export async function loadListingEditorData(
     name: b.trading_name || b.legal_name || "Untitled business",
   }));
 
+  // Per-property channel entitlements (admin-controlled, per product/plan). Each
+  // gate is the on/off permission for a channel: booking management, the Wielo
+  // directory, and the host website. Resolved via the canonical feature RPC so
+  // the card can show a locked "Coming soon" state when a channel isn't included.
+  const [bookingEntitled, directoryEntitled, websiteEntitled] =
+    await Promise.all([
+      hostHasFeature(listing.host_id, "direct_booking"),
+      hostHasFeature(listing.host_id, "directory_listing"),
+      hostHasFeature(listing.host_id, "website_builder"),
+    ]);
+
   // W12 — resolve the Website channel for this property: does the owning
   // business have a site, and is this property visible on it? Directory is just
   // `listing.is_published` (already loaded). Both channels are independent.
@@ -360,6 +394,7 @@ export async function loadListingEditorData(
         .eq("property_id", listingId)
         .maybeSingle();
       channelWebsite = {
+        entitled: websiteEntitled,
         websiteId: site.id,
         subdomain: site.subdomain,
         status: site.status as "draft" | "published" | "unpublished",
@@ -396,7 +431,16 @@ export async function loadListingEditorData(
     localPicks,
     channels: {
       hasBusiness: Boolean(listing.business_id),
+      booking: {
+        entitled: bookingEntitled,
+        enabled: listing.direct_booking_enabled,
+        externalWebsiteUrl: listing.external_website_url,
+      },
+      directory: {
+        entitled: directoryEntitled,
+      },
       website: channelWebsite,
+      websiteEntitled,
     },
   };
 }

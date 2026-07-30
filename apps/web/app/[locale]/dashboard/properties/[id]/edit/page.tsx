@@ -7,7 +7,7 @@ import { Editor } from "./Editor";
 import { loadListingEditorData } from "./editorData";
 
 export const metadata: Metadata = {
-  title: "Edit listing",
+  title: "Edit property",
 };
 
 export default async function EditListingPage({

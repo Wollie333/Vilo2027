@@ -31,8 +31,8 @@ export function AmenitiesTab({
         </CardTitle>
         <CardDescription className="text-brand-mute">
           Check whatever applies. Save replaces the whole set. For per-room
-          listings, assign each amenity to a specific room or leave it
-          listing-wide.
+          properties, assign each amenity to a specific room or leave it
+          property-wide.
         </CardDescription>
       </CardHeader>
       <CardContent>

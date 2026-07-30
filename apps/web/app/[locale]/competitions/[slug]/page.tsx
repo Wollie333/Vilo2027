@@ -423,10 +423,10 @@ export default async function CompetitionLeaderboardPage({
             </p>
           </div>
           <Link
-            href="/contact"
+            href={`/signup/partner/${campaign.slug}`}
             className="inline-flex h-11 shrink-0 items-center gap-[7px] rounded-pill bg-brand-primary px-[22px] text-[14px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
           >
-            Talk to us <ArrowRight className="h-4 w-4" />
+            Join Now <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </main>

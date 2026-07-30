@@ -152,7 +152,7 @@ const PANEL_META: Record<StepKey, { title: string; desc: string }> = {
   },
   amenities: {
     title: "Amenities",
-    desc: "What this specific room offers, on top of the listing-wide amenities.",
+    desc: "What this specific room offers, on top of the property-wide amenities.",
   },
   access: {
     title: "Guest access",

@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Star, Zap } from "lucide-react";
+import { ArrowRight, ExternalLink, ShieldCheck, Star, Zap } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { FxEstimateNote } from "@/components/currency/FxEstimateNote";
@@ -20,6 +20,8 @@ export async function ReservePanel({
   refundNote,
   quoteButton,
   quoteButtonMobile,
+  directBookingEnabled = true,
+  externalWebsiteUrl = null,
 }: {
   slug: string;
   basePrice: number | null;
@@ -32,9 +34,20 @@ export async function ReservePanel({
   refundNote: string;
   quoteButton: React.ReactNode;
   quoteButtonMobile: React.ReactNode;
+  /** Booking-management channel off ⇒ no instant Reserve; quote + website only. */
+  directBookingEnabled?: boolean;
+  /** Host's own site — shown as "Go to website" when direct booking is off. */
+  externalWebsiteUrl?: string | null;
 }) {
   const t = await getTranslations("listing");
   const reserveHref = `/property/${encodeURIComponent(slug)}/book`;
+  // A safe external link: only render when it parses as an http(s) URL.
+  const websiteHref =
+    directBookingEnabled || !externalWebsiteUrl
+      ? null
+      : /^https?:\/\//i.test(externalWebsiteUrl)
+        ? externalWebsiteUrl
+        : `https://${externalWebsiteUrl}`;
   const hasRating = rating != null && reviewCount != null && reviewCount > 0;
 
   return (
@@ -91,29 +104,48 @@ export async function ReservePanel({
           ) : null}
         </div>
 
-        {instantBooking ? (
+        {instantBooking && directBookingEnabled ? (
           <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-bold">
             <Zap className="h-3 w-3" /> {t("instantBook")}
           </div>
         ) : null}
 
-        <a
-          href={reserveHref}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3.5 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
-        >
-          {t("reserve")} <ArrowRight className="h-4 w-4" />
-        </a>
+        {directBookingEnabled ? (
+          <a
+            href={reserveHref}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3.5 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
+          >
+            {t("reserve")} <ArrowRight className="h-4 w-4" />
+          </a>
+        ) : null}
 
-        <div className="mt-3">{quoteButton}</div>
-
-        <div className="mt-3 text-center text-[11px] text-brand-mute">
-          {t("notChargedYet")}
+        <div className={directBookingEnabled ? "mt-3" : "mt-5"}>
+          {quoteButton}
         </div>
 
-        <FxEstimateNote
-          settlementCurrency={currency}
-          className="mt-2 text-center text-[11px] text-brand-mute"
-        />
+        {websiteHref ? (
+          <a
+            href={websiteHref}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded border border-white/20 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.12]"
+          >
+            {t("goToWebsite")} <ExternalLink className="h-4 w-4" />
+          </a>
+        ) : null}
+
+        {directBookingEnabled ? (
+          <>
+            <div className="mt-3 text-center text-[11px] text-brand-mute">
+              {t("notChargedYet")}
+            </div>
+
+            <FxEstimateNote
+              settlementCurrency={currency}
+              className="mt-2 text-center text-[11px] text-brand-mute"
+            />
+          </>
+        ) : null}
 
         <div className="mt-5 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light p-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
@@ -150,12 +182,23 @@ export async function ReservePanel({
             </div>
           </div>
           {quoteButtonMobile}
-          <a
-            href={reserveHref}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
-          >
-            {t("reserve")} <ArrowRight className="h-4 w-4" />
-          </a>
+          {directBookingEnabled ? (
+            <a
+              href={reserveHref}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
+            >
+              {t("reserve")} <ArrowRight className="h-4 w-4" />
+            </a>
+          ) : websiteHref ? (
+            <a
+              href={websiteHref}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded border border-brand-line px-4 py-3 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              {t("goToWebsite")} <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : null}
         </div>
       </div>
     </>

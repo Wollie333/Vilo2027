@@ -192,13 +192,26 @@ export async function priceBooking(
   const { data: listing } = await admin
     .from("properties")
     .select(
-      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, direct_booking_enabled, booking_mode, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("id", d.property_id)
     .maybeSingle();
 
   if (!listing || !listing.is_published) {
     return { ok: false, error: "This listing isn't available." };
+  }
+
+  // Booking-management channel gate. When a property has direct booking turned
+  // off it is a directory/website listing only — guests request a quote or visit
+  // the host's own website instead. Fail-closed: never let a stale deep-link
+  // create a live booking against a property that isn't accepting them. The
+  // per-property flag is the enforcement here; the `direct_booking` entitlement
+  // is enforced when the host toggles it on (setBookingChannelAction).
+  if (!listing.direct_booking_enabled) {
+    return {
+      ok: false,
+      error: "This property isn’t taking direct bookings — request a quote.",
+    };
   }
 
   // Block intake early (good UX) when the host's membership has lapsed — the

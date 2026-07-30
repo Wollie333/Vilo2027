@@ -249,7 +249,7 @@ export function AddonsTab({
           </CardTitle>
           <CardDescription className="text-brand-mute">
             Create extras and pick which ones guests can buy with a booking on
-            this listing.
+            this property.
           </CardDescription>
         </div>
         <button
@@ -334,7 +334,7 @@ export function AddonsTab({
                       className="rounded border border-brand-line bg-white px-2 py-1 text-[11px] text-brand-mute"
                       aria-label="Assign add-on to room"
                     >
-                      <option value="">Listing-wide</option>
+                      <option value="">Property-wide</option>
                       {rooms.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}

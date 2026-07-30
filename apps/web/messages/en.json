@@ -284,6 +284,7 @@
     "availabilityTitle": "Availability",
     "availabilityBody": "Dates the host has blocked or that are already booked.",
     "requestQuote": "Request a quote",
+    "goToWebsite": "Go to website",
     "quoteShort": "Quote",
     "cancellationFallback": "See the cancellation policy.",
     "roomFrom": "from",

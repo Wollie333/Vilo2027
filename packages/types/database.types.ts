@@ -8009,8 +8009,10 @@ export type Database = {
           currency: string
           deleted_at: string | null
           description: string | null
+          direct_booking_enabled: boolean
           duration_minutes: number | null
           experience_type: string | null
+          external_website_url: string | null
           featured_review_id: string | null
           host_id: string
           house_rules: string | null
@@ -8084,8 +8086,10 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          direct_booking_enabled?: boolean
           duration_minutes?: number | null
           experience_type?: string | null
+          external_website_url?: string | null
           featured_review_id?: string | null
           host_id: string
           house_rules?: string | null
@@ -8159,8 +8163,10 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          direct_booking_enabled?: boolean
           duration_minutes?: number | null
           experience_type?: string | null
+          external_website_url?: string | null
           featured_review_id?: string | null
           host_id?: string
           house_rules?: string | null

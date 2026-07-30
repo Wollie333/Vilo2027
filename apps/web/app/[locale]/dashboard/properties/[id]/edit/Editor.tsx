@@ -91,6 +91,10 @@ export type EditorListing = {
   instant_booking: boolean;
   is_published: boolean;
   booking_mode: "whole_listing" | "rooms_only" | "flexible";
+  // Booking-management channel: may this property use the internal booking system.
+  direct_booking_enabled: boolean;
+  // Host's own website link, shown as "Go to website" on a directory-only listing.
+  external_website_url: string | null;
 };
 
 export type EditorPhoto = {
@@ -200,7 +204,7 @@ const ACCOMMODATION_TABS: TabDef[] = [
 // panel's content.
 const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
   basic: {
-    title: "Listing basics",
+    title: "Property basics",
     desc: "Name, category, the owning business and the description guests read first.",
   },
   photos: {
@@ -245,11 +249,11 @@ const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
   },
   review: {
     title: "Review & publish",
-    desc: "Everything at a glance before your listing goes live.",
+    desc: "Everything at a glance before your property goes live.",
   },
   danger: {
     title: "Danger zone",
-    desc: "Unpublish or archive this listing.",
+    desc: "Unpublish or archive this property.",
   },
 };
 
@@ -427,7 +431,7 @@ export function Editor({
         <div className="min-w-0">
           <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
             <Link href="/dashboard/properties" className="hover:text-brand-ink">
-              Listings
+              Properties
             </Link>
             <ChevronRight className="h-3 w-3" />
             <span className="font-medium text-brand-ink">Editing</span>

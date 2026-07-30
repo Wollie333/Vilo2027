@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-31 — Property Channels (3-card model) + directory-only listings + copy sweep.
+
+Reworked the property editor's Channels tab into three independent, admin-gated channels and
+added a "directory-only" mode so a property can be listed without taking direct bookings.
+
+- **3-card Channels** (`ChannelsTab`): **Booking management** (internal booking system —
+  new `properties.direct_booking_enabled`), **Wielo Directory** (`is_published`), **Your
+  website** (`website_properties`). Each card is gated by a product/plan entitlement
+  (`direct_booking` / `directory_listing` / `website_builder`); when a channel isn't included
+  the card renders a locked **"Coming soon"** state (visual only). Default host (Beta product)
+  sees Booking + Directory active, Website "Coming soon".
+- **Migration** `20260731000000`: `properties.direct_booking_enabled` (default true) +
+  `properties.external_website_url`. Types regenerated.
+- **Booking-management enforcement (fail-closed)**: `persistBookingAndPay` — the authoritative
+  backstop every booking surface funnels through (app checkout, website, deals) — rejects a
+  booking when the property has direct booking off; `createBooking` also early-rejects for UX.
+  A directory-only property can't take a live booking through any channel.
+- **Directory-only public CTA** (`ReservePanel`): when booking is off the public property page
+  hides Reserve and shows **Request a quote** + a **"Go to website"** button
+  (`external_website_url`). New server actions `setBookingChannelAction` +
+  `setExternalWebsiteUrlAction` (owner-checked, entitlement-gated on enable). Verified
+  canvas + live.
+- **Competitions**: the founding-race CTA now reads **"Join Now"** and links to the
+  competition's own signup (`/signup/partner/<slug>`), dynamic per competition.
+- **Copy sweep**: user-facing "listing" → "property" across the property editor, its tabs,
+  breadcrumbs, the Properties page title/CTA and the mobile nav label — "listing" kept only in
+  the Wielo Directory (channel) sense.
+
 ## 2026-07-31 — Hide unreleased features: Tracking, Looking-For (hosts + guests), Channels/Website.
 
 Shelved three not-ready surfaces behind the nav so no user can reach them, ahead of a

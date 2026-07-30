@@ -84,6 +84,8 @@ type RawListing = {
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
   instant_booking: boolean;
+  direct_booking_enabled: boolean;
+  external_website_url: string | null;
   allow_children: boolean | null;
   allow_infants: boolean | null;
   allow_pets: boolean | null;
@@ -174,6 +176,7 @@ async function loadListing(slug: string) {
         check_in_time, check_out_time,
         base_price, weekend_price, cleaning_fee, currency, vat_number, vat_rate, booking_mode,
         cancellation_policy, house_rules, instant_booking,
+        direct_booking_enabled, external_website_url,
         allow_children, allow_infants, allow_pets,
         child_price, infant_price, pet_fee, infant_max_age, child_max_age,
         whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct,
@@ -631,6 +634,8 @@ export default async function ListingDetailPage({
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
               instantBooking={listing.instant_booking}
+              directBookingEnabled={listing.direct_booking_enabled}
+              externalWebsiteUrl={listing.external_website_url}
               refundNote={refundNote?.note ?? t("cancellationFallback")}
               quoteButton={
                 <RequestQuoteButton

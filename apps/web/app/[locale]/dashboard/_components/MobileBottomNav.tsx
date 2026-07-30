@@ -34,7 +34,7 @@ const PRIMARY: Item[] = [
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   {
     href: "/dashboard/properties",
-    label: "Listings",
+    label: "Properties",
     icon: HomeIcon,
     match: "prefix",
   },

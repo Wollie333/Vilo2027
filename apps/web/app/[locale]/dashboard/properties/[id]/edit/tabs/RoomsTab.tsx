@@ -36,12 +36,12 @@ const MODE_NOTICE: Record<
   whole_listing: {
     tone: "neutral",
     title: "Whole-place mode — rooms are descriptive",
-    body: "Guests book this listing as a whole. Rooms you add here describe what's inside (e.g. King master, twin guest) and show on the public page. Switch to per-room or flexible mode if you want guests to book individual rooms.",
+    body: "Guests book this property as a whole. Rooms you add here describe what's inside (e.g. King master, twin guest) and show on the public page. Switch to per-room or flexible mode if you want guests to book individual rooms.",
   },
   rooms_only: {
     tone: "accent",
     title: "Per-room mode — each room is independently bookable",
-    body: "Guests pick specific rooms on this listing. Pricing and capacity are set per-room.",
+    body: "Guests pick specific rooms on this property. Pricing and capacity are set per-room.",
   },
   flexible: {
     tone: "accent",

@@ -60,10 +60,10 @@ export function DangerTab({
       <CardContent>
         <div className="rounded-card border border-status-cancelled/40 bg-red-50/60 p-4">
           <div className="font-display text-base font-semibold text-brand-ink">
-            Delete this listing
+            Delete this property
           </div>
           <p className="mt-1 text-sm text-brand-mute">
-            You can&rsquo;t delete a listing while it has pending, confirmed or
+            You can&rsquo;t delete a property while it has pending, confirmed or
             checked-in bookings. Cancel or complete those first.
           </p>
 

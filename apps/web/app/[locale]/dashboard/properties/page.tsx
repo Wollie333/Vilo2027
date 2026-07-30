@@ -37,7 +37,7 @@ import {
 } from "./occupancy";
 
 export const metadata: Metadata = {
-  title: "Listings",
+  title: "Properties",
 };
 
 export const dynamic = "force-dynamic";
@@ -365,7 +365,7 @@ export default async function ListingsPage({
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-line pb-5">
         <div>
           <h1 className="font-display text-[24px] font-bold tracking-tight text-brand-ink">
-            Listings
+            Properties
           </h1>
           <p className="mt-1 text-[13.5px] text-brand-mute">
             <CountPart value={totalAll} className="text-brand-ink" />{" "}
@@ -1158,7 +1158,7 @@ function AddListingTile() {
       </div>
       <div>
         <div className="font-display text-[15px] font-bold text-brand-ink">
-          Add another listing
+          Add another property
         </div>
         <p className="mx-auto mt-1 max-w-[20ch] text-[12px] leading-relaxed text-brand-mute">
           Apartment, lodge, guesthouse, or cottage.

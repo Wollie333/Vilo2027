@@ -93,8 +93,8 @@ function BusinessCard({
           Business
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          Which of your businesses owns this listing. Its name, VAT, address,
-          banking and currency appear on this listing&rsquo;s quotes and
+          Which of your businesses owns this property. Its name, VAT, address,
+          banking and currency appear on this property&rsquo;s quotes and
           invoices.
         </CardDescription>
       </CardHeader>

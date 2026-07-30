@@ -641,7 +641,7 @@ function PageHeader({ addRoomHref }: { addRoomHref: string }) {
       <div className="shrink-0">
         <nav className="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
           <Link href="/dashboard/properties" className="hover:text-brand-ink">
-            Listings
+            Properties
           </Link>
           <ChevronRight className="h-3 w-3" />
           <span className="font-medium text-brand-ink">Rooms</span>

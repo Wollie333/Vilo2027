@@ -113,6 +113,26 @@ export async function persistBookingAndPay(
     return { ok: false, error: HOST_NOT_ACCEPTING_MESSAGE };
   }
 
+  // 0b. Booking-management channel gate (authoritative backstop). A property with
+  // direct booking turned off is a directory/website listing only — it never
+  // accepts a live booking through ANY channel (app checkout, website special,
+  // marketplace deal all funnel through here). Fail-closed on an explicit false.
+  const gatePropertyId =
+    (input.bookingInsert.property_id as string | null | undefined) ?? null;
+  if (gatePropertyId) {
+    const { data: prop } = await admin
+      .from("properties")
+      .select("direct_booking_enabled")
+      .eq("id", gatePropertyId)
+      .maybeSingle();
+    if (prop && prop.direct_booking_enabled === false) {
+      return {
+        ok: false,
+        error: "This property isn’t taking direct bookings — request a quote.",
+      };
+    }
+  }
+
   // 1. Insert the booking row. Read back the total/deposit AFTER insert — the
   // BEFORE INSERT VAT trigger (apply_booking_vat) grosses up total_amount when
   // the listing is VAT-registered, so the caller's pre-insert breakdown total is

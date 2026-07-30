@@ -1312,6 +1312,83 @@ export async function setWebsiteChannelAction(
   return { ok: true };
 }
 
+// Booking-management channel toggle. Whether this property may use the internal
+// booking system / accept direct bookings (`properties.direct_booking_enabled`).
+// Turning it ON requires the owner's product to grant `direct_booking`; turning
+// it OFF is always allowed. The public booking paths enforce this server-side —
+// this is the host-facing control half. When off, the listing shows a quote
+// request + external website link instead of instant checkout.
+export async function setBookingChannelAction(
+  listingId: string,
+  enabled: boolean,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = own.db;
+
+  const { data: listing } = await supabase
+    .from("properties")
+    .select("host_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return { ok: false, error: "Property not found." };
+
+  if (enabled && !(await hostHasFeature(listing.host_id, "direct_booking"))) {
+    return {
+      ok: false,
+      error: "Direct booking isn't available on your plan.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("properties")
+    .update({ direct_booking_enabled: enabled })
+    .eq("id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not update the booking channel." };
+  }
+
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
+  return { ok: true };
+}
+
+const externalWebsiteUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .url("Enter a full URL, e.g. https://your-site.co.za")
+  .or(z.literal(""));
+
+// Save (or clear) the host's external website link shown as "Go to website" on a
+// directory-only listing. Empty string clears it (stored as NULL).
+export async function setExternalWebsiteUrlAction(
+  listingId: string,
+  url: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = externalWebsiteUrlSchema.safeParse(url);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Enter a valid URL.",
+    };
+  }
+
+  const { error } = await own.db
+    .from("properties")
+    .update({ external_website_url: parsed.data === "" ? null : parsed.data })
+    .eq("id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not save the website link." };
+  }
+
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
+  return { ok: true };
+}
+
 // ─── Booking mode + rooms ────────────────────────────────────────
 
 export async function setBookingModeAction(

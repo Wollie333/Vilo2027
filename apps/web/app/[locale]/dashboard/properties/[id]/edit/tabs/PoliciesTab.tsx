@@ -36,7 +36,7 @@ export type AssignedPolicy = {
 
 const SECTION_BLURB: Partial<Record<PolicyType, string>> = {
   cancellation: "How much guests are refunded if they cancel.",
-  check_in_out: "Check-in and check-out times for this listing.",
+  check_in_out: "Check-in and check-out times for this property.",
   house_rules: "The rules guests agree to when booking.",
   booking_terms: "Your terms & conditions, accepted by guests at checkout.",
 };
@@ -127,7 +127,7 @@ export function PoliciesTab({
         </CardTitle>
         <CardDescription className="text-brand-mute">
           Create refund terms, check-in/out times and house rules, then assign
-          them to this listing.
+          them to this property.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -161,7 +161,7 @@ export function PoliciesTab({
               ) : (
                 <>
                   <PolicySelect
-                    label="Listing-wide"
+                    label="Property-wide"
                     value={currentPolicyId(type, null)}
                     options={options}
                     onChange={(id) => assign(type, null, id)}

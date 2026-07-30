@@ -256,7 +256,7 @@ export function PricingTab({
                 <span className="font-normal text-brand-mute">(optional)</span>
               </div>
               <p className="mt-0.5 text-xs text-brand-mute">
-                Enter a VAT number only if this listing is VAT-registered. When
+                Enter a VAT number only if this property is VAT-registered. When
                 set, VAT is added on top of every booking total and its
                 documents become tax invoices. Leave blank for no VAT. The rate
                 defaults to 15% (South Africa) — change it for other countries.

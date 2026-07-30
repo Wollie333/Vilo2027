@@ -95,7 +95,7 @@ export function RoomAmenitiesSection({
           Room amenities
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          What this specific room offers. Independent from the listing-wide
+          What this specific room offers. Independent from the property-wide
           amenities — both show up on the guest&rsquo;s room detail page.
         </CardDescription>
       </CardHeader>
