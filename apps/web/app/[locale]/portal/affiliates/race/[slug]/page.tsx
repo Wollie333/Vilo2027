@@ -10,7 +10,10 @@ import { notFound } from "next/navigation";
 
 import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
-import type { LadderBand } from "@/lib/affiliate/campaigns";
+import {
+  describeCommissionStructure,
+  type LadderBand,
+} from "@/lib/affiliate/campaigns";
 import { campaignPartnerLink, displayLink } from "@/lib/affiliate/links";
 import {
   loadCampaignLeaderboard,
@@ -91,6 +94,19 @@ export default async function PartnerRacePage({
     (a, b) =>
       (a.max ?? Number.POSITIVE_INFINITY) - (b.max ?? Number.POSITIVE_INFINITY),
   );
+
+  // Conversion bonuses come from the campaign's commission structure (admin-set),
+  // so the amounts shown always match what's actually paid — never hardcoded.
+  const convBonus = campaign.structure?.conversion_bonus ?? {};
+  const comp = campaign.competition;
+  const listingPoints = comp?.events?.listing_published ?? 1;
+  const startsLabel = campaign.startsAt
+    ? new Date(campaign.startsAt).toLocaleDateString("en-ZA", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   // Conversion bonus earned (kind='conversion_bonus') for this campaign.
   const { data: bonusRows } = await admin
@@ -354,35 +370,50 @@ export default async function PartnerRacePage({
               </p>
             </div>
           </section>
-          {/* CONVERSION BONUS */}
-          <section className="am-card overflow-hidden">
-            <div className="smallcaps border-b border-brand-line px-5 py-3.5">
-              Conversion bonuses
-            </div>
-            <div className="space-y-2 p-5 text-[12.5px]">
-              <div className="flex justify-between">
-                <span className="text-brand-mute">Monthly plan activates</span>
-                <span className="num font-bold text-brand-ink">R 250</span>
+          {/* CONVERSION BONUS — only when this campaign actually has one (or the
+              partner has already earned it), so we never show an empty card. */}
+          {convBonus.monthly || convBonus.annual || bonusEarned > 0 ? (
+            <section className="am-card overflow-hidden">
+              <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+                Conversion bonuses
               </div>
-              <div className="flex justify-between">
-                <span className="text-brand-mute">Annual plan activates</span>
-                <span className="num font-bold text-brand-ink">R 400</span>
+              <div className="space-y-2 p-5 text-[12.5px]">
+                {convBonus.monthly ? (
+                  <div className="flex justify-between">
+                    <span className="text-brand-mute">
+                      Monthly plan activates
+                    </span>
+                    <span className="num font-bold text-brand-ink">
+                      {zar(convBonus.monthly)}
+                    </span>
+                  </div>
+                ) : null}
+                {convBonus.annual ? (
+                  <div className="flex justify-between">
+                    <span className="text-brand-mute">
+                      Annual plan activates
+                    </span>
+                    <span className="num font-bold text-brand-ink">
+                      {zar(convBonus.annual)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between border-t border-brand-line pt-2">
+                  <span className="font-semibold text-brand-ink">
+                    Earned so far
+                  </span>
+                  <span className="num font-bold text-brand-secondary">
+                    {zar(bonusEarned)} · {bonusHosts} host
+                    {bonusHosts === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+                  Paid once per referred host, when their first paid
+                  subscription starts. Separate from ladder commission.
+                </p>
               </div>
-              <div className="flex justify-between border-t border-brand-line pt-2">
-                <span className="font-semibold text-brand-ink">
-                  Earned so far
-                </span>
-                <span className="num font-bold text-brand-secondary">
-                  {zar(bonusEarned)} · {bonusHosts} host
-                  {bonusHosts === 1 ? "" : "s"}
-                </span>
-              </div>
-              <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
-                Paid once per referred host, when their first paid subscription
-                starts. Separate from ladder commission.
-              </p>
-            </div>
-          </section>
+            </section>
+          ) : null}
         </div>
       </div>
     </section>
@@ -484,8 +515,56 @@ export default async function PartnerRacePage({
     );
 
   // ── RULES & PRIZES panel ────────────────────────────────────────
+  // Everything a partner needs in one place: how the race is scored, the prize
+  // table, the commission ladder + bonuses, and the key dates. Every value is
+  // read from the campaign config so it always matches the admin setup.
+  const scoringRules: string[] = [
+    `${listingPoints} point${listingPoints === 1 ? "" : "s"} for every host you refer who has a live listing.`,
+    comp?.each_listing_counts
+      ? "Each live listing a host publishes counts separately."
+      : "Each referred host counts once, no matter how many listings they publish.",
+    comp?.count_active_only !== false
+      ? "Only currently-active listings count — if a host pauses, that point pauses too."
+      : "Listings count once published, whether or not they're currently active.",
+    comp?.scoring_mode === "net_change"
+      ? "You're scored on your net change in live listings over the period."
+      : "You're scored on your total live listings.",
+    comp?.tie_breaker
+      ? `Ties are broken by ${comp.tie_breaker.replace(/_/g, " ")}.`
+      : "Ties are broken by who reached the score first.",
+  ];
+
+  const durationLabel =
+    campaign.structure?.duration === "lifetime"
+      ? "for as long as each host keeps paying"
+      : campaign.structure?.duration === "recurring" &&
+          campaign.structure?.recurring_periods
+        ? `for each host's first ${campaign.structure.recurring_periods} payments`
+        : "on each referred subscription";
+
   const rules = (
     <div className="space-y-6">
+      {/* How the race works */}
+      <section className="am-card overflow-hidden">
+        <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+          How the race works
+        </div>
+        <div className="space-y-2.5 p-5">
+          <ul className="space-y-2">
+            {scoringRules.map((r, i) => (
+              <li key={i} className="flex gap-2 text-[12.5px] text-brand-ink">
+                <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary" />
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+            Standings recompute nightly from currently-active listings.
+          </p>
+        </div>
+      </section>
+
+      {/* Prizes */}
       <section className="am-card overflow-hidden">
         <div className="smallcaps border-b border-brand-line px-5 py-3.5">
           Prizes
@@ -516,14 +595,120 @@ export default async function PartnerRacePage({
                     {p.monthly_top_net_change
                       ? zar(p.monthly_top_net_change)
                       : ""}
-                    {p.floor ? ` · ${Math.round(p.floor * 100)}% floor` : ""}
+                    {p.floor
+                      ? ` · ${Math.round(p.floor * 100)}% rate floor`
+                      : ""}
                   </div>
+                  {p.floor ? (
+                    <div className="mt-0.5 text-[10.5px] leading-snug text-brand-mute">
+                      A rate floor is locked to your account for life — your
+                      commission rate never drops below it.
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))
           )}
         </div>
       </section>
+
+      {/* Commission & bonuses */}
+      <section className="am-card overflow-hidden">
+        <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+          Commission &amp; bonuses
+        </div>
+        <div className="space-y-3 p-5">
+          {campaign.structure ? (
+            <p className="text-[12.5px] leading-relaxed text-brand-ink">
+              {describeCommissionStructure(campaign.structure)}
+            </p>
+          ) : null}
+          {sortedBands.length > 0 ? (
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                The ladder
+              </div>
+              {sortedBands.map((b, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between text-[12.5px] text-brand-ink"
+                >
+                  <span className="text-brand-mute">
+                    {b.max === null
+                      ? `${zar(sortedBands[i - 1]?.max ?? 0)}+ monthly book`
+                      : `Up to ${zar(b.max)} monthly book`}
+                  </span>
+                  <span className="num font-bold">
+                    {Math.round(b.rate * 100)}%
+                  </span>
+                </div>
+              ))}
+              <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+                Your rate applies to your whole book {durationLabel}. Crossing a
+                rung lifts your entire book to the higher rate.
+              </p>
+            </div>
+          ) : null}
+          {convBonus.monthly || convBonus.annual ? (
+            <div className="space-y-1.5 border-t border-brand-line pt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Conversion bonus
+              </div>
+              {convBonus.monthly ? (
+                <div className="flex justify-between text-[12.5px] text-brand-ink">
+                  <span className="text-brand-mute">
+                    Host activates a monthly plan
+                  </span>
+                  <span className="num font-bold">
+                    {zar(convBonus.monthly)}
+                  </span>
+                </div>
+              ) : null}
+              {convBonus.annual ? (
+                <div className="flex justify-between text-[12.5px] text-brand-ink">
+                  <span className="text-brand-mute">
+                    Host activates an annual plan
+                  </span>
+                  <span className="num font-bold">{zar(convBonus.annual)}</span>
+                </div>
+              ) : null}
+              <p className="pt-1 text-[11px] leading-relaxed text-brand-mute">
+                Paid once per referred host when their first paid subscription
+                starts — on top of your ladder commission.
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* Key dates */}
+      {startsLabel || endsLabel ? (
+        <section className="am-card overflow-hidden">
+          <div className="smallcaps border-b border-brand-line px-5 py-3.5">
+            Key dates
+          </div>
+          <div className="space-y-2 p-5 text-[12.5px]">
+            {startsLabel ? (
+              <div className="flex justify-between">
+                <span className="text-brand-mute">Starts</span>
+                <span className="font-semibold text-brand-ink">
+                  {startsLabel}
+                </span>
+              </div>
+            ) : null}
+            {endsLabel ? (
+              <div className="flex justify-between">
+                <span className="text-brand-mute">Ends</span>
+                <span className="font-semibold text-brand-ink">
+                  {endsLabel}
+                  {daysLeft != null ? ` · ${daysLeft} days left` : ""}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {campaign.rulesDocSlug ? (
         <p className="text-[12px] text-brand-mute">
           <a
@@ -532,9 +717,9 @@ export default async function PartnerRacePage({
             rel="noreferrer"
             className="font-medium text-brand-primary hover:underline"
           >
-            Full competition rules
+            Read the full competition rules
           </a>{" "}
-          · standings recompute nightly from currently-active listings.
+          for the complete terms and conditions.
         </p>
       ) : null}
     </div>

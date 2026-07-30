@@ -14,6 +14,8 @@ export type CommissionStructure = {
   bands?: LadderBand[];
   flat_rate?: number;
   flat_type?: "percent" | "amount";
+  /** One-off bonus (Rand) paid when a referred host's first paid plan activates. */
+  conversion_bonus?: { monthly?: number; annual?: number };
 };
 
 export type Competition = {
