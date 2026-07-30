@@ -57,7 +57,9 @@ export function QuotesSignupForm() {
         return;
       }
       toast.success("Welcome to Wielo Quotes!");
-      router.push("/dashboard/looking-for");
+      // Looking-For is shelved until release later this year — land new quotes
+      // accounts on their Quotes surface instead of the hidden Looking-For hub.
+      router.push("/dashboard/quotes");
     });
   }
 

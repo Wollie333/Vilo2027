@@ -8,7 +8,6 @@ import {
   FileText,
   Home as HomeIcon,
   LayoutDashboard,
-  List,
   Lock,
   MessageSquare,
   MoreHorizontal,
@@ -41,14 +40,10 @@ const PRIMARY: Item[] = [
   },
 ];
 
-// Scoped primary tabs for a quotes-only account.
+// Scoped primary tabs for a quotes-only account. The Looking-For ("Requests")
+// tab is hidden while that feature is shelved — see LOOKING_FOR_HIDDEN in
+// Sidebar.tsx — so quotes-only accounts land on their Quotes surface instead.
 const QUOTES_ONLY_PRIMARY: Item[] = [
-  {
-    href: "/dashboard/looking-for",
-    label: "Requests",
-    icon: List,
-    match: "prefix",
-  },
   {
     href: "/dashboard/quotes",
     label: "Quotes",

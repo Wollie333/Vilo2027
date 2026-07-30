@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Radar } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
@@ -12,6 +13,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+// HIDDEN for now — Tracking is being re-homed inside the website feature. The
+// sidebar entry is commented out; this redirect blocks direct-URL access so no
+// user can reach the page in the meantime. Remove both when it's re-enabled.
+const TRACKING_HIDDEN: boolean = true;
+
 type Analytics = {
   metaPixel?: string;
   ga4?: string;
@@ -22,6 +28,8 @@ type Analytics = {
 };
 
 export default async function TrackingPage() {
+  if (TRACKING_HIDDEN) redirect("/dashboard");
+
   const supabase = createServerClient();
   const {
     data: { user },

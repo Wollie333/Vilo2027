@@ -28,7 +28,8 @@ const NAV = [
   { href: "#destinations", key: "destinations" },
   { href: "#types", key: "propertyTypes" },
   { href: "/deals", key: "deals" },
-  { href: "/looking-for", key: "guestRequests" },
+  // "Guest requests" (/looking-for) is shelved until release later this year —
+  // nav entry hidden; the /looking-for/* routes redirect home via a guard layout.
   // "For hosts" (/booking-management) is hidden for now.
   { href: "/launch", key: "launch" },
 ] as const;

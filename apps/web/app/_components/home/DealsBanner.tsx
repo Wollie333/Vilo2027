@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, Sun, Tag } from "lucide-react";
+import { ArrowRight, Sun, Tag } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { formatMoney } from "@/lib/format";
@@ -66,7 +66,7 @@ export async function DealsBanner() {
     <section className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
         <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
-          <div className="relative min-h-[280px] overflow-hidden rounded-card border border-brand-line lg:col-span-7">
+          <div className="relative min-h-[280px] overflow-hidden rounded-card border border-brand-line lg:col-span-12">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={
@@ -102,35 +102,8 @@ export async function DealsBanner() {
               </a>
             </div>
           </div>
-
-          <div className="brand-gradient relative overflow-hidden rounded-card p-8 text-white lg:col-span-5 lg:p-10">
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-30"
-              style={{
-                backgroundImage:
-                  "radial-gradient(rgba(255,255,255,0.25) 1px, transparent 1px)",
-                backgroundSize: "22px 22px",
-              }}
-            />
-            <div className="relative">
-              <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/20 backdrop-blur">
-                <Sparkles className="h-3 w-3" /> {t("groupBadge")}
-              </span>
-              <h3 className="mt-4 font-display text-2xl font-bold leading-tight md:text-3xl">
-                {t("groupTitle")}
-              </h3>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/90">
-                {t("groupBody")}
-              </p>
-              <a
-                href="/looking-for/start"
-                className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-secondary transition-colors hover:bg-brand-accent"
-              >
-                {t("groupCta")} <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-          </div>
+          {/* The "group request" promo (Looking-For) is shelved until release
+              later this year — card removed; /looking-for/* redirects home. */}
         </div>
       </div>
     </section>

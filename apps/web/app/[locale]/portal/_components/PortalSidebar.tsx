@@ -9,7 +9,6 @@ import {
   LogOut,
   Luggage,
   MessageSquare,
-  Search,
   Settings,
   Star,
 } from "lucide-react";
@@ -92,12 +91,8 @@ export function PortalSidebar({
       label: "Discover",
       items: [
         { href: "/portal/browse", label: "Browse stays", icon: Compass },
-        {
-          href: "/portal/looking-for",
-          label: "Looking For",
-          icon: Search,
-          match: "prefix",
-        },
+        // Looking-For is shelved until release later this year — nav entry
+        // hidden; /portal/looking-for/* redirects to /portal via a guard layout.
       ],
     },
   ];

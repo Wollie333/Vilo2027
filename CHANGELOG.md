@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-31 — Hide unreleased features: Tracking, Looking-For (hosts + guests), Channels/Website.
+
+Shelved three not-ready surfaces behind the nav so no user can reach them, ahead of a
+later release. Each is reversible (commented `*_HIDDEN` flags + small guard layouts).
+
+- **Tracking** — removed from the host sidebar (Insights); `/dashboard/tracking` now
+  redirects to `/dashboard` so a direct URL can't reach it. (Will move inside the Website
+  feature later.)
+- **Looking-For** — hidden for ALL hosts and guests until release later this year:
+  - Host sidebar (incl. the quotes-only shell + mobile "More"/bottom bar) and the guest
+    portal "Discover" nav no longer show it.
+  - Public entry points removed: home-header "Guest requests" link + the DealsBanner
+    "group request" promo card (deals card now spans full width).
+  - Route guards (redirect `layout.tsx`): `/dashboard/looking-for/*` → `/dashboard`,
+    `/looking-for/*` → `/`, `/portal/looking-for/*` → `/portal`.
+  - Quotes-account landings repointed off the hidden hub → `/dashboard/quotes`
+    (QuotesSignupForm redirect, QuotesOnlyGate "Back to my quotes").
+- **Channels section (Website + Calendar sync)** — the whole section + title is hidden
+  from the host sidebar (nav-only, per founder + the website sub-branch directive; the
+  `/dashboard/website` route is NOT guarded). The redundant **Calendar sync** menu link
+  is gone; the page stays reachable from the Calendar's "Sync" button.
+- Verified in-browser (sidebar, portal, public header, all redirects) + `pnpm lint` and
+  `pnpm build` green.
+
 ## 2026-07-30 (pt91) — Turnstile no longer locks every human out of signup when its own infra fails.
 
 Production signups (host/guest/partner/quotes) — plus the on-site booking API and website

@@ -18,7 +18,6 @@ import {
   List,
   MessageSquare,
   PackagePlus,
-  Radar,
   Receipt,
   RotateCcw,
   RotateCw,
@@ -98,6 +97,19 @@ const PROPERTIES: GmailNavItem[] = [
   { href: "/dashboard/media", label: "Media", icon: Images, match: "prefix" },
 ];
 
+// ── Feature kill-switches (temporary) ────────────────────────────────────────
+// These features are shelved until they're ready for release later this year.
+// Flip to false to bring the nav section back. The matching routes also guard
+// themselves (redirect layouts), so hiding the nav here is only half the story.
+//
+// Looking-For — guest request marketplace. Hidden for ALL hosts (incl. the
+// quotes-only shell) until release.
+const LOOKING_FOR_HIDDEN: boolean = true;
+// Channels — Website builder + Calendar sync. The whole section + title is
+// hidden for all hosts. Calendar sync itself stays reachable from the Calendar
+// page ("Sync & …"), so no functionality is lost — just the redundant nav link.
+const CHANNELS_HIDDEN: boolean = true;
+
 const CHANNELS: GmailNavItem[] = [
   {
     href: "/dashboard/website",
@@ -168,12 +180,15 @@ const INSIGHTS: GmailNavItem[] = [
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
   // Tracking hub — the host adds their own pixels / analytics IDs (Meta Pixel,
   // GA4, GTM, TikTok, Google Ads) + Meta Conversions API for their public site.
-  {
-    href: "/dashboard/tracking",
-    label: "Tracking",
-    icon: Radar,
-    match: "prefix",
-  },
+  // HIDDEN for now — this is moving inside the website feature later. Keep the
+  // entry here so it's easy to re-home. The /dashboard/tracking route also
+  // redirects to /dashboard while hidden, so direct URLs can't reach it.
+  // {
+  //   href: "/dashboard/tracking",
+  //   label: "Tracking",
+  //   icon: Radar,
+  //   match: "prefix",
+  // },
   // The affiliate programme is one account per user, mounted under BOTH shells.
   // Hosts reach it inside their own dashboard chrome (not thrown into the guest
   // portal); guests reach the same program via the portal sidebar.
@@ -240,8 +255,17 @@ export function mobileNavGroups(opts?: {
     return [
       { label: "Dashboard", items: lockForQuotesOnly(DAILY) },
       { label: "Properties", items: lockForQuotesOnly(PROPERTIES) },
-      { label: "Looking For", items: LOOKING_FOR },
-      { label: "Channels", items: lockForQuotesOnly(CHANNELS) },
+      ...(LOOKING_FOR_HIDDEN
+        ? []
+        : [{ label: "Looking For", items: LOOKING_FOR } as GmailNavSection]),
+      ...(CHANNELS_HIDDEN
+        ? []
+        : [
+            {
+              label: "Channels",
+              items: lockForQuotesOnly(CHANNELS),
+            } as GmailNavSection,
+          ]),
       { label: "Finances", items: lockForQuotesOnly(financesWithCredits()) },
       { label: "Insights", items: lockForQuotesOnly(INSIGHTS) },
       { label: "Account", items: FOOTER },
@@ -250,10 +274,12 @@ export function mobileNavGroups(opts?: {
   return [
     { label: "Dashboard", items: DAILY },
     { label: "Properties", items: PROPERTIES },
-    ...(opts?.canLookingFor
+    ...(opts?.canLookingFor && !LOOKING_FOR_HIDDEN
       ? [{ label: "Looking For", items: LOOKING_FOR } as GmailNavSection]
       : []),
-    { label: "Channels", items: CHANNELS },
+    ...(CHANNELS_HIDDEN
+      ? []
+      : [{ label: "Channels", items: CHANNELS } as GmailNavSection]),
     { label: "Finances", items: FINANCES },
     { label: "Insights", items: INSIGHTS },
     { label: "Account", items: FOOTER },
@@ -338,17 +364,25 @@ export function Sidebar({
           items: lockForQuotesOnly(PROPERTIES),
           collapsible: true,
         },
-        {
-          label: "Looking For",
-          items: lookingForItems,
-          collapsible: true,
-          icon: Search,
-        },
-        {
-          label: "Channels",
-          items: lockForQuotesOnly(channelItems),
-          collapsible: true,
-        },
+        ...(LOOKING_FOR_HIDDEN
+          ? []
+          : [
+              {
+                label: "Looking For",
+                items: lookingForItems,
+                collapsible: true,
+                icon: Search,
+              } as GmailNavSection,
+            ]),
+        ...(CHANNELS_HIDDEN
+          ? []
+          : [
+              {
+                label: "Channels",
+                items: lockForQuotesOnly(channelItems),
+                collapsible: true,
+              } as GmailNavSection,
+            ]),
         {
           label: "Finances",
           items: lockForQuotesOnly(financesWithCredits()),
@@ -364,7 +398,7 @@ export function Sidebar({
         { items: dailyItems },
         { label: "Properties", items: PROPERTIES, collapsible: true },
         // Looking For section — visible when host has access (or show locked state)
-        ...(canLookingFor
+        ...(canLookingFor && !LOOKING_FOR_HIDDEN
           ? [
               {
                 label: "Looking For",
@@ -374,7 +408,15 @@ export function Sidebar({
               } as GmailNavSection,
             ]
           : []),
-        { label: "Channels", items: channelItems, collapsible: true },
+        ...(CHANNELS_HIDDEN
+          ? []
+          : [
+              {
+                label: "Channels",
+                items: channelItems,
+                collapsible: true,
+              } as GmailNavSection,
+            ]),
         { label: "Finances", items: FINANCES, collapsible: true },
         { label: "Insights", items: INSIGHTS, collapsible: true },
       ];

@@ -86,7 +86,7 @@ function UpgradeLockScreen({ label }: { label: string }) {
         <div className="mt-6 flex flex-col gap-2.5">
           <UpgradeToHostButton className="h-10 w-full rounded-pill" />
           <Link
-            href="/dashboard/looking-for"
+            href="/dashboard/quotes"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-pill border border-brand-line bg-white px-5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
           >
             <Sparkles className="h-4 w-4" />
