@@ -49,6 +49,17 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88e) — Founding annual price aligned to R4,999 (§10.1 products).
+
+The SoT's "founding products" already exist as the shipped WS-5 price-lock on `pro` (not separate
+product rows), so §10.1 reduced to aligning the one wrong number:
+
+- **`pro.founding_annual_price` 5988 → 4999** (§6.1). Standard R999/mo (`price`) and Founding R599/mo
+  (`founding_price`) already matched. Verified: a Founding annual host pays R4,999 → partner earns 60% =
+  **R2,999.40**; monthly R599 → **R359.40/mo** (both exactly per §6.1). Migration `20260730040000`.
+- Not creating duplicate products — that would fight the tested WS-5 lock architecture
+  ([[reference-ws5-billing-map]]). Public pricing presentation (annual-hero, hide R599) is a follow-up.
+
 ## 2026-07-30 (pt88d) — Founding Programme SoT + config alignment (§10 low-hanging).
 
 Added `docs/strategy/WIELO_FOUNDING_PROGRAMME.md` as the canonical source of truth (supersedes the
