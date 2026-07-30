@@ -12592,7 +12592,11 @@ export type Database = {
         Returns: Json
       }
       create_affiliate_payout: {
-        Args: { p_affiliate_id: string; p_method: string }
+        Args: {
+          p_affiliate_id: string
+          p_bypass_threshold?: boolean
+          p_method: string
+        }
         Returns: Json
       }
       current_user_has_password: { Args: never; Returns: boolean }
@@ -13785,6 +13789,10 @@ export type Database = {
       st_wrapx: {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
+      }
+      sweep_affiliate_payouts: {
+        Args: { p_affiliate_id?: string }
+        Returns: Json
       }
       unlockrows: { Args: { "": string }; Returns: number }
       updategeometrysrid: {

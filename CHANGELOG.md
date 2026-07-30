@@ -49,6 +49,19 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88j) — Payout sweep-ups + negative carry-forward (§4 / §10.6).
+
+- **Negative-balance carry-forward already worked**: a refund-after-payout inserts a negative 'cleared'
+  offset row (`refund_after_payout`) that nets the next payout and carries forward when the balance goes
+  ≤0 (verified in the clawback fn). No new code needed.
+- **Sweep-ups** (new): `create_affiliate_payout` gains `p_bypass_threshold` (DEFAULT false → all existing
+  2-arg calls unchanged) that pays any balance regardless of the R1,000 minimum. `sweep_affiliate_payouts
+  (p_affiliate_id DEFAULT NULL)` pays every eligible balance (skips partners with no method); a **June
+  annual cron** calls it for everyone. Migration `20260730080000`. service_role only.
+- Proven live (rolled back): a R500 balance is blocked as `below_threshold` normally, and the sweep pays
+  it (`swept: 1`). Follow-up: call `sweep_affiliate_payouts(id)` from finalize (competition close) +
+  account-closure paths.
+
 ## 2026-07-30 (pt88i) — Prize engine: Fast Start + all milestones (§5.5 / §10.5).
 
 `compute_campaign_results` previously computed only the `first_to_10` milestone and a single-winner
