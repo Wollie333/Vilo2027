@@ -49,6 +49,18 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88d) — Founding Programme SoT + config alignment (§10 low-hanging).
+
+Added `docs/strategy/WIELO_FOUNDING_PROGRAMME.md` as the canonical source of truth (supersedes the
+30-Jul decisions doc + strategy v1–v4 + campaign blueprint). Aligned the safe config to it:
+
+- **Cookie window 30 → 90 days** (§3.1); **commission hold 30 → 33 days** — payable on day 33 after a
+  payment clears (§4.1). Both read live by the click handler + resolver.
+- **Founding Race dates** set to open **1 Oct 2026**, close **28 Feb 2027** (§5.1, confirmed).
+- **Monthly net-change prize** added (R1 000/month top mover, §5.5) alongside placings + milestones.
+- Migration `20260730030000`. Fast Start (non-competitive) + click-time rate capture + products +
+  per-referral dashboards + payout sweep-ups remain queued per the SoT §10 delta list.
+
 ## 2026-07-23 (pt82) — Affiliate metrics + money-path audit + campaign path proven.
 
 Hardened and refined the affiliate program: audited the whole commission money path against the
