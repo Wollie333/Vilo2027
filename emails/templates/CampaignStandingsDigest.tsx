@@ -2,6 +2,7 @@ import { Text } from "@react-email/components";
 import * as React from "react";
 
 import Button from "../components/Button";
+import DetailTable from "../components/DetailTable";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 import { APP_URL } from "../lib/appUrl";
@@ -37,13 +38,24 @@ export default function CampaignStandingsDigest({
       <Heading>Your weekly standings 📊</Heading>
       <Text>{greeting}</Text>
       <Text>
-        {intro ??
-          `Here's where you stand this week. You're ${rank ?? "on the board"}${score ? ` with ${score} live listings` : ""}${gap ? `, ${gap} behind the leader` : ""}.`}
+        {intro ?? `Here's where you stand in ${campaignName} this week.`}
       </Text>
+      <DetailTable
+        label="Your standings"
+        rows={[
+          { label: "Your rank", value: rank ?? "On the board" },
+          {
+            label: "Live listings",
+            value: score != null ? score : null,
+          },
+          { label: "Behind the leader", value: gap ?? null },
+          { label: "Time left", value: weeksLeft ?? null },
+        ]}
+      />
       {weeksLeft ? (
         <Text>
-          <strong>{weeksLeft}</strong> left to climb. A few more activated
-          listings could move you up the board.
+          A few more activated listings could move you up the board before the
+          race closes.
         </Text>
       ) : null}
       <Button href={`${APP_URL}/portal/affiliates/competitions`}>

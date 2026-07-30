@@ -2,6 +2,7 @@ import { Text } from "@react-email/components";
 import * as React from "react";
 
 import Button from "../components/Button";
+import DetailTable from "../components/DetailTable";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 import { APP_URL } from "../lib/appUrl";
@@ -32,8 +33,15 @@ export default function CampaignEndingSoon({
       <Text>{greeting}</Text>
       <Text>
         {intro ??
-          `${campaignName} wraps up in ${timeLeft}${rank ? `, and you're currently ${rank}` : ""}. This is the moment for a final push — every listing your referred hosts bring live between now and the finish counts.`}
+          `${campaignName} wraps up soon. This is the moment for a final push — every listing your referred hosts bring live between now and the finish counts.`}
       </Text>
+      <DetailTable
+        rows={[
+          { label: "Competition", value: campaignName },
+          { label: "Time left", value: timeLeft },
+          { label: "Your rank", value: rank ?? null },
+        ]}
+      />
       <Text>
         Prizes are decided on the final standings, so a strong close could
         change everything.

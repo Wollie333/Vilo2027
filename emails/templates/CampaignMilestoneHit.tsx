@@ -2,6 +2,7 @@ import { Text } from "@react-email/components";
 import * as React from "react";
 
 import Button from "../components/Button";
+import DetailTable from "../components/DetailTable";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 import { APP_URL } from "../lib/appUrl";
@@ -32,11 +33,20 @@ export default function CampaignMilestoneHit({
       <Text>{greeting}</Text>
       <Text>
         {intro ??
-          `You just hit ${milestoneLabel} in ${campaignName}${prizeAmount ? ` — that's a ${prizeAmount} prize` : ""}. Outstanding work.`}
+          `You just hit ${milestoneLabel} in ${campaignName}. Outstanding work.`}
       </Text>
+      <DetailTable
+        rows={[
+          { label: "Milestone", value: milestoneLabel },
+          { label: "Competition", value: campaignName },
+          { label: "Prize", value: prizeAmount ?? null },
+        ]}
+      />
       <Text>
-        Cash prizes are settled by our team — we&apos;ll be in touch about
-        payment. Now keep pushing for the top of the leaderboard.
+        {prizeAmount
+          ? "Cash prizes are settled by our team — we'll be in touch about payment. "
+          : ""}
+        Now keep pushing for the top of the leaderboard.
       </Text>
       <Button href={`${APP_URL}/portal/affiliates/competitions`}>
         View the leaderboard
