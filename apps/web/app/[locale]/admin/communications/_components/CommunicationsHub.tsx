@@ -3,6 +3,7 @@
 import {
   Activity,
   Bell,
+  Eye,
   Mail,
   Megaphone,
   Pencil,
@@ -13,12 +14,13 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import type { MessageConfig } from "@/lib/notifications/admin-config";
 
 import { createBroadcastAction } from "../../broadcasts/actions";
 import {
+  previewMessageEmailAction,
   resetMessageOverrideAction,
   saveMessageOverrideAction,
   toggleMasterAction,
@@ -169,6 +171,7 @@ function AutomatedTab({
   const [fCh, setFCh] = useState("");
   const [fSt, setFSt] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   function patchLocal(kind: string, patch: Partial<MessageConfig>) {
@@ -245,6 +248,7 @@ function AutomatedTab({
     .filter((g) => g.items.length > 0);
 
   const editingMsg = editing ? byKind[editing]! : null;
+  const previewMsg = previewing ? byKind[previewing]! : null;
 
   return (
     <>
@@ -320,6 +324,7 @@ function AutomatedTab({
                     onToggleMaster={() => toggleMaster(m.kind)}
                     onToggleChannel={(ch) => toggleChannel(m.kind, ch)}
                     onEdit={() => setEditing(m.kind)}
+                    onPreview={() => setPreviewing(m.kind)}
                   />
                 ))}
               </div>
@@ -338,6 +343,109 @@ function AutomatedTab({
           onSaved={(patch) => patchLocal(editingMsg.kind, patch)}
         />
       ) : null}
+
+      {previewMsg ? (
+        <EmailPreviewModal m={previewMsg} onClose={() => setPreviewing(null)} />
+      ) : null}
+    </>
+  );
+}
+
+// Renders the real branded email in a sandboxed iframe (full email HTML with
+// its own <style>, so an iframe keeps it isolated from the admin console CSS).
+function EmailPreviewModal({
+  m,
+  onClose,
+}: {
+  m: MessageConfig;
+  onClose: () => void;
+}) {
+  const [state, setState] = useState<
+    | { status: "loading" }
+    | { status: "ready"; html: string; subject: string }
+    | { status: "error"; error: string }
+  >({ status: "loading" });
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const [frameH, setFrameH] = useState(560);
+
+  // Grow the iframe to the rendered email's height so the modal body — not the
+  // iframe — owns the scroll. allow-same-origin lets us measure; scripts stay
+  // disabled (no allow-scripts), and the HTML is our own trusted template.
+  function measureFrame() {
+    const doc = frameRef.current?.contentDocument;
+    const h = doc?.body?.scrollHeight;
+    if (h && h > 0) setFrameH(h);
+  }
+
+  useEffect(() => {
+    let alive = true;
+    setState({ status: "loading" });
+    void previewMessageEmailAction({
+      kind: m.kind,
+      subjectOverride: m.subjectOverride,
+      introOverride: m.introOverride,
+    }).then((res) => {
+      if (!alive) return;
+      setState(
+        res.ok
+          ? { status: "ready", html: res.html, subject: res.subject }
+          : { status: "error", error: res.error },
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [m.kind, m.subjectOverride, m.introOverride]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="scrim show" onClick={onClose} />
+      <div className="mailmodal" role="dialog" aria-label="Email preview">
+        <div className="flex shrink-0 items-start gap-3 border-b border-brand-line px-5 py-3.5">
+          <div className="min-w-0 flex-1">
+            <div className="smallcaps">Email preview</div>
+            <div className="mt-0.5 truncate text-[14px] font-semibold text-brand-ink">
+              {state.status === "ready" ? state.subject : m.label}
+            </div>
+            <div className="mt-0.5 text-[11.5px] text-brand-mute">
+              How this email lands in the recipient&apos;s inbox
+              {m.customised ? " · with your customised copy" : ""}.
+            </div>
+          </div>
+          <button className="iact shrink-0" onClick={onClose} title="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mailmodal-body thin-scroll">
+          {state.status === "loading" ? (
+            <div className="grid place-items-center py-16 text-[13px] text-brand-mute">
+              Rendering email…
+            </div>
+          ) : state.status === "error" ? (
+            <div className="m-5 rounded-[10px] border border-brand-line bg-[#FEF3F2] p-4 text-[12.5px] text-[#B91C1C]">
+              {state.error}
+            </div>
+          ) : (
+            <iframe
+              ref={frameRef}
+              title="Email preview"
+              className="mailmodal-frame"
+              sandbox="allow-same-origin"
+              srcDoc={state.html}
+              style={{ height: frameH }}
+              onLoad={measureFrame}
+            />
+          )}
+        </div>
+      </div>
     </>
   );
 }
@@ -347,11 +455,13 @@ function MessageRow({
   onToggleMaster,
   onToggleChannel,
   onEdit,
+  onPreview,
 }: {
   m: MessageConfig;
   onToggleMaster: () => void;
   onToggleChannel: (ch: Channel) => void;
   onEdit: () => void;
+  onPreview: () => void;
 }) {
   return (
     <div className={`mrow ${m.masterEnabled ? "" : "off"}`}>
@@ -394,6 +504,11 @@ function MessageRow({
         <div className="hidden w-[152px] text-right xl:block">
           <Health m={m} />
         </div>
+        {m.email.supported ? (
+          <button className="iact" title="Preview email" onClick={onPreview}>
+            <Eye className="h-4 w-4" />
+          </button>
+        ) : null}
         <button className="iact" title="Edit" onClick={onEdit}>
           <Pencil className="h-4 w-4" />
         </button>

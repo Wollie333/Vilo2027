@@ -1,11 +1,20 @@
 "use server";
 
+import { createElement } from "react";
+
+import { render } from "@react-email/render";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission } from "@/lib/admin/requirePermission";
-import { isRegisteredEvent } from "@/lib/notifications/registry";
+import { EMAIL_REGISTRY } from "@/lib/email/registry";
+import {
+  NOTIFICATION_REGISTRY,
+  isRegisteredEvent,
+} from "@/lib/notifications/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import { getSamplePayload } from "../emails/samplePayloads";
 
 // Server actions for the Communications hub message-override layer. Gated by
 // notifications.broadcast (the platform-comms permission). Every write targets
@@ -81,6 +90,66 @@ export async function resetMessageOverrideAction(
 
   revalidatePath("/admin/communications");
   return { ok: true };
+}
+
+// ─── Email preview (eye icon) ──────────────────────────────────────────────
+// Renders the REAL branded email for a message kind with realistic sample data,
+// reflecting the saved subject/intro override the same way the dispatcher does
+// (dispatch.ts: intro → template prop unless the payload already carries one;
+// subject → the saved override, else the template's own subject).
+
+const previewSchema = z.object({
+  kind: z.string().min(1),
+  subjectOverride: z.string().nullish(),
+  introOverride: z.string().nullish(),
+});
+
+export type EmailPreviewResult =
+  | { ok: true; html: string; subject: string }
+  | { ok: false; error: string };
+
+export async function previewMessageEmailAction(input: {
+  kind: string;
+  subjectOverride?: string | null;
+  introOverride?: string | null;
+}): Promise<EmailPreviewResult> {
+  await requirePermission("notifications.broadcast");
+
+  const parsed = previewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const { kind, subjectOverride, introOverride } = parsed.data;
+
+  if (!isRegisteredEvent(kind)) {
+    return { ok: false, error: `Unknown message: ${kind}` };
+  }
+  const type = (NOTIFICATION_REGISTRY[kind] as { emailTemplate?: string })
+    .emailTemplate;
+  if (!type) {
+    return {
+      ok: false,
+      error: "This message has no email — it's push / in-app only.",
+    };
+  }
+  const entry = EMAIL_REGISTRY[type];
+  if (!entry) {
+    return { ok: false, error: `No email template registered for ${type}.` };
+  }
+
+  const payload: Record<string, unknown> = { ...getSamplePayload(type) };
+  const introTrim = introOverride?.trim();
+  if (introTrim && !(payload as { intro?: string }).intro) {
+    payload.intro = introTrim;
+  }
+
+  try {
+    const html = await render(createElement(entry.Template, payload));
+    const subjectTrim = subjectOverride?.trim();
+    const subject = subjectTrim ? subjectTrim : entry.subject(payload);
+    return { ok: true, html, subject };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Render failed: ${msg}` };
+  }
 }
 
 /** Toggle just the master switch inline (row list) without opening the drawer. */
