@@ -49,6 +49,16 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88k) — Partner dashboard: per-referral rates + flat-rate fix (§2.5 / §10.7).
+
+- **Per-referral rates** on the partner Overview: a "Your referrals & rates" table listing each host
+  with the rate STAMPED on its referral (60% for Founding Race referrals via the snapshot's flat_rate;
+  the standard rate otherwise) and the date referred. Never a single blended headline (§2.5).
+- **Flat-rate bug fixed**: the "Race rate" tile computed the rate via `ladderRateForBook`, so a flat
+  competition (Founding Race = 60%) showed **0%**. Now reads `flat_rate` for flat structures.
+- Build + lint green; not yet browser-clicked (needs a partner session). Follow-up: prominent
+  competition link + default-link warning while a competition is live (§3.3).
+
 ## 2026-07-30 (pt88j) — Payout sweep-ups + negative carry-forward (§4 / §10.6).
 
 - **Negative-balance carry-forward already worked**: a refund-after-payout inserts a negative 'cleared'

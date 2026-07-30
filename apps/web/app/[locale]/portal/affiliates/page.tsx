@@ -97,7 +97,7 @@ export default async function AffiliateOverviewPage() {
       .eq("affiliate_id", account.id),
     admin
       .from("affiliate_referrals")
-      .select("id, referred_user_id, bound_at")
+      .select("id, referred_user_id, bound_at, commission_snapshot")
       .eq("affiliate_id", account.id)
       .order("bound_at", { ascending: false }),
     admin
@@ -109,7 +109,7 @@ export default async function AffiliateOverviewPage() {
       .order("created_at", { ascending: false }),
     admin
       .from("products")
-      .select("price, name")
+      .select("price, name, affiliate_value")
       .eq("slug", "pro")
       .eq("is_active", true)
       .maybeSingle(),
@@ -135,6 +135,40 @@ export default async function AffiliateOverviewPage() {
   );
   const hostByUser = new Map((hosts ?? []).map((h) => [h.user_id, h.id]));
   const referralUser = new Map(refs.map((r) => [r.id, r.referred_user_id]));
+
+  // Per-referral rates (SoT §2.5 / §10.7) — each host with the rate STAMPED on
+  // its referral and the date it was stamped. Never a single blended headline:
+  // a partner holds several rates at once (60% on Founding Race referrals, the
+  // standard rate on the rest). Competition rate = the snapshot's flat_rate (or
+  // the ladder's top rung); no snapshot = the live standard rate.
+  const standardRatePct = Math.round(
+    Number(planProduct?.affiliate_value ?? 25),
+  );
+  const perReferralRates = refs.map((r) => {
+    const snap = r.commission_snapshot as {
+      model?: string;
+      flat_rate?: number;
+      bands?: { rate: number }[];
+    } | null;
+    let pct = standardRatePct;
+    let kind: "competition" | "standard" = "standard";
+    if (snap && typeof snap === "object") {
+      if (snap.model === "flat" && snap.flat_rate != null) {
+        pct = Math.round(snap.flat_rate * 100);
+        kind = "competition";
+      } else if (snap.model === "ladder" && snap.bands?.length) {
+        pct = Math.round(Math.max(...snap.bands.map((b) => b.rate)) * 100);
+        kind = "competition";
+      }
+    }
+    return {
+      id: r.id,
+      name: nameByUser.get(r.referred_user_id) ?? "A host",
+      date: r.bound_at as string,
+      pct,
+      kind,
+    };
+  });
 
   // Paying hosts among referrals (active/trialing/past_due on a paid plan).
   const hostIds = (hosts ?? []).map((h) => h.id);
@@ -286,7 +320,14 @@ export default async function AffiliateOverviewPage() {
           ? rankedRows[myIdx].active_listings
           : 0;
       const book = Number(bookData ?? 0);
-      const rate = bands.length ? ladderRateForBook(bands, book) : 0;
+      // Flat competitions (e.g. the Founding Race = 60%) carry their rate in
+      // flat_rate, not bands — read it directly or the rate would show as 0%.
+      const rate =
+        cs.model === "flat"
+          ? Number(cs.flat_rate ?? 0)
+          : bands.length
+            ? ladderRateForBook(bands, book)
+            : 0;
       const rung = bands.length ? nextLadderRung(bands, book) : null;
       let progressPct = 100;
       if (rung && bands.length) {
@@ -528,6 +569,58 @@ export default async function AffiliateOverviewPage() {
               <ChevronRight className="h-4 w-4 shrink-0 text-brand-mute" />
             </AffiliateBaseLink>
           )}
+
+          {/* PER-REFERRAL RATES (SoT §2.5 / §10.7 — never a blended headline) */}
+          {perReferralRates.length > 0 ? (
+            <section className="am-card fade overflow-hidden">
+              <div className="border-b border-brand-line px-5 py-3.5">
+                <div className="smallcaps">Your referrals &amp; rates</div>
+                <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                  Each host earns you the rate locked in when they signed up —
+                  for as long as they keep paying.
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="ttable">
+                  <thead>
+                    <tr>
+                      <th>Host</th>
+                      <th>Rate</th>
+                      <th>Referred</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perReferralRates.map((r) => (
+                      <tr key={r.id}>
+                        <td className="font-semibold text-brand-ink">
+                          {r.name}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              r.kind === "competition"
+                                ? "inline-flex items-center rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11.5px] font-semibold text-brand-secondary"
+                                : "inline-flex items-center rounded-pill bg-brand-light px-2.5 py-0.5 text-[11.5px] font-semibold text-brand-mute"
+                            }
+                          >
+                            {r.pct}%
+                            {r.kind === "competition" ? " · competition" : ""}
+                          </span>
+                        </td>
+                        <td className="num text-brand-mute">
+                          {new Date(r.date).toLocaleDateString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
 
           {/* RECENT ACTIVITY */}
           <section className="am-card fade overflow-hidden">
