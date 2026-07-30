@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
+import {
+  assertHumanOrInfraFailure,
+  clientIpFromHeaders,
+} from "@/lib/security/turnstile";
 import {
   createSiteBooking,
   createSiteSpecialBooking,
@@ -32,11 +35,12 @@ export async function POST(req: Request) {
     body && typeof body === "object" && "ts" in body
       ? (body as { ts?: unknown }).ts
       : undefined;
-  const human = await verifyTurnstile(
+  const human = await assertHumanOrInfraFailure(
     typeof ts === "string" ? ts : undefined,
     clientIpFromHeaders(req.headers),
+    "site-booking",
   );
-  if (!human.ok) {
+  if (!human.allowed) {
     return NextResponse.json(
       {
         ok: false,

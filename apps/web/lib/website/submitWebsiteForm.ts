@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { verifyTurnstile } from "@/lib/security/turnstile";
+import { assertHumanOrInfraFailure } from "@/lib/security/turnstile";
 import { createWebsiteEnquiry } from "@/lib/website/createWebsiteEnquiry";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -192,8 +192,12 @@ export async function submitWebsiteForm(
   // spam protection turned off (per-form). Inert until the TURNSTILE_* keys are
   // configured (verifyTurnstile then resolves ok). The honeypot above always runs.
   if (settings.spamProtection !== false) {
-    const human = await verifyTurnstile(opts.turnstileToken, opts.clientIp);
-    if (!human.ok) {
+    const human = await assertHumanOrInfraFailure(
+      opts.turnstileToken,
+      opts.clientIp,
+      "website-form",
+    );
+    if (!human.allowed) {
       return {
         ok: false,
         error: "Couldn't verify you're human. Please try again.",

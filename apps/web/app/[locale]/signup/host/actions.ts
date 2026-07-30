@@ -13,7 +13,10 @@ import {
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { isHoneypotTripped } from "@/lib/security/honeypot";
-import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
+import {
+  assertHumanOrInfraFailure,
+  clientIpFromHeaders,
+} from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -74,8 +77,12 @@ export async function createAccountAction(
   }
 
   // 2. Bot check (inert until TURNSTILE_SECRET_KEY is set).
-  const captcha = await verifyTurnstile(captchaToken, ip);
-  if (!captcha.ok) {
+  const captcha = await assertHumanOrInfraFailure(
+    captchaToken,
+    ip,
+    "signup:host",
+  );
+  if (!captcha.allowed) {
     return {
       ok: false,
       error: "Couldn't verify you're human. Refresh and try again.",

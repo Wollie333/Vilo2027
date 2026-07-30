@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-30 (pt91) — Turnstile no longer locks every human out of signup when its own infra fails.
+
+Production signups (host/guest/partner/quotes) — plus the on-site booking API and website
+forms — were rejecting **every real user** with "Couldn't verify you're human." Ground-truthed:
+not a code regression. The Cloudflare Turnstile widget rendered on prod (site key set) but never
+verified (live page stuck on "Checking your browser…"), so no token reached the server; the
+fail-closed check then rejected everyone. Root cause is a dashboard/env key config break
+(allowed-hostnames or a site-key/secret mismatch), which the founder fixes in Cloudflare + Vercel.
+Sign-in was never affected (no captcha gate there).
+
+- **New resilient posture** (`lib/security/turnstile.ts` → `assertHumanOrInfraFailure`): block a
+  submit **only** on an explicit Cloudflare bot verdict (`success:false`). A missing token or a
+  siteverify error is an infrastructure/config failure, not proof of a bot, so the submit is
+  allowed through with a `console.warn` — the always-on honeypot remains the hard gate. A Turnstile
+  outage or misconfig can no longer become a total onboarding outage.
+- The precise `verifyTurnstile` primitive and its 9 tests are **unchanged**; softening lives only in
+  the new helper, which has 5 new vitest cases (block on "failed"; soft-pass on missing-token/error).
+- Switched all 6 call sites to the helper: `signup/{host,guest,partner,quotes}`,
+  `app/api/site-booking`, `lib/website/submitWebsiteForm`.
+- **Founder still to do (real fix):** Cloudflare Turnstile allowed-hostnames must include
+  `wielo.co.za`; Vercel `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` must be the same
+  widget's pair; then redeploy. After that Turnstile hard-blocks bots as designed again.
+
 ## 2026-07-30 (pt88) — Affiliate launch model P1: commission snapshot + 25% standard + campaign-end fix.
 
 Reshaped the affiliate commission model to the launch decisions (see

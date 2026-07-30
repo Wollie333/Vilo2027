@@ -85,6 +85,44 @@ export async function verifyTurnstile(
 }
 
 /**
+ * Public-form gate with a RESILIENT posture: block only on an explicit bot
+ * verdict from Cloudflare, never on an infrastructure/config failure.
+ *
+ *   • verifyTurnstile ok            → allowed.
+ *   • reason "failed"               → BLOCKED. Cloudflare looked at the token and
+ *                                     said "this is not a human". Hard gate kept.
+ *   • reason "missing-token"|"error"→ ALLOWED (soft-pass, logged). The widget
+ *                                     never produced a token, or siteverify was
+ *                                     unreachable — a problem with the check, not
+ *                                     proof of a bot. The always-on honeypot
+ *                                     (lib/security/honeypot.ts) is still the hard
+ *                                     gate in this case.
+ *
+ * Why this exists: a strict fail-closed posture turns any Turnstile outage or key
+ * misconfiguration into a TOTAL onboarding outage. That is exactly what happened
+ * when the production site key / secret / allowed-hostnames fell out of sync — the
+ * widget rendered but never verified, so every real signup was rejected with
+ * "Couldn't verify you're human" (savepoint pt91). Bot protection should degrade,
+ * not lock out every legitimate user, when its own infrastructure fails.
+ */
+export async function assertHumanOrInfraFailure(
+  token: string | undefined | null,
+  remoteIp?: string | null,
+  context?: string,
+): Promise<{ allowed: boolean; result: TurnstileResult }> {
+  const result = await verifyTurnstile(token, remoteIp);
+  if (result.ok) return { allowed: true, result };
+  if (result.reason === "failed") return { allowed: false, result };
+  // missing-token | error → the check failed to run, not a proven bot.
+  console.warn(
+    `[turnstile] soft-pass on "${result.reason}"${
+      context ? ` (${context})` : ""
+    } — token absent or siteverify unreachable; honeypot still applies`,
+  );
+  return { allowed: true, result };
+}
+
+/**
  * Best-effort client IP from the request headers, for the optional `remoteip`
  * siteverify param. Cloudflare-fronted custom domains set `CF-Connecting-IP`;
  * Vercel/most proxies set `x-forwarded-for` (first hop is the client).

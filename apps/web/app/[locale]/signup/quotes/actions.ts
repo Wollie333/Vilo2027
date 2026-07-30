@@ -11,7 +11,10 @@ import {
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
 import { isHoneypotTripped } from "@/lib/security/honeypot";
-import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
+import {
+  assertHumanOrInfraFailure,
+  clientIpFromHeaders,
+} from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { combineName } from "@/lib/profile/name";
@@ -58,8 +61,12 @@ export async function createQuotesAccountAction(
     };
   }
 
-  const captcha = await verifyTurnstile(captchaToken, ip);
-  if (!captcha.ok) {
+  const captcha = await assertHumanOrInfraFailure(
+    captchaToken,
+    ip,
+    "signup:quotes",
+  );
+  if (!captcha.allowed) {
     return {
       ok: false,
       error: "Couldn't verify you're human. Refresh and try again.",

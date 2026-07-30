@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // the helper can be unit-tested in the node environment.
 vi.mock("server-only", () => ({}));
 
-import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
+import {
+  assertHumanOrInfraFailure,
+  clientIpFromHeaders,
+  verifyTurnstile,
+} from "@/lib/security/turnstile";
 
 const ORIGINAL_SECRET = process.env.TURNSTILE_SECRET_KEY;
 
@@ -108,6 +112,62 @@ describe("verifyTurnstile", () => {
     expect(body.get("secret")).toBe("sek");
     expect(body.get("response")).toBe("tok");
     expect(body.get("remoteip")).toBe("1.2.3.4");
+  });
+});
+
+describe("assertHumanOrInfraFailure (resilient posture)", () => {
+  it("allows when Turnstile is not configured (inert)", async () => {
+    delete process.env.TURNSTILE_SECRET_KEY;
+    expect(await assertHumanOrInfraFailure("anything")).toEqual({
+      allowed: true,
+      result: { ok: true, skipped: true },
+    });
+  });
+
+  it("allows when Cloudflare confirms success:true", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okResponse({ success: true })),
+    );
+    const out = await assertHumanOrInfraFailure("token");
+    expect(out.allowed).toBe(true);
+  });
+
+  it("BLOCKS only on an explicit bot verdict (success:false)", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okResponse({ success: false })),
+    );
+    const out = await assertHumanOrInfraFailure("token");
+    expect(out).toEqual({
+      allowed: false,
+      result: { ok: false, reason: "failed" },
+    });
+  });
+
+  it("soft-passes a MISSING token (widget never produced one) so a human is not locked out", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const out = await assertHumanOrInfraFailure(undefined, null, "signup:test");
+    expect(out.allowed).toBe(true);
+    expect(out.result).toEqual({ ok: false, reason: "missing-token" });
+    expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it("soft-passes a siteverify ERROR (Cloudflare unreachable) rather than blocking everyone", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+    const out = await assertHumanOrInfraFailure("token");
+    expect(out.allowed).toBe(true);
+    expect(out.result).toEqual({ ok: false, reason: "error" });
   });
 });
 
