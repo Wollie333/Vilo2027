@@ -49,6 +49,20 @@ message's on/off, channels, and copy — enforced in the dispatcher.
   change until an admin touches a message.
 - **`drain.ts`**: prefers `payload.__subject` over the registry subject. Build + lint green.
 
+## 2026-07-30 (pt88h) — "Referred by" signup field (§3.2 rule 6) — §10.4 complete.
+
+The host signup form now carries a "Referred by" field, closing the last attribution item.
+
+- **`bindAffiliateReferral` extended** with an optional manual partner code: the cookie always wins
+  (first-touch + carries the competition rate); a typed code only applies when the cookie yielded
+  nothing, and binds on the DEFAULT programme (a typed code is not a competition click → 25%,
+  `source='manual_code'`). New `getReferredByPrefill()` reads the cookie partner for the read-only prefill.
+- **Host signup wizard**: `referred_by` in the schema + a "Referred by" field in the account step —
+  read-only (partner name) when a cookie is present, an editable partner-code input otherwise; threaded
+  through `StepAccount` + the page prefill. Build green.
+- Note: field is build-verified, not yet browser-clicked; the manual-code default bind is not yet
+  live-tested end-to-end (the resolver's 25% default path was proven in P1).
+
 ## 2026-07-30 (pt88g) — Admin referral reassignment tool (§3.2 rule 5).
 
 Wielo can now reassign a mis-bound referral to the correct partner within 30 days of the bind, from the

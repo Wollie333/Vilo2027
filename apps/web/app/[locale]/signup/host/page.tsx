@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { getReferredByPrefill } from "@/lib/affiliate/attribution";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { getBrandName } from "@/lib/brand";
@@ -233,6 +234,7 @@ export default async function HostSignupPage({
   return (
     <Wizard
       prefilledEmail={user?.email ?? null}
+      prefilledReferredBy={await getReferredByPrefill()}
       prefilledFullName={prefilledFullName ?? lead.name}
       prefilledPhone={prefilledPhone ?? lead.phone}
       prefilledBio={prefilledBio}

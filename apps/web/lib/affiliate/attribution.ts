@@ -51,23 +51,68 @@ function clearRefCookie(): void {
 }
 
 /**
- * Bind a freshly-created user to the affiliate in their `vilo_ref` cookie.
- * No-op when there is no cookie, the affiliate is unknown/suspended, the cookie
- * has expired, or it would be a self-referral. Always clears the cookie when it
- * has been consumed (or found invalid).
+ * Resolve a partner code (the affiliate's slug) typed into the "Referred by"
+ * field, for a manual/fallback bind. Returns the affiliate id, or null when the
+ * code matches no active partner.
+ */
+async function resolveManualCode(
+  admin: ReturnType<typeof createAdminClient>,
+  code: string,
+): Promise<string | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+  const { data } = await admin
+    .from("affiliate_accounts")
+    .select("id")
+    .ilike("slug", trimmed)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/**
+ * The partner in the visitor's `vilo_ref` cookie, for prefilling the signup
+ * "Referred by" field. null when there is no (valid) cookie. Read-only.
+ */
+export async function getReferredByPrefill(): Promise<{
+  slug: string;
+  name: string;
+} | null> {
+  try {
+    const payload = readRefPayload();
+    if (!payload?.aff) return null;
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("affiliate_accounts")
+      .select("slug, user:user_profiles!user_id ( full_name )")
+      .eq("id", payload.aff)
+      .maybeSingle();
+    if (!data) return null;
+    const u = Array.isArray(data.user) ? data.user[0] : data.user;
+    const name =
+      (u?.full_name as string | null)?.trim() || (data.slug as string);
+    return { slug: data.slug as string, name };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bind a freshly-created user to the affiliate in their `vilo_ref` cookie, or —
+ * when there is no cookie — to a partner code typed into the "Referred by" field
+ * (SoT §3.2 rule 6). The cookie always wins (first-touch, and it carries the
+ * competition rate); a manual code only applies when the cookie yielded nothing,
+ * and binds on the DEFAULT programme (no competition — a typed code is not a
+ * competition click). No-op when the partner is unknown/suspended, the cookie has
+ * expired with no code, or it would be a self-referral. Always clears the cookie
+ * when consumed.
  */
 export async function bindAffiliateReferral(
   referredUserId: string,
   referredHostId?: string | null,
+  manualCode?: string | null,
 ): Promise<void> {
   try {
     const payload = readRefPayload();
-    const affiliateId = payload?.aff;
-    if (!affiliateId) {
-      if (payload) clearRefCookie();
-      return;
-    }
-
     const admin = createAdminClient();
 
     const { data: settings } = await admin
@@ -78,9 +123,21 @@ export async function bindAffiliateReferral(
     const cookieDays = settings?.cookie_days ?? 30;
     const selfBlocked = settings?.self_referral_blocked ?? true;
 
-    // Expired cookie → drop it.
-    if (payload?.ts && Date.now() - payload.ts > cookieDays * 86_400_000) {
-      clearRefCookie();
+    // A cookie past its window no longer attributes — but a typed code still can.
+    const cookieExpired = Boolean(
+      payload?.ts && Date.now() - payload.ts > cookieDays * 86_400_000,
+    );
+    const cookieAff = !cookieExpired ? (payload?.aff ?? null) : null;
+
+    // Cookie wins (first-touch + carries the competition rate). Fall back to the
+    // manually-entered partner code only when the cookie yielded no affiliate.
+    const fromCookie = Boolean(cookieAff);
+    const affiliateId =
+      cookieAff ??
+      (manualCode ? await resolveManualCode(admin, manualCode) : null);
+
+    if (!affiliateId) {
+      if (payload) clearRefCookie();
       return;
     }
 
@@ -111,9 +168,11 @@ export async function bindAffiliateReferral(
     // who clicked during the Race but signs up after it closes still gets the
     // competition rate. Original binding always wins: UNIQUE(referred_user_id)
     // makes a repeat a no-op (rules 1 & 3, first-touch-wins).
+    // Competition rate applies only via a real competition CLICK (the cookie
+    // path). A manually-typed code is not a competition entry → default rate.
     let campaignId: string | null = null;
     let commissionSnapshot: unknown = null;
-    if (payload?.click) {
+    if (fromCookie && payload?.click) {
       const { data: click } = await admin
         .from("affiliate_clicks")
         .select("campaign_id, commission_snapshot")
@@ -127,7 +186,7 @@ export async function bindAffiliateReferral(
     // Fallback when the click row is missing (e.g. click logging failed): the
     // cookie carried `camp` only because the competition was valid at click, so
     // re-resolve the structure from the campaign — still no status gate.
-    if (!campaignId && payload?.camp) {
+    if (fromCookie && !campaignId && payload?.camp) {
       const { data: camp } = await admin
         .from("affiliate_campaigns")
         .select("id, commission_structure")
@@ -145,10 +204,10 @@ export async function bindAffiliateReferral(
       affiliate_id: aff.id,
       referred_user_id: referredUserId,
       referred_host_id: referredHostId ?? null,
-      click_id: payload?.click ?? null,
+      click_id: fromCookie ? (payload?.click ?? null) : null,
       campaign_id: campaignId,
       commission_snapshot: commissionSnapshot,
-      source: "signup",
+      source: fromCookie ? "signup" : "manual_code",
     });
 
     clearRefCookie();

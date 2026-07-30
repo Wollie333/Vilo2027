@@ -122,6 +122,10 @@ export const accountSchema = z.object({
   terms: z.boolean().refine((v) => v === true, {
     message: "Please accept the terms to continue.",
   }),
+  // "Referred by" partner code (SoT §3.2 rule 6). Prefilled from the referral
+  // cookie when present, manually enterable otherwise. Optional; an unknown code
+  // simply binds nothing.
+  referred_by: z.string().trim().max(60).optional(),
 });
 export type AccountInput = z.infer<typeof accountSchema>;
 

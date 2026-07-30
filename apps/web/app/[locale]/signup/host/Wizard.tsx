@@ -98,6 +98,8 @@ type WizardData = {
   confirmPassword: string;
   showPassword: boolean;
   terms: boolean;
+  /** "Referred by" partner code (SoT §3.2 rule 6). */
+  referredBy: string;
   // about
   phone: string;
   // ISO-3166 alpha-2 of the phone's country code (the +27 picker). Stored phone
@@ -175,6 +177,7 @@ function initialData(prefilled: Prefilled): WizardData {
     // ONLY: a lead email is just text a stranger typed, and must leave this box
     // for them to tick themselves.
     terms: prefilled.email !== null,
+    referredBy: "",
     phone: splitDialCode(prefilled.phone).national,
     phoneCountry: splitDialCode(prefilled.phone).iso2,
     country: prefilled.country ?? "South Africa",
@@ -289,9 +292,12 @@ export function Wizard({
   purchasedOrderToken = null,
   purchasedEmail = null,
   paidReceipt = null,
+  prefilledReferredBy = null,
   next = null,
 }: {
   prefilledEmail: string | null;
+  /** The partner in the referral cookie, for the read-only "Referred by" prefill. */
+  prefilledReferredBy?: { slug: string; name: string } | null;
   prefilledFullName?: string | null;
   prefilledPhone?: string | null;
   prefilledBio?: string | null;
@@ -357,6 +363,9 @@ export function Wizard({
     });
     // Default the toolkit selection to the first product (sorted; Free is first).
     base.productSlug = products[0]?.slug ?? null;
+    // Prefill the referral code from the cookie partner (cosmetic — the cookie
+    // itself binds; the field only matters as a manual fallback when absent).
+    base.referredBy = prefilledReferredBy?.slug ?? "";
     // Seed the receipt fields when returning from a completed payment.
     if (paidReceipt) {
       base.plan = paidReceipt.plan;
@@ -504,6 +513,7 @@ export function Wizard({
           email: data.email,
           password: data.password,
           terms: data.terms,
+          referred_by: data.referredBy || undefined,
         },
         captcha,
         honeypot,
@@ -688,6 +698,7 @@ export function Wizard({
             onCaptcha={setCaptchaToken}
             captchaReset={captchaReset}
             onHoneypot={setHoneypot}
+            prefilledReferredBy={prefilledReferredBy}
           />
         );
       case "about":
@@ -1018,6 +1029,7 @@ function StepAccount({
   onCaptcha,
   captchaReset = 0,
   onHoneypot,
+  prefilledReferredBy = null,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
@@ -1028,6 +1040,7 @@ function StepAccount({
   onCaptcha?: (token: string | null) => void;
   captchaReset?: number;
   onHoneypot?: (value: string) => void;
+  prefilledReferredBy?: { slug: string; name: string } | null;
 }) {
   const brandName = useBrandName();
   return (
@@ -1126,6 +1139,34 @@ function StepAccount({
             autoComplete="new-password"
           />
         </FormField>
+
+        {prefilledReferredBy ? (
+          <FormField
+            label="Referred by"
+            hint="You were referred by this partner."
+          >
+            <TextInput
+              type="text"
+              value={prefilledReferredBy.name}
+              onChange={() => {}}
+              disabled
+              readOnly
+            />
+          </FormField>
+        ) : (
+          <FormField
+            label="Referred by"
+            hint="Optional — enter a partner code if someone referred you."
+          >
+            <TextInput
+              type="text"
+              value={data.referredBy}
+              onChange={(e) => patch({ referredBy: e.target.value })}
+              placeholder="Partner code"
+              disabled={pending}
+            />
+          </FormField>
+        )}
 
         <div>
           <label className="flex cursor-pointer select-none items-start gap-2.5">

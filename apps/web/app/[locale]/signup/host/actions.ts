@@ -161,9 +161,10 @@ export async function createAccountAction(
     firstName: d.first_name,
   });
 
-  // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
-  // Keyed on the user — the host row is created later in finalizeOnboardingAction.
-  await bindAffiliateReferral(newUserId);
+  // Attribute this signup to a referring affiliate: the vilo_ref cookie if set,
+  // else the manually-typed "Referred by" partner code (SoT §3.2 rule 6). Keyed
+  // on the user — the host row is created later in finalizeOnboardingAction.
+  await bindAffiliateReferral(newUserId, null, d.referred_by ?? null);
 
   return { ok: true };
 }
