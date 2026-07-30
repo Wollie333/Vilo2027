@@ -105,14 +105,25 @@ export async function bindAffiliateReferral(
     // stays on the default program (the safe default). Original binding always
     // wins: UNIQUE(referred_user_id) makes a repeat a no-op, so a campaign link
     // for an already-bound user never overwrites the first tag.
+    //
+    // When a campaign IS stamped we also SNAPSHOT its commission structure onto
+    // the referral. The accrual resolver reads this snapshot — not the live
+    // campaign — so the rate is locked to this referral permanently: it survives
+    // the competition ending and any later edit to the campaign's rate. This is
+    // the "60% lifetime, locked at referral time" guarantee (see
+    // docs/strategy/AFFILIATE_COMPETITION_DECISIONS.md).
     let campaignId: string | null = null;
+    let commissionSnapshot: unknown = null;
     if (payload?.camp) {
       const { data: camp } = await admin
         .from("affiliate_campaigns")
-        .select("id, status")
+        .select("id, status, commission_structure")
         .eq("id", payload.camp)
         .maybeSingle();
-      if (camp?.status === "active") campaignId = camp.id;
+      if (camp?.status === "active") {
+        campaignId = camp.id;
+        commissionSnapshot = camp.commission_structure ?? null;
+      }
     }
 
     // Bind once. UNIQUE(referred_user_id) makes a repeat a no-op (error 23505);
@@ -123,6 +134,7 @@ export async function bindAffiliateReferral(
       referred_host_id: referredHostId ?? null,
       click_id: payload?.click ?? null,
       campaign_id: campaignId,
+      commission_snapshot: commissionSnapshot,
       source: "signup",
     });
 

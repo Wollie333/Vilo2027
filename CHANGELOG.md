@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-30 (pt88) — Affiliate launch model P1: commission snapshot + 25% standard + campaign-end fix.
+
+Reshaped the affiliate commission model to the launch decisions (see
+`docs/strategy/AFFILIATE_COMPETITION_DECISIONS.md`): a flat lifetime rate locked per referral,
+replacing the old growing-ladder + prize-floor design.
+
+- **Per-referral commission SNAPSHOT** (`20260730000000`): `affiliate_referrals.commission_snapshot`
+  captures the campaign's `commission_structure` at bind time; `accrue_affiliate_commission` now
+  resolves a campaign referral from that snapshot instead of the live campaign. The rate is now
+  permanent for the referral — it survives the campaign ending and any later edit.
+- **Fixes a live bug**: an ENDED Founding Race used to silently drop referrals to the default rate
+  at the next renewal (resolver gated on `status='active'`). Proven via a throwaway rolled-back test:
+  campaign referral on an **ended** campaign resolved 60% (R599.40) while the default resolved 25%.
+- **Standard default-program rate → 25% lifetime** on `pro` (was 20% test / `none` at seed); still
+  admin-editable. `bindAffiliateReferral` now writes the snapshot; seed `PLAN_RATE`→25.
+- **Prize floors stripped** from the Founding Race config — cash prizes only (flat 60% makes a rate
+  floor redundant). Default (`campaign_id IS NULL`) money path is byte-identical.
+
 ## 2026-07-23 (pt82) — Affiliate metrics + money-path audit + campaign path proven.
 
 Hardened and refined the affiliate program: audited the whole commission money path against the

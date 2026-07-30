@@ -27,7 +27,7 @@ const admin = createClient(URL, SERVICE_KEY, {
 // ── Config (founder-editable in Admin → Products → Commission) ──────────────
 const PARTNER_SLUG = "wollie-steenkamp";
 const PLAN_SLUG = "pro"; // the R999 subscription (Starter)
-const PLAN_RATE = 20; // % default-program commission
+const PLAN_RATE = 25; // % default-program commission (standard launch rate)
 const PLAN_DURATION = "forever"; // lifetime recurring
 const PASSWORD = "WieloStarter123!";
 const CLEAN_ONLY = process.argv.includes("--clean-only");

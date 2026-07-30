@@ -1401,6 +1401,7 @@ export type Database = {
           bound_at: string
           campaign_id: string | null
           click_id: string | null
+          commission_snapshot: Json | null
           created_at: string
           id: string
           referred_host_id: string | null
@@ -1412,6 +1413,7 @@ export type Database = {
           bound_at?: string
           campaign_id?: string | null
           click_id?: string | null
+          commission_snapshot?: Json | null
           created_at?: string
           id?: string
           referred_host_id?: string | null
@@ -1423,6 +1425,7 @@ export type Database = {
           bound_at?: string
           campaign_id?: string | null
           click_id?: string | null
+          commission_snapshot?: Json | null
           created_at?: string
           id?: string
           referred_host_id?: string | null

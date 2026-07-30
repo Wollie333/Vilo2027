@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-23
+> **Last generated:** 2026-07-30
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -971,6 +971,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `bound_at` | timestamp with time zone | — | `now()` |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `campaign_id` | uuid | yes | — |
+| `commission_snapshot` | jsonb | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE RESTRICT`
