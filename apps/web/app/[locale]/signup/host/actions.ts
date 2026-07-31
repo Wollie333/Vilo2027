@@ -13,6 +13,7 @@ import {
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { isHoneypotTripped } from "@/lib/security/honeypot";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import {
   assertHumanOrInfraFailure,
   clientIpFromHeaders,
@@ -558,6 +559,24 @@ export async function finalizeOnboardingAction(
         hostId: host.id,
         error: subErr.message,
       });
+    }
+  }
+
+  // Standard host-offer sequence — stage 1. A host who lands on the FREE tier
+  // (didn't buy a plan at signup) gets a welcome that invites them onto the
+  // default paid plan; stages 2 & 3 follow from the host-offer worker. A host who
+  // already subscribed at signup skips this (they get subscription_welcome
+  // instead). Best-effort — a notification hiccup must never fail signup. Deduped
+  // per host, so a re-run can't double-send.
+  if (resolvedPlan === "free" && !resolvedProductId) {
+    try {
+      await dispatchEvent({
+        kind: "host_offer_welcome",
+        recipientUserId: user.id,
+        refs: { host_id: host.id },
+      });
+    } catch {
+      // non-fatal
     }
   }
 

@@ -282,6 +282,36 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `listing_published:${r.property_id}`,
   } satisfies EventBuilder<ListingPublishedRefs>,
 
+  // ─── Standard host-offer nurture (non-competition; default prices) ──────────
+  // Emailed to a free-tier host to invite them onto the default paid plan. Each
+  // stage dedupes per host so it fires exactly once ever (the daily worker can
+  // re-scan safely). Account-lifecycle feature (not competition marketing), so it
+  // is NOT suppressed by the marketing_tips default-off.
+  host_offer_welcome: {
+    category: "account_security",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "host_offer_welcome",
+    refKeys: ["host_id"],
+    dedupeKey: (r) => `host_offer_welcome:${r.host_id}`,
+  } satisfies EventBuilder<AccountRefs>,
+  host_offer_nudge: {
+    category: "account_security",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "host_offer_nudge",
+    refKeys: ["host_id"],
+    dedupeKey: (r) => `host_offer_nudge:${r.host_id}`,
+  } satisfies EventBuilder<AccountRefs>,
+  host_offer_final: {
+    category: "account_security",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "host_offer_final",
+    refKeys: ["host_id"],
+    dedupeKey: (r) => `host_offer_final:${r.host_id}`,
+  } satisfies EventBuilder<AccountRefs>,
+
   // Wielo (an admin) topped up the user's credit wallet.
   credits_added_admin: {
     category: "subscription",

@@ -13,6 +13,9 @@ export type RefSpec = {
 
 export const EXPECTED_REFS: Record<string, RefSpec> = {
   welcome_host: { required: ["host_id"] },
+  host_offer_welcome: { required: ["host_id"] },
+  host_offer_nudge: { required: ["host_id"] },
+  host_offer_final: { required: ["host_id"] },
 
   booking_request_host: { required: ["booking_id"] },
   booking_confirmed_host: { required: ["booking_id"] },

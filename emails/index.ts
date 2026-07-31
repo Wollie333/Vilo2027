@@ -21,6 +21,9 @@ export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHos
 export { default as EftRefundSentGuest } from "./templates/EftRefundSentGuest";
 export { default as ListingMissingPolicy } from "./templates/ListingMissingPolicy";
 export { default as ListingPublishedHost } from "./templates/ListingPublishedHost";
+export { default as HostOfferWelcome } from "./templates/HostOfferWelcome";
+export { default as HostOfferNudge } from "./templates/HostOfferNudge";
+export { default as HostOfferFinal } from "./templates/HostOfferFinal";
 export { default as NewReviewHost } from "./templates/NewReviewHost";
 export { default as NotificationDigest } from "./templates/NotificationDigest";
 export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverrideHost";

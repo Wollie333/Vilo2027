@@ -20,6 +20,38 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     location: "Hermanus, Western Cape",
     roomCount: 3,
   },
+  host_offer_welcome: {
+    firstName: "Amara",
+    planName: "Starter",
+    monthlyPrice: "R 999",
+    annualPrice: "R 9 999",
+    annualSaving: "R 1 989",
+    capabilities: [
+      "1 published listing",
+      "Direct guest bookings",
+      "0% commission",
+      "Calendar sync",
+    ],
+    subscribeUrl: "https://wielo.co.za/dashboard/settings/subscription",
+    dashboardUrl: "https://wielo.co.za/dashboard",
+  },
+  host_offer_nudge: {
+    firstName: "Amara",
+    planName: "Starter",
+    monthlyPrice: "R 999",
+    annualPrice: "R 9 999",
+    annualSaving: "R 1 989",
+    subscribeUrl: "https://wielo.co.za/dashboard/settings/subscription",
+    dashboardUrl: "https://wielo.co.za/dashboard",
+  },
+  host_offer_final: {
+    firstName: "Amara",
+    planName: "Starter",
+    monthlyPrice: "R 999",
+    annualPrice: "R 9 999",
+    subscribeUrl: "https://wielo.co.za/dashboard/settings/subscription",
+    supportEmail: "hello@wielo.co.za",
+  },
 
   booking_request_host: {
     hostFirstName: "Amara",

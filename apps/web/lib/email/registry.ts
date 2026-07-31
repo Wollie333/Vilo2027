@@ -27,6 +27,9 @@ import {
   EftRefundSentGuest,
   ListingMissingPolicy,
   ListingPublishedHost,
+  HostOfferWelcome,
+  HostOfferNudge,
+  HostOfferFinal,
   NewReviewHost,
   RefundAdminOverrideHost,
   RefundApprovedGuest,
@@ -152,6 +155,25 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "host",
     subject: (p) =>
       `${str(p.listingName, "Your listing")} is live on ${str(p.brand_name, "Wielo")} 🎉`,
+  },
+
+  // Standard host-offer nurture sequence (non-competition; default prices).
+  host_offer_welcome: {
+    Template: HostOfferWelcome as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `Welcome to ${str(p.brand_name, "Wielo")} — you keep every rand`,
+  },
+  host_offer_nudge: {
+    Template: HostOfferNudge as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: () => `The maths on direct bookings`,
+  },
+  host_offer_final: {
+    Template: HostOfferFinal as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `Ready when you are — publish your listing on ${str(p.brand_name, "Wielo")}`,
   },
 
   // A published property with no cancellation policy attached. Queued by the

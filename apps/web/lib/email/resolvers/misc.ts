@@ -9,6 +9,7 @@ import {
 } from "../formatters";
 
 import { signReviewToken } from "../../review-token";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 
 import type { AdminClient, EmailResolver } from "./types";
 import { refId } from "./types";
@@ -302,8 +303,88 @@ const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+// ── Standard host-offer sequence ────────────────────────────────────────────
+// The always-on (non-competition) nurture emails that invite a free-tier host to
+// subscribe to the default paid plan. Every price is resolved LIVE from the
+// products catalog (getSubscriptionProducts — the same SoT the pricing page and
+// signup read) so the emails can never drift from the admin's configured prices.
+async function defaultHostPlan(): Promise<{
+  name: string;
+  monthly: string;
+  annual: string | null;
+  annualSaving: string | null;
+  currency: string;
+  capabilities: string[];
+} | null> {
+  const products = await getSubscriptionProducts("host");
+  const memberships = products.filter(
+    (p) => p.productType === "membership" && !p.isFree && p.price > 0,
+  );
+  if (memberships.length === 0) return null;
+  const plan = memberships.find((p) => p.isRecommended) ?? memberships[0];
+  const annualSaving =
+    plan.annualPrice != null && plan.annualPrice < plan.price * 12
+      ? formatMoney(plan.price * 12 - plan.annualPrice, plan.currency)
+      : null;
+  return {
+    name: plan.name,
+    monthly: formatMoney(plan.price, plan.currency),
+    annual:
+      plan.annualPrice != null
+        ? formatMoney(plan.annualPrice, plan.currency)
+        : null,
+    annualSaving,
+    currency: plan.currency,
+    capabilities: plan.capabilities.slice(0, 4),
+  };
+}
+
+// Shared prop-builder — every stage renders the same plan/price facts; the
+// templates differ only in copy + urgency.
+async function hostOfferProps(
+  supabase: AdminClient,
+  hostId: string,
+): Promise<Record<string, unknown>> {
+  const [host, plan] = await Promise.all([
+    loadHostUser(supabase, hostId),
+    defaultHostPlan(),
+  ]);
+  return {
+    firstName: firstName(host?.user_full_name ?? host?.display_name),
+    planName: plan?.name ?? "a Wielo plan",
+    monthlyPrice: plan?.monthly ?? null,
+    annualPrice: plan?.annual ?? null,
+    annualSaving: plan?.annualSaving ?? null,
+    capabilities: plan?.capabilities ?? [],
+    subscribeUrl: `${APP_URL}/dashboard/settings/subscription`,
+    dashboardUrl: `${APP_URL}/dashboard`,
+    supportEmail: CONTACT_EMAIL,
+  };
+}
+
+const hostOfferWelcomeResolver: EmailResolver = async (refs, ctx) => {
+  const hostId = refId(refs, "host_id");
+  if (!hostId) return {};
+  return hostOfferProps(ctx.supabase, hostId);
+};
+
+const hostOfferNudgeResolver: EmailResolver = async (refs, ctx) => {
+  const hostId = refId(refs, "host_id");
+  if (!hostId) return {};
+  return hostOfferProps(ctx.supabase, hostId);
+};
+
+const hostOfferFinalResolver: EmailResolver = async (refs, ctx) => {
+  const hostId = refId(refs, "host_id");
+  if (!hostId) return {};
+  return hostOfferProps(ctx.supabase, hostId);
+};
+
 export const MISC_RESOLVERS: Record<string, EmailResolver> = {
   welcome_host: welcomeHostResolver,
+  host_offer_welcome: hostOfferWelcomeResolver,
+  host_offer_nudge: hostOfferNudgeResolver,
+  host_offer_final: hostOfferFinalResolver,
   listing_published_host: listingPublishedHostResolver,
   listing_missing_policy: listingMissingPolicyResolver,
   account_suspended: accountSuspendedResolver,
