@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-31 — Founding Race partner cap REMOVED (uncapped).
+
+Founder decision: the Founding Programme no longer caps partners at 25. Scarcity moves from a
+seat count to the **founding window closing** (a date), so no partner is ever turned away and the
+leaderboard can't look half-empty.
+
+- **DB:** `affiliate_campaigns.max_participants` → `NULL` (unlimited) on `founding-race`. The
+  capacity trigger (`trg_campaign_capacity`) already treats NULL as unlimited. Durable: no
+  migration or seed sets the cap — it was admin-UI data, and nothing re-seeds 100.
+- **Admin UI:** `FieldHelp.tsx` maxParticipants example no longer instructs "cap at 25" — now
+  explains the programme runs uncapped with a time-boxed founding window.
+- **Docs:** superseded-notes added to the 4 strategy docs (`Wielo_Founding_Programme_Strategy_v4`
+  §4.2, `WIELO_FOUNDING_PROGRAMME` §monthly-reset, `LAUNCH_EXECUTION_PLAN` §0,
+  `AFFILIATE_MANAGER_REWORK_BRIEF` §1) — original 25-cap reasoning retained for context.
+- **Verified:** live legal rules doc (`legal_documents/founding-race-rules`, v4, served at
+  `/legal/founding-race-rules`) already carries no seat cap — no legal change needed. The static
+  `docs/legal/…draft.html` is an inert docs-folder file. Build + lint green.
+- **Heads-up (not code):** uncapping makes the monthly net-change reset (anti-runaway-leader)
+  *more* essential; onboarding must steer partners to their `?c=founding-race` link.
+
 ## 2026-07-31 — Standard host-offer email sequence (default prices).
 
 The always-on, non-competition nurture sequence inviting a free-tier host onto the default

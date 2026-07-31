@@ -140,6 +140,13 @@ Do not approach them as affiliates. Approach them as the person who brings their
 
 ### 4.2 Cap the partners, not the hosts
 
+> **DECISION UPDATE — 2026-07-31: SUPERSEDED. The partner cap is REMOVED (uncapped).**
+> `founding-race.max_participants` is now `NULL`; ~100 is a stretch *target*, not a wall, and
+> no partner is ever turned away. Scarcity is now the **founding window closing** (a date),
+> not a seat count — which keeps the "feels like selection" effect below without the risk of a
+> half-empty leaderboard. Uncapping makes the monthly net-change reset (§ anti-runaway-leader
+> mechanism) *more* important, not less. Original 25-cap reasoning retained below for context.
+
 **25 Founding Partners. Decided.** If 60 group owners compete, nobody tries — the leaderboard looks unwinnable by week three. Scarcity also makes the invitation feel like selection rather than a mass email, which matters for how they present it to their groups.
 
 Hosts are uncapped. Partners are not. These are different decisions and the reasons are different.

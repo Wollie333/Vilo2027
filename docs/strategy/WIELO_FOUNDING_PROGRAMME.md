@@ -224,7 +224,7 @@ One annual host pays R2,999.40 and clears the R1,000 threshold immediately. A mo
 
 Scored on **net change in live listings within that month**, not on running total. Whoever adds the most live listings in November wins November.
 
-> **This is the anti-runaway-leader mechanism and it is not optional.** In a five-month race, a dominant partner is uncatchable by month three and everyone else quietly stops posting — you lose 25 partners to keep one. Scoring net change resets the field five times and lets a partner with 6 listings beat one with 90. The dominant partner still wins the main race, correctly, while everyone else always has something winnable in front of them.
+> **This is the anti-runaway-leader mechanism and it is not optional.** In a five-month race, a dominant partner is uncatchable by month three and everyone else quietly stops posting — you lose 25 partners to keep one. Scoring net change resets the field five times and lets a partner with 6 listings beat one with 90. The dominant partner still wins the main race, correctly, while everyone else always has something winnable in front of them. **(2026-07-31: the partner cap is now removed/uncapped — which makes this reset mechanism *more* essential, since more partners means a runaway leader would demoralise more people.)**
 
 **Fast Start — R1,000, non-competitive**
 

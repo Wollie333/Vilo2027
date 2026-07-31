@@ -22,7 +22,7 @@
 Wielo is a **0%-commission direct-booking management platform** for South African accommodation hosts.
 It has **no marketplace take-rate**, so its growth engine is a **partner/affiliate referral program**,
 not paid acquisition. The affiliate program is the **launch supply engine**: a small set of **Founding
-Partners** (accommodation Facebook-group owners, ≤25 capped) recruit hosts, and every host they refer
+Partners** (accommodation Facebook-group owners; **uncapped** as of 2026-07-31, ~100 target) recruit hosts, and every host they refer
 earns them a **lifetime recurring commission** on that host's subscription.
 
 Layered on top is an **8-month competition** (the "Founding Race") with a **public leaderboard** and cash

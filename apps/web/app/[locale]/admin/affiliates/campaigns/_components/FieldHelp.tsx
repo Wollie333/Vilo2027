@@ -108,7 +108,7 @@ export const CAMPAIGN_HELP = {
       "Raising the cap later re-opens joining. Lowering it below the number already in does NOT remove anyone — they keep their place; it just stops new joins.",
     ],
     example:
-      "The Founding Programme is capped at 25 partners — set 25 here and the 26th is turned away automatically.",
+      "The Founding Programme runs UNCAPPED — leave this blank. Scarcity is the founding window (join before it closes), not a seat limit, so no partner is ever turned away.",
   },
   rulesDoc: {
     title: "Rules document",

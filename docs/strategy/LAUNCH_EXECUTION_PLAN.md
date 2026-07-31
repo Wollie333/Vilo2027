@@ -12,7 +12,7 @@
 
 The 8-month programme has **three engines** that must all be true at launch:
 
-1. **Supply engine** — Founding Partners (≤25) refer hosts; hosts get 4 free months, then lock Founding pricing. Runs on the **affiliate system + a new competition layer**.
+1. **Supply engine** — Founding Partners (**uncapped** as of 2026-07-31; ~100 stretch target) refer hosts; hosts get 4 free months, then lock Founding pricing. Runs on the **affiliate system + a new competition layer**.
 2. **Demand engine** — the **Looking For** marketplace, fed by guest-side ads + partners. This is the beta's hero feature and its biggest risk (two-sided liquidity).
 3. **Trust engine** — the **Build Board + Changelog** make "beta" structurally true, plus honest legal docs and a public leaderboard.
 
