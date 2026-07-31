@@ -143,8 +143,8 @@ export default async function QuotesListPage({
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <table className="w-full text-sm">
+        <div className="rounded-card lg:overflow-hidden lg:border lg:border-brand-line lg:bg-white lg:shadow-card">
+          <table className="rcard w-full text-sm">
             <thead className="bg-brand-light/60 text-left text-[11px] uppercase tracking-wider text-brand-mute">
               <tr>
                 <th className="px-4 py-3">Number</th>
@@ -160,7 +160,7 @@ export default async function QuotesListPage({
                 const tone = STATUS_TONE[q.status as QuoteStatus];
                 return (
                   <tr key={q.id} className="hover:bg-brand-light/40">
-                    <td className="px-4 py-3">
+                    <td data-label="Number" className="px-4 py-3">
                       <span className="inline-flex items-center gap-2">
                         <span
                           className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[q.status as QuoteStatus]}`}
@@ -175,7 +175,7 @@ export default async function QuotesListPage({
                         </Link>
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Guest" className="px-4 py-3">
                       <div className="font-medium text-brand-ink">
                         {q.guest_name}
                       </div>
@@ -183,22 +183,31 @@ export default async function QuotesListPage({
                         {q.guest_email}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-brand-ink">
+                    <td
+                      data-label="Listing"
+                      className="px-4 py-3 text-brand-ink"
+                    >
                       {Array.isArray(q.listing)
                         ? (q.listing[0]?.name ?? "—")
                         : ((q.listing as { name?: string } | null)?.name ??
                           "—")}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-mute">
+                    <td
+                      data-label="Dates"
+                      className="px-4 py-3 text-xs text-brand-mute"
+                    >
                       {q.check_in} → {q.check_out}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-brand-ink">
+                    <td
+                      data-label="Total"
+                      className="px-4 py-3 text-right font-medium text-brand-ink"
+                    >
                       {q.currency}{" "}
                       {Math.round(q.total_amount)
                         .toLocaleString("en-ZA")
                         .replace(/,/g, " ")}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Status" className="px-4 py-3">
                       <span
                         className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${tone}`}
                       >

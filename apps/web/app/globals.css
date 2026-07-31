@@ -207,6 +207,59 @@ textarea[aria-invalid="true"]:focus {
     font-feature-settings: "tnum" 1;
   }
 
+  /* Responsive card-table: below lg, a native <table class="rcard"> collapses
+     from a row/column grid into one stacked card per <tr>, with each <td>
+     showing its column label (from data-label) on the left and the value on the
+     right. At lg+ it renders as a normal table. Add class "rcard" to the table
+     and data-label="Column" to each td. Keeps one markup source (no duplicate
+     desktop/mobile trees) while staying readable on a phone. */
+  @media (max-width: 1023px) {
+    table.rcard,
+    table.rcard tbody {
+      display: block;
+      width: 100%;
+    }
+    table.rcard thead {
+      display: none;
+    }
+    table.rcard tr {
+      display: block;
+      border: 1px solid var(--brand-line, #e5e7eb);
+      border-radius: 12px;
+      padding: 6px 12px;
+      margin: 0 0 10px;
+      background: #fff;
+    }
+    table.rcard td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 6px 0 !important;
+      border: 0 !important;
+      text-align: right !important;
+    }
+    table.rcard td::before {
+      content: attr(data-label);
+      flex: 0 0 auto;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 9.5px;
+      line-height: 1.6;
+      color: #8aa89c;
+      text-align: left;
+    }
+    /* A cell with no label (or an actions cell) spans full width, no ::before. */
+    table.rcard td[data-label=""]::before,
+    table.rcard td:not([data-label])::before {
+      content: none;
+    }
+    table.rcard td:not([data-label]) {
+      justify-content: flex-end;
+    }
+  }
+
   /* Card image hover zoom — pairs with parent `.group` */
   .card-img {
     transition: transform 0.55s ease;

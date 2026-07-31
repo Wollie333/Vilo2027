@@ -112,9 +112,9 @@ export function ReviewActivityTable({ rows }: { rows: ReviewActivityRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-left">
+    <div className="rounded-card lg:overflow-hidden lg:border lg:border-brand-line lg:bg-white lg:shadow-card">
+      <div className="lg:overflow-x-auto">
+        <table className="rcard w-full text-left lg:min-w-[680px]">
           <thead>
             <tr className="border-b border-brand-line bg-brand-light/40 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-brand-mute">
               <th className="px-4 py-3">Guest &amp; stay</th>
@@ -126,7 +126,7 @@ export function ReviewActivityTable({ rows }: { rows: ReviewActivityRow[] }) {
           <tbody className="divide-y divide-brand-line">
             {rows.map((row) => (
               <tr key={row.bookingId} className="hover:bg-brand-light/30">
-                <td className="px-4 py-3">
+                <td data-label="Guest & stay" className="px-4 py-3">
                   <Link
                     href={`/dashboard/bookings/${row.bookingId}?tab=review`}
                     className="text-[13.5px] font-semibold text-brand-ink hover:text-brand-primary"
@@ -138,10 +138,10 @@ export function ReviewActivityTable({ rows }: { rows: ReviewActivityRow[] }) {
                     {row.stayMonth ? ` · ${row.stayMonth}` : ""}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td data-label="Request" className="px-4 py-3">
                   <RequestCell row={row} />
                 </td>
-                <td className="px-4 py-3">
+                <td data-label="Review" className="px-4 py-3">
                   {row.rating != null ? (
                     <div className="flex items-center gap-2">
                       <StarRow rating={row.rating} />
@@ -158,7 +158,7 @@ export function ReviewActivityTable({ rows }: { rows: ReviewActivityRow[] }) {
                     <span className="text-[12.5px] text-brand-mute">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td data-label="Status" className="px-4 py-3">
                   <StatusBadge row={row} />
                 </td>
               </tr>

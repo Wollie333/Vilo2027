@@ -103,8 +103,8 @@ export default async function CreditNotesPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <table className="w-full text-sm">
+        <div className="rounded-card lg:overflow-hidden lg:border lg:border-brand-line lg:bg-white lg:shadow-card">
+          <table className="rcard w-full text-sm">
             <thead className="bg-brand-light/60 text-left text-[11px] uppercase tracking-wider text-brand-mute">
               <tr>
                 <th className="px-4 py-3">Credit note</th>
@@ -124,7 +124,7 @@ export default async function CreditNotesPage({
                 } | null;
                 return (
                   <tr key={cn.id} className="hover:bg-brand-light/40">
-                    <td className="px-4 py-3">
+                    <td data-label="Credit note" className="px-4 py-3">
                       <Link
                         href={`/dashboard/credit-notes/${cn.id}`}
                         className="font-medium text-brand-primary hover:underline"
@@ -132,7 +132,7 @@ export default async function CreditNotesPage({
                         {cn.credit_note_number}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Guest" className="px-4 py-3">
                       <div className="font-medium text-brand-ink">
                         {guest?.name ?? "—"}
                       </div>
@@ -140,16 +140,25 @@ export default async function CreditNotesPage({
                         {guest?.email ?? ""}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-mute">
+                    <td
+                      data-label="Source"
+                      className="px-4 py-3 text-xs text-brand-mute"
+                    >
                       {cn.origin === "refund_auto" ? "Refund" : "Manual"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-mute">
+                    <td
+                      data-label="Issued"
+                      className="px-4 py-3 text-xs text-brand-mute"
+                    >
                       {new Date(cn.issued_at).toLocaleDateString("en-ZA")}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-brand-ink">
+                    <td
+                      data-label="Amount"
+                      className="px-4 py-3 text-right font-medium text-brand-ink"
+                    >
                       {formatMoney(cn.total_amount, cn.currency)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Status" className="px-4 py-3">
                       <span
                         className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${tone}`}
                       >
