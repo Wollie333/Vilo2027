@@ -330,7 +330,29 @@ every legal document.
    publish + place docs, and are redirected from other admin routes.
 3. `pnpm build && pnpm lint`; `node scripts/audit-wiring.mjs`.
 
-### Still open (a genuine Phase 4)
-Retire `platform_settings.legal_*` + `lib/legal.ts` + the deprecated legacy
-editor once confirmed unused; rewire the affiliate gate to the
-`affiliate_program_terms` placement (after the affiliate agents' work lands).
+## 15. Build log — Phase 4 (branch `legal`)
+
+### 4b — Retire the legacy platform-legal editor (DONE)
+`/terms` + `/privacy` + booking stamping have read from the store since Phase 2,
+so the old `platform_settings` Terms/Privacy path was dead. Removed:
+- `lib/legal.ts`, `LegalDocsForm.tsx`, and the `/admin/platform/settings/legal`
+  page; `saveLegalDocAction` + `legalSchema` + `LEGAL_KEY` + `LEGAL_SETTING_ID`
+  from the settings actions; the "Legal" settings tab (Documents tab renamed
+  "Legal docs").
+- `platform_settings.legal_booking_terms` / `legal_privacy` rows are now orphaned
+  data — harmless; drop them whenever (optional cleanup migration, no code reads
+  them). Validated: lint clean, tsc --noEmit 0 errors (deletes left nothing
+  dangling).
+
+### 4a — Affiliate gate → placement (NOT done — deliberately held)
+This is the one piece that (1) lives entirely in the affiliate files the other
+agents are actively editing on `main`, (2) sits on the affiliate **consent/money
+path** (the signature snapshot + hash + re-accept detection), and (3) would
+reshape the acceptance record (text `terms_version` → `legal_documents.version`,
+plain-text body → sanitised HTML). Doing it blind here — no DB/live verify, on
+top of in-flight affiliate work — is exactly the collision the `legal` branch was
+created to avoid. Recommended as its own verified effort **after** the affiliate
+work merges. Surface to rewire when ready: `AffiliateShell`, `AffiliateTermsGate`,
+`portal/affiliates/actions` (`acceptAffiliateTermsAction`), `signup/partner`
+(screen + actions), `admin/affiliates/terms` (editor) + `admin/affiliates/actions`
+(save), `lib/affiliate/agreement.*`, `activation.ts`, `account.ts`.

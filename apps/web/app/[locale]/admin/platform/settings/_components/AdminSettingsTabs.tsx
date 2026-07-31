@@ -18,10 +18,9 @@ const TABS: Tab[] = [
     label: "Payments",
     match: "prefix",
   },
-  { href: "/admin/platform/settings/legal", label: "Legal", match: "prefix" },
   {
     href: "/admin/platform/settings/legal-docs",
-    label: "Documents",
+    label: "Legal docs",
     match: "prefix",
   },
   {
