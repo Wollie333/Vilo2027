@@ -15,6 +15,7 @@ import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
 import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { getBrandName } from "@/lib/brand";
 import { encryptAccountNumber } from "@/lib/crypto/banking";
 import { clientIpFromHeaders } from "@/lib/security/turnstile";
@@ -98,22 +99,24 @@ export async function acceptAffiliateTermsAction(): Promise<
 
   const admin = createAdminClient();
 
-  const [{ data: settings }, { data: profile }, brand] = await Promise.all([
-    admin
-      .from("affiliate_settings")
-      .select("terms_version, terms_content, currency")
-      .eq("id", true)
-      .maybeSingle(),
-    admin
-      .from("user_profiles")
-      .select("full_name, email")
-      .eq("id", user.id)
-      .maybeSingle(),
-    getBrandName(),
-  ]);
+  const [{ data: settings }, { data: profile }, brand, terms] =
+    await Promise.all([
+      admin
+        .from("affiliate_settings")
+        .select("currency")
+        .eq("id", true)
+        .maybeSingle(),
+      admin
+        .from("user_profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .maybeSingle(),
+      getBrandName(),
+      resolveAffiliateTerms(admin),
+    ]);
 
-  const version = settings?.terms_version ?? "v1";
-  const bodyText = renderAgreementBody(settings?.terms_content ?? "", brand);
+  const version = terms.version;
+  const bodyText = renderAgreementBody(terms.content, brand);
 
   let account = await getAffiliateForUser(admin, user.id);
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import { hasSignedVersion } from "@/lib/affiliate/agreement";
 import { notifyCampaignPartnerEnrolled } from "@/lib/affiliate/notify";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -47,12 +48,8 @@ export async function evaluateAffiliateActivation(
     .maybeSingle();
   if (!account) return null;
 
-  const [{ data: settings }, { data: profile }] = await Promise.all([
-    admin
-      .from("affiliate_settings")
-      .select("terms_version")
-      .eq("id", true)
-      .maybeSingle(),
+  const [terms, { data: profile }] = await Promise.all([
+    resolveAffiliateTerms(admin),
     admin
       .from("user_profiles")
       .select("terms_accepted_at, email_verified_at")
@@ -63,7 +60,7 @@ export async function evaluateAffiliateActivation(
   const agreementSigned = await hasSignedVersion(
     admin,
     account.id,
-    settings?.terms_version ?? "v1",
+    terms.version,
   );
   const platformTermsAccepted = !!profile?.terms_accepted_at;
   const emailConfirmed = !!profile?.email_verified_at;

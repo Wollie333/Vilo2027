@@ -344,15 +344,34 @@ so the old `platform_settings` Terms/Privacy path was dead. Removed:
   them). Validated: lint clean, tsc --noEmit 0 errors (deletes left nothing
   dangling).
 
-### 4a — Affiliate gate → placement (NOT done — deliberately held)
-This is the one piece that (1) lives entirely in the affiliate files the other
-agents are actively editing on `main`, (2) sits on the affiliate **consent/money
-path** (the signature snapshot + hash + re-accept detection), and (3) would
-reshape the acceptance record (text `terms_version` → `legal_documents.version`,
-plain-text body → sanitised HTML). Doing it blind here — no DB/live verify, on
-top of in-flight affiliate work — is exactly the collision the `legal` branch was
-created to avoid. Recommended as its own verified effort **after** the affiliate
-work merges. Surface to rewire when ready: `AffiliateShell`, `AffiliateTermsGate`,
-`portal/affiliates/actions` (`acceptAffiliateTermsAction`), `signup/partner`
-(screen + actions), `admin/affiliates/terms` (editor) + `admin/affiliates/actions`
-(save), `lib/affiliate/agreement.*`, `activation.ts`, `account.ts`.
+### 4a — Affiliate gate → placement (DONE, after merging the affiliate work)
+Merged `origin/main` first (the affiliate agent's campaign/trial work) and fixed
+a migration-version collision (their `20260731160000_expire_trials_cron` vs ours
+— renamed ours to `20260731165000_legal_placements`). Then rewired the affiliate
+program terms to the `affiliate_program_terms` placement **without touching the
+consent/money path**:
+
+- **`lib/affiliate/programTerms.ts`** — `resolveAffiliateTerms(admin)` returns
+  `{ version, content }` from the placement's published doc (`legal-v<n>`), or
+  falls back to the legacy `affiliate_settings.terms_content/terms_version` until
+  a doc is published. Returns the RAW body so callers still render via
+  `renderAgreementBody`, keeping the acceptance snapshot byte-identical.
+- **Sourced from the resolver:** the gate (`AffiliateShell`), the acceptance
+  action (`portal/affiliates/actions`), partner signup (screen + action),
+  activation (`activation.ts`), and admin "enable affiliate"
+  (`admin/users/[id]/actions`). The `affiliate_agreement_acceptances` model,
+  `renderAgreementBody`, and the signature hash are **unchanged**.
+- **Legacy editor** (`admin/affiliates/terms`) kept as the fallback, now with a
+  banner pointing to Legal docs → Affiliate Program Terms and its signature count
+  shown against the live (resolved) version.
+
+**Non-breaking:** with no doc published, `resolveAffiliateTerms` returns the exact
+legacy `affiliate_settings` values, so the affiliate flow is identical to before.
+Publishing a doc into the slot makes it authoritative (partners re-sign once, as
+they already do on any version bump). Validated: lint clean, tsc 0 errors,
+affiliate agreement tests 10/10. Live/DB verification still pending a provisioned
+session.
+
+**Nothing legal-consolidation-related remains open.** (Optional: drop the orphaned
+`platform_settings.legal_*` rows; retire `affiliate_settings.terms_*` once every
+program's terms are published as docs.)

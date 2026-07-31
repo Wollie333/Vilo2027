@@ -23,6 +23,7 @@ import {
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   daysRemaining,
@@ -2600,10 +2601,10 @@ export const enableAffiliateAction = withAdminAudit<
       };
     }
 
-    const [{ data: settings }, { data: profile }] = await Promise.all([
+    const [{ data: settings }, { data: profile }, terms] = await Promise.all([
       service
         .from("affiliate_settings")
-        .select("terms_version, currency")
+        .select("currency")
         .eq("id", true)
         .maybeSingle(),
       service
@@ -2611,6 +2612,7 @@ export const enableAffiliateAction = withAdminAudit<
         .select("full_name, email")
         .eq("id", userId)
         .maybeSingle(),
+      resolveAffiliateTerms(service),
     ]);
     const base =
       profile?.full_name || profile?.email?.split("@")[0] || "affiliate";
@@ -2620,7 +2622,7 @@ export const enableAffiliateAction = withAdminAudit<
       user_id: userId,
       slug,
       status: "active",
-      terms_version: settings?.terms_version ?? "v1",
+      terms_version: terms.version,
       currency: settings?.currency ?? "ZAR",
     });
     if (error) {

@@ -12,6 +12,7 @@ import {
   evaluateAffiliateActivation,
 } from "@/lib/affiliate/activation";
 import { hasSignedVersion } from "@/lib/affiliate/agreement";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { AffiliateActivationChecklist } from "@/components/affiliate/AffiliateActivationChecklist";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -45,12 +46,8 @@ export async function AffiliateShell({
   // on file, not off the existence of an account. So a partner who joined before
   // signatures were recorded, or one whose terms have since been re-versioned,
   // signs again before reaching the portal.
-  const { data: settings } = await admin
-    .from("affiliate_settings")
-    .select("terms_version, terms_content")
-    .eq("id", true)
-    .maybeSingle();
-  const termsVersion = settings?.terms_version ?? "v1";
+  const terms = await resolveAffiliateTerms(admin);
+  const termsVersion = terms.version;
   const signed = account
     ? await hasSignedVersion(admin, account.id, termsVersion)
     : false;
@@ -60,7 +57,7 @@ export async function AffiliateShell({
       <AffiliateTermsGate
         brand={await getBrandName()}
         termsVersion={termsVersion}
-        termsContent={settings?.terms_content ?? ""}
+        termsContent={terms.content}
         mode={account ? "resign" : "join"}
       />
     );

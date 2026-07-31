@@ -7,6 +7,7 @@ import { activateAffiliateIfReady } from "@/lib/affiliate/activation";
 import { recordAcceptance } from "@/lib/affiliate/agreement";
 import { agreementHash, normaliseIp } from "@/lib/affiliate/agreement.crypto";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
@@ -212,15 +213,16 @@ export async function createPartnerAccountAction(
 
   // Open the affiliate account in PENDING — it exists, but earns nothing and is
   // on no leaderboard until the gates close.
-  const [{ data: settings }, brand] = await Promise.all([
+  const [{ data: settings }, brand, terms] = await Promise.all([
     admin
       .from("affiliate_settings")
-      .select("terms_version, terms_content, currency")
+      .select("currency")
       .eq("id", true)
       .maybeSingle(),
     getBrandName(),
+    resolveAffiliateTerms(admin),
   ]);
-  const version = settings?.terms_version ?? "v1";
+  const version = terms.version;
 
   const slug = await findFreeSlug(admin, full_name || d.email.split("@")[0]);
   const { error: acctErr } = await admin.from("affiliate_accounts").insert({
@@ -255,7 +257,7 @@ export async function createPartnerAccountAction(
     signatoryEmail: d.email,
     signatoryName: full_name,
     version,
-    bodyText: renderAgreementBody(settings?.terms_content ?? "", brand),
+    bodyText: renderAgreementBody(terms.content, brand),
     ip: signingIp,
     userAgent,
   });

@@ -5,6 +5,7 @@ import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPublishedLegalDocument } from "@/lib/legalDocuments";
 import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
+import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { formatMoney } from "@/lib/format";
 
 import { PartnerSignupForm } from "./PartnerSignupForm";
@@ -30,21 +31,14 @@ export async function PartnerSignupScreen({
     ? await loadSignupCampaign(admin, campaignSlug)
     : null;
 
-  const [{ data: settings }, rulesDoc] = await Promise.all([
-    admin
-      .from("affiliate_settings")
-      .select("terms_version, terms_content")
-      .eq("id", true)
-      .maybeSingle(),
+  const [terms, rulesDoc] = await Promise.all([
+    resolveAffiliateTerms(admin),
     campaign?.rulesDocSlug
       ? getPublishedLegalDocument(campaign.rulesDocSlug)
       : Promise.resolve(null),
   ]);
 
-  const agreementBody = renderAgreementBody(
-    settings?.terms_content ?? "",
-    brand,
-  );
+  const agreementBody = renderAgreementBody(terms.content, brand);
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.05fr_1fr]">
@@ -135,7 +129,7 @@ export async function PartnerSignupScreen({
                   : null
               }
               agreementBody={agreementBody}
-              agreementVersion={settings?.terms_version ?? "v1"}
+              agreementVersion={terms.version}
               rules={
                 rulesDoc ? { slug: rulesDoc.slug, title: rulesDoc.title } : null
               }
