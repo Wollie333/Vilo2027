@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-30
+> **Last generated:** 2026-07-31
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,10 +16,10 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **197** (197 with RLS) |
-| Functions | **187** (147 SECURITY DEFINER, 68 trigger fns) |
-| Cron jobs | **43** (16 Vault-gated, 0 inactive) |
-| Vault secrets set | **21** |
+| Tables | **198** (198 with RLS) |
+| Functions | **189** (149 SECURITY DEFINER, 68 trigger fns) |
+| Cron jobs | **45** (17 Vault-gated, 0 inactive) |
+| Vault secrets set | **22** |
 
 ## 🚩 Automated red flags
 
@@ -38,6 +38,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | job | schedule | active | Vault-gated |
 |---|---|---|---|
 | `affiliate-clawback-backstop` | `23 2 * * *` | yes | — |
+| `affiliate-june-sweep` | `0 6 1 6 *` | yes | — |
 | `alert-missing-policies` | `0 10 * * *` | yes | — |
 | `alert-pending-refunds` | `0 9 * * *` | yes | — |
 | `apply-subscription-changes` | `0 * * * *` | yes | — |
@@ -48,6 +49,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `clean-search-logs` | `0 1 * * *` | yes | — |
 | `clear-affiliate-commissions` | `7 * * * *` | yes | — |
 | `deactivate-expired-broadcasts` | `15 * * * *` | yes | — |
+| `drain-campaign-comms` | `20 4 * * *` | yes | yes |
 | `drain-checkin-reminders` | `10 * * * *` | yes | yes |
 | `drain-digest-queue` | `5 * * * *` | yes | yes |
 | `drain-email-queue` | `* * * * *` | yes | yes |
@@ -222,6 +224,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `product_units_sold` | **yes** | yes | callable |
 | `program_affiliate_funnel` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
+| `reassign_affiliate_referral` | **yes** | yes | callable |
 | `recalculate_listing_ranking` | — | — | callable |
 | `recompute_affiliate_campaign_rates` | **yes** | yes | callable |
 | `record_error_event` | **yes** | yes | callable |
@@ -253,6 +256,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `snapshot_booking_policies` | **yes** | yes | callable |
 | `snapshot_campaign_scores` | **yes** | yes | callable |
 | `special_dates_available` | — | — | callable |
+| `sweep_affiliate_payouts` | **yes** | yes | callable |
 | `sync_booking_refund_flag` | **yes** | yes | trigger |
 | `sync_feature_request_votes` | **yes** | yes | trigger |
 | `sync_help_article_feedback_counters` | **yes** | yes | trigger |
@@ -745,6 +749,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `results` | jsonb | yes | — |
 | `results_computed_at` | timestamp with time zone | yes | — |
 | `results_published_at` | timestamp with time zone | yes | — |
+| `email_schedule` | jsonb | — | `'{}'::jsonb` |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -775,6 +780,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `user_agent` | text | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `campaign_id` | uuid | yes | — |
+| `commission_snapshot` | jsonb | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE CASCADE`
@@ -2669,6 +2675,9 @@ CASE
 - `FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE`
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
 
+**Unique:**
+- `UNIQUE (business_id, gateway)`
+
 **Checks:**
 - `CHECK ((environment = ANY (ARRAY['test'::text, 'live'::text])))`
 - `CHECK ((gateway = ANY (ARRAY['paystack'::text, 'paypal'::text])))`
@@ -3587,6 +3596,23 @@ CASE
 **RLS policies:**
 - `notification_events_read_authenticated` (SELECT) — `USING true`
 
+### `notification_overrides`
+
+| column | type | null | default |
+|---|---|---|---|
+| `event_kind` | text | — | — |
+| `master_enabled` | boolean | — | `true` |
+| `email_enabled` | boolean | — | `true` |
+| `push_enabled` | boolean | — | `true` |
+| `in_app_enabled` | boolean | — | `true` |
+| `subject_override` | text | yes | — |
+| `intro_override` | text | yes | — |
+| `updated_by` | uuid | yes | — |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+
 ### `notification_queue`
 
 | column | type | null | default |
@@ -4412,6 +4438,8 @@ CASE
 | `featured_review_id` | uuid | yes | — |
 | `business_id` | uuid | — | — |
 | `ranking_score` | numeric | — | `0` |
+| `direct_booking_enabled` | boolean | — | `true` |
+| `external_website_url` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (business_id) REFERENCES businesses(id)`

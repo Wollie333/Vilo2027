@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-31 — Money-flow hardening: restore service_role credit grants + Tier-2 payment gaps.
+
+Continued the pt94 payment audit. Found and fixed a major latent money bug, then closed the
+three remaining Tier-2 gaps. All fixes proven against the live DB.
+
+- **🔴 `check_feature_permission` rejected every service_role call (credits silently 0).**
+  `20260720070000` (a determinism rewrite) copied an older IDOR-guard body and dropped the
+  `service_role` allowance `20260719190000` had added. Since 2026-07-20 every admin-client call
+  raised `NOT_AUTHORIZED` (proven live) → `grantSubscriptionCredits` swallowed it and granted
+  ZERO monthly Wielo credits at activation AND renewal; `leadAccess` limit reads failed closed.
+  Host-session callers were unaffected, so the UI hid it. Migration `20260731110000` restores
+  the exact `service_role` branch (body otherwise unchanged). Verified live: admin client now
+  resolves real limits (business=1000, pro=5, free=0). No backfill (pre-MVP, no real users).
+- **`subscription_welcome` had no caller.** `activateMappedPlan` (the shared Paystack-card /
+  PayPal-order / free-grant settle path) now dispatches it — membership-only, gated on first
+  activation so a renewal never re-fires it, non-fatal.
+- **Webhook granted wrong/zero plan credits.** `processProductEvent` used the deprecated
+  `products.credit_quantity` (0 for modern memberships); `processSubscriptionEvent` (native
+  renewal) never granted at all → a host was short a month when the webhook was the sole settler
+  (worker died post-charge, webhook won the flip before reconcile). New Deno
+  `grantPlanCreditsForPeriod` resolves `wielo_credits_per_month` and applies an idempotent grant
+  keyed `product:period:quote`, matching the return-path SoT. Guarded flips keep it mutually
+  exclusive with the worker (no double-grant). Deployed `--no-verify-jwt`; grant + idempotency
+  proven live.
+- **Affiliate payout sweep only ran in June.** `sweep_affiliate_payouts` (bypasses the R1,000
+  threshold) was wired only to the annual cron, so sub-threshold cleared balances sat unpaid
+  until 1 June after a competition ended. Migration `20260731120000` calls it from
+  `finalize_ended_campaigns` (auto-close, guarded n>0) and `closeCampaignNowAction` (manual
+  close). Idempotent + best-effort. Account-closure sweep deferred (no `closed` state yet).
+
 ## 2026-07-31 — Property Channels (3-card model) + directory-only listings + copy sweep.
 
 Reworked the property editor's Channels tab into three independent, admin-gated channels and
