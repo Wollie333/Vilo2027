@@ -40,7 +40,34 @@ export function turnstileSecret(): string | undefined {
 
 export type TurnstileResult =
   | { ok: true; skipped?: boolean }
-  | { ok: false; reason: "missing-token" | "failed" | "error" };
+  | {
+      ok: false;
+      reason: "missing-token" | "failed" | "error";
+      /** Cloudflare siteverify `error-codes` when reason is "failed". */
+      errorCodes?: string[];
+    };
+
+/**
+ * Cloudflare siteverify `error-codes` that mean the CHECK is broken — the widget
+ * pair is misconfigured, the hostname isn't allowed, or the token is stale — NOT
+ * that the visitor is a bot. A real bot never obtains a token in the first place,
+ * so it fails earlier as "missing-token". Treating these as a bot verdict (the
+ * old behaviour) turned a dashboard/env misconfiguration into a total signup
+ * outage (pt91 / pt92). See https://developers.cloudflare.com/turnstile/get-started/server-side-validation/#error-codes
+ */
+const INFRA_ERROR_CODES = new Set([
+  "missing-input-secret",
+  "invalid-input-secret", // secret wrong, or from a different widget than the sitekey
+  "missing-input-response",
+  "invalid-input-response", // token invalid/expired, or sitekey/secret are a mismatched pair
+  "bad-request",
+  "timeout-or-duplicate", // token already redeemed or too old (e.g. a double submit)
+  "internal-error",
+  "invalid-widget-id",
+  "invalid-parity",
+  "invalid-input-hostname", // page hostname not in the widget's allow-list
+  "hostname-not-allowed",
+]);
 
 /**
  * Verify a Turnstile token. Returns `{ ok: true, skipped: true }` when Turnstile
@@ -75,10 +102,13 @@ export async function verifyTurnstile(
       // Don't let a slow Cloudflare hang the request indefinitely.
       signal: AbortSignal.timeout(8000),
     });
-    const data = (await res.json()) as { success?: boolean };
+    const data = (await res.json()) as {
+      success?: boolean;
+      "error-codes"?: string[];
+    };
     return data.success === true
       ? { ok: true }
-      : { ok: false, reason: "failed" };
+      : { ok: false, reason: "failed", errorCodes: data["error-codes"] ?? [] };
   } catch {
     return { ok: false, reason: "error" };
   }
@@ -88,22 +118,31 @@ export async function verifyTurnstile(
  * Public-form gate with a RESILIENT posture: block only on an explicit bot
  * verdict from Cloudflare, never on an infrastructure/config failure.
  *
- *   • verifyTurnstile ok            → allowed.
- *   • reason "failed"               → BLOCKED. Cloudflare looked at the token and
- *                                     said "this is not a human". Hard gate kept.
- *   • reason "missing-token"|"error"→ ALLOWED (soft-pass, logged). The widget
- *                                     never produced a token, or siteverify was
- *                                     unreachable — a problem with the check, not
- *                                     proof of a bot. The always-on honeypot
- *                                     (lib/security/honeypot.ts) is still the hard
- *                                     gate in this case.
+ *   • verifyTurnstile ok             → allowed.
+ *   • reason "missing-token"|"error" → ALLOWED (soft-pass, logged). The widget
+ *                                      never produced a token, or siteverify was
+ *                                      unreachable — a problem with the check, not
+ *                                      proof of a bot.
+ *   • reason "failed" (success:false)→ inspect Cloudflare's error-codes:
+ *       – config/infra/token codes (invalid-input-secret, invalid-input-response,
+ *         hostname-not-allowed, timeout-or-duplicate, …) → ALLOWED (soft-pass).
+ *         These mean the widget PAIR or the allowed-hostnames are misconfigured,
+ *         or the token is stale — the founder's problem, never proof of a bot.
+ *       – any UNRECOGNISED code (or a code outside the infra set) → BLOCKED, so a
+ *         future genuine reject reason still hard-gates.
+ *
+ * In every soft-pass case the always-on honeypot (lib/security/honeypot.ts) is
+ * still the hard gate.
  *
  * Why this exists: a strict fail-closed posture turns any Turnstile outage or key
  * misconfiguration into a TOTAL onboarding outage. That is exactly what happened
  * when the production site key / secret / allowed-hostnames fell out of sync — the
- * widget rendered but never verified, so every real signup was rejected with
- * "Couldn't verify you're human" (savepoint pt91). Bot protection should degrade,
- * not lock out every legitimate user, when its own infrastructure fails.
+ * widget rendered but siteverify rejected every token with `invalid-input-secret`
+ * / `invalid-input-response`, so every real signup was blocked with "Couldn't
+ * verify you're human" (pt91/pt92). The earlier fix only soft-passed missing-token
+ * and network errors; a key/hostname MISMATCH returns success:false, so it kept
+ * blocking. Bot protection should degrade, not lock out every legitimate user,
+ * when its own infrastructure is misconfigured.
  */
 export async function assertHumanOrInfraFailure(
   token: string | undefined | null,
@@ -112,14 +151,32 @@ export async function assertHumanOrInfraFailure(
 ): Promise<{ allowed: boolean; result: TurnstileResult }> {
   const result = await verifyTurnstile(token, remoteIp);
   if (result.ok) return { allowed: true, result };
-  if (result.reason === "failed") return { allowed: false, result };
-  // missing-token | error → the check failed to run, not a proven bot.
+
+  const ctx = context ? ` (${context})` : "";
+
+  if (result.reason === "missing-token" || result.reason === "error") {
+    console.warn(
+      `[turnstile] soft-pass on "${result.reason}"${ctx} — token absent or siteverify unreachable; honeypot still applies`,
+    );
+    return { allowed: true, result };
+  }
+
+  // reason === "failed": Cloudflare returned success:false. Only a code we don't
+  // recognise as a config/infra/token problem is treated as a real reject.
+  const codes = result.errorCodes ?? [];
+  const isInfra =
+    codes.length === 0 || codes.every((c) => INFRA_ERROR_CODES.has(c));
+  if (isInfra) {
+    console.warn(
+      `[turnstile] soft-pass on misconfiguration${ctx} — siteverify error-codes: [${codes.join(", ") || "none"}]. Check the Turnstile sitekey/secret are the SAME widget pair and the page hostname is in the widget's allow-list; honeypot still applies`,
+    );
+    return { allowed: true, result };
+  }
+
   console.warn(
-    `[turnstile] soft-pass on "${result.reason}"${
-      context ? ` (${context})` : ""
-    } — token absent or siteverify unreachable; honeypot still applies`,
+    `[turnstile] BLOCK${ctx} — siteverify rejected the token with error-codes: [${codes.join(", ")}]`,
   );
-  return { allowed: true, result };
+  return { allowed: false, result };
 }
 
 /**

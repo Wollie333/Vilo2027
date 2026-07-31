@@ -64,7 +64,7 @@ describe("verifyTurnstile", () => {
     expect(await verifyTurnstile("token")).toEqual({ ok: true });
   });
 
-  it("fails closed when Cloudflare returns success:false", async () => {
+  it("reports failed + the error-codes when Cloudflare returns success:false", async () => {
     process.env.TURNSTILE_SECRET_KEY = "secret";
     vi.stubGlobal(
       "fetch",
@@ -78,6 +78,7 @@ describe("verifyTurnstile", () => {
     expect(await verifyTurnstile("token")).toEqual({
       ok: false,
       reason: "failed",
+      errorCodes: ["invalid-input-response"],
     });
   });
 
@@ -134,16 +135,56 @@ describe("assertHumanOrInfraFailure (resilient posture)", () => {
     expect(out.allowed).toBe(true);
   });
 
-  it("BLOCKS only on an explicit bot verdict (success:false)", async () => {
+  it("soft-passes a MISCONFIGURED widget pair (invalid-input-secret) so signups aren't locked out", async () => {
     process.env.TURNSTILE_SECRET_KEY = "secret";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => okResponse({ success: false })),
+      vi.fn(async () =>
+        okResponse({ success: false, "error-codes": ["invalid-input-secret"] }),
+      ),
+    );
+    const out = await assertHumanOrInfraFailure("token", null, "signup:host");
+    expect(out.allowed).toBe(true);
+    expect(out.result).toEqual({
+      ok: false,
+      reason: "failed",
+      errorCodes: ["invalid-input-secret"],
+    });
+    expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it("soft-passes a hostname / stale-token reject (never proof of a bot)", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        okResponse({
+          success: false,
+          "error-codes": ["invalid-input-response", "timeout-or-duplicate"],
+        }),
+      ),
     );
     const out = await assertHumanOrInfraFailure("token");
-    expect(out).toEqual({
-      allowed: false,
-      result: { ok: false, reason: "failed" },
+    expect(out.allowed).toBe(true);
+  });
+
+  it("still BLOCKS on an unrecognised (non-infra) reject code", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        okResponse({ success: false, "error-codes": ["some-future-code"] }),
+      ),
+    );
+    const out = await assertHumanOrInfraFailure("token");
+    expect(out.allowed).toBe(false);
+    expect(out.result).toEqual({
+      ok: false,
+      reason: "failed",
+      errorCodes: ["some-future-code"],
     });
   });
 
