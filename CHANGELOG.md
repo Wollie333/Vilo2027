@@ -14,6 +14,17 @@ content purged. Fixed `scripts/reset-keep-superadmin.mjs` to keep by `platform_s
 `user_profiles.role`) + a system-user allowlist. Signed affiliate agreements (immutable 3-yr
 retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Reference/config intact.
 
+**Funnel Manager — Phase 2 (Hosts funnel end-to-end):** the public `/go/hosts` landing page +
+thank-you page + `/api/funnel-submit`. A submit runs `findOrCreateLeadIdentity` (mints a
+passwordless `user_profiles` lead + binds any affiliate referral), upserts the `pipeline_leads`
+CRM card (host board, `source_kind`, "New" stage, simple address-based score), writes a `created`
+timeline activity, sends a best-effort resource email, and (guarded) enrols in the nurture
+sequence — a no-op until Phase 4 activates it. Spam-safe (honeypot `hp` + Turnstile). `/go` is a
+locale-free branch with its own `app/go/layout.tsx` (the app has no root `app/layout.tsx`). Minimal
+placeholder UI — real design drops in later; brochure/video are null → friendly placeholder states.
+**Live-verified (Principle #9):** a real browser submit created the lead + host card + activity in
+the DB and redirected to the styled thank-you page; test lead then removed. `pnpm build` + lint green.
+
 **Funnel Manager — Phase 1 (data model, no UI yet):** first slice of
 `docs/features/FUNNEL_MANAGER_PLAN.md`.
 - **Migrations:** `20260801100000_funnels_pipeline` — 7 tables (`funnels`, `pipeline_stages`,

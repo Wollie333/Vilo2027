@@ -1,6 +1,6 @@
 # Funnel Manager & Lead Pipeline — Plan
 
-**Status:** 🟢 Phase 1 (data model) SHIPPED 2026-08-01 — Phases 2–6 pending
+**Status:** 🟢 Phases 1–2 SHIPPED 2026-08-01 (data model + Hosts funnel end-to-end) — Phases 3–6 pending
 **Owner:** Founder + Marketing/Sales team
 **Author:** drafted + refined 2026-07-31
 **Related:** `BUSINESS_PRINCIPLES.md` #1 (guest identity), #5 (one source of truth),
@@ -426,10 +426,17 @@ file or YouTube URL), thank-you CTA text/target, and the nurture email copy per 
    role, grants incl. explicit super_admin, `admin_audit_log` target_type += `pipeline`),
    `20260801100200_funnel_assets_bucket` (public PDF bucket). Applied to linked DB, types
    regenerated, lint green.
-2. **Hosts funnel end-to-end** — `/go/hosts` + thank-you + `/api/funnel-submit` →
-   lead → card → resource email → on-page resource. Proves the whole spine
-   (identity + affiliate binding + card + email). Verify in BOTH the live page and
-   a real submit (Principle #9).
+2. ✅ **DONE (2026-08-01)** — **Hosts funnel end-to-end** — `/go/hosts` + thank-you +
+   `/api/funnel-submit` → lead → card → resource email → on-page resource. Files:
+   `middleware.ts` (+`go`), `app/go/layout.tsx` (branch root — no app/layout.tsx exists),
+   `app/go/hosts/page.tsx`, `app/go/hosts/thanks/page.tsx`, `app/go/_components/FunnelForm.tsx`
+   (RHF+Zod, honeypot `hp`, Turnstile, UTM capture), `app/api/funnel-submit/route.ts`,
+   `lib/funnels/submit.ts` (findOrCreateLeadIdentity → pipeline_leads upsert → activity →
+   resource email → nurture guard), `lib/funnels/getFunnel.ts`, migration
+   `20260801100300_seed_host_funnel`. **Live-verified (Principle #9):** real submit created the
+   user_profiles lead + host-board card (source_kind=host_funnel, stage New, score 10) +
+   `created` activity; thank-you page renders. Minimal placeholder UI (real design later); brochure/
+   video null → placeholder states. `pnpm build` + `pnpm lint` green.
 3. **Pipeline admin board** — nav + RBAC + kanban + lead record page + actions.
 4. **Nurture drip engine** — sequence + `drain-nurture` cron + `/api/nurture-worker`
    + templates + conversion-cancels-drip hooks.
