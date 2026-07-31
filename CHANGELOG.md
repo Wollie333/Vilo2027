@@ -14,6 +14,15 @@ content purged. Fixed `scripts/reset-keep-superadmin.mjs` to keep by `platform_s
 `user_profiles.role`) + a system-user allowlist. Signed affiliate agreements (immutable 3-yr
 retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Reference/config intact.
 
+**Funnel Manager — Phase 2 landing/thanks redesign:** rebuilt `/go/hosts` + `/go/hosts/thanks` to
+the founder's lead-magnet mockups (directional) — dark hero, white capture card, and an **inline
+success receipt** ("Added to your pipeline": lead, establishment, Stage New, source, real Lead ID)
+instead of a redirect, plus a 3-step strip and the resource (video + download) thank-you page. Added
+a "how many rooms" field (stored in activity meta, +5 to score) and a compact POPIA consent line
+(the mockup dropped it; the plan §8 requires explicit opt-in before nurture). Thank-you page kept
+GENERIC (no name/email in the URL — privacy); the personalised receipt lives inline. Live-verified:
+submit → receipt (LD-…) → DB write (score 15) → styled thank-you; test lead removed. Build + lint green.
+
 **Funnel Manager — Phase 2 (Hosts funnel end-to-end):** the public `/go/hosts` landing page +
 thank-you page + `/api/funnel-submit`. A submit runs `findOrCreateLeadIdentity` (mints a
 passwordless `user_profiles` lead + binds any affiliate referral), upserts the `pipeline_leads`

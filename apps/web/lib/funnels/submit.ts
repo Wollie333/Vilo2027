@@ -27,6 +27,7 @@ const submitSchema = z.object({
     .max(200)
     .optional()
     .or(z.literal("")),
+  rooms: z.string().trim().max(40).optional().or(z.literal("")),
   marketing_consent: z.boolean().optional().default(false),
   utm: z.record(z.string(), z.string()).optional(),
   ad_source: z.string().trim().max(120).optional().or(z.literal("")),
@@ -35,7 +36,11 @@ const submitSchema = z.object({
 });
 
 export type FunnelSubmitResult =
-  | { ok: true; redirectTo: string }
+  | {
+      ok: true;
+      redirectTo: string;
+      lead: { ref: string; name: string; establishment: string | null };
+    }
   | { ok: false; error: string };
 
 export async function submitFunnelLead(
@@ -56,7 +61,15 @@ export async function submitFunnelLead(
 
   // Honeypot tripped → look successful, write nothing.
   if (d.hp && d.hp.trim().length > 0) {
-    return { ok: true, redirectTo: thanks };
+    return {
+      ok: true,
+      redirectTo: thanks,
+      lead: {
+        ref: "LD-000000",
+        name: d.name,
+        establishment: d.establishment_address || null,
+      },
+    };
   }
 
   // Turnstile: inert until NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY
@@ -140,9 +153,12 @@ export async function submitFunnelLead(
     // best-effort — a missing referral just means an organic lead.
   }
 
-  // Simple v1 lead score: a host lead that named an establishment is hotter.
+  // Simple v1 lead score: a host lead that named an establishment or gave a room
+  // count reads as higher intent.
   const hasAddress = Boolean(d.establishment_address?.trim());
-  const score = funnel.audience === "host" && hasAddress ? 10 : 0;
+  const hasRooms = Boolean(d.rooms?.trim());
+  const score =
+    funnel.audience === "host" ? (hasAddress ? 10 : 0) + (hasRooms ? 5 : 0) : 0;
   const nowIso = new Date().toISOString();
 
   // 5. Upsert the CRM card — one per (user, board). A returning lead keeps their
@@ -210,6 +226,7 @@ export async function submitFunnelLead(
     meta: {
       source_kind: sourceKind,
       establishment_address: d.establishment_address || null,
+      rooms: d.rooms || null,
       utm: d.utm ?? {},
       ad_source: d.ad_source || null,
     },
@@ -296,5 +313,13 @@ export async function submitFunnelLead(
     // Enrolment is best-effort; the lead is captured and can be worked manually.
   }
 
-  return { ok: true, redirectTo: thanks };
+  return {
+    ok: true,
+    redirectTo: thanks,
+    lead: {
+      ref: `LD-${leadId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      name: d.name,
+      establishment: d.establishment_address || null,
+    },
+  };
 }
