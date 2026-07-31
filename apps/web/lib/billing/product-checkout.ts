@@ -34,6 +34,7 @@ import { isProductSoldOut } from "@/lib/products/stock";
 import { notifyAdmins } from "@/lib/admin/notify";
 import { setPayCardStatus } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 
 // Wielo product checkout — mirrors the host booking pay-link, but for Wielo's own
 // products. The admin generates an order + tokenised pay-link; the user pays via
@@ -1245,10 +1246,14 @@ async function activateMappedPlan(
   // the host's single sub. A host can hold one membership + many services.
   const { data: existing } = await admin
     .from("subscriptions")
-    .select("id, plan")
+    .select("id, plan, status")
     .eq("host_id", host.id)
     .eq("product_id", productId)
     .maybeSingle();
+  // First activation vs renewal: a renewal keeps status 'active' throughout, so
+  // this stays false and the welcome below never re-fires monthly. A brand-new or
+  // reactivated (cancelled/past_due/trialing) sub gets the welcome exactly once.
+  const wasActive = existing?.status === "active";
 
   // Keep `plan` a valid plans.key: prefer the product's explicit plan_key (the
   // feature tier it grants), else its slug when that's a plan key, else preserve.
@@ -1331,10 +1336,16 @@ async function activateMappedPlan(
     }
   }
 
+  let subId = existing?.id ?? null;
   if (existing) {
     await admin.from("subscriptions").update(patch).eq("id", existing.id);
   } else {
-    await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+    const { data: inserted } = await admin
+      .from("subscriptions")
+      .insert({ host_id: host.id, ...patch })
+      .select("id")
+      .maybeSingle();
+    subId = inserted?.id ?? null;
   }
 
   // WS-5: during the Founding-offers window, a host converting to the paid plan
@@ -1359,6 +1370,23 @@ async function activateMappedPlan(
     productId,
     periodStart: patch.current_period_start,
   });
+
+  // Welcome the host into their plan on FIRST activation only. subscription_welcome
+  // had a registered template + resolver but NO caller — every host who bought a
+  // plan was silently activated (pt94 payment-gap #1). Membership-only (services
+  // don't warrant a "welcome to your plan" email) and gated on !wasActive so a
+  // renewal (status stays 'active') never re-fires it. Non-fatal.
+  if (isMembership && !wasActive && subId) {
+    try {
+      await dispatchEvent({
+        kind: "subscription_welcome",
+        recipientUserId: payerUserId,
+        refs: { subscription_id: subId },
+      });
+    } catch {
+      // non-fatal — activation must not fail because a welcome email didn't send
+    }
+  }
 }
 
 export type ConfirmProductResult =
