@@ -34,7 +34,11 @@ import {
 
 import { LibraryImagePicker } from "@/components/affiliate/LibraryImagePicker";
 
-import { setCampaignStatusAction, updateCampaignAction } from "../actions";
+import {
+  duplicateProductForCompetitionAction,
+  setCampaignStatusAction,
+  updateCampaignAction,
+} from "../actions";
 import { CAMPAIGN_HELP, FieldHelp, type HelpEntry } from "./FieldHelp";
 
 // WS-1i — the campaign builder form. Rates are entered as PERCENT here and
@@ -64,12 +68,23 @@ function fromLocalInput(v: string): string | null {
   return v ? new Date(v).toISOString() : null;
 }
 
+type TrialProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  annualPrice: number | null;
+  currency: string;
+  isVisible: boolean;
+};
+
 export function CampaignBuilder({
   campaignId,
   initial,
   legalDocs,
   enrolledActive,
   libraryImages,
+  products = [],
   resultsPublished = false,
 }: {
   campaignId: string;
@@ -79,6 +94,8 @@ export function CampaignBuilder({
   enrolledActive: number;
   /** Wielo media-library images the hero image can be assigned from. */
   libraryImages: { path: string; url: string }[];
+  /** Membership products for the host-trial picker + duplicate sources. */
+  products?: TrialProduct[];
   /** True once the final results are published — reopening is then withheld. */
   resultsPublished?: boolean;
 }) {
@@ -140,6 +157,21 @@ export function CampaignBuilder({
     comp.events?.listing_published ?? 1,
   );
   const [prizes, setPrizes] = useState<Prize[]>(comp.prizes ?? []);
+
+  // ── Host free trial (competition.host_trial) ──────────────────────
+  const ht = comp.host_trial ?? null;
+  const [trialProductId, setTrialProductId] = useState(ht?.product_id ?? "");
+  const [trialCohortEnd, setTrialCohortEnd] = useState(ht?.cohort_end ?? "");
+  const [trialFloorDays, setTrialFloorDays] = useState(
+    ht?.floor_days != null ? String(ht.floor_days) : "",
+  );
+  const [liveProducts, setLiveProducts] = useState<TrialProduct[]>(products);
+  const [dupOpen, setDupOpen] = useState(false);
+  const [dupSource, setDupSource] = useState(products[0]?.id ?? "");
+  const [dupName, setDupName] = useState("");
+  const [dupPrice, setDupPrice] = useState("");
+  const [dupAnnual, setDupAnnual] = useState("");
+  const [dupPending, startDup] = useTransition();
 
   const isLive = status === "active";
 
@@ -205,8 +237,68 @@ export function CampaignBuilder({
         ...(tieBreaker ? { tie_breaker: tieBreaker } : {}),
         leaderboard_visibility: visibility,
         prizes,
+        // Only present when a product is assigned — clearing the picker removes
+        // the trial (the update replaces `competition` wholesale).
+        ...(trialProductId
+          ? {
+              host_trial: {
+                product_id: trialProductId,
+                cohort_end: trialCohortEnd.trim() || null,
+                floor_days: trialFloorDays.trim()
+                  ? Math.max(0, Math.round(Number(trialFloorDays)))
+                  : null,
+              },
+            }
+          : {}),
       },
     };
+  }
+
+  function runDuplicate() {
+    const price = Number(dupPrice);
+    if (!dupSource) {
+      toast.error("Pick a product to duplicate.");
+      return;
+    }
+    if (dupName.trim().length < 2) {
+      toast.error("Give the new product a name.");
+      return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error("Enter a valid monthly price.");
+      return;
+    }
+    startDup(async () => {
+      const res = await duplicateProductForCompetitionAction({
+        sourceProductId: dupSource,
+        name: dupName.trim(),
+        price,
+        annualPrice: dupAnnual.trim() ? Number(dupAnnual) : null,
+      });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "Could not duplicate." : res.error);
+        return;
+      }
+      // Add it to the picker and select it immediately.
+      const created: TrialProduct = {
+        id: res.data.id,
+        name: res.data.name,
+        slug: res.data.slug,
+        price,
+        annualPrice: dupAnnual.trim() ? Number(dupAnnual) : null,
+        currency: "ZAR",
+        isVisible: false,
+      };
+      setLiveProducts((p) => [...p, created]);
+      setTrialProductId(created.id);
+      setDupOpen(false);
+      setDupName("");
+      setDupPrice("");
+      setDupAnnual("");
+      toast.success(
+        `Created “${created.name}”. Remember to Save the campaign.`,
+      );
+    });
   }
 
   function save() {
@@ -1090,6 +1182,150 @@ export function CampaignBuilder({
             ) : null}
           </div>
         </div>
+      </Panel>
+
+      {/* ---- Host free trial ---- */}
+      <Panel
+        title="Host free trial"
+        sub="What a referred host gets when they sign up during this competition. Assign a dedicated (hidden) product priced at the competition rate — the public plan is never changed."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className={LABEL}>Trial product</span>
+            <select
+              value={trialProductId}
+              onChange={(e) => setTrialProductId(e.target.value)}
+              className={FIELD}
+            >
+              <option value="">No trial — referred hosts pay as normal</option>
+              {liveProducts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.isVisible ? " (public)" : " (hidden)"} — R
+                  {Math.round(p.price).toLocaleString("en-ZA")}
+                  /mo
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-[12px] text-brand-mute">
+              Referred hosts get full access to this product free until the
+              trial ends, then pay its price. Tip: duplicate your paid plan so
+              the public one stays untouched.
+            </span>
+          </label>
+
+          <div className="block">
+            <span className={LABEL}>Or make one</span>
+            {dupOpen ? (
+              <div className="rounded-card border border-brand-line p-3">
+                <select
+                  value={dupSource}
+                  onChange={(e) => setDupSource(e.target.value)}
+                  className={FIELD}
+                >
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      Duplicate: {p.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={dupName}
+                  onChange={(e) => setDupName(e.target.value)}
+                  placeholder="New product name (e.g. Founder)"
+                  className={`${FIELD} mt-2`}
+                />
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={dupPrice}
+                    onChange={(e) => setDupPrice(e.target.value)}
+                    placeholder="Monthly R"
+                    className={FIELD}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={dupAnnual}
+                    onChange={(e) => setDupAnnual(e.target.value)}
+                    placeholder="Annual R (optional)"
+                    className={FIELD}
+                  />
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={runDuplicate}
+                    disabled={dupPending}
+                    className="btn-pri h-9"
+                  >
+                    <Copy className="h-4 w-4" />
+                    {dupPending ? "Creating…" : "Create & assign"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDupOpen(false)}
+                    className="btn-ghost h-9"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <span className="mt-2 block text-[12px] text-brand-mute">
+                  Creates a hidden copy (all features + rules carried over) at
+                  the price you set. Edit it later under Admin → Products.
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setDupSource(products[0]?.id ?? "");
+                  setDupOpen(true);
+                }}
+                className="btn-ghost h-10"
+                disabled={products.length === 0}
+              >
+                <Copy className="h-4 w-4" />
+                Duplicate a product for this competition
+              </button>
+            )}
+          </div>
+        </div>
+
+        {trialProductId ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className={LABEL}>Free access ends (cohort date)</span>
+              <input
+                type="date"
+                value={trialCohortEnd}
+                onChange={(e) => setTrialCohortEnd(e.target.value)}
+                className={FIELD}
+              />
+              <span className="mt-1 block text-[12px] text-brand-mute">
+                Every host in the cohort loses free access on this date,
+                whenever they joined.
+              </span>
+            </label>
+            <label className="block">
+              <span className={LABEL}>Minimum free days (rolling floor)</span>
+              <input
+                type="number"
+                min={0}
+                value={trialFloorDays}
+                onChange={(e) => setTrialFloorDays(e.target.value)}
+                placeholder="e.g. 30"
+                className={FIELD}
+              />
+              <span className="mt-1 block text-[12px] text-brand-mute">
+                Late joiners still get at least this many days. Trial ends at
+                the later of the two — max(cohort date, join + floor days).
+              </span>
+            </label>
+          </div>
+        ) : null}
       </Panel>
 
       <div className="flex justify-end">

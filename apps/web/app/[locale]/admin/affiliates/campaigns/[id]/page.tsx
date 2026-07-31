@@ -143,6 +143,7 @@ export default async function AdminCampaignPage({
     { data: rawScores },
     { data: floors },
     { data: ruleAcceptances },
+    { data: productRows },
   ] = await Promise.all([
     service
       .from("legal_documents")
@@ -162,7 +163,26 @@ export default async function AdminCampaignPage({
       .select("id, affiliate_id, doc_slug, doc_version, accepted_at, ip")
       .eq("campaign_id", campaign.id)
       .order("accepted_at", { ascending: false }),
+    // Membership products for the host-trial picker + duplicate sources (any
+    // visibility — competition products are hidden).
+    service
+      .from("products")
+      .select("id, name, slug, price, annual_price, currency, is_visible")
+      .eq("product_type", "membership")
+      .eq("is_active", true)
+      .order("is_visible", { ascending: false })
+      .order("price"),
   ]);
+
+  const membershipProducts = (productRows ?? []).map((p) => ({
+    id: p.id as string,
+    name: p.name as string,
+    slug: p.slug as string,
+    price: Number(p.price),
+    annualPrice: p.annual_price != null ? Number(p.annual_price) : null,
+    currency: (p.currency as string) ?? "ZAR",
+    isVisible: Boolean(p.is_visible),
+  }));
 
   const scores = (rawScores ?? []) as {
     affiliate_id: string;
@@ -368,6 +388,7 @@ export default async function AdminCampaignPage({
         }))}
         enrolledActive={activeEnrolled}
         libraryImages={libraryImages}
+        products={membershipProducts}
         resultsPublished={Boolean(results?.publishedAt)}
       />
     </div>
