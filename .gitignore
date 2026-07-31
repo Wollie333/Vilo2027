@@ -62,7 +62,12 @@ lerna-debug.log*
 *.swo
 
 # ─── Claude Code ─────────────────────────────────────
-.claude/
+# Ignore local Claude state, but TRACK the shared SessionStart hook + settings
+# so every Claude Code on the web session (any branch) picks them up.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/settings.local.json
 
 # ─── OS ──────────────────────────────────────────────
 .DS_Store
