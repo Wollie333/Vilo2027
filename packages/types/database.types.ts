@@ -515,6 +515,9 @@ export type Database = {
           activated_at: string | null
           activated_by: string | null
           bio: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_reason: string | null
           community_members: number | null
           community_name: string | null
           created_at: string
@@ -543,6 +546,9 @@ export type Database = {
           activated_at?: string | null
           activated_by?: string | null
           bio?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           community_members?: number | null
           community_name?: string | null
           created_at?: string
@@ -571,6 +577,9 @@ export type Database = {
           activated_at?: string | null
           activated_by?: string | null
           bio?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           community_members?: number | null
           community_name?: string | null
           created_at?: string
@@ -12574,6 +12583,10 @@ export type Database = {
             Returns: undefined
           }
       clear_all: { Args: never; Returns: string }
+      close_affiliate_account: {
+        Args: { p_admin: string; p_affiliate_id: string; p_reason?: string }
+        Returns: Json
+      }
       compute_addon_subtotal: {
         Args: {
           p_guests: number

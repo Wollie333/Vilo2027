@@ -38,6 +38,51 @@ export const setAffiliateStatusAction = withAdminAudit<
   },
 );
 
+// ─── Close a partner account (terminal) ─────────────────────────────────────
+// SoT §4.2/§10.6: on closure any cleared balance is paid regardless of the
+// threshold. close_affiliate_account sweeps the balance WHILE the account is still
+// active, voids pending accrual, then flips status to 'closed'. Only an active
+// account can be closed here (a suspended one must be reactivated first — a
+// deliberate admin step, never a silent side effect).
+export const closeAffiliateAccountAction = withAdminAudit<
+  { affiliateId: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.close_account",
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const admin = await requirePermission(PERMISSION);
+    const { data, error } = await service.rpc("close_affiliate_account", {
+      p_affiliate_id: args.affiliateId,
+      p_admin: admin.userId,
+      p_reason: args.reason ?? null,
+    });
+    if (error) return { result: { ok: false, error: error.message } };
+    const res = data as { ok: boolean; error?: string; swept?: unknown } | null;
+    if (!res?.ok) {
+      return {
+        result: {
+          ok: false,
+          error:
+            res?.error === "not_active"
+              ? "Only an active account can be closed. Reactivate it first."
+              : (res?.error ?? "Could not close the account."),
+        },
+      };
+    }
+    revalidatePath("/admin/affiliates");
+    revalidatePath(`/admin/affiliates/${args.affiliateId}`);
+    return {
+      result: { ok: true },
+      after: { status: "closed", swept: res.swept },
+    };
+  },
+);
+
 // ─── Verified-partner badge ─────────────────────────────────────────────────
 // An admin marks an affiliate a "verified partner"; the badge then shows on
 // their public profile. verified_by records who set it (audit trail).
