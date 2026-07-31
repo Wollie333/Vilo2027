@@ -733,20 +733,17 @@ async function processProductEvent(
             .insert({ host_id: host.id, ...patch });
         }
 
-        // Grant this plan's recurring credit allotment for the period (idempotent
-        // per product+period via apply_wielo_credit). Mirrors activateMappedPlan.
-        const grantQty = Number(product.credit_quantity ?? 0);
-        if (grantQty > 0) {
-          await supabase.rpc("apply_wielo_credit", {
-            p_host_id: host.id,
-            p_purpose: (product.credit_purpose as string) || "quote",
-            p_delta: grantQty,
-            p_kind: "grant",
-            p_reason: `Plan credits · ${product.name ?? "subscription"}`,
-            p_ref_type: "subscription",
-            p_ref_id: `${order.product_id}:${now.slice(0, 10)}`,
-          });
-        }
+        // Grant this plan's recurring credit allotment for the period. Resolves
+        // the wielo_credits_per_month allowance (the return-path SoT) rather than
+        // the deprecated credit_quantity, so this backstop grants the SAME credits
+        // the pay-page return would. Idempotent; the guarded order flip above means
+        // only one of the two paths reaches here.
+        await grantPlanCreditsForPeriod(
+          supabase,
+          host.id,
+          order.product_id,
+          patch.current_period_start,
+        );
       }
     }
   }
@@ -895,6 +892,56 @@ function addMonths(d: Date, n: number): string {
   return x.toISOString();
 }
 
+// Grant the plan's ONE monthly Wielo-credit allowance (the `quote` wallet) for a
+// billing period — the webhook's mirror of lib/credits/wallet.ts
+// grantSubscriptionCredits. Resolves the wielo_credits_per_month limit via
+// check_feature_permission (service_role is allowed again since 20260731110000),
+// NOT the deprecated products.credit_quantity (which drives one-off packages
+// only, and read 0 for a modern membership → the old grant here was a no-op).
+// Idempotent per (host, ref_type, ref_id, kind) with the ref keyed
+// product:period:purpose, matching the return-path grant EXACTLY so activation +
+// each renewal top up once and the two settle paths never double-grant. The
+// caller's compare-and-set flip already guarantees only one settler reaches here.
+// deno-lint-ignore no-explicit-any
+async function grantPlanCreditsForPeriod(
+  supabase: any,
+  hostId: string,
+  productId: string,
+  periodStartIso: string,
+): Promise<void> {
+  try {
+    const { data: perm, error } = await supabase.rpc(
+      "check_feature_permission",
+      { p_host_id: hostId, p_feature_key: "wielo_credits_per_month" },
+    );
+    if (error || !perm?.is_enabled) return;
+    // NULL limit = unlimited, which a counting wallet can't represent → grant
+    // nothing (the spend path bypasses metering for an unlimited host instead).
+    if (perm.limit_value === null || perm.limit_value === undefined) return;
+    const qty = Number(perm.limit_value);
+    if (!(qty > 0)) return;
+    const { data: product } = await supabase
+      .from("products")
+      .select("name")
+      .eq("id", productId)
+      .maybeSingle();
+    await supabase.rpc("apply_wielo_credit", {
+      p_host_id: hostId,
+      p_purpose: "quote",
+      p_delta: qty,
+      p_kind: "grant",
+      p_reason: `Plan credits · ${product?.name ?? "subscription"}`,
+      p_ref_type: "subscription",
+      // Purpose MUST be in the ref: apply_wielo_credit's idempotency predicate is
+      // (host_id, ref_type, ref_id, kind) and excludes purpose, so sharing a ref
+      // across purposes would silently no-op the second grant.
+      p_ref_id: `${productId}:${periodStartIso.slice(0, 10)}:quote`,
+    });
+  } catch (_e) {
+    // Non-fatal: a settled charge must never fail because a credit grant did.
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 async function processSubscriptionEvent(
   event: PaystackEvent,
@@ -1040,6 +1087,21 @@ async function processSubscriptionEvent(
         currency,
         notes: "Paystack charge",
       });
+
+      // Grant the new period's credit allotment. The renewal WORKER
+      // (settleRenewalSuccess) and the reconcile worker normally do this; but when
+      // THIS webhook is the sole settler — worker died after the charge, before it
+      // settled, and this backstop won the ledger flip above before the reconcile
+      // worker ran — the period was extended with NO credits (pt94 payment-gap #2).
+      // Idempotent + mutually exclusive with the worker via the guarded flip.
+      if (productId && hostId) {
+        await grantPlanCreditsForPeriod(
+          supabase,
+          hostId,
+          productId,
+          now.toISOString(),
+        );
+      }
     }
 
     // Accrue affiliate commission if the payer was referred (idempotent in the RPC).
