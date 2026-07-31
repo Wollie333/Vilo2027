@@ -1,6 +1,7 @@
 import {
   LEGAL_PLACEMENT_SLOTS,
   listLegalDocuments,
+  listLegalDocumentVersions,
   listPlacements,
 } from "@/lib/legalDocuments";
 
@@ -14,9 +15,10 @@ export const dynamic = "force-dynamic";
 // Cookies, affiliate & competition rules) to the document that fills it. Publish
 // once, update everywhere. Same components as the admin Documents tab.
 export default async function AdminLegalPage() {
-  const [docs, placements] = await Promise.all([
+  const [docs, placements, versionsBySlug] = await Promise.all([
     listLegalDocuments(),
     listPlacements(),
+    listLegalDocumentVersions(),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function AdminLegalPage() {
           version: d.version,
           isPublished: d.isPublished,
         }))}
+        versionsBySlug={versionsBySlug}
       />
     </section>
   );

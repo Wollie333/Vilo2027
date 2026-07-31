@@ -375,3 +375,32 @@ session.
 **Nothing legal-consolidation-related remains open.** (Optional: drop the orphaned
 `platform_settings.legal_*` rows; retire `affiliate_settings.terms_*` once every
 program's terms are published as docs.)
+
+## 16. Build log — read-only reflections + version history
+
+### Read-only reflections (no migration)
+Old admin edit surfaces now reflect the live doc + link to the single source of
+truth, so a document changes in exactly one place:
+- **Affiliate terms** (`admin/affiliates/terms`) — read-only render of the live
+  resolved terms + "Edit in Legal docs"; `AffiliateTermsEditor` deleted.
+- **Campaign competition rules** — inline `CampaignRulesEditor` replaced by a
+  read-only `CampaignRulesPanel`; binding stays on the builder's "Rules document"
+  picker, creation happens in Legal docs.
+- **Legal docs manager** — `#doc-<slug>` anchors so the buttons deep-link.
+- (`updateAffiliateTermsAction` / `saveCampaignRulesAction` now unused — harmless
+  dead exports, removable later.)
+
+### Per-document version history (migration `20260731180000`)
+- **`legal_document_versions`** table (append-style; UNIQUE(slug,version); RLS =
+  service-role only) with a backfill of every current doc as its current version.
+- `saveLegalDocumentAction` snapshots each publish into it;
+  `restoreLegalDocumentVersionAction` copies a past version's text into a NEW
+  version (never overwrites history or reuses a number), keeping the current
+  publish state — acceptance records that reference old numbers stay valid.
+- `listLegalDocumentVersions()` reader; the Legal docs manager shows a per-doc
+  **Version history** (view any version's exact text, Restore any past one).
+- Non-breaking if the migration lags: `listLegalDocumentVersions` returns `{}` on
+  the missing table → history simply doesn't render.
+
+Validated: lint clean, tsc 0 errors, full `pnpm build` green. **New SQL to apply:
+`20260731180000_legal_document_versions.sql`.**

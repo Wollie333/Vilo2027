@@ -199,3 +199,52 @@ export async function getPlacedLegalVersions(): Promise<{
   ]);
   return { terms: terms?.version ?? 1, privacy: privacy?.version ?? 1 };
 }
+
+// ─── Version history ─────────────────────────────────────────────────
+// Every publish snapshots the doc's exact text into legal_document_versions
+// (see migration 20260731180000). This returns the full history grouped by slug,
+// newest version first — the admin uses it to view/restore past versions. Bodies
+// are sanitised on read (defence-in-depth for historic rows).
+
+export type LegalDocumentVersion = {
+  version: number;
+  title: string;
+  bodyHtml: string | null;
+  publishedAt: string | null;
+  createdAt: string | null;
+};
+
+export async function listLegalDocumentVersions(): Promise<
+  Record<string, LegalDocumentVersion[]>
+> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("legal_document_versions")
+      .select("slug, version, title, body_html, published_at, created_at")
+      .order("version", { ascending: false });
+    const out: Record<string, LegalDocumentVersion[]> = {};
+    for (const r of (data ?? []) as Array<{
+      slug: string;
+      version: number;
+      title: string;
+      body_html: string | null;
+      published_at: string | null;
+      created_at: string | null;
+    }>) {
+      (out[r.slug] ??= []).push({
+        version: r.version,
+        title: r.title,
+        bodyHtml:
+          typeof r.body_html === "string" && r.body_html.trim().length > 0
+            ? sanitiseListingHtml(r.body_html)
+            : null,
+        publishedAt: r.published_at,
+        createdAt: r.created_at,
+      });
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}

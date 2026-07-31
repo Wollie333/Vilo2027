@@ -163,10 +163,108 @@ export const saveLegalDocumentAction = withAdminAudit<
     );
     if (error) throw new Error(error.message);
 
+    // Retain this version's exact text in the history table so it can be viewed
+    // or restored later. Keyed on (slug, version): a body change bumped `version`
+    // above and writes a new row; a title-only edit refreshes the current row.
+    await service
+      .from("legal_document_versions")
+      .upsert(
+        { slug, version, title, body_html: cleaned, published_at: publishedAt },
+        { onConflict: "slug,version" },
+      );
+
     // The public /legal/[slug] page reads this at runtime.
     revalidatePath(`/legal/${slug}`);
 
     return { result: { ok: true, version }, after: { slug, version } };
+  },
+);
+
+// Restore a past version: copy its title + body into a NEW version (never
+// overwrites history or reuses a number), keeping the document's current publish
+// state. Acceptance records that reference older version numbers stay valid.
+const restoreLegalVersionSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Invalid document."),
+  version: z.number().int().positive(),
+  reason: z.string().optional(),
+});
+
+export const restoreLegalDocumentVersionAction = withAdminAudit<
+  z.infer<typeof restoreLegalVersionSchema>,
+  { ok: true; version: number }
+>(
+  {
+    permissionKey: ["legal.docs", "platform.settings"],
+    actionName: "platform.settings.legal_document_restore",
+    targetType: "platform_setting",
+    getTargetId: () => LEGAL_DOCS_SETTING_ID,
+  },
+  async (args, service) => {
+    const parsed = restoreLegalVersionSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const { slug, version: fromVersion } = parsed.data;
+
+    const [{ data: hist }, { data: cur }] = await Promise.all([
+      service
+        .from("legal_document_versions")
+        .select("title, body_html")
+        .eq("slug", slug)
+        .eq("version", fromVersion)
+        .maybeSingle(),
+      service
+        .from("legal_documents")
+        .select("version, is_published, published_at")
+        .eq("slug", slug)
+        .maybeSingle(),
+    ]);
+    if (!hist) throw new Error("That version was not found.");
+    if (!cur) throw new Error("Document not found.");
+
+    const newVersion = (typeof cur.version === "number" ? cur.version : 0) + 1;
+    const isPublished = Boolean(cur.is_published);
+    const nowIso = new Date().toISOString();
+    // Republish if the doc is currently live (content changed); otherwise keep it
+    // unpublished and preserve the prior stamp.
+    const publishedAt = isPublished ? nowIso : (cur.published_at ?? null);
+
+    const { error } = await service
+      .from("legal_documents")
+      .update({
+        title: hist.title,
+        body_html: hist.body_html,
+        version: newVersion,
+        is_published: isPublished,
+        published_at: publishedAt,
+        updated_at: nowIso,
+      })
+      .eq("slug", slug);
+    if (error) throw new Error(error.message);
+
+    await service.from("legal_document_versions").upsert(
+      {
+        slug,
+        version: newVersion,
+        title: hist.title,
+        body_html: hist.body_html,
+        published_at: publishedAt,
+      },
+      { onConflict: "slug,version" },
+    );
+
+    revalidatePath(`/legal/${slug}`);
+    revalidatePath("/admin/legal");
+    revalidatePath("/admin/platform/settings/legal-docs");
+
+    return {
+      result: { ok: true, version: newVersion },
+      after: { slug, restoredFrom: fromVersion, version: newVersion },
+    };
   },
 );
 

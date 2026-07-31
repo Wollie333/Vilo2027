@@ -1,6 +1,7 @@
 import {
   LEGAL_PLACEMENT_SLOTS,
   listLegalDocuments,
+  listLegalDocumentVersions,
   listPlacements,
 } from "@/lib/legalDocuments";
 
@@ -15,9 +16,10 @@ export const dynamic = "force-dynamic";
 // so publishing once updates every surface. Your attorney pastes final copy and
 // assigns it here — no deploy.
 export default async function AdminLegalDocumentsPage() {
-  const [docs, placements] = await Promise.all([
+  const [docs, placements, versionsBySlug] = await Promise.all([
     listLegalDocuments(),
     listPlacements(),
+    listLegalDocumentVersions(),
   ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function AdminLegalDocumentsPage() {
           version: d.version,
           isPublished: d.isPublished,
         }))}
+        versionsBySlug={versionsBySlug}
       />
     </section>
   );

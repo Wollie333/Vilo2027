@@ -1,13 +1,24 @@
 "use client";
 
-import { ExternalLink, FileText, Loader2, Plus, Save } from "lucide-react";
+import {
+  ExternalLink,
+  FileText,
+  Loader2,
+  Plus,
+  RotateCcw,
+  Save,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import type { LegalDocumentVersion } from "@/lib/legalDocuments";
 
-import { saveLegalDocumentAction } from "./actions";
+import {
+  restoreLegalDocumentVersionAction,
+  saveLegalDocumentAction,
+} from "./actions";
 
 export type LegalDocInput = {
   slug: string;
@@ -17,7 +28,13 @@ export type LegalDocInput = {
   isPublished: boolean;
 };
 
-export function LegalDocumentsManager({ docs }: { docs: LegalDocInput[] }) {
+export function LegalDocumentsManager({
+  docs,
+  versionsBySlug = {},
+}: {
+  docs: LegalDocInput[];
+  versionsBySlug?: Record<string, LegalDocumentVersion[]>;
+}) {
   return (
     <div className="space-y-6">
       <NewDocumentCard existingSlugs={docs.map((d) => d.slug)} />
@@ -26,7 +43,13 @@ export function LegalDocumentsManager({ docs }: { docs: LegalDocInput[] }) {
           No documents yet. Create one above.
         </p>
       ) : (
-        docs.map((doc) => <DocumentCard key={doc.slug} doc={doc} />)
+        docs.map((doc) => (
+          <DocumentCard
+            key={doc.slug}
+            doc={doc}
+            versions={versionsBySlug[doc.slug] ?? []}
+          />
+        ))
       )}
     </div>
   );
@@ -128,12 +151,42 @@ function NewDocumentCard({ existingSlugs }: { existingSlugs: string[] }) {
   );
 }
 
-function DocumentCard({ doc }: { doc: LegalDocInput }) {
+function DocumentCard({
+  doc,
+  versions,
+}: {
+  doc: LegalDocInput;
+  versions: LegalDocumentVersion[];
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(doc.title);
   const [html, setHtml] = useState(doc.bodyHtml ?? "");
   const [isPublished, setIsPublished] = useState(doc.isPublished);
   const [pending, start] = useTransition();
+  const [viewing, setViewing] = useState<number | null>(null);
+
+  function restore(version: number) {
+    if (pending) return;
+    if (
+      !window.confirm(
+        `Restore version ${version}? This publishes its text as a new version — it doesn't overwrite history.`,
+      )
+    )
+      return;
+    start(async () => {
+      try {
+        const res = await restoreLegalDocumentVersionAction({
+          slug: doc.slug,
+          version,
+        });
+        toast.success(`Restored — now version ${res.version}`);
+        setViewing(null);
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not restore.");
+      }
+    });
+  }
 
   const dirty =
     title.trim() !== doc.title.trim() ||
@@ -232,6 +285,61 @@ function DocumentCard({ doc }: { doc: LegalDocInput }) {
           Publishing bumps the version when the text changes.
         </span>
       </div>
+
+      {versions.length > 1 ? (
+        <details className="mt-4 border-t border-brand-line pt-3">
+          <summary className="cursor-pointer select-none text-[13px] font-semibold text-brand-mute">
+            Version history ({versions.length})
+          </summary>
+          <ul className="mt-3 space-y-2">
+            {versions.map((v) => (
+              <li key={v.version} className="text-[12.5px]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-pill bg-brand-light px-2 py-0.5 font-semibold text-brand-ink">
+                    v{v.version}
+                  </span>
+                  <span className="text-brand-mute">
+                    {v.publishedAt ? v.publishedAt.slice(0, 10) : "—"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewing(viewing === v.version ? null : v.version)
+                    }
+                    className="font-medium text-brand-secondary hover:text-brand-primary"
+                  >
+                    {viewing === v.version ? "Hide" : "View"}
+                  </button>
+                  {v.version === doc.version ? (
+                    <span className="text-brand-mute">· current</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => restore(v.version)}
+                      disabled={pending}
+                      className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline disabled:opacity-50"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Restore
+                    </button>
+                  )}
+                </div>
+                {viewing === v.version ? (
+                  <div
+                    className="mt-2 max-h-[320px] overflow-y-auto rounded-card border border-brand-line bg-brand-light/40 p-3 text-[12.5px] leading-relaxed text-brand-mute [&_h2]:mt-3 [&_h2]:font-display [&_h2]:font-bold [&_h2]:text-brand-ink [&_h3]:mt-2 [&_h3]:font-semibold [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1.5 [&_strong]:font-semibold [&_strong]:text-brand-ink [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        v.bodyHtml && v.bodyHtml.trim().length > 0
+                          ? v.bodyHtml
+                          : "<p><em>(no text)</em></p>",
+                    }}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </div>
   );
 }
