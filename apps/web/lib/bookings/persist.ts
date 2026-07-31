@@ -97,6 +97,54 @@ export type PersistBookingResult =
   | { ok: false; error: string }
   | { ok: true; redirectTo: string; bookingId: string };
 
+const PENDING_STATUSES = ["pending", "pending_eft", "pending_eft_review"];
+// A double-click / network retry re-posts the SAME checkout within seconds. Look
+// back this far for an identical still-pending booking to resume rather than mint
+// a duplicate.
+const DUP_WINDOW_MS = 2 * 60 * 1000;
+
+type DupBooking = {
+  id: string;
+  reference: string;
+  total_amount: number | string;
+  deposit_amount: number | string | null;
+};
+
+// Creation-time idempotency: find a still-pending booking from the SAME guest for
+// the SAME property + dates created in the last two minutes — the fingerprint of a
+// double-submit. Requires a guest identity (id or email) to match on; returns null
+// when there's nothing to safely dedup against, so a genuine distinct booking is
+// never swallowed.
+async function findRecentDuplicateBooking(
+  admin: Admin,
+  bi: Record<string, unknown>,
+): Promise<DupBooking | null> {
+  const propertyId = bi.property_id as string | null | undefined;
+  const checkIn = bi.check_in as string | null | undefined;
+  const checkOut = bi.check_out as string | null | undefined;
+  const guestId = bi.guest_id as string | null | undefined;
+  const guestEmail = bi.guest_email as string | null | undefined;
+  if (!propertyId || !checkIn || !checkOut) return null;
+  if (!guestId && !guestEmail) return null; // no identity → can't dedup safely
+  const sinceIso = new Date(Date.now() - DUP_WINDOW_MS).toISOString();
+  let q = admin
+    .from("bookings")
+    .select("id, reference, total_amount, deposit_amount")
+    .eq("property_id", propertyId)
+    .eq("check_in", checkIn)
+    .eq("check_out", checkOut)
+    .in("status", PENDING_STATUSES)
+    .is("deleted_at", null)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  q = guestId
+    ? q.eq("guest_id", guestId)
+    : q.eq("guest_email", guestEmail as string);
+  const { data } = await q.maybeSingle();
+  return (data as DupBooking | null) ?? null;
+}
+
 export async function persistBookingAndPay(
   input: PersistBookingInput,
 ): Promise<PersistBookingResult> {
@@ -131,6 +179,42 @@ export async function persistBookingAndPay(
         error: "This property isn’t taking direct bookings — request a quote.",
       };
     }
+  }
+
+  // 0c. Creation-time idempotency (double-click / network retry). A rapid re-post
+  // of the same checkout would otherwise mint a SECOND pending booking — a harmless
+  // orphan the expire cron later clears, but still noise + a duplicate pending
+  // payment. If an identical still-pending booking from the same guest for the same
+  // property + dates exists in the last two minutes, RESUME payment on it instead of
+  // creating a duplicate. startBookingPayment clears + replaces the booking's pending
+  // payment row, so this resume is itself idempotent: one booking, one pending
+  // payment. (Best-effort — a retry that races the first insert before it commits
+  // still slips through and is cleaned by the expire cron, as today.)
+  const dup = await findRecentDuplicateBooking(admin, input.bookingInsert);
+  if (dup) {
+    const dupReturnTo =
+      typeof input.payment.returnTo === "function"
+        ? input.payment.returnTo(dup.id)
+        : input.payment.returnTo;
+    const dupPay = await startBookingPayment({
+      booking: {
+        ...input.payable,
+        id: dup.id,
+        reference: dup.reference,
+        total_amount: Number(dup.total_amount),
+        deposit_amount:
+          dup.deposit_amount != null
+            ? Number(dup.deposit_amount)
+            : input.payable.deposit_amount,
+      },
+      method: input.payment.method,
+      amount: input.payment.amount ?? "full",
+      email: input.payment.email,
+      origin: input.payment.origin,
+      returnTo: dupReturnTo,
+    });
+    if (!dupPay.ok) return { ok: false, error: dupPay.error };
+    return { ok: true, redirectTo: dupPay.redirectTo, bookingId: dup.id };
   }
 
   // 1. Insert the booking row. Read back the total/deposit AFTER insert — the
