@@ -9,6 +9,7 @@ import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PortalSidebar } from "./_components/PortalSidebar";
+import { PortalMobileNav } from "./_components/PortalMobileNav";
 
 export default async function PortalLayout({
   children,
@@ -152,6 +153,7 @@ export default async function PortalLayout({
           unreadNotifications={unreadNotifications ?? 0}
         />
       }
+      bottomNav={<PortalMobileNav />}
       banner={
         !(profile as { email_verified_at?: string | null } | null)
           ?.email_verified_at ? (
