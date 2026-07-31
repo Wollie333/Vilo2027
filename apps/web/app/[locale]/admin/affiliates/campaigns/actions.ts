@@ -101,6 +101,117 @@ export const createCampaignAction = withAdminAudit<
   },
 );
 
+/**
+ * Duplicate a product into a HIDDEN, competition-specific product with its own
+ * price/rules, ready to assign to a campaign's host_trial. A FULL clone: it
+ * carries the columns the product editor cannot set (plan_key, per_listing_amount,
+ * founding_*, account_kind, billing_cycle) AND the product_features — so the copy
+ * grants exactly the source's feature tier. The public source is left untouched;
+ * the competition product renews at its own base price (no dependence on the
+ * global founding-offers flag). Base price is the competition price.
+ */
+export const duplicateProductForCompetitionAction = withAdminAudit<
+  {
+    sourceProductId: string;
+    name: string;
+    price: number;
+    annualPrice: number | null;
+    reason?: string;
+  },
+  ActionResult<{ id: string; name: string; slug: string }>
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.competition_product_duplicate",
+    targetType: "product",
+    getTargetId: (a) => a.sourceProductId,
+  },
+  async (args, service) => {
+    const name = args.name.trim();
+    if (name.length < 2) {
+      return { result: { ok: false, error: "Give the product a name." } };
+    }
+    if (!Number.isFinite(args.price) || args.price < 0) {
+      return { result: { ok: false, error: "Enter a valid monthly price." } };
+    }
+
+    const { data: src } = await service
+      .from("products")
+      .select("*")
+      .eq("id", args.sourceProductId)
+      .maybeSingle();
+    if (!src) {
+      return { result: { ok: false, error: "Source product not found." } };
+    }
+
+    // Unique slug (idx_products_slug). Derive from the name; suffix on a clash.
+    const base =
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 56) || "product";
+    let slug = base;
+    const { data: clash } = await service
+      .from("products")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (clash) slug = `${base}-${args.sourceProductId.slice(0, 4)}`;
+
+    // Full clone MINUS the identity / generated / timestamp columns, then
+    // override name, slug, prices and visibility. `type` is GENERATED from
+    // product_type — never write it.
+    const row: Record<string, unknown> = { ...src };
+    delete row.id;
+    delete row.type;
+    delete row.created_at;
+    delete row.updated_at;
+    row.name = name;
+    row.slug = slug;
+    row.price = args.price;
+    row.annual_price = args.annualPrice;
+    row.is_visible = false; // hidden from the public catalog
+    row.is_active = true;
+    row.trial_days = 0; // the trial is campaign-driven, not product-level
+
+    const { data: inserted, error: insErr } = await service
+      .from("products")
+      .insert(row as never)
+      .select("id")
+      .single();
+    if (insErr || !inserted) {
+      return {
+        result: { ok: false, error: insErr?.message ?? "Could not duplicate." },
+      };
+    }
+
+    // Carry the feature rows — check_feature_permission resolves the tier from
+    // product_features (joined on the sub's product_id), so without these the
+    // clone would grant nothing during the trial.
+    const { data: feats } = await service
+      .from("product_features")
+      .select("feature_key, is_enabled, limit_value")
+      .eq("product_id", args.sourceProductId);
+    if (feats && feats.length) {
+      await service.from("product_features").insert(
+        feats.map((f) => ({
+          product_id: inserted.id,
+          feature_key: f.feature_key,
+          is_enabled: f.is_enabled,
+          limit_value: f.limit_value,
+        })) as never,
+      );
+    }
+
+    revalidatePath("/admin/products");
+    return {
+      result: { ok: true, data: { id: inserted.id, name, slug } },
+      after: { id: inserted.id, name, slug, source: args.sourceProductId },
+    };
+  },
+);
+
 /** Save the whole campaign config. Validated server-side by the shared schema. */
 export const updateCampaignAction = withAdminAudit<
   { campaignId: string; input: CampaignInput; reason?: string },

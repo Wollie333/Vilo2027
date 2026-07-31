@@ -6,6 +6,10 @@ import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { TwoFactorNudge } from "@/components/auth/TwoFactorNudge";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
+import {
+  getHostTrialWidget,
+  type HostTrialWidget,
+} from "@/lib/affiliate/hostTrialWidget";
 import { getCreditBalance, getCreditLedger } from "@/lib/credits/wallet";
 import { resolveAccountScope } from "@/lib/host/accountScope";
 import { hostHasFeature } from "@/lib/products/featureGate";
@@ -21,6 +25,7 @@ import { NotificationBell } from "./_components/notifications/NotificationBell";
 import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { SavingsBadge } from "./_components/SavingsBadge";
 import { Sidebar } from "./_components/Sidebar";
+import { TrialBadge } from "./_components/TrialBadge";
 import { DashboardTour } from "./_components/tour/DashboardTour";
 
 // Full-bleed routes (Inbox) come from the shared rule in
@@ -123,6 +128,9 @@ export default async function DashboardLayout({
   // Wielo Credits — host quote-credit balance + recent ledger for the header pill.
   let creditBalance = 0;
   let creditLedger: CreditLedgerRow[] = [];
+  // Competition free-trial widget — non-null only for competition-referred hosts
+  // currently on a trial (drives the header chip left of the savings badge).
+  let trialWidget: HostTrialWidget | null = null;
 
   if (host) {
     const [
@@ -158,6 +166,8 @@ export default async function DashboardLayout({
       (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
     canWebsite = websiteEnabled;
     canLookingFor = lookingForEnabled;
+
+    trialWidget = await getHostTrialWidget(user.id, host.id);
 
     creditBalance = await getCreditBalance(supabase, host.id, "quote");
     creditLedger = (
@@ -199,6 +209,7 @@ export default async function DashboardLayout({
             search={<EntitySearch />}
             actions={
               <>
+                {trialWidget ? <TrialBadge trial={trialWidget} /> : null}
                 <SavingsBadge />
                 {host ? (
                   <CreditPill balance={creditBalance} ledger={creditLedger} />

@@ -120,7 +120,7 @@ export async function bindAffiliateReferral(
       .select("cookie_days, self_referral_blocked")
       .eq("id", true)
       .maybeSingle();
-    const cookieDays = settings?.cookie_days ?? 30;
+    const cookieDays = settings?.cookie_days ?? 90;
     const selfBlocked = settings?.self_referral_blocked ?? true;
 
     // A cookie past its window no longer attributes — but a typed code still can.

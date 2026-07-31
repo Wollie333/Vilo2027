@@ -178,6 +178,13 @@ export const prizeSchema = z.object({
   monthly_top_net_change: z.number().min(0).max(1_000_000).optional(),
 });
 
+/** The host free-trial offer a competition grants (see Competition.host_trial). */
+export const hostTrialSchema = z.object({
+  product_id: z.string().uuid().nullable(),
+  cohort_end: z.string().trim().max(40).nullable(),
+  floor_days: z.number().int().min(0).max(365).nullable(),
+});
+
 export const competitionSchema = z.object({
   // Explicit key schema: single-arg z.record() reads the argument as the KEY
   // type here, which typed `events` as Record<number, unknown>.
@@ -188,6 +195,7 @@ export const competitionSchema = z.object({
   tie_breaker: z.enum(TIE_BREAKER_KEYS).optional(),
   leaderboard_visibility: z.enum(LEADERBOARD_VISIBILITY).optional(),
   prizes: z.array(prizeSchema).max(30).optional(),
+  host_trial: hostTrialSchema.nullable().optional(),
 });
 
 export const campaignInputSchema = z
