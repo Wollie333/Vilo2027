@@ -54,6 +54,9 @@ export type HelpArticleRow = {
   not_helpful_count: number;
   saved_count: number;
   has_video: boolean;
+  seo_title: string | null;
+  meta_description: string | null;
+  og_image_url: string | null;
   published_at: string | null;
   author_id: string | null;
   last_editor_id: string | null;

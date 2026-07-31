@@ -29,10 +29,27 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const article = await fetchHelpArticleBySlug(params.slug);
   if (!article) return { title: "Article not found" };
+  const metaTitle = article.seo_title?.trim() || article.title;
+  const metaDesc =
+    article.meta_description?.trim() || article.excerpt || undefined;
+  const ogImage = article.og_image_url?.trim() || undefined;
   return {
-    title: `${article.title}`,
-    description: article.excerpt || undefined,
+    title: metaTitle,
+    description: metaDesc,
     alternates: { canonical: `/help/${article.slug}` },
+    openGraph: {
+      title: metaTitle,
+      description: metaDesc,
+      type: "article",
+      url: `/help/${article.slug}`,
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title: metaTitle,
+      description: metaDesc,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   };
 }
 
@@ -85,6 +102,14 @@ export default async function PublicHelpArticlePage({
 
         <article className="mt-4 grid gap-8 lg:grid-cols-[1fr_280px]">
           <div className="min-w-0">
+            {article.og_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={article.og_image_url}
+                alt=""
+                className="mb-5 aspect-[1200/630] w-full rounded-card border border-brand-line object-cover"
+              />
+            ) : null}
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
               {category ? (
                 <Link

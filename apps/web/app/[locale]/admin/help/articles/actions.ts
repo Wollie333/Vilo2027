@@ -22,6 +22,9 @@ const createSchema = z.object({
   readTimeMinutes: z.number().int().min(1).max(60).default(4),
   featuredRank: z.number().int().min(1).max(100).nullable().default(null),
   hasVideo: z.boolean().default(false),
+  seoTitle: z.string().max(70).default(""),
+  metaDescription: z.string().max(200).default(""),
+  ogImageUrl: z.string().url().max(2048).or(z.literal("")).default(""),
   reason: z.string().optional(),
 });
 
@@ -79,6 +82,9 @@ export const createHelpArticleAction = withAdminAudit<
         featured_rank: args.featuredRank,
         read_time_minutes: args.readTimeMinutes,
         has_video: args.hasVideo,
+        seo_title: args.seoTitle || null,
+        meta_description: args.metaDescription || null,
+        og_image_url: args.ogImageUrl || null,
         published_at: publishedAt,
       })
       .select("id, slug")
@@ -136,6 +142,9 @@ export const updateHelpArticleAction = withAdminAudit<
         featured_rank: args.featuredRank,
         read_time_minutes: args.readTimeMinutes,
         has_video: args.hasVideo,
+        seo_title: args.seoTitle || null,
+        meta_description: args.metaDescription || null,
+        og_image_url: args.ogImageUrl || null,
         published_at: publishedAt,
       })
       .eq("id", args.id)

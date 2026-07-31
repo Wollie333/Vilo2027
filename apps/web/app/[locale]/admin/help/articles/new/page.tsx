@@ -37,6 +37,9 @@ export default async function NewHelpArticlePage() {
         featuredRank: null,
         readTimeMinutes: 4,
         hasVideo: false,
+        seoTitle: "",
+        metaDescription: "",
+        ogImageUrl: "",
         isDeleted: false,
       }}
       categories={

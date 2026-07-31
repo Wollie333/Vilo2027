@@ -28,6 +28,33 @@ retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Refe
 - Verified against live code/DB first: all plan integration points exist (identity, affiliate
   cookie/ledger, email queue, review-request cron pattern, admin RBAC, `@dnd-kit`, Turnstile).
 
+## 2026-07-31 — Enrich the Help article editor: shared WYSIWYG, live URL, SEO box.
+
+Reworked `/admin/help/articles/new` + `/[id]` so writing and publishing help articles is a first-class
+experience, and made each article a proper Wielo SEO source (help articles already double as the public
+blog/SEO surface — see `20260618000200_help_website_seo.sql`).
+
+- **Shared WYSIWYG** (`ArticleEditor.tsx`): swapped the bespoke `HelpTiptap` for the platform-wide
+  `@/components/editor/RichTextEditor` (the same editor used by the website blog + listing descriptions),
+  so the help editor matches the rest of the app. Body-image insertion is wired via a URL prompt
+  (`onPickFromLibrary`) since the help centre has no media library. Deleted the now-unused `HelpTiptap.tsx`.
+- **Redesigned editor**: sticky action bar with a live status badge and an "Unsaved changes / All changes
+  saved" indicator (snapshot-based dirty tracking); a prefixed `/help/` slug field; excerpt char counter;
+  a word-count → reading-time suggestion that one-click fills the read-time field.
+- **Live URL after publish**: once an article is actually published, a "Live URL" banner shows the full
+  `SITE_URL/help/<slug>` with copy-to-clipboard + open-in-new-tab, and the header gains a "View live"
+  button. The banner reads the *persisted* slug the server returns (which may be de-duplicated), never an
+  unsaved edit.
+- **SEO box** (modelled on the website blog editor): controls **slug, SEO title, meta description and
+  featured/share image**, with a live Google-result preview and a 1200×630 social-share card. Char meters
+  flag over-length titles/descriptions. Blank fields fall back to the article title / excerpt.
+- **Migration** `20260731190000_help_article_seo.sql`: adds `seo_title`, `meta_description`, `og_image_url`
+  to `help_articles` (all nullable, additive). Wired into the create/update Server Actions + the public
+  `/help/[slug]` render — `generateMetadata` now emits title/description/OpenGraph/Twitter from these
+  fields, and the featured image renders as the article hero.
+- `tsc --noEmit` clean, `pnpm lint` clean. **Migration must be applied** (`supabase db push --linked`, then
+  regenerate types) before the editor's SEO save will persist.
+
 ## 2026-07-31 — Founding Race partner cap REMOVED (uncapped).
 
 Founder decision: the Founding Programme no longer caps partners at 25. Scarcity moves from a

@@ -20,7 +20,7 @@ export default async function EditHelpArticlePage({
     service
       .from("help_articles")
       .select(
-        "id, slug, title, excerpt, body_html, body_json, category_id, audience, status, featured_rank, read_time_minutes, has_video, deleted_at",
+        "id, slug, title, excerpt, body_html, body_json, category_id, audience, status, featured_rank, read_time_minutes, has_video, seo_title, meta_description, og_image_url, deleted_at",
       )
       .eq("id", params.id)
       .maybeSingle(),
@@ -45,6 +45,9 @@ export default async function EditHelpArticlePage({
     featured_rank: number | null;
     read_time_minutes: number;
     has_video: boolean;
+    seo_title: string | null;
+    meta_description: string | null;
+    og_image_url: string | null;
     deleted_at: string | null;
   };
 
@@ -64,6 +67,9 @@ export default async function EditHelpArticlePage({
         featuredRank: a.featured_rank,
         readTimeMinutes: a.read_time_minutes,
         hasVideo: a.has_video,
+        seoTitle: a.seo_title ?? "",
+        metaDescription: a.meta_description ?? "",
+        ogImageUrl: a.og_image_url ?? "",
         isDeleted: Boolean(a.deleted_at),
       }}
       categories={
