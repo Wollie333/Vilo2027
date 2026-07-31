@@ -211,8 +211,10 @@ function exportCsv(rows: PaymentRow[]) {
   URL.revokeObjectURL(url);
 }
 
-const GRID =
-  "grid grid-cols-[minmax(0,2.3fr)_minmax(0,1.5fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] items-center gap-3";
+// Desktop-only table grid (hidden lg:grid); below lg each row is a stacked card.
+const GRID_COLS =
+  "grid-cols-[minmax(0,2.3fr)_minmax(0,1.5fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] items-center gap-3";
+const GRID = `hidden lg:grid ${GRID_COLS}`;
 
 // ── Main board ──────────────────────────────────────────────────────
 export function PaymentsBoard({
@@ -529,80 +531,135 @@ function PaymentRowItem({
   return (
     <li
       onClick={onOpen}
-      className={`bk-row ${GRID} cursor-pointer px-4 py-3.5 transition-colors hover:bg-brand-accent/30 ${isNegative ? "opacity-75" : ""}`}
+      className={`bk-row cursor-pointer px-4 py-3.5 transition-colors hover:bg-brand-accent/30 ${isNegative ? "opacity-75" : ""}`}
     >
-      {/* Guest + listing */}
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar name={row.guestName} src={row.guestAvatar} />
+      {/* ── Desktop table row (lg+) ── */}
+      <div className={GRID}>
+        {/* Guest + listing */}
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={row.guestName} src={row.guestAvatar} />
+          <div className="min-w-0">
+            <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+              {row.guestName}
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+              {row.listingThumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={row.listingThumb}
+                  alt=""
+                  className="h-4 w-4 shrink-0 rounded-sm object-cover"
+                />
+              ) : (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-brand-accent text-brand-secondary">
+                  <Home className="h-2.5 w-2.5" />
+                </span>
+              )}
+              <span className="truncate">{row.listingName}</span>
+              <span className="text-brand-line">·</span>
+              <span className="font-mono text-[10px]">{row.bookingRef}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Method */}
+        <div>
+          <div className="flex items-center gap-1.5 text-[12.5px]">
+            <span
+              className="flex h-3.5 w-3.5 items-center justify-center rounded-sm text-[8px] font-extrabold text-white"
+              style={{ background: method.color }}
+            >
+              {method.mark}
+            </span>
+            <span className="truncate font-semibold text-brand-ink">
+              {method.label}
+            </span>
+          </div>
+          <div className="mt-0.5 text-[11px] text-brand-mute">{when}</div>
+        </div>
+
+        {/* Provider ref */}
         <div className="min-w-0">
-          <div className="truncate text-[13.5px] font-semibold text-brand-ink">
-            {row.guestName}
-          </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-mute">
-            {row.listingThumb ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={row.listingThumb}
-                alt=""
-                className="h-4 w-4 shrink-0 rounded-sm object-cover"
-              />
-            ) : (
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-brand-accent text-brand-secondary">
-                <Home className="h-2.5 w-2.5" />
-              </span>
-            )}
-            <span className="truncate">{row.listingName}</span>
-            <span className="text-brand-line">·</span>
-            <span className="font-mono text-[10px]">{row.bookingRef}</span>
-          </div>
+          <span className="block truncate font-mono text-[11px] text-brand-mute">
+            {row.providerRef ?? "—"}
+          </span>
         </div>
-      </div>
 
-      {/* Method */}
-      <div>
-        <div className="flex items-center gap-1.5 text-[12.5px]">
-          <span
-            className="flex h-3.5 w-3.5 items-center justify-center rounded-sm text-[8px] font-extrabold text-white"
-            style={{ background: method.color }}
+        {/* Amount */}
+        <div className="text-right">
+          <div
+            className={`num font-display text-[14px] font-bold ${isNegative ? "text-brand-mute line-through" : "text-brand-ink"}`}
           >
-            {method.mark}
-          </span>
-          <span className="truncate font-semibold text-brand-ink">
-            {method.label}
-          </span>
+            {formatMoney(row.amount, row.currency)}
+          </div>
         </div>
-        <div className="mt-0.5 text-[11px] text-brand-mute">{when}</div>
-      </div>
 
-      {/* Provider ref */}
-      <div className="min-w-0">
-        <span className="block truncate font-mono text-[11px] text-brand-mute">
-          {row.providerRef ?? "—"}
-        </span>
-      </div>
+        {/* Status */}
+        <div>
+          <StatusChip status={row.status} />
+        </div>
 
-      {/* Amount */}
-      <div className="text-right">
-        <div
-          className={`num font-display text-[14px] font-bold ${isNegative ? "text-brand-mute line-through" : "text-brand-ink"}`}
-        >
-          {formatMoney(row.amount, row.currency)}
+        {/* Action */}
+        <div className="text-right">
+          <span
+            className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute"
+            aria-hidden
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </span>
         </div>
       </div>
 
-      {/* Status */}
-      <div>
-        <StatusChip status={row.status} />
-      </div>
-
-      {/* Action */}
-      <div className="text-right">
-        <span
-          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute"
-          aria-hidden
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </span>
+      {/* ── Mobile card (below lg) ── */}
+      <div className="lg:hidden">
+        <div className="flex items-start gap-3">
+          <Avatar name={row.guestName} src={row.guestAvatar} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14px] font-semibold text-brand-ink">
+              {row.guestName}
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+              <span className="truncate">{row.listingName}</span>
+              <span className="text-brand-line">·</span>
+              <span className="font-mono text-[10px]">{row.bookingRef}</span>
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div
+              className={`num font-display text-[14px] font-bold ${isNegative ? "text-brand-mute line-through" : "text-brand-ink"}`}
+            >
+              {formatMoney(row.amount, row.currency)}
+            </div>
+            <div className="mt-1 flex justify-end">
+              <StatusChip status={row.status} />
+            </div>
+          </div>
+        </div>
+        <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 pl-[46px]">
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+              Method
+            </div>
+            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-ink">
+              <span
+                className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm text-[8px] font-extrabold text-white"
+                style={{ background: method.color }}
+              >
+                {method.mark}
+              </span>
+              <span className="truncate">{method.label}</span>
+            </div>
+            <div className="mt-0.5 text-[11px] text-brand-mute">{when}</div>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+              Provider ref
+            </div>
+            <div className="truncate font-mono text-[11px] text-brand-ink">
+              {row.providerRef ?? "—"}
+            </div>
+          </div>
+        </div>
       </div>
     </li>
   );

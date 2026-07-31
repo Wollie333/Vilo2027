@@ -656,7 +656,7 @@ export function GuestsBoard({
             </div>
           ) : (
             <div
-              className={`grid ${GRID} items-center gap-3 px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]`}
+              className={`hidden lg:grid ${GRID} items-center gap-3 px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]`}
             >
               <div>
                 <input
@@ -916,7 +916,7 @@ function GuestRowItem({
   return (
     <div
       onClick={() => router.push(`/dashboard/guests/${g.gkey}`)}
-      className={`group relative grid ${GRID} cursor-pointer items-center gap-3 border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
+      className={`group relative cursor-pointer border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
         compact ? "py-2" : "py-3"
       } ${g.is_blocked ? "bg-red-50/30" : ""} ${selected ? "bg-brand-light/50" : ""}`}
     >
@@ -928,167 +928,261 @@ function GuestRowItem({
         }`}
       />
 
-      {/* select */}
-      <div>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggle}
-          onClick={(e) => e.stopPropagation()}
-          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-        />
-      </div>
-
-      {/* guest identity */}
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative shrink-0">
-          {g.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={g.avatar_url}
-              alt=""
-              className={`rounded-pill object-cover ring-2 ring-white ${compact ? "h-8 w-8" : "h-10 w-10"}`}
-            />
-          ) : (
-            <div
-              className={`flex items-center justify-center rounded-pill font-display font-bold ${avatarClass(g.gkey)} ${compact ? "h-8 w-8 text-[11px]" : "h-10 w-10 text-[13px]"}`}
-            >
-              {initials(g.name)}
-            </div>
-          )}
-          {g.is_inhouse ? (
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
-          ) : null}
+      {/* ── Desktop table row (lg+) ── */}
+      <div className={`hidden lg:grid ${GRID} items-center gap-3`}>
+        {/* select */}
+        <div>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold text-brand-ink">
-              {g.name ?? "Guest"}
-            </span>
-            {acceptedQuote ? (
-              <span onClick={(e) => e.stopPropagation()}>
-                <AcceptedQuotePill
-                  quoteId={acceptedQuote.id}
-                  guestFirstName={(g.name ?? "Guest").split(/\s+/)[0]}
-                  amount={acceptedQuote.amount}
-                  currency={acceptedQuote.currency}
-                  size="xs"
-                />
+
+        {/* guest identity */}
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative shrink-0">
+            {g.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={g.avatar_url}
+                alt=""
+                className={`rounded-pill object-cover ring-2 ring-white ${compact ? "h-8 w-8" : "h-10 w-10"}`}
+              />
+            ) : (
+              <div
+                className={`flex items-center justify-center rounded-pill font-display font-bold ${avatarClass(g.gkey)} ${compact ? "h-8 w-8 text-[11px]" : "h-10 w-10 text-[13px]"}`}
+              >
+                {initials(g.name)}
+              </div>
+            )}
+            {g.is_inhouse ? (
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[14px] font-semibold text-brand-ink">
+                {g.name ?? "Guest"}
               </span>
+              {acceptedQuote ? (
+                <span onClick={(e) => e.stopPropagation()}>
+                  <AcceptedQuotePill
+                    quoteId={acceptedQuote.id}
+                    guestFirstName={(g.name ?? "Guest").split(/\s+/)[0]}
+                    amount={acceptedQuote.amount}
+                    currency={acceptedQuote.currency}
+                    size="xs"
+                  />
+                </span>
+              ) : null}
+              {g.is_verified ? (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+              ) : null}
+              {g.is_blocked ? (
+                <span className="rounded-pill bg-red-100 px-1.5 py-px text-[10px] font-bold text-red-600">
+                  Blocked
+                </span>
+              ) : null}
+            </div>
+            {!compact ? (
+              <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-brand-mute">
+                {g.is_ota && g.channel ? (
+                  <>
+                    <span className="capitalize">{g.channel}</span>
+                    <span className="text-brand-line">·</span>
+                  </>
+                ) : null}
+                <span className="truncate">{g.email ?? "No email"}</span>
+                {!g.has_email ? (
+                  <span className="rounded bg-amber-50 px-1 text-[10px] font-semibold text-amber-600">
+                    no email
+                  </span>
+                ) : null}
+                {!g.has_phone ? (
+                  <span className="rounded bg-amber-50 px-1 text-[10px] font-semibold text-amber-600">
+                    no phone
+                  </span>
+                ) : null}
+                {g.is_all_direct && g.total_stays > 0 ? (
+                  <span className="rounded bg-brand-light px-1 text-[10px] font-semibold text-brand-primary">
+                    All direct
+                  </span>
+                ) : null}
+              </div>
             ) : null}
-            {g.is_verified ? (
-              <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
-            ) : null}
-            {g.is_blocked ? (
-              <span className="rounded-pill bg-red-100 px-1.5 py-px text-[10px] font-bold text-red-600">
-                Blocked
-              </span>
-            ) : null}
+          </div>
+        </div>
+
+        {/* segment */}
+        <div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${seg.cls}`}
+          >
+            {seg.label}
+          </span>
+        </div>
+
+        {/* stays */}
+        <div className="text-center">
+          <div className="text-[14px] font-bold tabular-nums text-brand-ink">
+            {g.total_stays}
           </div>
           {!compact ? (
-            <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11.5px] text-brand-mute">
-              {g.is_ota && g.channel ? (
-                <>
-                  <span className="capitalize">{g.channel}</span>
-                  <span className="text-brand-line">·</span>
-                </>
-              ) : null}
-              <span className="truncate">{g.email ?? "No email"}</span>
-              {!g.has_email ? (
-                <span className="rounded bg-amber-50 px-1 text-[10px] font-semibold text-amber-600">
-                  no email
-                </span>
-              ) : null}
-              {!g.has_phone ? (
-                <span className="rounded bg-amber-50 px-1 text-[10px] font-semibold text-amber-600">
-                  no phone
-                </span>
-              ) : null}
-              {g.is_all_direct && g.total_stays > 0 ? (
-                <span className="rounded bg-brand-light px-1 text-[10px] font-semibold text-brand-primary">
-                  All direct
-                </span>
-              ) : null}
+            <div className="text-[10.5px] text-brand-mute">
+              {g.total_nights} nts
             </div>
           ) : null}
         </div>
-      </div>
 
-      {/* segment */}
-      <div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${seg.cls}`}
-        >
-          {seg.label}
-        </span>
-      </div>
-
-      {/* stays */}
-      <div className="text-center">
-        <div className="text-[14px] font-bold tabular-nums text-brand-ink">
-          {g.total_stays}
-        </div>
-        {!compact ? (
-          <div className="text-[10.5px] text-brand-mute">
-            {g.total_nights} nts
+        {/* lifetime */}
+        <div>
+          <div className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
+            {formatMoney(g.lifetime_value, g.currency)}
           </div>
-        ) : null}
-      </div>
-
-      {/* lifetime */}
-      <div>
-        <div className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
-          {formatMoney(g.lifetime_value, g.currency)}
+          {!compact ? (
+            <div className="mt-0.5 text-[10.5px] text-brand-mute">lifetime</div>
+          ) : null}
         </div>
-        {!compact ? (
-          <div className="mt-0.5 text-[10.5px] text-brand-mute">lifetime</div>
-        ) : null}
-      </div>
 
-      {/* rating */}
-      <div className="text-center">
-        {g.avg_rating ? (
-          <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold tabular-nums text-brand-ink">
-            {g.avg_rating}
-            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-          </span>
-        ) : (
-          <span className="text-[11.5px] text-brand-mute">—</span>
-        )}
-      </div>
+        {/* rating */}
+        <div className="text-center">
+          {g.avg_rating ? (
+            <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold tabular-nums text-brand-ink">
+              {g.avg_rating}
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            </span>
+          ) : (
+            <span className="text-[11.5px] text-brand-mute">—</span>
+          )}
+        </div>
 
-      {/* last / next stay */}
-      <div className="min-w-0">
-        <StayCell g={g} cancelled={cancelled} compact={compact} />
-      </div>
+        {/* last / next stay */}
+        <div className="min-w-0">
+          <StayCell g={g} cancelled={cancelled} compact={compact} />
+        </div>
 
-      {/* quick actions */}
-      <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        {g.email ? (
-          <button
-            title="Copy email"
-            onClick={(e) => copy(e, g.email!)}
+        {/* quick actions */}
+        <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          {g.email ? (
+            <button
+              title="Copy email"
+              onClick={(e) => copy(e, g.email!)}
+              className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+            >
+              <Copy className="h-[15px] w-[15px]" />
+            </button>
+          ) : null}
+          <Link
+            href="/dashboard/inbox"
+            title="Message"
+            onClick={(e) => e.stopPropagation()}
             className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
           >
-            <Copy className="h-[15px] w-[15px]" />
-          </button>
-        ) : null}
-        <Link
-          href="/dashboard/inbox"
-          title="Message"
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-        >
-          <Mail className="h-[15px] w-[15px]" />
-        </Link>
-        <Link
-          href={`/dashboard/guests/${g.gkey}`}
-          title="Open profile"
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-        >
-          <ArrowRight className="h-[15px] w-[15px]" />
-        </Link>
+            <Mail className="h-[15px] w-[15px]" />
+          </Link>
+          <Link
+            href={`/dashboard/guests/${g.gkey}`}
+            title="Open profile"
+            onClick={(e) => e.stopPropagation()}
+            className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+          >
+            <ArrowRight className="h-[15px] w-[15px]" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Mobile card (below lg) ── */}
+      <div className="lg:hidden">
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
+          <div className="relative shrink-0">
+            {g.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={g.avatar_url}
+                alt=""
+                className="h-9 w-9 rounded-pill object-cover ring-2 ring-white"
+              />
+            ) : (
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-pill font-display text-[12px] font-bold ${avatarClass(g.gkey)}`}
+              >
+                {initials(g.name)}
+              </div>
+            )}
+            {g.is_inhouse ? (
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
+            ) : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[14px] font-semibold text-brand-ink">
+                {g.name ?? "Guest"}
+              </span>
+              {g.is_verified ? (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+              ) : null}
+              {g.is_blocked ? (
+                <span className="shrink-0 rounded-pill bg-red-100 px-1.5 py-px text-[10px] font-bold text-red-600">
+                  Blocked
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+              {g.email ?? "No email"}
+            </div>
+          </div>
+          <span
+            className={`inline-flex shrink-0 items-center rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${seg.cls}`}
+          >
+            {seg.label}
+          </span>
+        </div>
+        <div className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2 pl-[46px]">
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Stays
+            </div>
+            <div className="text-[13px] font-bold tabular-nums text-brand-ink">
+              {g.total_stays}
+              <span className="ml-1 text-[10.5px] font-normal text-brand-mute">
+                {g.total_nights} nts
+              </span>
+            </div>
+          </div>
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Lifetime
+            </div>
+            <div className="font-display text-[13px] font-bold tabular-nums text-brand-ink">
+              {formatMoney(g.lifetime_value, g.currency)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Rating
+            </div>
+            <div className="text-[13px] font-semibold tabular-nums text-brand-ink">
+              {g.avg_rating ? (
+                <span className="inline-flex items-center gap-1">
+                  {g.avg_rating}
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                </span>
+              ) : (
+                <span className="text-brand-mute">—</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
