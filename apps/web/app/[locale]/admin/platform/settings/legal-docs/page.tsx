@@ -1,30 +1,52 @@
-import { listLegalDocuments } from "@/lib/legalDocuments";
+import {
+  LEGAL_PLACEMENT_SLOTS,
+  listLegalDocuments,
+  listPlacements,
+} from "@/lib/legalDocuments";
 
 import { LegalDocumentsManager } from "../LegalDocumentsManager";
+import { PlacementsPanel } from "../PlacementsPanel";
 
 export const dynamic = "force-dynamic";
 
-// Documents tab — generic, slug-addressable legal documents (WS-6a). Distinct from
-// the platform booking-terms/privacy on the Legal tab. Your attorney pastes final
-// copy here and it takes effect live at /legal/<slug>, version-retained.
+// Documents tab — the single source of truth for legal copy. Every document is
+// slug-addressable at /legal/<slug>; the Placements panel binds each app slot
+// (Terms, Privacy, Cookies, Affiliate terms, …) to the document that fills it,
+// so publishing once updates every surface. Your attorney pastes final copy and
+// assigns it here — no deploy.
 export default async function AdminLegalDocumentsPage() {
-  const docs = await listLegalDocuments();
+  const [docs, placements] = await Promise.all([
+    listLegalDocuments(),
+    listPlacements(),
+  ]);
 
   return (
-    <section>
-      <h2 className="font-display text-base font-bold text-brand-ink">
-        Legal documents
-      </h2>
-      <p className="mb-3 mt-1 text-sm text-brand-mute">
-        Slug-addressable legal pages published at{" "}
-        <code className="rounded bg-brand-light px-1 py-0.5 text-[12px]">
-          /legal/&lt;slug&gt;
-        </code>{" "}
-        — competition rules, Founding Host terms, review disclosure, POPIA
-        notices. Paste final copy from your attorney; each publish retains a
-        version. (Booking terms &amp; privacy live on the <strong>Legal</strong>{" "}
-        tab.)
-      </p>
+    <section className="space-y-6">
+      <div>
+        <h2 className="font-display text-base font-bold text-brand-ink">
+          Legal documents
+        </h2>
+        <p className="mb-3 mt-1 text-sm text-brand-mute">
+          Slug-addressable legal pages published at{" "}
+          <code className="rounded bg-brand-light px-1 py-0.5 text-[12px]">
+            /legal/&lt;slug&gt;
+          </code>
+          . Paste final copy from your attorney; each publish retains a version.
+          Use <strong>Placements</strong> below to assign a document to Terms,
+          Privacy, Cookies, the affiliate gate, and more.
+        </p>
+      </div>
+
+      <PlacementsPanel
+        slots={LEGAL_PLACEMENT_SLOTS}
+        placements={placements}
+        docs={docs.map((d) => ({
+          slug: d.slug,
+          title: d.title,
+          isPublished: d.isPublished,
+        }))}
+      />
+
       <LegalDocumentsManager
         docs={docs.map((d) => ({
           slug: d.slug,

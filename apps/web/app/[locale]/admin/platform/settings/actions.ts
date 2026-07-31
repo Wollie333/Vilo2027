@@ -7,6 +7,10 @@ import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
 import { encryptSecret } from "@/lib/crypto/payments";
+import {
+  LEGAL_PLACEMENT_SLOTS,
+  type LegalPlacementSlot,
+} from "@/lib/legalDocuments";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 // Fixed sentinel id for the branding platform_settings (audit target_id is a
@@ -231,6 +235,66 @@ export const saveLegalDocumentAction = withAdminAudit<
     revalidatePath(`/legal/${slug}`);
 
     return { result: { ok: true, version }, after: { slug, version } };
+  },
+);
+
+// ─── Legal placements (slot → doc binding) ───────────────────────────
+const SLOT_VALUES = LEGAL_PLACEMENT_SLOTS.map((s) => s.slot) as [
+  LegalPlacementSlot,
+  ...LegalPlacementSlot[],
+];
+
+const legalPlacementSchema = z.object({
+  slot: z.enum(SLOT_VALUES),
+  // A slug of an existing legal document, or null to clear the slot.
+  doc_slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Invalid document.")
+    .nullable(),
+  reason: z.string().optional(),
+});
+
+// Bind a well-known app slot (terms/privacy/cookies/affiliate/…) to a legal
+// document, or clear it (doc_slug = null). Consumers resolve slot → doc at
+// runtime, so this takes effect live everywhere the slot is read. Admin-only +
+// audited. The slot's document must exist (FK) — the UI only offers real docs.
+export const saveLegalPlacementAction = withAdminAudit<
+  z.infer<typeof legalPlacementSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.legal_placement",
+    targetType: "platform_setting",
+    getTargetId: () => LEGAL_DOCS_SETTING_ID,
+  },
+  async (args, service) => {
+    const parsed = legalPlacementSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const { slot, doc_slug } = parsed.data;
+
+    const { error } = await service.from("legal_placements").upsert(
+      {
+        slot,
+        doc_slug: doc_slug || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "slot" },
+    );
+    if (error) throw new Error(error.message);
+
+    // Revalidate the public surfaces that resolve placements at runtime.
+    for (const p of ["/terms", "/privacy", "/cookies"]) revalidatePath(p);
+    if (doc_slug) revalidatePath(`/legal/${doc_slug}`);
+
+    return {
+      result: { ok: true },
+      after: { slot, doc_slug: doc_slug || null },
+    };
   },
 );
 
