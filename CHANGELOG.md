@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-31 — Root-caused + fixed the PROD card "error page" (quote self-hold blocks confirm).
+
+Pulled the actual error from production runtime logs (no guessing): `/[locale]/pay/[token]` →
+`"Payment captured but booking … failed to confirm: Those dates are no longer available."`
+
+- **Root cause:** `on_quote_status_change` lays down `blocked_dates` on quote `sent`
+  (`reason='quote_pending'`, `quote_id` set, `booking_id` NULL) and clears them only on
+  `declined`/`expired`/`converted`. `acceptAndConvertQuote` keeps the quote `accepted` so the
+  soft-hold persists until payment. When the guest paid, `on_booking_confirmed`'s availability
+  re-check saw that same hold (it only excluded special-holds) and raised `23P01` — **the
+  booking's own originating quote blocked its own confirmation, after the card was captured.**
+  It self-resolved only once the hold later expired (matches the live data: booking now confirmed,
+  no competing booking ever existed).
+- **Fix** (migration `20260731130000`): `on_booking_confirmed` now treats the booking's own quote
+  hold like the claimable special-hold — excluded from the re-check (both scopes) and claimed in
+  the `ON CONFLICT` upsert (`booking_id=NEW.id`, `source='booking'`, `quote_id=NULL`). A different
+  quote's hold still blocks. Fixes all rails (card/PayPal/EFT). Proven live (rolled-back):
+  own-quote hold → confirm succeeds + 2/2 rows claimed; foreign-quote hold → still blocks.
+
 ## 2026-07-31 — Money-flow hardening: restore service_role credit grants + Tier-2 payment gaps.
 
 Continued the pt94 payment audit. Found and fixed a major latent money bug, then closed the
