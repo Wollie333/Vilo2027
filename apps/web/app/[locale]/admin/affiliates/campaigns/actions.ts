@@ -742,6 +742,17 @@ export const closeCampaignNowAction = withAdminAudit<
       .eq("id", args.campaignId);
     if (error) return { result: { ok: false, error: error.message } };
 
+    // Competition close → sweep out every eligible balance regardless of the
+    // R1,000 threshold (SoT §4.2), mirroring the finalize-ended-campaigns cron.
+    // Best-effort: a sweep failure must not roll back a completed close. The
+    // sweep is idempotent (only claims cleared, unattached commission).
+    const { error: sweepErr } = await service.rpc("sweep_affiliate_payouts", {
+      p_affiliate_id: null,
+    });
+    if (sweepErr) {
+      console.error("[campaign_close] payout sweep failed", sweepErr.message);
+    }
+
     revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
     return {
       result: { ok: true },
