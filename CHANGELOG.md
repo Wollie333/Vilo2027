@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-31 — Standard host-offer email sequence (default prices).
+
+The always-on, non-competition nurture sequence inviting a free-tier host onto the default
+paid plan. Prices resolve LIVE from `getSubscriptionProducts` (the pricing/signup SoT) so they
+never drift — currently Starter R 999,00/mo · R 9 999,00/yr (saves R 1 989,00 yearly).
+
+- 3 templates (HostOfferWelcome/Nudge/Final) + registry + resolvers + sample payloads +
+  expectedRefs. Brand voice: rand, 0% commission, honest, never "free", no unbuilt features.
+  Render suite 50/50 green.
+- Stage 1 (welcome) fires inline at host signup, gated to free-tier hosts (a host who bought a
+  plan gets `subscription_welcome` instead).
+- Stages 2 (nudge, day 3) + 3 (final, day 7): `host-offer-worker` selects free-tier hosts in the
+  3–30 day window, skips upgraders, sends once ever (delivery-log gated). Proven live: 6 paid
+  skipped, 1 free-tier eligible. `drain-host-offers` pg_cron (daily 07:00 UTC, migration
+  `20260731150000`) — soft-skips until the `host_offer_worker_url` Vault secret is set.
+- Competition/founding emails unchanged; they stay competition-focused.
+
 ## 2026-07-31 — Graceful post-capture confirm + affiliate account closure.
 
 - **Graceful UX when a paid booking can't auto-confirm** (`pay-booking.ts`): a `23P01`
