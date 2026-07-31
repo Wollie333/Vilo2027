@@ -92,6 +92,19 @@ export async function startBookingPayment(opts: {
 }): Promise<StartBookingPaymentResult> {
   const { booking, method, email, origin, returnTo } = opts;
 
+  // A fully-qualified base for the provider callback/return URLs. The request
+  // Origin header is normally present, but behind some proxies it can arrive
+  // empty — which would make callback_url a RELATIVE path that the hosted
+  // Paystack/PayPal checkout rejects (the guest lands on a provider error page).
+  // Fall back to the configured app URL so the callback is always absolute.
+  const base = /^https?:\/\//.test(origin)
+    ? origin.replace(/\/$/, "")
+    : (
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        ""
+      ).replace(/\/$/, "");
+
   if (booking.payment_status === "completed") {
     return { ok: false, error: "This booking is already paid." };
   }
@@ -187,8 +200,8 @@ export async function startBookingPayment(opts: {
         amount: chargeAmount,
         currency: chargeCurrency,
         description: `${booking.listing_name} · ${booking.reference}`,
-        returnUrl: `${origin}${returnTo}`,
-        cancelUrl: `${origin}${returnTo}${sep}paypal=cancel`,
+        returnUrl: `${base}${returnTo}`,
+        cancelUrl: `${base}${returnTo}${sep}paypal=cancel`,
         creds,
       });
       if (!order) throw new Error("PayPal order creation failed.");
@@ -237,7 +250,7 @@ export async function startBookingPayment(opts: {
       amount: payNow,
       currency: booking.currency,
       email,
-      callbackUrl: `${origin}${returnTo}`,
+      callbackUrl: `${base}${returnTo}`,
       secretKey: hostPaystack.secretKey,
       statementDescriptor: hostPaystack.statementDescriptor,
       metadata: {
