@@ -300,8 +300,12 @@ const BUCKET_RANK: Record<string, number> = {
 
 const PAGE_SIZE = 20;
 
-const GRID =
-  "grid grid-cols-[34px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-3.5";
+// Desktop-only table grid. The header + each row apply this behind `hidden
+// lg:grid` so the 8 columns never crush together on a phone — below lg the row
+// renders as a stacked card (see the mobile block in the row component).
+const GRID_COLS =
+  "grid-cols-[34px_minmax(0,2.4fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-3.5";
+const GRID = `hidden lg:grid ${GRID_COLS}`;
 
 function payHintOf(r: BookingRow): string {
   switch (r.paymentStatus) {
@@ -1068,7 +1072,7 @@ function BookingRowItem({
   return (
     <div
       onClick={onOpen}
-      className={`group relative ${GRID} cursor-pointer border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
+      className={`group relative cursor-pointer border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
         compact ? "py-2.5" : "py-3.5"
       } ${isCancelled ? "opacity-60" : ""} ${active ? "bg-[#F4FBF6]" : ""}`}
     >
@@ -1080,166 +1084,264 @@ function BookingRowItem({
         }}
       />
 
-      {/* select */}
-      <div>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onToggle}
-          onClick={(e) => e.stopPropagation()}
-          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-        />
-      </div>
-
-      {/* guest + listing */}
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="relative shrink-0">
-          {row.guestAvatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={row.guestAvatar}
-              alt=""
-              className={`${av} rounded-pill object-cover ring-2 ring-white`}
-            />
-          ) : (
-            <div
-              className={`${av} flex items-center justify-center rounded-pill bg-brand-secondary font-display text-[12px] font-bold text-white`}
-            >
-              {initials(row.guestName)}
-            </div>
-          )}
-          {inHouse ? (
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
-          ) : null}
+      {/* ── Desktop table row (lg+) ── */}
+      <div className={GRID}>
+        {/* select */}
+        <div>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`truncate text-[14px] font-semibold text-brand-ink ${isCancelled ? "line-through decoration-brand-mute/40" : ""}`}
-            >
-              {row.guestName}
-            </span>
-            {row.stayIndex >= 3 ? (
-              <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+
+        {/* guest + listing */}
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative shrink-0">
+            {row.guestAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.guestAvatar}
+                alt=""
+                className={`${av} rounded-pill object-cover ring-2 ring-white`}
+              />
+            ) : (
+              <div
+                className={`${av} flex items-center justify-center rounded-pill bg-brand-secondary font-display text-[12px] font-bold text-white`}
+              >
+                {initials(row.guestName)}
+              </div>
+            )}
+            {inHouse ? (
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
             ) : null}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`truncate text-[14px] font-semibold text-brand-ink ${isCancelled ? "line-through decoration-brand-mute/40" : ""}`}
+              >
+                {row.guestName}
+              </span>
+              {row.stayIndex >= 3 ? (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+              ) : null}
+              <span
+                className={`shrink-0 rounded-pill px-1.5 py-px text-[10px] font-semibold ${row.stayIndex >= 3 ? "bg-brand-accent text-brand-secondary" : "bg-brand-light text-brand-mute"}`}
+              >
+                {row.stayIndex === 1
+                  ? "1st stay"
+                  : row.stayIndex === 2
+                    ? "2nd stay"
+                    : row.stayIndex === 3
+                      ? "3rd stay"
+                      : `${row.stayIndex}th stay`}
+              </span>
+            </div>
+            {!compact ? (
+              <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+                <span className="truncate">{row.listingName}</span>
+                <span className="text-brand-line">·</span>
+                <span className="font-mono text-[10px]">{row.reference}</span>
+              </div>
+            ) : null}
+            {row.guestEmail ? (
+              <div
+                className="mt-0.5 truncate text-[11px] text-brand-mute"
+                title={row.guestEmail}
+              >
+                {row.guestEmail}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* dates */}
+        <div>
+          <div className="text-[12.5px] font-semibold tabular-nums text-brand-ink">
+            {dc.main}
+          </div>
+          {(() => {
+            const pill = stayPill(row);
+            return pill ? (
+              <span
+                className={`mt-1 inline-flex items-center gap-1 rounded-pill px-1.5 py-0.5 text-[10px] font-semibold ${
+                  pill.tone === "out"
+                    ? "bg-status-completed/10 text-status-completed"
+                    : "bg-sky-50 text-sky-700"
+                }`}
+              >
+                {pill.tone === "out" ? (
+                  <DoorClosed className="h-3 w-3" />
+                ) : (
+                  <DoorOpen className="h-3 w-3" />
+                )}
+                {pill.label}
+              </span>
+            ) : !compact && dc.sub ? (
+              <div className="mt-0.5 text-[11px] text-brand-mute">{dc.sub}</div>
+            ) : null;
+          })()}
+        </div>
+
+        {/* channel */}
+        <div>
+          <div className="flex items-center gap-1.5 text-[12.5px]">
             <span
-              className={`shrink-0 rounded-pill px-1.5 py-px text-[10px] font-semibold ${row.stayIndex >= 3 ? "bg-brand-accent text-brand-secondary" : "bg-brand-light text-brand-mute"}`}
+              className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] font-display text-[9px] font-extrabold text-white"
+              style={{ background: ch.color }}
             >
-              {row.stayIndex === 1
-                ? "1st stay"
-                : row.stayIndex === 2
-                  ? "2nd stay"
-                  : row.stayIndex === 3
-                    ? "3rd stay"
-                    : `${row.stayIndex}th stay`}
+              {ch.mark}
             </span>
+            <span className="font-semibold text-brand-ink">{ch.name}</span>
           </div>
           {!compact ? (
-            <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-brand-mute">
-              <span className="truncate">{row.listingName}</span>
-              <span className="text-brand-line">·</span>
+            <div className="mt-0.5 text-[11px] text-brand-mute">
+              Booked {fmtDay(row.createdAt.slice(0, 10))}
+            </div>
+          ) : null}
+        </div>
+
+        {/* guests */}
+        <div className="text-[12.5px]">
+          <div className="font-semibold tabular-nums text-brand-ink">
+            {gc.main}
+          </div>
+          {!compact && gc.sub ? (
+            <div className="mt-0.5 text-[11px] text-brand-mute">{gc.sub}</div>
+          ) : null}
+        </div>
+
+        {/* amount */}
+        <div className="text-right">
+          <div className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
+            {formatMoney(row.totalAmount, row.currency)}
+          </div>
+          {!compact ? (
+            <div className="mt-0.5 text-[10.5px] text-brand-mute">
+              {payHintOf(row)}
+            </div>
+          ) : null}
+        </div>
+
+        {/* status */}
+        <div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tone.cls}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+            {tag.label}
+          </span>
+        </div>
+
+        {/* quick actions */}
+        <div className="flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100">
+          <Link
+            href={`/dashboard/bookings/${row.id}`}
+            onClick={(e) => e.stopPropagation()}
+            title="Open booking"
+            className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+          >
+            <MoreHorizontal className="h-[16px] w-[16px]" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Mobile card (below lg): the same booking as a readable stacked card
+          instead of an 8-column table crushed onto a phone. ── */}
+      <div className="lg:hidden">
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={onToggle}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
+          <div className="relative shrink-0">
+            {row.guestAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.guestAvatar}
+                alt=""
+                className="h-9 w-9 rounded-pill object-cover ring-2 ring-white"
+              />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-brand-secondary font-display text-[11px] font-bold text-white">
+                {initials(row.guestName)}
+              </div>
+            )}
+            {inHouse ? (
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse" />
+            ) : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`truncate text-[14px] font-semibold text-brand-ink ${isCancelled ? "line-through decoration-brand-mute/40" : ""}`}
+              >
+                {row.guestName}
+              </span>
+              {row.stayIndex >= 3 ? (
+                <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+              ) : null}
+            </div>
+            <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+              {row.listingName}
+              <span className="text-brand-line"> · </span>
               <span className="font-mono text-[10px]">{row.reference}</span>
             </div>
-          ) : null}
-          {row.guestEmail ? (
-            <div
-              className="mt-0.5 truncate text-[11px] text-brand-mute"
-              title={row.guestEmail}
-            >
-              {row.guestEmail}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* dates */}
-      <div>
-        <div className="text-[12.5px] font-semibold tabular-nums text-brand-ink">
-          {dc.main}
-        </div>
-        {(() => {
-          const pill = stayPill(row);
-          return pill ? (
-            <span
-              className={`mt-1 inline-flex items-center gap-1 rounded-pill px-1.5 py-0.5 text-[10px] font-semibold ${
-                pill.tone === "out"
-                  ? "bg-status-completed/10 text-status-completed"
-                  : "bg-sky-50 text-sky-700"
-              }`}
-            >
-              {pill.tone === "out" ? (
-                <DoorClosed className="h-3 w-3" />
-              ) : (
-                <DoorOpen className="h-3 w-3" />
-              )}
-              {pill.label}
-            </span>
-          ) : !compact && dc.sub ? (
-            <div className="mt-0.5 text-[11px] text-brand-mute">{dc.sub}</div>
-          ) : null;
-        })()}
-      </div>
-
-      {/* channel */}
-      <div>
-        <div className="flex items-center gap-1.5 text-[12.5px]">
+          </div>
           <span
-            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] font-display text-[9px] font-extrabold text-white"
-            style={{ background: ch.color }}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${tone.cls}`}
           >
-            {ch.mark}
+            <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+            {tag.label}
           </span>
-          <span className="font-semibold text-brand-ink">{ch.name}</span>
         </div>
-        {!compact ? (
-          <div className="mt-0.5 text-[11px] text-brand-mute">
-            Booked {fmtDay(row.createdAt.slice(0, 10))}
+
+        <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 pl-[52px]">
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Dates
+            </div>
+            <div className="text-[12.5px] font-semibold tabular-nums text-brand-ink">
+              {dc.main}
+            </div>
           </div>
-        ) : null}
-      </div>
-
-      {/* guests */}
-      <div className="text-[12.5px]">
-        <div className="font-semibold tabular-nums text-brand-ink">
-          {gc.main}
-        </div>
-        {!compact && gc.sub ? (
-          <div className="mt-0.5 text-[11px] text-brand-mute">{gc.sub}</div>
-        ) : null}
-      </div>
-
-      {/* amount */}
-      <div className="text-right">
-        <div className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
-          {formatMoney(row.totalAmount, row.currency)}
-        </div>
-        {!compact ? (
-          <div className="mt-0.5 text-[10.5px] text-brand-mute">
-            {payHintOf(row)}
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Guests
+            </div>
+            <div className="text-[12.5px] font-semibold tabular-nums text-brand-ink">
+              {gc.main}
+            </div>
           </div>
-        ) : null}
-      </div>
-
-      {/* status */}
-      <div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tone.cls}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-          {tag.label}
-        </span>
-      </div>
-
-      {/* quick actions */}
-      <div className="flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100">
-        <Link
-          href={`/dashboard/bookings/${row.id}`}
-          onClick={(e) => e.stopPropagation()}
-          title="Open booking"
-          className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-        >
-          <MoreHorizontal className="h-[16px] w-[16px]" />
-        </Link>
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Channel
+            </div>
+            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-ink">
+              <span
+                className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] font-display text-[8px] font-extrabold text-white"
+                style={{ background: ch.color }}
+              >
+                {ch.mark}
+              </span>
+              {ch.name}
+            </div>
+          </div>
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+              Amount
+            </div>
+            <div className="font-display text-[13.5px] font-bold tabular-nums text-brand-ink">
+              {formatMoney(row.totalAmount, row.currency)}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
