@@ -22,8 +22,9 @@ export default async function AdminHelpCategoriesPage() {
         <h1 className="font-display text-2xl font-bold text-brand-ink">
           Help categories
         </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          The eight tiles on /help. Drag-reorder via the Sort column; lower
+        <p className="mt-1 max-w-2xl text-[13px] text-brand-mute">
+          The categories that group articles on the public <code>/help</code>{" "}
+          centre. Each one carries an icon, an audience and a sort order — lower
           numbers come first.
         </p>
       </header>
