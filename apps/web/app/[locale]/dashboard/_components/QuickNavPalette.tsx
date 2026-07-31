@@ -11,6 +11,7 @@ import {
   FileText,
   Home as HomeIcon,
   LayoutDashboard,
+  LifeBuoy,
   Lock,
   MessageSquare,
   PackagePlus,
@@ -163,7 +164,12 @@ const SETTINGS: Route[] = [
     icon: Lock,
     keywords: ["popia", "export", "delete account"],
   },
-  // Help & docs hidden for MVP.
+  {
+    href: "/dashboard/help",
+    label: "Help & docs",
+    icon: LifeBuoy,
+    keywords: ["support", "articles", "faq", "guide", "docs"],
+  },
 ];
 
 type PaletteCtx = {

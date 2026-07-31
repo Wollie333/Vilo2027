@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Inbox,
   Layers,
+  LifeBuoy,
   Lightbulb,
   ListChecks,
   Mail,
@@ -118,7 +119,17 @@ const MODERATION: GmailNavItem[] = [
   },
 ];
 
-// Help centre (SUPPORT) group removed for MVP — Help & docs is hidden site-wide.
+// Help centre — the Help & docs hub. Manages the articles, videos, FAQs, status
+// components and settings that render on the public /help and /dashboard/help
+// surfaces. Gated by the "help.manage" permission (see NAV_PERM below).
+const SUPPORT: GmailNavItem[] = [
+  {
+    href: "/admin/help",
+    label: "Help & docs",
+    icon: LifeBuoy,
+    match: "prefix",
+  },
+];
 
 const PLATFORM: GmailNavItem[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
@@ -201,6 +212,7 @@ const LEGAL: GmailNavItem[] = [
 // every key, so it sees the full rail; narrower roles only see what they can open.
 const NAV_PERM: Record<string, string> = {
   "/admin/legal": "legal.docs",
+  "/admin/help": "help.manage",
   "/admin/inbox": "notifications.send_individual",
   "/admin/users": "users.view",
   "/admin/properties": "listings.edit",
@@ -251,7 +263,7 @@ export function AdminSidebar({
     { items: vis(OPERATIONS) },
     { label: "Finance", items: vis(FINANCE) },
     { label: "Moderation", items: vis(MODERATION) },
-    // Help centre hidden for MVP (Help & docs disabled site-wide).
+    { label: "Support", items: vis(SUPPORT) },
     { label: "Legal", items: vis(LEGAL) },
     {
       label: "Platform",

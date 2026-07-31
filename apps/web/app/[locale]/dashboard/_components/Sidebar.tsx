@@ -15,6 +15,7 @@ import {
   Home as HomeIcon,
   Images,
   LayoutDashboard,
+  LifeBuoy,
   List,
   MessageSquare,
   PackagePlus,
@@ -201,7 +202,13 @@ const INSIGHTS: GmailNavItem[] = [
 ];
 
 const FOOTER: GmailNavItem[] = [
-  // Staff and Help & docs hidden for MVP (re-enable both later).
+  // Staff hidden for MVP (re-enable later).
+  {
+    href: "/dashboard/help",
+    label: "Help & docs",
+    icon: LifeBuoy,
+    match: "prefix",
+  },
   {
     href: "/dashboard/settings",
     label: "Settings",
