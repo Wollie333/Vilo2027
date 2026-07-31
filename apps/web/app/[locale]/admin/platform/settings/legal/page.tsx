@@ -14,18 +14,35 @@ export default async function PlatformLegalSettingsPage() {
       <h2 className="font-display text-base font-bold text-brand-ink">
         Legal documents
       </h2>
-      <p className="mb-3 mt-1 text-sm text-brand-mute">
-        Platform-wide booking terms &amp; privacy. These apply to every host and
-        booking — hosts cannot change them, and they show on the public{" "}
-        <code className="rounded bg-brand-light px-1 py-0.5 text-[12px]">
-          /terms
-        </code>{" "}
+      <div
+        role="note"
+        className="mb-4 mt-1 rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      >
+        <strong className="font-semibold">
+          Deprecated — do not edit here.
+        </strong>{" "}
+        Terms &amp; Privacy are now managed under{" "}
+        <a
+          href="/admin/platform/settings/legal-docs"
+          className="font-semibold underline"
+        >
+          Legal documents
+        </a>{" "}
+        (the single source of truth). Publish there into the{" "}
+        <code className="rounded bg-white px-1 py-0.5 text-[12px]">terms</code>{" "}
         and{" "}
-        <code className="rounded bg-brand-light px-1 py-0.5 text-[12px]">
+        <code className="rounded bg-white px-1 py-0.5 text-[12px]">
+          privacy
+        </code>{" "}
+        slots — those now drive the public{" "}
+        <code className="rounded bg-white px-1 py-0.5 text-[12px]">/terms</code>{" "}
+        and{" "}
+        <code className="rounded bg-white px-1 py-0.5 text-[12px]">
           /privacy
         </code>{" "}
-        pages.
-      </p>
+        pages and the version stamped on every booking. Anything saved on this
+        legacy form is no longer read by the site.
+      </div>
       <LegalDocsForm
         bookingTermsHtml={legal.booking_terms.html}
         bookingTermsVersion={legal.booking_terms.version}

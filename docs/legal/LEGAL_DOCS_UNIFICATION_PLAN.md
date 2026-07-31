@@ -247,5 +247,45 @@ node scripts/audit-wiring.mjs
 **Live-verify the store path (no new admin UI needed):** Admin → Platform
 settings → **Legal documents** → open **Cookies Policy** → paste copy → tick
 **Published** → Save. Then load `/cookies` and confirm it renders the published
-doc (not the static fallback). Publishing the `terms`/`privacy` rows will **not**
-change `/terms` or `/privacy` yet — that's Phase 2 by design.
+doc (not the static fallback).
+
+## 13. Build log — Phase 2 (branch `legal`)
+
+Switched the **read path and the booking consent-stamping** for Terms + Privacy
+onto the store. Still no affiliate files touched.
+
+- **Pages** `app/[locale]/terms/page.tsx`, `privacy/page.tsx` now read
+  `getPlacedDocument("terms" | "privacy")` instead of the `platform_settings`
+  doc; static fallback retained.
+- **Version resolver** `lib/legalDocuments.ts` → `getPlacedLegalVersions()`
+  returns `{ terms, privacy }` = the published placed doc's
+  `legal_documents.version`, or `1` (the built-in static copy = v1) when nothing
+  is published — matching what the page shows.
+- **All three booking paths** now stamp those versions:
+  `lib/website/siteCheckout.ts`, `lib/bookings/createBooking.ts`,
+  `app/[locale]/deal/[slug]/book/actions.ts`.
+- **Signup consent hash** `lib/auth/consent.ts` derives `t<t>-p<p>` from the same
+  resolver.
+- **Legacy editor deprecated** `admin/platform/settings/legal/page.tsx` now shows
+  a "do not edit here — managed under Legal documents" banner. `lib/legal.ts`
+  is kept only because that legacy form still reads it (removed in Phase 3).
+
+**Consent semantics preserved:** with nothing published, versions resolve to `1`
+(exactly today's default), so no booking record shifts. Once a doc is published
+into the `terms`/`privacy` slot, its `legal_documents.version` is what gets
+stamped — and an edit bumps it for new bookings while old bookings keep their
+number.
+
+### Verify Phase 2 (after `supabase db push` applies Phase 1's migration)
+1. Load `/terms` and `/privacy` → still show the built-in copy (nothing published
+   yet). Publish a doc into the `terms` slot → the page now renders it.
+2. Create a booking on each of the three paths → assert
+   `accepted_terms_version` / `accepted_privacy_version` equal the placed docs'
+   `legal_documents.version` (or `1` when unpublished).
+3. Publish a new version → a fresh booking stamps the new number; an older
+   booking keeps the old one.
+4. `pnpm build && pnpm lint`; `node scripts/audit-wiring.mjs`.
+
+**Deferred still:** affiliate gate rewire (later, avoids collision); Placements
+admin panel + lawyer role + retiring `platform_settings.legal_*` / `lib/legal.ts`
+(Phase 3).

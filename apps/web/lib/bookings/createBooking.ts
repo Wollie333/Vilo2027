@@ -18,7 +18,7 @@ import {
   type RedeemStep,
 } from "@/lib/bookings/persist";
 import { resolveCoupon } from "@/lib/coupons";
-import { getLegalDocuments } from "@/lib/legal";
+import { getPlacedLegalVersions } from "@/lib/legalDocuments";
 import {
   computeAgeExtras,
   nightsBetween,
@@ -716,7 +716,7 @@ export async function createBookingCore(
       ...(g.phone ? { phone: g.phone } : {}),
     }));
 
-  const legal = await getLegalDocuments();
+  const legalVersions = await getPlacedLegalVersions();
 
   const redeem: RedeemStep | undefined = p.couponId
     ? {
@@ -818,8 +818,8 @@ export async function createBookingCore(
       additional_guests: additionalGuests,
       policy_acknowledged: true,
       policy_acknowledged_at: new Date().toISOString(),
-      accepted_terms_version: legal.booking_terms.version,
-      accepted_privacy_version: legal.privacy.version,
+      accepted_terms_version: legalVersions.terms,
+      accepted_privacy_version: legalVersions.privacy,
     },
     redeem,
     bookingRooms: d.scope === "rooms" ? p.roomRowsForBooking : [],

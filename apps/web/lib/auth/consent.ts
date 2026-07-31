@@ -1,13 +1,13 @@
-import { getLegalDocuments } from "@/lib/legal";
+import { getPlacedLegalVersions } from "@/lib/legalDocuments";
 
 // The legal-consent version recorded at signup (`user_profiles.terms_version`).
-// Derived from the ADMIN-managed legal documents (platform_settings
-// legal_booking_terms / legal_privacy versions) so it stays in lockstep with
+// Derived from the ADMIN-managed legal documents bound to the `terms` and
+// `privacy` placements (legal_documents.version) so it stays in lockstep with
 // what's actually published on /terms + /privacy — no hardcoded constant to
 // forget to bump. Format: "t<termsVersion>-p<privacyVersion>" (e.g. "t3-p2").
 // Compare a user's stored value against this to prompt a re-accept after the
 // admin edits either document.
 export async function getConsentVersion(): Promise<string> {
-  const legal = await getLegalDocuments();
-  return `t${legal.booking_terms.version}-p${legal.privacy.version}`;
+  const { terms, privacy } = await getPlacedLegalVersions();
+  return `t${terms}-p${privacy}`;
 }

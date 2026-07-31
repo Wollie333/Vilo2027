@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
 import { LEGAL_EMAIL } from "@/lib/contact";
-import { getLegalDocument } from "@/lib/legal";
+import { getPlacedDocument } from "@/lib/legalDocuments";
 
 import {
   LegalPage,
@@ -121,18 +121,18 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
 ];
 
 export default async function TermsPage() {
-  const [companyName, brand, doc] = await Promise.all([
+  const [companyName, brand, placed] = await Promise.all([
     getCompanyLegalName(),
     getBrandName(),
-    getLegalDocument("booking_terms"),
+    getPlacedDocument("terms"),
   ]);
-  // When Wielo has published custom terms (Admin → Platform settings → Legal),
-  // render that; otherwise fall back to the built-in structural draft.
+  // Single source of truth: when a doc is published into the "terms" placement
+  // (Admin → Legal Docs), render it; otherwise fall back to the built-in draft.
   return (
     <LegalPage
       title="Terms of Service"
-      lastUpdated={doc.updatedAt ?? LAST_UPDATED}
-      bodyHtml={doc.html}
+      lastUpdated={placed?.updatedAt ?? LAST_UPDATED}
+      bodyHtml={placed?.bodyHtml ?? null}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />
   );

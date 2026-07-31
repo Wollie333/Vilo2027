@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
 import { PRIVACY_EMAIL } from "@/lib/contact";
-import { getLegalDocument } from "@/lib/legal";
+import { getPlacedDocument } from "@/lib/legalDocuments";
 
 import {
   LegalPage,
@@ -111,16 +111,18 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
 ];
 
 export default async function PrivacyPage() {
-  const [companyName, brand, doc] = await Promise.all([
+  const [companyName, brand, placed] = await Promise.all([
     getCompanyLegalName(),
     getBrandName(),
-    getLegalDocument("privacy"),
+    getPlacedDocument("privacy"),
   ]);
+  // Single source of truth: a doc published into the "privacy" placement
+  // (Admin → Legal Docs) renders here; otherwise the built-in draft shows.
   return (
     <LegalPage
       title="Privacy Policy"
-      lastUpdated={doc.updatedAt ?? LAST_UPDATED}
-      bodyHtml={doc.html}
+      lastUpdated={placed?.updatedAt ?? LAST_UPDATED}
+      bodyHtml={placed?.bodyHtml ?? null}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />
   );

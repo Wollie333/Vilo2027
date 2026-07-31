@@ -22,7 +22,7 @@ import {
 } from "@/lib/bookings/persist";
 import type { CreateBookingInput } from "@/app/[locale]/property/[slug]/book/schemas";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
-import { getLegalDocuments } from "@/lib/legal";
+import { getPlacedLegalVersions } from "@/lib/legalDocuments";
 import { nightsBetween, type PricingUnit, type StayAddon } from "@/lib/pricing";
 import { priceSpecialStay } from "@/lib/specials/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -665,7 +665,7 @@ export async function createSiteSpecialBooking(
 
   const scope = special.room_id ? "rooms" : "whole_listing";
   const isEft = d.payment_method === "eft";
-  const legal = await getLegalDocuments();
+  const legalVersions = await getPlacedLegalVersions();
   const returnTo = (bookingId: string) =>
     `${d.return_path}${d.return_path.includes("?") ? "&" : "?"}b=${bookingId}`;
 
@@ -704,8 +704,8 @@ export async function createSiteSpecialBooking(
       additional_guests: [],
       policy_acknowledged: true,
       policy_acknowledged_at: new Date().toISOString(),
-      accepted_terms_version: legal.booking_terms.version,
-      accepted_privacy_version: legal.privacy.version,
+      accepted_terms_version: legalVersions.terms,
+      accepted_privacy_version: legalVersions.privacy,
     },
     redeem: {
       claim: async () => {

@@ -108,7 +108,11 @@ export const LEGAL_PLACEMENT_SLOTS: ReadonlyArray<{
 }> = [
   { slot: "terms", label: "Terms of Service", usedAt: "/terms + checkout" },
   { slot: "privacy", label: "Privacy Policy", usedAt: "/privacy + checkout" },
-  { slot: "cookies", label: "Cookies Policy", usedAt: "/cookies + cookie banner" },
+  {
+    slot: "cookies",
+    label: "Cookies Policy",
+    usedAt: "/cookies + cookie banner",
+  },
   {
     slot: "affiliate_program_terms",
     label: "Affiliate Program Terms",
@@ -177,4 +181,21 @@ export async function listPlacements(): Promise<
   } catch {
     return result;
   }
+}
+
+// The version to stamp onto a booking's consent record for the Terms and Privacy
+// slots. Uses the PUBLISHED placed doc's legal_documents.version; falls back to 1
+// (the built-in static copy = v1) when nothing is published into the slot — which
+// is exactly what the public /terms and /privacy pages then show. This keeps
+// bookings.accepted_terms_version / accepted_privacy_version a faithful record of
+// what the guest actually saw at checkout, sourced from the single doc store.
+export async function getPlacedLegalVersions(): Promise<{
+  terms: number;
+  privacy: number;
+}> {
+  const [terms, privacy] = await Promise.all([
+    getPlacedDocument("terms"),
+    getPlacedDocument("privacy"),
+  ]);
+  return { terms: terms?.version ?? 1, privacy: privacy?.version ?? 1 };
 }

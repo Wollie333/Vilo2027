@@ -12,7 +12,7 @@ import {
   persistBookingAndPay,
   type BookingAddonRow,
 } from "@/lib/bookings/persist";
-import { getLegalDocuments } from "@/lib/legal";
+import { getPlacedLegalVersions } from "@/lib/legalDocuments";
 import { nightsBetween, type PricingUnit, type StayAddon } from "@/lib/pricing";
 import { priceSpecialStay } from "@/lib/specials/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -330,7 +330,7 @@ export async function createSpecialBookingAction(
   // 10. Persist + pay through the shared tail.
   const scope = special.room_id ? "rooms" : "whole_listing";
   const isEft = d.payment_method === "eft";
-  const legal = await getLegalDocuments();
+  const legalVersions = await getPlacedLegalVersions();
 
   // Party manifest — mirrors the main checkout exactly: trim, drop nameless rows,
   // cap at the guest count, and omit empty email/phone so _materialize_booking
@@ -385,8 +385,8 @@ export async function createSpecialBookingAction(
       additional_guests: additionalGuests,
       policy_acknowledged: true,
       policy_acknowledged_at: new Date().toISOString(),
-      accepted_terms_version: legal.booking_terms.version,
-      accepted_privacy_version: legal.privacy.version,
+      accepted_terms_version: legalVersions.terms,
+      accepted_privacy_version: legalVersions.privacy,
     },
     // Atomic quantity-cap claim; released on the rollback ladder (a bare DELETE
     // does not fire on_booking_cancelled).
