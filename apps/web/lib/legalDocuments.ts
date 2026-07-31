@@ -84,7 +84,7 @@ export async function listLegalDocuments(): Promise<LegalDocument[]> {
 
 // ─── Placements (single source of truth binding layer) ───────────────
 // A well-known app "slot" points at whichever legal_documents row fills it
-// (see migration 20260731160000_legal_placements). Consumers resolve slot → doc
+// (see migration 20260731165000_legal_placements). Consumers resolve slot → doc
 // so the admin/lawyer publishes once and every surface updates. This is the
 // fixed launch catalog (founder choice: core four + Founding Host / Review /
 // Looking-For); everything else is a free /legal/<slug> page or a per-campaign

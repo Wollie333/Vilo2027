@@ -214,7 +214,7 @@ remain the last-resort fallback under this model).
 Built the **non-affiliate, off-money-path foundation** so it can't collide with
 the affiliate work in flight on `main`:
 
-- **Migration** `supabase/migrations/20260731160000_legal_placements.sql` —
+- **Migration** `supabase/migrations/20260731165000_legal_placements.sql` —
   `legal_placements` table (slot → doc binding) + RLS (public read, service-role
   write) + touch trigger; seeds the `terms`/`privacy`/`cookies`/
   `affiliate-program-terms` docs (UNPUBLISHED skeletons) and the 7 slots.
