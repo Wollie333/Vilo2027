@@ -137,7 +137,7 @@ export async function finalizeCancellation(
   // Transition with optimistic concurrency. The on_booking_cancelled trigger
   // releases blocked_dates + rolls back counters. The booking nets to 0 (the
   // credit note reverses the receivable), so balance_due is 0.
-  const { error: updErr } = await admin
+  const { data: transitioned, error: updErr } = await admin
     .from("bookings")
     .update({
       status: toStatus,
@@ -148,9 +148,19 @@ export async function finalizeCancellation(
       cancellation_reason: reason?.trim() || null,
     })
     .eq("id", booking.id)
-    .eq("status", booking.status);
+    .eq("status", booking.status)
+    .select("id");
   if (updErr) {
     return { ok: false, error: "Could not cancel the booking. Try again." };
+  }
+  // Idempotency: PostgREST returns success (error === null) even when the
+  // `.eq("status", …)` optimistic guard matched ZERO rows — i.e. a concurrent or
+  // double cancel already transitioned this booking. Without this check we'd fall
+  // through and re-run every side effect: mint a SECOND credit note (double-
+  // reversing the receivable), re-dispatch the cancellation email/push, and
+  // possibly insert a second refund request. Bail out cleanly instead.
+  if (!transitioned || transitioned.length === 0) {
+    return { ok: true, refundAmount: 0 };
   }
 
   // Reverse the cancelled portion with a credit note (keep the invoice — SARS:

@@ -10,6 +10,8 @@ import {
 } from "@/lib/bookings/cancel";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { formatMoney } from "@/lib/format";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -119,6 +121,31 @@ export async function requestRefundAction(input: {
   });
 
   if (error) return { ok: false, error: error.message };
+
+  // Notify the HOST a refund was requested (email + push + in-app) — previously
+  // the host only found out if they happened to open the dashboard. Best-effort.
+  try {
+    const { data: hostRow } = await admin
+      .from("hosts")
+      .select("user_id")
+      .eq("id", booking.host_id)
+      .maybeSingle();
+    if (hostRow?.user_id) {
+      await dispatchEvent({
+        kind: "refund_request_host",
+        recipientUserId: hostRow.user_id,
+        refs: {
+          booking_id: booking.id,
+          refund_amount: formatMoney(
+            parsed.data.amount,
+            booking.currency || "ZAR",
+          ),
+        },
+      });
+    }
+  } catch {
+    // non-fatal
+  }
 
   revalidatePath(`/portal/trips/${booking.id}`);
   revalidatePath("/dashboard/refunds");

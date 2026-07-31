@@ -22,6 +22,7 @@ import {
   getHostPayPalForBusiness,
 } from "@/lib/payments/host-paypal";
 import { sumCompletedPaid } from "@/lib/payments/ledger";
+import { NON_PAYABLE_STATUSES } from "@/lib/payments/pay-booking";
 import {
   capturePayPalOrderForBooking,
   confirmHostCardPaymentByReference,
@@ -156,12 +157,9 @@ export default async function PayPage({
   const balanceRemainder = round2(Math.max(0, outstanding - depositDue));
 
   const isPaid = booking.payment_status === "completed" || outstanding <= 0;
-  const cancelledLike = [
-    "cancelled_by_guest",
-    "cancelled_by_host",
-    "declined",
-    "expired",
-  ].includes(booking.status);
+  const cancelledLike = (NON_PAYABLE_STATUSES as readonly string[]).includes(
+    booking.status,
+  );
   const payable = !isPaid && !cancelledLike;
 
   // Card rail (the listing's BUSINESS's Paystack) + EFT banking — load only when

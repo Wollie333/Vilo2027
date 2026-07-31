@@ -8,6 +8,7 @@ import { assertPeriodOpen } from "@/lib/finance/periods";
 import { assertFullHost as getMyHostId } from "@/lib/host/current";
 import { formatMoney } from "@/lib/format";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -232,6 +233,21 @@ async function postBookingRefundCard(
     readByHost: true,
     readByGuest: false,
   });
+  // Email + push + in-app to the guest — the "refund completed" notification the
+  // spec requires (was previously only an inbox card). Best-effort.
+  try {
+    await dispatchEvent({
+      kind: "refund_completed_guest",
+      recipientUserId: bk.guest_id,
+      guestId: bk.guest_id,
+      refs: {
+        booking_id: bookingId,
+        refund_amount: formatMoney(amount, bk.currency),
+      },
+    });
+  } catch {
+    // non-fatal
+  }
 }
 
 export async function declineRefundAction(input: {
@@ -248,7 +264,7 @@ export async function declineRefundAction(input: {
   const supabase = createServerClient();
   const { data: refund } = await supabase
     .from("refund_requests")
-    .select("id, host_id, status")
+    .select("id, host_id, status, booking_id")
     .eq("id", parsed.data.refundId)
     .maybeSingle();
   if (!refund || refund.host_id !== host.hostId) {
@@ -271,6 +287,28 @@ export async function declineRefundAction(input: {
     .eq("id", refund.id);
 
   if (error) return { ok: false, error: error.message };
+
+  // Tell the guest their refund was declined (email + push + in-app). Best-effort.
+  if (refund.booking_id) {
+    try {
+      const admin = createAdminClient();
+      const { data: bk } = await admin
+        .from("bookings")
+        .select("guest_id")
+        .eq("id", refund.booking_id)
+        .maybeSingle();
+      if (bk?.guest_id) {
+        await dispatchEvent({
+          kind: "refund_declined_guest",
+          recipientUserId: bk.guest_id,
+          guestId: bk.guest_id,
+          refs: { booking_id: refund.booking_id },
+        });
+      }
+    } catch {
+      // non-fatal
+    }
+  }
 
   revalidatePath("/dashboard/refunds");
   revalidatePath("/dashboard/bookings");

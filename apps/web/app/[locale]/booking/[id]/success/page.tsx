@@ -130,7 +130,15 @@ export default async function BookingSuccessPage({
   // confirm). We must NOT let that 500 the guest's page — they've been charged.
   // Catch it, log, and fall through to re-render whatever state the booking is
   // in; the reconcile worker finalises it. Idempotent on refresh either way.
-  if (booking.status === "pending" && reference && reference.length > 0) {
+  // Gate on payment_status (not status): a BALANCE payment lands on an already
+  // `confirmed` booking (partial), so `status === "pending"` would miss it and
+  // leave money captured-but-unsettled. The confirm helper only flips pending
+  // rows, so this is idempotent + safe for deposit-then-balance.
+  if (
+    booking.payment_status !== "completed" &&
+    reference &&
+    reference.length > 0
+  ) {
     try {
       await confirmHostCardPaymentByReference({
         reference,
@@ -151,7 +159,7 @@ export default async function BookingSuccessPage({
       booking.payment_status = refreshed.payment_status;
     }
   } else if (
-    booking.status === "pending" &&
+    booking.payment_status !== "completed" &&
     booking.payment_method === "paypal" &&
     paypalToken &&
     paypalToken.length > 0 &&

@@ -79,10 +79,18 @@ export async function POST(req: Request) {
       .eq("status", "pending")
       .eq("method", "paystack")
       .not("provider_reference", "is", null)
-      .eq("bookings.status", "pending")
-      .eq("bookings.payment_method", "paystack")
-      .lt("bookings.created_at", minAge)
-      .gt("bookings.created_at", maxAge)
+      // Reconcile any NON-cancelled booking's pending card payment — including a
+      // BALANCE payment on an already-`confirmed` booking. The old
+      // `bookings.status = "pending"` filter missed those, so a captured balance
+      // stayed unsettled forever. Window on the PAYMENT's own age (a balance is
+      // paid long after the booking was created).
+      .not(
+        "bookings.status",
+        "in",
+        "(cancelled_by_guest,cancelled_by_host,declined,expired)",
+      )
+      .lt("created_at", minAge)
+      .gt("created_at", maxAge)
       .limit(BATCH_SIZE);
     if (error) throw new Error(error.message);
 
@@ -136,10 +144,15 @@ export async function POST(req: Request) {
       .eq("status", "pending")
       .eq("method", "paypal")
       .not("provider_reference", "is", null)
-      .eq("bookings.status", "pending")
-      .eq("bookings.payment_method", "paypal")
-      .lt("bookings.created_at", minAge)
-      .gt("bookings.created_at", maxAge)
+      // Same fix as the card batch: cover balance PayPal payments on confirmed
+      // bookings, windowed on the payment's age, excluding cancelled bookings.
+      .not(
+        "bookings.status",
+        "in",
+        "(cancelled_by_guest,cancelled_by_host,declined,expired)",
+      )
+      .lt("created_at", minAge)
+      .gt("created_at", maxAge)
       .limit(BATCH_SIZE);
     if (ppError) throw new Error(ppError.message);
 

@@ -27,6 +27,19 @@ import { postPaymentConfirmedCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/**
+ * Booking statuses that can NEVER take a payment (cancelled/terminal). Everything
+ * else is payable while a balance is outstanding — including `confirmed`/
+ * `checked_in` bookings paying off a deposit balance. The public pay pages gate
+ * their "pay" UI on this same set, so importing it here keeps them in lockstep.
+ */
+export const NON_PAYABLE_STATUSES = [
+  "cancelled_by_guest",
+  "cancelled_by_host",
+  "declined",
+  "expired",
+] as const;
+
 export type StartBookingPaymentResult =
   | {
       ok: true;
@@ -108,10 +121,13 @@ export async function startBookingPayment(opts: {
   if (booking.payment_status === "completed") {
     return { ok: false, error: "This booking is already paid." };
   }
-  if (
-    !["pending", "pending_eft"].includes(booking.status) &&
-    booking.payment_status !== "failed"
-  ) {
+  // A booking is payable unless it's fully paid or in a cancelled/terminal state.
+  // The old guard only allowed pending/pending_eft, which WRONGLY blocked paying
+  // the BALANCE after a deposit (status flips to `confirmed`, payment_status
+  // `partial`) — the "Pay balance" button errored on every rail. Mirror the pay
+  // pages' `cancelledLike` set (shared constant so they can't drift). The
+  // outstanding calc below still returns "already paid" when nothing is owed.
+  if ((NON_PAYABLE_STATUSES as readonly string[]).includes(booking.status)) {
     return { ok: false, error: "This booking can't be paid right now." };
   }
 
@@ -428,14 +444,43 @@ async function notifyBookingConfirmed(
   bookingId: string,
   guestId: string | null,
 ): Promise<void> {
-  if (!guestId) return;
+  // Guest: "your booking is confirmed".
+  if (guestId) {
+    try {
+      await dispatchEvent({
+        kind: "booking_confirmed_guest",
+        recipientUserId: guestId,
+        guestId,
+        refs: { booking_id: bookingId },
+      });
+    } catch {
+      // non-fatal
+    }
+  }
+  // Host: "payment received — booking confirmed". For a GUEST-initiated card /
+  // PayPal payment the host is otherwise never told the money landed (the
+  // platform webhook that used to send this is dead for host-account charges —
+  // AGENT_RULES §4.8). Resolve the host's user id and dispatch to them too.
   try {
-    await dispatchEvent({
-      kind: "booking_confirmed_guest",
-      recipientUserId: guestId,
-      guestId,
-      refs: { booking_id: bookingId },
-    });
+    const { data: bk } = await admin
+      .from("bookings")
+      .select("host_id")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (bk?.host_id) {
+      const { data: host } = await admin
+        .from("hosts")
+        .select("user_id")
+        .eq("id", bk.host_id)
+        .maybeSingle();
+      if (host?.user_id) {
+        await dispatchEvent({
+          kind: "booking_confirmed_host",
+          recipientUserId: host.user_id,
+          refs: { booking_id: bookingId },
+        });
+      }
+    }
   } catch {
     // non-fatal
   }
