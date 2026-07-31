@@ -17,10 +17,12 @@ import {
   Redo2,
   Strikethrough,
   Undo2,
+  Youtube,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ImageWithControls } from "./ImageNodeView";
+import { YoutubeEmbed, toEmbedUrl } from "./YoutubeEmbed";
 
 type Props = {
   value: string;
@@ -40,6 +42,13 @@ type Props = {
    * provided, a "Choose from library" toolbar button appears alongside upload.
    */
   onPickFromLibrary?: () => Promise<{ url: string; alt?: string } | null>;
+  /**
+   * Opt-in YouTube/Vimeo embeds: shows a "video" toolbar button that prompts for
+   * a video URL and renders a responsive iframe. Off by default — enable it only
+   * on surfaces whose render-side sanitiser allow-lists the embed hosts (e.g.
+   * help articles). Omit it and the editor behaves exactly as before.
+   */
+  enableVideo?: boolean;
 };
 
 export function RichTextEditor({
@@ -49,6 +58,7 @@ export function RichTextEditor({
   disabled,
   onImageUpload,
   onPickFromLibrary,
+  enableVideo,
 }: Props) {
   const editor = useEditor({
     extensions: [
@@ -59,6 +69,7 @@ export function RichTextEditor({
         heading: { levels: [2, 3] },
       }),
       ImageWithControls.configure({ inline: false, allowBase64: false }),
+      YoutubeEmbed,
       // Links are sanitised server-side (lib/sanitiseHtml.ts forces a safe rel +
       // restricts schemes); mirror that here so the editor preview matches the
       // rendered output. openOnClick off so clicking a link in the editor edits
@@ -81,7 +92,7 @@ export function RichTextEditor({
         // Tailwind doesn't have a prose plugin installed; replicate just
         // enough typography so the editor reads like the final article.
         class:
-          "min-h-[180px] max-h-[640px] overflow-y-auto rounded border border-brand-line bg-white p-3 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 [&_h2]:mt-3 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_strong]:font-semibold [&_p]:my-2 [&_img]:my-3 [&_img]:max-w-full [&_img]:rounded [&_a]:text-brand-primary [&_a]:underline [&_a]:underline-offset-2",
+          "min-h-[180px] max-h-[640px] overflow-y-auto rounded border border-brand-line bg-white p-3 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 [&_h2]:mt-3 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_strong]:font-semibold [&_p]:my-2 [&_img]:my-3 [&_img]:max-w-full [&_img]:rounded [&_a]:text-brand-primary [&_a]:underline [&_a]:underline-offset-2 [&_.help-video]:relative [&_.help-video]:my-3 [&_.help-video]:block [&_.help-video]:aspect-video [&_.help-video]:w-full [&_.help-video]:overflow-hidden [&_.help-video]:rounded [&_.help-video_iframe]:absolute [&_.help-video_iframe]:inset-0 [&_.help-video_iframe]:h-full [&_.help-video_iframe]:w-full",
         "aria-label": "Description editor",
       },
     },
@@ -108,6 +119,7 @@ export function RichTextEditor({
         disabled={!!disabled}
         onImageUpload={onImageUpload}
         onPickFromLibrary={onPickFromLibrary}
+        enableVideo={!!enableVideo}
       />
       <div className="relative">
         <EditorContent editor={editor} />
@@ -129,11 +141,13 @@ function Toolbar({
   disabled,
   onImageUpload,
   onPickFromLibrary,
+  enableVideo,
 }: {
   editor: Editor | null;
   disabled: boolean;
   onImageUpload?: (file: File) => Promise<{ url: string; alt?: string } | null>;
   onPickFromLibrary?: () => Promise<{ url: string; alt?: string } | null>;
+  enableVideo?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -161,6 +175,25 @@ function Toolbar({
     } finally {
       setBrowsing(false);
     }
+  }
+
+  function onInsertVideo() {
+    if (!editor) return;
+    const url = window.prompt(
+      "Paste a YouTube or Vimeo link (e.g. https://youtu.be/…)",
+    );
+    if (url === null) return; // cancelled
+    const src = toEmbedUrl(url);
+    if (!src) {
+      if (url.trim())
+        window.alert("That doesn't look like a YouTube or Vimeo link.");
+      return;
+    }
+    editor
+      .chain()
+      .focus()
+      .insertContent({ type: "youtubeEmbed", attrs: { src } })
+      .run();
   }
 
   if (!editor) {
@@ -337,6 +370,19 @@ function Toolbar({
             }}
           />
         </>
+      ) : null}
+
+      {enableVideo ? (
+        <button
+          type="button"
+          onClick={onInsertVideo}
+          disabled={disabled}
+          aria-label="Embed video"
+          title="Embed a YouTube or Vimeo video"
+          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute transition-colors hover:bg-white hover:text-brand-ink disabled:opacity-50"
+        >
+          <Youtube className="h-3.5 w-3.5" />
+        </button>
       ) : null}
     </div>
   );

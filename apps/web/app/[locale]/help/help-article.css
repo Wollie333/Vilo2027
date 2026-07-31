@@ -540,3 +540,23 @@
     animation: none !important;
   }
 }
+
+/* ── Video embeds (YouTube / Vimeo) authored via the editor's video button ─ */
+.help-article .help-video {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #dceae0;
+  background: #052e1f;
+}
+.help-article .help-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

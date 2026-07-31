@@ -48,6 +48,26 @@ the DB and redirected to the styled thank-you page; test lead then removed. `pnp
 - Verified against live code/DB first: all plan integration points exist (identity, affiliate
   cookie/ledger, email queue, review-request cron pattern, admin RBAC, `@dnd-kit`, Turnstile).
 
+## 2026-07-31 — Help editor: brand-media featured image + YouTube/Vimeo embeds.
+
+Follow-up to the editor enrichment below.
+
+- **Featured image → brand media library.** The SEO box's featured-image field is no longer a raw URL
+  input — it's a thumbnail + "Choose from library" button that opens a `BrandMediaPicker` over the Wielo
+  System Library (the shared public `marketing-assets` bucket, same store as `/admin/library` and affiliate
+  marketing assets). Browse existing brand images or upload a new one; the chosen public URL becomes
+  `og_image_url`. Body-image inserts in the editor now go through the same picker. New help-scoped Server
+  Actions (`media-actions.ts`: `listBrandMedia`, `createHelpMediaUploadUrl`) gated on `help.manage`.
+- **Video embeds in the shared editor.** Added an opt-in `enableVideo` prop + a "video" toolbar button to
+  `components/editor/RichTextEditor` (the platform-wide editor). Paste a YouTube/Vimeo link and it renders
+  as a responsive 16:9 iframe in the builder and on the live page. Backed by a dependency-free custom
+  TipTap node (`YoutubeEmbed.ts`, using `@tiptap/react`'s re-exported core API — no new package). Enabled
+  on the help article editor; off everywhere else.
+- **Safe live render.** `lib/help/sanitize.ts` now allow-lists `<iframe>` **only** from YouTube/Vimeo embed
+  hosts (`allowedIframeHostnames`), so the embed survives sanitisation while attacker-authored iframes are
+  still dropped. Added `.help-video` responsive styling to `help-article.css`.
+- `tsc --noEmit` clean, `pnpm lint` clean, production build compiles.
+
 ## 2026-07-31 — Enrich the Help article editor: shared WYSIWYG, live URL, SEO box.
 
 Reworked `/admin/help/articles/new` + `/[id]` so writing and publishing help articles is a first-class

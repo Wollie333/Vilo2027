@@ -37,6 +37,7 @@ import {
   saveHelpArticle,
   softDeleteHelpArticle,
 } from "../actions";
+import { BrandMediaPicker } from "./BrandMediaPicker";
 
 type Mode = "create" | "update";
 
@@ -111,6 +112,15 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Brand media library picker — shared for the featured image and body-image
+  // inserts. `pickerMode` decides where the chosen URL lands; a pending body
+  // insert resolves through `bodyResolver`.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerMode = useRef<"featured" | "body">("featured");
+  const bodyResolver = useRef<((img: { url: string } | null) => void) | null>(
+    null,
+  );
+
   // The slug/status actually persisted — drives the live URL banner so it never
   // points at an unsaved edit. The server may adjust the slug for uniqueness.
   const [savedSlug, setSavedSlug] = useState(defaults.slug);
@@ -182,29 +192,38 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
     }
   }
 
-  // Body-image insertion for the shared RichTextEditor. Help has no media
-  // library, so we accept an image URL (sanitiser + <img> render allow https
-  // sources) — matching how the featured image is set.
-  async function pickBodyImage(): Promise<{
-    url: string;
-    alt?: string;
-  } | null> {
-    const url = await modal.prompt({
-      title: "Insert image",
-      label: "Image URL",
-      placeholder: "https://…/screenshot.png",
-      confirmLabel: "Next",
+  function openFeaturedPicker() {
+    pickerMode.current = "featured";
+    setPickerOpen(true);
+  }
+
+  // Body-image insertion for the shared RichTextEditor — opens the same brand
+  // media library and resolves with the chosen image's public URL.
+  function pickBodyImage(): Promise<{ url: string; alt?: string } | null> {
+    return new Promise((resolve) => {
+      pickerMode.current = "body";
+      bodyResolver.current = resolve;
+      setPickerOpen(true);
     });
-    if (!url || url.trim() === "") return null;
-    const alt = await modal.prompt({
-      title: "Describe the image",
-      description:
-        "Alt text is read by screen readers and shown if the image fails to load.",
-      label: "Alt text",
-      placeholder: "Refund button in the booking sidebar",
-      confirmLabel: "Insert image",
-    });
-    return { url: url.trim(), alt: (alt ?? "").trim() || undefined };
+  }
+
+  function handlePicked(url: string) {
+    if (pickerMode.current === "featured") {
+      setOgImageUrl(url);
+    } else {
+      bodyResolver.current?.({ url });
+      bodyResolver.current = null;
+    }
+  }
+
+  function handlePickerOpenChange(open: boolean) {
+    setPickerOpen(open);
+    // Closing without a pick must resolve a pending body insert (or the editor
+    // await hangs forever).
+    if (!open && bodyResolver.current) {
+      bodyResolver.current(null);
+      bodyResolver.current = null;
+    }
   }
 
   function save(nextStatus?: HelpStatus) {
@@ -505,8 +524,9 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
             <RichTextEditor
               value={bodyHtml}
               onChange={setBodyHtml}
-              placeholder="Write the article… use the toolbar for headings, lists, links and images."
+              placeholder="Write the article… use the toolbar for headings, lists, links, images and video."
               onPickFromLibrary={pickBodyImage}
+              enableVideo
             />
             <div className="mt-1 flex items-center justify-between text-[11px] text-brand-mute">
               <span>
@@ -582,12 +602,50 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
                   label="Featured / share image"
                   hint="og:image · 1200×630 works best"
                 >
-                  <input
-                    value={ogImageUrl}
-                    onChange={(e) => setOgImageUrl(e.target.value)}
-                    placeholder="https://…/cover.jpg"
-                    className="w-full rounded-md border border-brand-line bg-white px-3 py-2 font-mono text-xs text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={openFeaturedPicker}
+                      className="group relative h-16 w-24 shrink-0 overflow-hidden rounded-md border border-brand-line bg-brand-light transition hover:border-brand-primary"
+                      aria-label="Choose featured image from the brand library"
+                    >
+                      {ogImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={ogImageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-brand-mute">
+                          <ImageIcon className="h-5 w-5" />
+                        </span>
+                      )}
+                    </button>
+                    <div className="min-w-0 space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={openFeaturedPicker}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        {ogImageUrl ? "Change image" : "Choose from library"}
+                      </button>
+                      {ogImageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setOgImageUrl("")}
+                          className="ml-2 text-[11px] font-medium text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <p className="text-[11px] text-brand-mute">
+                          Pick from the Wielo brand library or upload a new one.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </Field>
               </div>
 
@@ -775,6 +833,12 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
           ) : null}
         </aside>
       </div>
+
+      <BrandMediaPicker
+        open={pickerOpen}
+        onOpenChange={handlePickerOpenChange}
+        onSelect={handlePicked}
+      />
     </div>
   );
 }

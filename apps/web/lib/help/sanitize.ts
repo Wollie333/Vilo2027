@@ -33,6 +33,9 @@ const ALLOWED_TAGS = [
   // opt into the scoped `.help-article .hc-*` components; `style` stays banned.
   "div",
   "span",
+  // Video embeds authored via the editor's "video" button. Kept XSS-safe by
+  // `allowedIframeHostnames` below — only YouTube/Vimeo embed hosts survive.
+  "iframe",
 ];
 
 const sanitizeOptions: sanitizeHtml.IOptions = {
@@ -43,6 +46,16 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
     "*": ["class"],
     a: ["href", "name", "target", "rel"],
     img: ["src", "alt", "width", "height", "loading"],
+    iframe: [
+      "src",
+      "width",
+      "height",
+      "title",
+      "frameborder",
+      "loading",
+      "allow",
+      "allowfullscreen",
+    ],
   },
   transformTags: {
     a: (tagName, attribs) => ({
@@ -60,6 +73,15 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
   },
   allowedSchemes: ["http", "https", "mailto", "tel"],
   allowedSchemesAppliedToAttributes: ["href", "src"],
+  // The security boundary for embeds: an <iframe> is only kept if its src host is
+  // one of these. Everything else (an attacker-authored iframe) is dropped.
+  allowedIframeHostnames: [
+    "www.youtube.com",
+    "youtube.com",
+    "www.youtube-nocookie.com",
+    "player.vimeo.com",
+  ],
+  allowIframeRelativeUrls: false,
 };
 
 export function sanitizeHelpHtml(html: string): string {
