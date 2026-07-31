@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 
 import { getBrandName } from "@/lib/brand";
 import { PRIVACY_EMAIL } from "@/lib/contact";
+import { getPlacedDocument } from "@/lib/legalDocuments";
 
 import {
   LegalPage,
   type LegalSectionData,
 } from "@/app/_components/legal/LegalPage";
+
+export const dynamic = "force-dynamic";
 
 // Swap the placeholder brand token for the configured value at render time.
 function applyBrand(
@@ -62,11 +65,18 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
 ];
 
 export default async function CookiesPage() {
-  const brand = await getBrandName();
+  // The "cookies" placement is the single source of truth: when the admin has
+  // published a Cookies doc into that slot it renders here; otherwise we fall
+  // back to the built-in static copy so the page is never blank.
+  const [brand, placed] = await Promise.all([
+    getBrandName(),
+    getPlacedDocument("cookies"),
+  ]);
   return (
     <LegalPage
       title="Cookies Policy"
-      lastUpdated={LAST_UPDATED}
+      lastUpdated={placed?.updatedAt ?? LAST_UPDATED}
+      bodyHtml={placed?.bodyHtml ?? null}
       sections={applyBrand(SECTIONS, brand)}
     />
   );

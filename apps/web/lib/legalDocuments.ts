@@ -81,3 +81,100 @@ export async function listLegalDocuments(): Promise<LegalDocument[]> {
     return [];
   }
 }
+
+// ─── Placements (single source of truth binding layer) ───────────────
+// A well-known app "slot" points at whichever legal_documents row fills it
+// (see migration 20260731160000_legal_placements). Consumers resolve slot → doc
+// so the admin/lawyer publishes once and every surface updates. This is the
+// fixed launch catalog (founder choice: core four + Founding Host / Review /
+// Looking-For); everything else is a free /legal/<slug> page or a per-campaign
+// binding. Adding a NEW kind of slot needs a matching consumer in code — but
+// reassigning which doc fills an existing slot is done in the admin, no deploy.
+
+export type LegalPlacementSlot =
+  | "terms"
+  | "privacy"
+  | "cookies"
+  | "affiliate_program_terms"
+  | "founding_host_terms"
+  | "review_disclosure"
+  | "looking_for";
+
+export const LEGAL_PLACEMENT_SLOTS: ReadonlyArray<{
+  slot: LegalPlacementSlot;
+  label: string;
+  /** Where this slot's document is shown in the app. */
+  usedAt: string;
+}> = [
+  { slot: "terms", label: "Terms of Service", usedAt: "/terms + checkout" },
+  { slot: "privacy", label: "Privacy Policy", usedAt: "/privacy + checkout" },
+  { slot: "cookies", label: "Cookies Policy", usedAt: "/cookies + cookie banner" },
+  {
+    slot: "affiliate_program_terms",
+    label: "Affiliate Program Terms",
+    usedAt: "Affiliate gate + partner signup",
+  },
+  {
+    slot: "founding_host_terms",
+    label: "Founding Host Terms",
+    usedAt: "/legal/founding-host-terms",
+  },
+  {
+    slot: "review_disclosure",
+    label: "Review Disclosure",
+    usedAt: "/legal/review-disclosure",
+  },
+  {
+    slot: "looking_for",
+    label: "Looking-For Notice",
+    usedAt: "/legal/looking-for-notice",
+  },
+];
+
+// The PUBLISHED document currently bound to a slot, or null when nothing is
+// placed / the placed doc is unpublished. Consumers fall back to their built-in
+// static copy on null, so a page is never blank.
+export const getPlacedDocument = cache(
+  async (slot: LegalPlacementSlot): Promise<LegalDocument | null> => {
+    try {
+      const admin = createAdminClient();
+      const { data } = await admin
+        .from("legal_placements")
+        .select("doc_slug")
+        .eq("slot", slot)
+        .maybeSingle();
+      const docSlug = (data as { doc_slug: string | null } | null)?.doc_slug;
+      if (!docSlug) return null;
+      return await getPublishedLegalDocument(docSlug);
+    } catch {
+      return null;
+    }
+  },
+);
+
+// slot → bound doc_slug for every slot (published or not) — the admin Placements
+// panel. Missing rows resolve to null so a freshly added slot still lists.
+export async function listPlacements(): Promise<
+  Record<LegalPlacementSlot, string | null>
+> {
+  const result = Object.fromEntries(
+    LEGAL_PLACEMENT_SLOTS.map((s) => [s.slot, null]),
+  ) as Record<LegalPlacementSlot, string | null>;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("legal_placements")
+      .select("slot, doc_slug");
+    for (const row of (data ?? []) as Array<{
+      slot: string;
+      doc_slug: string | null;
+    }>) {
+      if (row.slot in result) {
+        result[row.slot as LegalPlacementSlot] = row.doc_slug;
+      }
+    }
+    return result;
+  } catch {
+    return result;
+  }
+}

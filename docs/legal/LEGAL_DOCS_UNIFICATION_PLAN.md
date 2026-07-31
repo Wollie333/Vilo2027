@@ -206,3 +206,46 @@ store: `TERMS_OF_SERVICE.md`, `PRIVACY_POLICY.md`, `PAIA_MANUAL.md`,
 `AFFILIATE_PROGRAM_TERMS.md`, `COMPETITION_RULES.md`. The `/terms` and `/privacy`
 in-code static fallbacks were already updated to the consolidated wording (they
 remain the last-resort fallback under this model).
+
+---
+
+## 12. Build log — Phase 1 (branch `legal`)
+
+Built the **non-affiliate, off-money-path foundation** so it can't collide with
+the affiliate work in flight on `main`:
+
+- **Migration** `supabase/migrations/20260731160000_legal_placements.sql` —
+  `legal_placements` table (slot → doc binding) + RLS (public read, service-role
+  write) + touch trigger; seeds the `terms`/`privacy`/`cookies`/
+  `affiliate-program-terms` docs (UNPUBLISHED skeletons) and the 7 slots.
+- **Resolver** `apps/web/lib/legalDocuments.ts` — `getPlacedDocument(slot)`,
+  `listPlacements()`, and the `LEGAL_PLACEMENT_SLOTS` catalog.
+- **Cookies wired to the store** `apps/web/app/[locale]/cookies/page.tsx` — reads
+  the `cookies` placement; falls back to built-in static copy until a doc is
+  published. (Cookies chosen as the proof: no consent-version, no affiliate
+  overlap.)
+
+**Deferred (own verified phases):** `/terms` + `/privacy` still read
+`platform_settings` — the switch + booking version-stamping is **Phase 2**
+(money path). The affiliate gate still reads `affiliate_settings.terms_content` —
+rewired in a **later phase** to avoid colliding with the affiliate agents. The
+Placements admin panel + lawyer-only role are **Phase 3**.
+
+### ⚠️ Not verified in this session
+No `node_modules` and no Supabase link here, so build/lint/migration/live-render
+could **not** be run. Before relying on this, run:
+
+```bash
+pnpm install
+supabase db push --linked                                   # apply the migration
+supabase gen types typescript --linked > packages/types/database.types.ts
+node scripts/generate-schema-doc.mjs                         # refresh docs/SCHEMA.md
+cd apps/web && pnpm build && pnpm lint
+node scripts/audit-wiring.mjs
+```
+
+**Live-verify the store path (no new admin UI needed):** Admin → Platform
+settings → **Legal documents** → open **Cookies Policy** → paste copy → tick
+**Published** → Save. Then load `/cookies` and confirm it renders the published
+doc (not the static fallback). Publishing the `terms`/`privacy` rows will **not**
+change `/terms` or `/privacy` yet — that's Phase 2 by design.
