@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-31 — Graceful post-capture confirm + affiliate account closure.
+
+- **Graceful UX when a paid booking can't auto-confirm** (`pay-booking.ts`): a `23P01`
+  availability conflict raised *after* the card/PayPal capture used to crash the guest's return
+  page with a raw 500 (money already safe). `handlePostCaptureConfirmError` now, for `23P01` only,
+  leaves the booking pending for reconcile/host, alerts admins (finance) to move dates or refund,
+  and lets the page render the paid state. Other confirm errors still throw (surface bugs). Both rails.
+- **Partner account closure** (migration `20260731140000`): adds a terminal `closed` status +
+  `closed_*` audit columns and `close_affiliate_account()` — sweeps the cleared balance while still
+  active (threshold bypassed), voids pending accrual, then closes. `closeAffiliateAccountAction`
+  (admin, audited) drives it. Completes the SoT §4.2/§10.6 closure sweep-up. Proven live (rolled
+  back): ok=true, sweep ran, status=closed.
+
 ## 2026-07-31 — Root-caused + fixed the PROD card "error page" (quote self-hold blocks confirm).
 
 Pulled the actual error from production runtime logs (no guessing): `/[locale]/pay/[token]` →
