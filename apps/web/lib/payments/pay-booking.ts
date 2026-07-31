@@ -25,6 +25,7 @@ import {
 } from "@/lib/payments/ledger";
 import { postPaymentConfirmedCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { notifyAdmins } from "@/lib/admin/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -420,8 +421,11 @@ export async function confirmHostCardPaymentByReference(opts: {
     .eq("status", "pending")
     .select("id, guest_id");
   if (confirmErr) {
-    throw new Error(
-      `Payment captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
+    await handlePostCaptureConfirmError(
+      admin,
+      opts.bookingId,
+      "Card",
+      confirmErr,
     );
   }
 
@@ -435,6 +439,42 @@ export async function confirmHostCardPaymentByReference(opts: {
   }
 
   return true;
+}
+
+// A booking can fail to confirm with 23P01 (availability conflict) AFTER the card
+// / PayPal payment is already CAPTURED — the dates were genuinely taken in the race
+// window between quote-accept (or create) and pay. The money is safe
+// (payment_status is already 'completed'), so we must NOT crash the guest's return
+// page with a raw 500: leave the booking pending for the reconcile worker / host to
+// resolve, alert admins to move dates or refund, and let the caller render the paid
+// state. ANY OTHER confirm error is an unexpected bug (e.g. a broken invoice
+// trigger) and is re-thrown so it surfaces loudly rather than silently hiding a
+// paid-but-pending booking — the deliberate pre-existing design.
+async function handlePostCaptureConfirmError(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+  rail: "Card" | "PayPal",
+  confirmErr: { code?: string; message: string },
+): Promise<void> {
+  if (confirmErr.code !== "23P01") {
+    throw new Error(
+      `${rail} captured but booking ${bookingId} failed to confirm: ${confirmErr.message}`,
+    );
+  }
+  console.error(
+    `[pay-booking] ${rail} captured but booking ${bookingId} could not auto-confirm (dates conflict); left pending for reconcile/host`,
+  );
+  try {
+    await notifyAdmins(admin, {
+      category: "finance",
+      kind: "booking_paid_unconfirmed",
+      title: "Paid booking couldn’t auto-confirm (dates conflict)",
+      body: `Booking ${bookingId} was paid (${rail}) but the dates are no longer available, so it stayed pending. Resolve manually — move the dates or refund the guest.`,
+      href: `/admin/bookings/${bookingId}`,
+    });
+  } catch {
+    // The alert must never throw back into an already-captured payment.
+  }
 }
 
 // Email + notify the guest their booking is confirmed. Best-effort — a
@@ -561,8 +601,11 @@ export async function capturePayPalOrderForBooking(opts: {
     .eq("status", "pending")
     .select("id, guest_id");
   if (confirmErr) {
-    throw new Error(
-      `PayPal captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
+    await handlePostCaptureConfirmError(
+      admin,
+      opts.bookingId,
+      "PayPal",
+      confirmErr,
     );
   }
 
