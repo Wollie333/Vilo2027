@@ -62,15 +62,26 @@ export async function getHostPaystackForBusiness(
   businessId: string,
 ): Promise<HostPaystack | null> {
   const supabase = createAdminClient();
-  const { data: row } = await supabase
+  // A business can end up with more than one paystack gateway row — e.g. a
+  // re-connect that inserted a second row. `.maybeSingle()` ERRORS on multiple
+  // rows and returns null, which silently drops the card rail and fails every
+  // card payment for that business. So read ALL enabled rows (newest first) and
+  // return the first that actually resolves to a usable key — a stray or empty
+  // duplicate can never again knock out a business's card payments.
+  const { data: rows } = await supabase
     .from("host_payment_gateways")
     .select(
       "mode, test_secret_cipher, live_secret_cipher, statement_descriptor, is_enabled",
     )
     .eq("business_id", businessId)
     .eq("gateway", "paystack")
-    .maybeSingle();
-  return paystackFromRow(row);
+    .eq("is_enabled", true)
+    .order("created_at", { ascending: false });
+  for (const row of rows ?? []) {
+    const resolved = paystackFromRow(row);
+    if (resolved) return resolved;
+  }
+  return null;
 }
 
 /**

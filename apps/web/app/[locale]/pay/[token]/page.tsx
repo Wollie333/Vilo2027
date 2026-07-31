@@ -72,7 +72,7 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, deposit_amount, balance_due_date, currency, guest_name, listing:properties!inner ( name, host_id, business_id, city, province, property_photos ( url, sort_order ) )",
+      "id, reference, scope, status, payment_status, payment_method, origin, check_in, check_out, nights, guests_count, total_amount, deposit_amount, balance_due_date, currency, guest_name, listing:properties!inner ( name, host_id, business_id, city, province, property_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -188,11 +188,17 @@ export default async function PayPage({
       )
     : null;
 
-  // EFT only appears when the HOST chose EFT for this booking — otherwise this
-  // link is for immediate card payment only.
-  const hostChoseEft =
-    booking.payment_method === "eft" || booking.status === "pending_eft";
-  const banking = hostChoseEft ? (party?.banking ?? null) : null;
+  // Show EFT when the host actually offers it. A card-immediate pay link stays
+  // card-only, but a QUOTE-converted booking carries a pending EFT deposit and
+  // NO payment_method — gating EFT purely on that flag dead-ended EFT-only hosts
+  // ("Payment isn't set up for this booking yet"). So also treat a
+  // quote-converted booking as EFT-eligible; `party.banking` is null when the
+  // host has no bank details, so nothing renders for a card-only host either.
+  const eftEligible =
+    booking.payment_method === "eft" ||
+    booking.status === "pending_eft" ||
+    booking.origin === "quote_converted";
+  const banking = eftEligible ? (party?.banking ?? null) : null;
 
   const locationLine = [listing.city, listing.province]
     .filter(Boolean)
@@ -354,9 +360,9 @@ export default async function PayPage({
               )}
             </div>
 
-            {/* EFT only when the host chose it for this booking; otherwise this
-                link is immediate card payment. */}
-            {hostChoseEft && banking ? (
+            {/* EFT when the host offers it (incl. quote-converted deposits);
+                otherwise this link is immediate card payment. */}
+            {eftEligible && banking ? (
               <div className="rounded-card border border-brand-line bg-white">
                 <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3 font-display font-semibold text-brand-ink">
                   <Building2 className="h-4 w-4 text-brand-mute" />
