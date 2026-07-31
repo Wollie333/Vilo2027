@@ -18,6 +18,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // route (WS-1.7) drops the same cookie later.
 
 export const dynamic = "force-dynamic";
+// A cached read here is a correctness bug: campaign eligibility (status + window)
+// and the affiliate's active state must reflect the LIVE row, or a paused/ended
+// competition keeps tagging referrals from the Data Cache. Force every fetch in
+// this handler fresh (belt: segment config; braces: the no-store admin client).
+export const fetchCache = "force-no-store";
 
 export async function GET(
   req: NextRequest,
@@ -32,7 +37,8 @@ export async function GET(
   const slug = params.slug?.trim();
   if (!slug) return res;
 
-  const admin = createAdminClient();
+  // no-store: this handler decides live attribution — never off a cached read.
+  const admin = createAdminClient({ noStore: true });
 
   const { data: aff } = await admin
     .from("affiliate_accounts")
@@ -46,7 +52,7 @@ export async function GET(
     .select("cookie_days, attribution_model")
     .eq("id", true)
     .maybeSingle();
-  const cookieDays = settings?.cookie_days ?? 30;
+  const cookieDays = settings?.cookie_days ?? 90;
   const model = settings?.attribution_model ?? "last_click";
 
   // Optional campaign tag. Resolve the slug to an ACTIVE, in-window campaign that

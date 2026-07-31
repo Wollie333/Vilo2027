@@ -103,7 +103,8 @@ export async function getCompetitionTrialOffer(): Promise<
     }
     if (!payload?.camp) return null;
 
-    const admin = createAdminClient();
+    // Live read: the trial hinges on the campaign's current window, same as /r.
+    const admin = createAdminClient({ noStore: true });
     const offer = await resolveTrialOfferForCampaign(
       admin,
       payload.camp,
