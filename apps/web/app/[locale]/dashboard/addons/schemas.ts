@@ -84,7 +84,12 @@ export function computeAddonSubtotal(
       : model === "per_couple"
         ? Math.ceil(guests / 2)
         : 1;
-  return unitPrice * quantity * guestFactor;
+  // Round to whole cents. This is a money value that gets PERSISTED
+  // (booking_addons.subtotal is an unbounded numeric, so it stores whatever it's
+  // given) and summed into the booking total — an unrounded product like
+  // 99.99 × 3 = 299.96999999999997 would otherwise land in the ledger. Matches
+  // the checkout + quote-convert paths, which already round.
+  return Math.round(unitPrice * quantity * guestFactor * 100) / 100;
 }
 
 /**
