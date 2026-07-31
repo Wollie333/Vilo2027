@@ -136,6 +136,9 @@ export default async function PortalLayout({
                 avatarUrl={profile?.avatar_url ?? null}
                 profileHref="/portal/settings"
                 settingsHref="/portal/settings"
+                current="guest"
+                canHost={canHost}
+                canAdmin={staff?.is_active === true}
               />
             </>
           }

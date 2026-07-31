@@ -220,6 +220,8 @@ export default async function DashboardLayout({
                   initials={initials}
                   email={user.email ?? ""}
                   avatarUrl={avatarUrl}
+                  current="host"
+                  canAdmin={isPlatformStaff}
                 />
               </>
             }
