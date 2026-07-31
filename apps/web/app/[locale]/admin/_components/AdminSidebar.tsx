@@ -184,10 +184,23 @@ const PLATFORM: GmailNavItem[] = [
   },
 ];
 
+// Legal documents hub — the single source of truth for Terms, Privacy, Cookies,
+// affiliate & competition rules, plus their placements. A dedicated section so a
+// Legal Counsel (legal.docs only) has a clean top-level entry.
+const LEGAL: GmailNavItem[] = [
+  {
+    href: "/admin/legal",
+    label: "Legal docs",
+    icon: ScrollText,
+    match: "prefix",
+  },
+];
+
 // Nav item → the admin permission key required to USE its page. Only real keys
 // (admin_permissions); items absent here are always shown. super_admin holds
 // every key, so it sees the full rail; narrower roles only see what they can open.
 const NAV_PERM: Record<string, string> = {
+  "/admin/legal": "legal.docs",
   "/admin/inbox": "notifications.send_individual",
   "/admin/users": "users.view",
   "/admin/properties": "listings.edit",
@@ -239,6 +252,7 @@ export function AdminSidebar({
     { label: "Finance", items: vis(FINANCE) },
     { label: "Moderation", items: vis(MODERATION) },
     // Help centre hidden for MVP (Help & docs disabled site-wide).
+    { label: "Legal", items: vis(LEGAL) },
     {
       label: "Platform",
       items: vis(PLATFORM),

@@ -75,8 +75,11 @@ export const AUDIT_TARGET_TYPES = [
 type AuditTargetType = (typeof AUDIT_TARGET_TYPES)[number];
 
 export type AuditConfig<TArgs> = {
-  /** Permission key the caller must hold. */
-  permissionKey: PermissionKey;
+  /**
+   * Permission key the caller must hold. An array grants access if the caller
+   * holds ANY of the keys (any-of), e.g. ["legal.docs", "platform.settings"].
+   */
+  permissionKey: PermissionKey | readonly PermissionKey[];
   /** Short, machine-readable action name (e.g. "listing.update_basic"). */
   actionName: string;
   /** target_type for the audit row. */

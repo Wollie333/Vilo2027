@@ -289,3 +289,48 @@ number.
 **Deferred still:** affiliate gate rewire (later, avoids collision); Placements
 admin panel + lawyer role + retiring `platform_settings.legal_*` / `lib/legal.ts`
 (Phase 3).
+
+## 14. Build log — Phase 3 (branch `legal`)
+
+### 3a — Placements admin panel
+- `PlacementsPanel.tsx` + `saveLegalPlacementAction` (writes `legal_placements`,
+  revalidates public surfaces), added to Admin → Legal documents. Each slot gets
+  a dropdown of documents; draft bindings flagged. Gated + audited.
+
+### 3b — Legal Counsel role (lawyer login, legal-docs only)
+- **Migration** `20260731170000_legal_docs_permission.sql` — adds the
+  `legal.docs` permission, grants it to `super_admin` + `ops`, and creates a
+  `legal_counsel` role holding only `legal.docs`.
+- **Any-of permissions** — `requirePermission` / `hasPermission` /
+  `withAdminAudit` now accept an **array** of keys (grants on ANY). The two
+  legal-doc actions are gated on `["legal.docs", "platform.settings"]`.
+- **Dedicated route** `/admin/legal` (own layout gated by the same OR) renders
+  the Placements panel + Documents manager — a lawyer's screen with no other
+  admin access. Sidebar shows a "Legal" section to anyone holding `legal.docs`.
+
+**Zero-regression by design:** the OR-gate means existing admins
+(super_admin/ops via `platform.settings`) keep managing legal docs **even before
+the migration applies**. Only the new `legal_counsel` role depends on the
+migration — and it fails *closed* until then.
+
+**⚠️ Apply-ordering:** the migration should land with (or before) this code. If
+code is live but the migration hasn't run, nothing breaks (OR-gate), but the
+`legal_counsel` role simply won't work and the "Legal" nav item won't show for a
+counsel-only user until it does. With Supabase Branching, the migration applies
+to the branch DB on push.
+
+**To onboard the lawyer:** invite them as staff with the **Legal Counsel** role
+(Admin → staff). They sign in, see only **Legal**, and can edit/publish/place
+every legal document.
+
+### Verify Phase 3 (after `supabase db push`)
+1. As an existing admin: `/admin/legal` loads; change a Placement dropdown →
+   the bound public page updates; the legacy settings/legal banner shows.
+2. Create a `legal_counsel` staff user → they see only the Legal section, can
+   publish + place docs, and are redirected from other admin routes.
+3. `pnpm build && pnpm lint`; `node scripts/audit-wiring.mjs`.
+
+### Still open (a genuine Phase 4)
+Retire `platform_settings.legal_*` + `lib/legal.ts` + the deprecated legacy
+editor once confirmed unused; rewire the affiliate gate to the
+`affiliate_program_terms` placement (after the affiliate agents' work lands).

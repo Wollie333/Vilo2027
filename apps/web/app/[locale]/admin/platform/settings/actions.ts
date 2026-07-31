@@ -178,7 +178,7 @@ export const saveLegalDocumentAction = withAdminAudit<
   { ok: true; version: number }
 >(
   {
-    permissionKey: "platform.settings",
+    permissionKey: ["legal.docs", "platform.settings"],
     actionName: "platform.settings.legal_document",
     targetType: "platform_setting",
     getTargetId: () => LEGAL_DOCS_SETTING_ID,
@@ -265,7 +265,7 @@ export const saveLegalPlacementAction = withAdminAudit<
   { ok: true }
 >(
   {
-    permissionKey: "platform.settings",
+    permissionKey: ["legal.docs", "platform.settings"],
     actionName: "platform.settings.legal_placement",
     targetType: "platform_setting",
     getTargetId: () => LEGAL_DOCS_SETTING_ID,

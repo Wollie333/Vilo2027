@@ -27,6 +27,7 @@ export type PermissionKey =
   | "platform.settings"
   | "platform.features"
   | "platform.staff"
+  | "legal.docs"
   | "audit.view"
   | "help.manage"
   | "taxonomy.manage"
@@ -55,7 +56,7 @@ export type PermissionKey =
  * Always call requireAdmin() implicitly first.
  */
 export async function requirePermission(
-  permissionKey: PermissionKey,
+  permissionKey: PermissionKey | readonly PermissionKey[],
 ): Promise<AdminContext> {
   let admin: AdminContext;
   try {
@@ -67,32 +68,52 @@ export async function requirePermission(
     throw err;
   }
 
-  const supabase = createServerClient();
-  const { data, error } = await supabase.rpc("has_admin_permission", {
-    p_key: permissionKey,
-  });
+  // Any-of semantics: an array grants access if the caller holds ANY of the keys
+  // (e.g. legal docs are managed by "legal.docs" OR "platform.settings"). A bare
+  // key behaves exactly as before.
+  const keys: readonly PermissionKey[] = Array.isArray(permissionKey)
+    ? permissionKey
+    : [permissionKey];
+  const keyLabel = keys.join("|");
 
-  if (error || data !== true) {
+  const supabase = createServerClient();
+  let granted = false;
+  let rpcError = false;
+  for (const key of keys) {
+    const { data, error } = await supabase.rpc("has_admin_permission", {
+      p_key: key,
+    });
+    if (error) {
+      rpcError = true;
+      continue;
+    }
+    if (data === true) {
+      granted = true;
+      break;
+    }
+  }
+
+  if (!granted) {
     // Surface the underlying cause in Vercel server logs so a misconfigured
     // DB (missing function, AAL2 still enforced via the un-applied
     // 20260525000009 migration, missing seed row) is diagnosable. The user
-    // lands on /admin/no-access either way.
-    if (error) {
+    // lands on /admin/no-access either way. rpcError only when EVERY key errored
+    // (and none granted) — a clean false is a genuine denial, not a fault.
+    if (rpcError) {
       console.error("[admin:requirePermission] RPC failed", {
-        permissionKey,
+        permissionKey: keyLabel,
         adminUserId: admin.userId,
-        rpcError: error.message,
       });
     } else {
       console.warn("[admin:requirePermission] permission denied", {
-        permissionKey,
+        permissionKey: keyLabel,
         adminUserId: admin.userId,
       });
     }
-    await logDeniedAttempt(admin.userId, permissionKey);
+    await logDeniedAttempt(admin.userId, keyLabel);
     redirect(
-      `/admin/no-access?key=${encodeURIComponent(permissionKey)}${
-        error ? "&reason=rpc_error" : ""
+      `/admin/no-access?key=${encodeURIComponent(keyLabel)}${
+        rpcError ? "&reason=rpc_error" : ""
       }`,
     );
   }
@@ -105,13 +126,19 @@ export async function requirePermission(
  * but does NOT log — UI checks happen on every render and would flood the log.
  */
 export async function hasPermission(
-  permissionKey: PermissionKey,
+  permissionKey: PermissionKey | readonly PermissionKey[],
 ): Promise<boolean> {
+  const keys: readonly PermissionKey[] = Array.isArray(permissionKey)
+    ? permissionKey
+    : [permissionKey];
   const supabase = createServerClient();
-  const { data } = await supabase.rpc("has_admin_permission", {
-    p_key: permissionKey,
-  });
-  return data === true;
+  for (const key of keys) {
+    const { data } = await supabase.rpc("has_admin_permission", {
+      p_key: key,
+    });
+    if (data === true) return true;
+  }
+  return false;
 }
 
 async function logDeniedAttempt(adminId: string, permissionKey: string) {
