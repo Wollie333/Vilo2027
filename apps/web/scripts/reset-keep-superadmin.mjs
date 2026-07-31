@@ -32,6 +32,17 @@ const admin = createClient(URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+// System / infrastructure accounts that must NEVER be deleted, regardless of
+// their user_profiles.role. support@wielo.co.za is the identity behind the
+// host↔Wielo support inbox (conversations.channel='platform') — deleting it
+// breaks support messaging for every host. It is NOT a user.
+const SYSTEM_EMAILS = new Set(["support@wielo.co.za"]);
+
+// Founder working logins to preserve through a wipe (not admins, not system —
+// just accounts the founder wants to keep able to sign in). Founder choice
+// 2026-07-31.
+const KEEP_EMAILS = new Set(["wollie333@gmail.com", "sumasteenkamp@gmail.com"]);
+
 // ── 1. Enumerate every auth user ────────────────────────────────────────
 async function listAllAuthUsers() {
   const all = [];
@@ -68,13 +79,25 @@ async function fetchProfiles() {
   return map;
 }
 
+// ── Platform admins are defined by platform_staff (is_active), NOT by
+//    user_profiles.role. This is the platform's real admin model.
+async function fetchActiveStaffIds() {
+  const { data, error } = await admin
+    .from("platform_staff")
+    .select("user_id, role_id, is_active")
+    .eq("is_active", true);
+  if (error) throw new Error(`platform_staff read failed: ${error.message}`);
+  return new Map(data.map((s) => [s.user_id, s.role_id]));
+}
+
 async function main() {
   console.log(`\nProject: ${URL}`);
   console.log(`Mode:    ${COMMIT ? "COMMIT (will delete)" : "DRY RUN (no changes)"}\n`);
 
-  const [users, profiles] = await Promise.all([
+  const [users, profiles, staff] = await Promise.all([
     listAllAuthUsers(),
     fetchProfiles(),
+    fetchActiveStaffIds(),
   ]);
 
   const keep = [];
@@ -82,25 +105,36 @@ async function main() {
   for (const u of users) {
     const prof = profiles.get(u.id);
     const role = prof?.role ?? null;
+    const email = u.email ?? prof?.email ?? "(no email)";
+    const isStaff = staff.has(u.id);
+    const isSystem = SYSTEM_EMAILS.has(email);
+    const isKept = KEEP_EMAILS.has(email);
     const row = {
       id: u.id,
-      email: u.email ?? prof?.email ?? "(no email)",
+      email,
       role: role ?? "(no profile)",
+      reason: isStaff
+        ? `admin:${staff.get(u.id)}`
+        : isSystem
+          ? "system"
+          : isKept
+            ? "founder-keep"
+            : null,
     };
-    if (role === "super_admin") keep.push(row);
+    if (isStaff || isSystem || isKept) keep.push(row);
     else remove.push(row);
   }
 
-  console.log(`KEEP — super admins (${keep.length}):`);
-  for (const k of keep) console.log(`   ✓ ${k.email}   [${k.role}]`);
+  console.log(`KEEP — admins + system users (${keep.length}):`);
+  for (const k of keep) console.log(`   ✓ ${k.email}   [${k.role}] (${k.reason})`);
   console.log(`\nDELETE — all other users (${remove.length}):`);
   for (const r of remove) console.log(`   ✗ ${r.email}   [${r.role}]`);
   console.log("");
 
   if (keep.length === 0) {
     console.error(
-      "ABORT: no super_admin found — refusing to delete every user. " +
-        "Set a user's user_profiles.role to 'super_admin' first.",
+      "ABORT: no admin/system account found — refusing to delete every user. " +
+        "Expected at least one active platform_staff member.",
     );
     process.exit(1);
   }
