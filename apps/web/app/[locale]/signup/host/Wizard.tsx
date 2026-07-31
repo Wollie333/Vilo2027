@@ -750,6 +750,7 @@ export function Wizard({
         return (
           <StepWelcome
             data={data}
+            product={products.find((p) => p.slug === data.productSlug) ?? null}
             finalizePending={finalizePending}
             finalizeResult={finalizeResult}
             next={next}
@@ -1849,17 +1850,23 @@ function StepPlan({
               </div>
 
               <ul className="mt-4 space-y-2">
-                {p.bullets.map((f, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2 text-xs text-brand-ink"
-                  >
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                    <span className="leading-snug">
-                      {f.replace(/Wielo/g, brandName)}
-                    </span>
-                  </li>
-                ))}
+                {/* Capabilities come from the product's admin feature config
+                    (product_features), so what's advertised is exactly what the
+                    plan unlocks. Falls back to the marketing bullets only when a
+                    product has no features configured. */}
+                {(p.capabilities.length ? p.capabilities : p.bullets).map(
+                  (f, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-xs text-brand-ink"
+                    >
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                      <span className="leading-snug">
+                        {f.replace(/Wielo/g, brandName)}
+                      </span>
+                    </li>
+                  ),
+                )}
               </ul>
             </button>
           );
@@ -1936,23 +1943,48 @@ function Confetti() {
 
 function StepWelcome({
   data,
+  product,
   finalizePending,
   finalizeResult,
   next = null,
 }: {
   data: WizardData;
+  /** The DB product the host chose — the source of truth for the receipt so the
+   *  price + capabilities always match the toolkit + the admin catalog. */
+  product: CatalogProduct | null;
   finalizePending: boolean;
   finalizeResult: FinalizeOnboardingData | null;
   next?: string | null;
 }) {
-  // Resolve the plan the user picked. PLANS is the source of truth for
-  // pricing + features so the receipt always matches what was shown on
-  // the Plan step.
   const brandName = useBrandName();
-  const plan = PLANS.find((p) => p.value === data.plan) ?? PLANS[0];
-  const isFree = plan.value === "free";
   const cycle = data.billingCycle;
-  const baseAmount = cycle === "annual" ? plan.annual : plan.monthly;
+  // The chosen DB product is authoritative for name/price/capabilities. Fall back
+  // to the PLANS mirror only for the product-less Free tier (no selection).
+  const planFallback = PLANS.find((p) => p.value === data.plan) ?? PLANS[0];
+  const planName = product?.name ?? planFallback.name;
+  const planBlurb = product?.description ?? planFallback.blurb;
+  const planTag =
+    product != null
+      ? product.trialDays > 0
+        ? `${product.trialDays}-day free trial`
+        : null
+      : planFallback.tag;
+  const planFeatures =
+    product != null
+      ? product.capabilities.length
+        ? product.capabilities
+        : product.bullets
+      : planFallback.features;
+  const isFree =
+    product != null ? product.isFree : planFallback.value === "free";
+  const baseAmount =
+    product != null
+      ? cycle === "annual" && product.annualPrice != null
+        ? product.annualPrice
+        : product.price
+      : cycle === "annual"
+        ? planFallback.annual
+        : planFallback.monthly;
   // 15% VAT is South Africa's standard rate. We assume the displayed plan
   // price is VAT-inclusive (industry standard for consumer SaaS in SA), so
   // we split it out on the receipt for transparency.
@@ -2003,15 +2035,15 @@ function StepWelcome({
               </div>
               <div className="mt-1 flex items-center gap-2">
                 <span className="font-display text-xl font-bold text-brand-ink">
-                  {plan.name}
+                  {planName}
                 </span>
-                {plan.tag ? (
+                {planTag ? (
                   <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-secondary">
-                    {plan.tag}
+                    {planTag}
                   </span>
                 ) : null}
               </div>
-              <div className="mt-1 text-xs text-brand-mute">{plan.blurb}</div>
+              <div className="mt-1 text-xs text-brand-mute">{planBlurb}</div>
             </div>
             <div className="text-right">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -2035,7 +2067,7 @@ function StepWelcome({
             <div className="flex items-center justify-between border-b border-brand-line pb-3">
               <div>
                 <div className="text-sm font-semibold text-brand-ink">
-                  {plan.name} plan · {cycle === "annual" ? "Annual" : "Monthly"}
+                  {planName} plan · {cycle === "annual" ? "Annual" : "Monthly"}
                 </div>
                 <div className="mt-0.5 text-xs text-brand-mute">
                   Billed {cycle === "annual" ? "yearly" : "monthly"} · cancel
@@ -2050,7 +2082,7 @@ function StepWelcome({
             </div>
 
             <ul className="mt-3 space-y-1.5">
-              {plan.features.map((f) => (
+              {planFeatures.map((f) => (
                 <li
                   key={f}
                   className="flex items-start gap-2 text-xs text-brand-mute"

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CANONICAL_PRODUCT_FEATURES, FEATURE_BY_KEY } from "./features";
 
 // Read model for the public product catalog (pricing page + signup). Reads the
 // DB `products` table — the single source of truth the admin Products hub edits.
@@ -33,7 +34,14 @@ export type CatalogProduct = {
   setupFeeLabel: string | null;
   isRecommended: boolean;
   isFree: boolean;
+  /** Marketing bullet list (hand-entered on the product). */
   bullets: string[];
+  /**
+   * The product's REAL capabilities, derived from its `product_features` (the
+   * admin's feature config) via the canonical catalog — so what a plan advertises
+   * always matches what it actually unlocks. Ordered by the canonical catalog.
+   */
+  capabilities: string[];
   paymentMethods: string[];
   /** For a wielo_credits package: how many credits it grants + the wallet. */
   creditQuantity: number | null;
@@ -54,6 +62,57 @@ function toBullets(raw: unknown): string[] {
     : [];
 }
 
+/**
+ * Turn one enabled product_feature into a human capability line, using the
+ * canonical label + its allowance. Toggles read as the label; quantity features
+ * carry their limit (`Unlimited`/`0`/`N`). Returns null for a feature not in the
+ * canonical catalog (unknown key) so we never surface a raw feature_key.
+ */
+function capabilityLine(
+  featureKey: string,
+  limitValue: number | null,
+): string | null {
+  const def = FEATURE_BY_KEY[featureKey];
+  if (!def) return null;
+  if (def.scope === "toggle") return def.label;
+  // total | per_business — show the allowance.
+  if (limitValue === null) return `Unlimited ${def.label.toLowerCase()}`;
+  if (limitValue <= 0) return null; // an allowance of zero grants nothing
+  return `${limitValue} ${def.label}`;
+}
+
+/**
+ * Build each product's capability list from its enabled `product_features`, in
+ * the canonical catalog order so every plan reads consistently. This is the SoT
+ * for "what a plan unlocks" on the pricing page + signup — never a hand-kept list.
+ */
+function buildCapabilities(
+  rows: {
+    product_id: string;
+    feature_key: string;
+    is_enabled: boolean | null;
+    limit_value: number | null;
+  }[],
+): Map<string, string[]> {
+  const byProduct = new Map<string, Map<string, number | null>>();
+  for (const r of rows) {
+    if (r.is_enabled !== true) continue;
+    if (!byProduct.has(r.product_id)) byProduct.set(r.product_id, new Map());
+    byProduct.get(r.product_id)!.set(r.feature_key, r.limit_value);
+  }
+  const out = new Map<string, string[]>();
+  for (const [productId, feats] of byProduct) {
+    const lines: string[] = [];
+    for (const def of CANONICAL_PRODUCT_FEATURES) {
+      if (!feats.has(def.key)) continue;
+      const line = capabilityLine(def.key, feats.get(def.key) ?? null);
+      if (line) lines.push(line);
+    }
+    out.set(productId, lines);
+  }
+  return out;
+}
+
 async function load(
   types: string[] = ["membership", "service"],
   visibleOnly = true,
@@ -71,6 +130,25 @@ async function load(
   // Each signup shows only its own plans (host vs quote-only).
   if (accountKind) q = q.eq("account_kind", accountKind);
   const { data } = await q.order("sort_order", { ascending: true });
+
+  // Real capabilities per product, from its admin-configured product_features
+  // (the same table check_feature_permission resolves through), so the pricing
+  // page + signup advertise exactly what each plan unlocks.
+  const productIds = (data ?? []).map((p) => p.id);
+  const { data: featureRows } = productIds.length
+    ? await db
+        .from("product_features")
+        .select("product_id, feature_key, is_enabled, limit_value")
+        .in("product_id", productIds)
+    : { data: [] as never[] };
+  const capabilitiesByProduct = buildCapabilities(
+    (featureRows ?? []) as {
+      product_id: string;
+      feature_key: string;
+      is_enabled: boolean | null;
+      limit_value: number | null;
+    }[],
+  );
 
   // Compute units-sold ONLY for capped products (usually 0–2) so uncapped
   // catalogs stay a single query. One authoritative counter (product_units_sold).
@@ -103,6 +181,7 @@ async function load(
     isRecommended: p.is_recommended ?? false,
     isFree: Number(p.price ?? 0) <= 0,
     bullets: toBullets(p.bullets),
+    capabilities: capabilitiesByProduct.get(p.id) ?? [],
     paymentMethods: Array.isArray(p.payment_methods)
       ? (p.payment_methods as string[])
       : ["paystack"],
