@@ -3,6 +3,10 @@
 import { headers } from "next/headers";
 
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
+import {
+  resolveTrialOfferForCampaign,
+  type CompetitionTrialOffer,
+} from "@/lib/affiliate/trialOffer";
 import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
@@ -533,10 +537,53 @@ export async function finalizeOnboardingAction(
     }
   }
 
-  // 4. Subscription — Free unless a purchased product maps to a paid plan.
+  // 3c. Competition free-trial. A host who signed up through a partner link
+  //     during an active competition that grants a host_trial starts on a
+  //     TRIALING subscription for the competition's dedicated product — no
+  //     charge now — instead of the Free tier. Server-authoritative: we
+  //     re-resolve from the referral bound at account creation (keyed on the
+  //     user), NOT from any client-supplied toolkit prop. A buy-first flow
+  //     (purchased_order_token) is never a trial.
+  let trialOffer: CompetitionTrialOffer | null = null;
+  let trialPlan: typeof resolvedPlan = resolvedPlan;
+  if (!d.purchased_order_token) {
+    const { data: ref } = await admin
+      .from("affiliate_referrals")
+      .select("campaign_id")
+      .eq("referred_user_id", user.id)
+      .maybeSingle();
+    if (ref?.campaign_id) {
+      trialOffer = await resolveTrialOfferForCampaign(
+        admin,
+        ref.campaign_id,
+        Date.now(),
+      );
+    }
+    if (trialOffer) {
+      // Feature-gating resolves from product_features (the trial product), but
+      // keep `plan` a valid plans.key for the legacy fallback + display.
+      const { data: tprod } = await admin
+        .from("products")
+        .select("plan_key, slug")
+        .eq("id", trialOffer.productId)
+        .maybeSingle();
+      const tKey = tprod?.plan_key ?? tprod?.slug ?? null;
+      if (tKey) {
+        const { data: planRow } = await admin
+          .from("plans")
+          .select("key")
+          .eq("key", tKey)
+          .maybeSingle();
+        if (planRow) trialPlan = planRow.key as typeof resolvedPlan;
+      }
+    }
+  }
+
+  // 4. Subscription — Free unless a purchased product maps to a paid plan, or a
+  //    competition trial places them on a trialing sub for its product.
   //    product_id records the exact catalog product (drives gating). Payment
   //    auto-renewal lands later.
-  //    A host with NO active subscription resolves NO entitlements
+  //    A host with NO active/trialing subscription resolves NO entitlements
   //    (check_feature_permission finds nothing) — so this is gating-critical.
   //    Guard against a duplicate on a re-run/double-submit, and surface a
   //    failure loudly instead of silently stranding a host with no sub.
@@ -544,19 +591,37 @@ export async function finalizeOnboardingAction(
     .from("subscriptions")
     .select("id")
     .eq("host_id", host.id)
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .limit(1)
     .maybeSingle();
   if (!existingSub) {
-    const { error: subErr } = await admin.from("subscriptions").insert({
-      host_id: host.id,
-      plan: resolvedPlan,
-      product_id: resolvedProductId,
-      status: "active",
-    });
+    const subRow: {
+      host_id: string;
+      plan: typeof resolvedPlan;
+      product_id: string | null;
+      status: "active" | "trialing";
+      trial_ends_at?: string;
+      billing_cycle?: string;
+    } = trialOffer
+      ? {
+          host_id: host.id,
+          plan: trialPlan,
+          product_id: trialOffer.productId,
+          status: "trialing",
+          trial_ends_at: trialOffer.trialEndsAt,
+          billing_cycle: "monthly",
+        }
+      : {
+          host_id: host.id,
+          plan: resolvedPlan,
+          product_id: resolvedProductId,
+          status: "active",
+        };
+    const { error: subErr } = await admin.from("subscriptions").insert(subRow);
     if (subErr) {
-      console.error("[signup:host] active subscription insert failed", {
+      console.error("[signup:host] subscription insert failed", {
         hostId: host.id,
+        trialing: Boolean(trialOffer),
         error: subErr.message,
       });
     }
@@ -568,7 +633,9 @@ export async function finalizeOnboardingAction(
   // already subscribed at signup skips this (they get subscription_welcome
   // instead). Best-effort — a notification hiccup must never fail signup. Deduped
   // per host, so a re-run can't double-send.
-  if (resolvedPlan === "free" && !resolvedProductId) {
+  //    A competition-trial host is NOT a free-tier prospect — they already have
+  //    full access on the trial — so they skip this paid-plan nurture.
+  if (resolvedPlan === "free" && !resolvedProductId && !trialOffer) {
     try {
       await dispatchEvent({
         kind: "host_offer_welcome",

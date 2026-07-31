@@ -87,6 +87,18 @@ const STEPS = [
 ] as const;
 type StepKey = (typeof STEPS)[number]["key"];
 
+/** The competition free-trial offer shown on the toolkit step (display-only —
+ *  the finalize action re-resolves it server-side before creating the sub). */
+type TrialOfferView = {
+  campaignName: string;
+  partnerName: string | null;
+  productName: string;
+  priceMonthly: number;
+  priceAnnual: number | null;
+  currency: string;
+  trialEndsAt: string;
+};
+
 type WizardData = {
   // account — captured as two fields; fullName is kept in sync (combined) for
   // storage + display so downstream code is unchanged.
@@ -288,6 +300,7 @@ export function Wizard({
   leadCity = null,
   categoryLeaves = [],
   products = [],
+  trialOffer = null,
   purchasedProductName = null,
   purchasedOrderToken = null,
   purchasedEmail = null,
@@ -316,6 +329,10 @@ export function Wizard({
   }>;
   // Real subscription products to choose from in the toolkit step.
   products?: CatalogProduct[];
+  // Set when the host arrived via a partner link during an active competition
+  // that grants a free trial — the toolkit step shows the trial instead of the
+  // paid picker, and no payment is taken (finalize creates a `trialing` sub).
+  trialOffer?: TrialOfferView | null;
   // Set when the user paid for a product before signing up. The toolkit step is
   // locked to that purchase and the account email is prefilled + locked.
   purchasedProductName?: string | null;
@@ -580,7 +597,9 @@ export function Wizard({
     const chosen = purchasedOrderToken
       ? null
       : (products.find((p) => p.slug === data.productSlug) ?? null);
-    const isPaid = !!chosen && !chosen.isFree;
+    // A competition trial takes no payment now — finalize creates a trialing sub
+    // for the competition product regardless of any picker state.
+    const isPaid = !trialOffer && !!chosen && !chosen.isFree;
 
     // Always finalize first (writes host + a Free subscription baseline). Only
     // then, for a paid pick, send them to checkout — the webhook upgrades their
@@ -676,11 +695,13 @@ export function Wizard({
       : current.key === "plan"
         ? finalizePending
           ? "Setting up…"
-          : purchasedProductName
-            ? "Finish setup"
-            : chosenProduct && !chosenProduct.isFree
-              ? "Continue to payment"
-              : "Start free"
+          : trialOffer
+            ? "Start my access"
+            : purchasedProductName
+              ? "Finish setup"
+              : chosenProduct && !chosenProduct.isFree
+                ? "Continue to payment"
+                : "Start free"
         : "Continue";
   const nextDisabled = createPending || finalizePending;
 
@@ -724,6 +745,7 @@ export function Wizard({
         return (
           <StepPlan
             stepIndex={currentIndex}
+            trialOffer={trialOffer}
             purchasedProductName={purchasedProductName}
             products={products}
             selectedSlug={data.productSlug}
@@ -1623,6 +1645,7 @@ function StepListing({
 
 function StepPlan({
   stepIndex,
+  trialOffer = null,
   purchasedProductName = null,
   products = [],
   selectedSlug = null,
@@ -1634,6 +1657,7 @@ function StepPlan({
   onPromoRemoved,
 }: {
   stepIndex: number;
+  trialOffer?: TrialOfferView | null;
   purchasedProductName?: string | null;
   products?: CatalogProduct[];
   selectedSlug?: string | null;
@@ -1645,6 +1669,79 @@ function StepPlan({
   onPromoRemoved?: () => void;
 }) {
   const brandName = useBrandName();
+
+  // Arrived via a partner link during an active competition that grants a free
+  // trial — show the trial, not the paid picker. No payment is taken now; the
+  // finalize action creates a `trialing` sub for the competition product.
+  if (trialOffer) {
+    const endDate = new Date(trialOffer.trialEndsAt).toLocaleDateString(
+      "en-ZA",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      },
+    );
+    const money = (n: number) =>
+      "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+    return (
+      <div className="wielo-step-enter">
+        <StepHeading
+          stepIndex={stepIndex}
+          title={`You're joining the ${trialOffer.campaignName}`}
+          subtitle={`Full access while you help us build ${brandName} — you won't pay anything now.`}
+        />
+        <div className="mt-7 rounded-card border border-brand-primary bg-white p-6 shadow-glow">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-primary text-white">
+              <Check className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Full access
+                {trialOffer.partnerName
+                  ? ` · referred by ${trialOffer.partnerName}`
+                  : ""}
+              </div>
+              <div className="font-display text-lg font-bold text-brand-ink">
+                {trialOffer.productName}
+              </div>
+              <p className="mt-1 text-xs text-brand-mute">
+                Everything on the plan, unlocked until{" "}
+                <span className="font-semibold text-brand-ink">{endDate}</span>.
+                No card required today.
+              </p>
+            </div>
+            <span className="ml-auto shrink-0 self-center rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11px] font-semibold text-status-confirmed">
+              No charge until {endDate}
+            </span>
+          </div>
+        </div>
+        <div className="mt-5 flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div className="text-xs leading-relaxed text-brand-mute">
+            When your trial ends you can continue for{" "}
+            <span className="font-semibold text-brand-ink">
+              {money(trialOffer.priceMonthly)}/month
+            </span>
+            {trialOffer.priceAnnual != null ? (
+              <>
+                {" "}
+                or{" "}
+                <span className="font-semibold text-brand-ink">
+                  {money(trialOffer.priceAnnual)}/year
+                </span>
+              </>
+            ) : null}{" "}
+            — locked at that rate for as long as you stay. You choose then;
+            nothing is charged now.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Came in from a paid product link — they're already subscribed, so lock the
   // step to a confirmation instead of the plan picker.

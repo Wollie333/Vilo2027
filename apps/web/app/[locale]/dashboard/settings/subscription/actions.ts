@@ -274,6 +274,65 @@ export async function startPlanCheckoutAction(input: {
 }
 
 /**
+ * "Buy immediately" from the competition trial widget. Converts the host's
+ * TRIALING subscription for the competition product into a paid one by starting
+ * a Paystack checkout for that SAME product at the chosen cycle. On settle,
+ * activateMappedPlan reactivates the trialing sub as active (and snapshots the
+ * founding lock while the window is open). Server-authoritative: the product is
+ * read from the host's own trial sub, never supplied by the client.
+ */
+export async function startTrialConversionCheckoutAction(input: {
+  cycle: "monthly" | "annual";
+}): Promise<CheckoutResult> {
+  const cycle = input.cycle === "annual" ? "annual" : "monthly";
+
+  const host = await getMyHostId();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { ok: false, error: "Please sign in." };
+
+  // The competition product the host is trialing — read from their own sub.
+  const admin = createAdminClient();
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("product_id")
+    .eq("host_id", host.hostId)
+    .eq("status", "trialing")
+    .maybeSingle();
+  if (!sub?.product_id) return { ok: false, error: "You're not on a trial." };
+
+  const { data: product } = await admin
+    .from("products")
+    .select("slug, is_active")
+    .eq("id", sub.product_id)
+    .maybeSingle();
+  if (!product?.slug || !product.is_active) {
+    return { ok: false, error: "That plan isn't available right now." };
+  }
+
+  if (!(await isPlatformBillingConfigured())) {
+    return { ok: false, error: "Card payments aren't available right now." };
+  }
+
+  const origin = headers().get("origin");
+  const r = await startProductCheckoutDirect(
+    product.slug,
+    user.email,
+    origin,
+    false,
+    undefined,
+    cycle,
+  );
+  if (!r.ok) return { ok: false, error: r.error };
+  if (r.url) return { ok: true, redirectUrl: r.url };
+  return { ok: false, error: "Couldn't start checkout — please try again." };
+}
+
+/**
  * Product-driven switch used by the settings tab (the catalog now shows the
  * admin PRODUCTS, not plan tiers). The PRODUCT price decides whether a charge is
  * due; the product's plan_key decides the feature tier. So a FREE product that

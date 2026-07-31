@@ -32,6 +32,21 @@ export type Competition = {
     milestone?: string;
     monthly_top_net_change?: number;
   }[];
+  /**
+   * The host free-trial offer this competition grants. When a host signs up
+   * through a partner link during the competition, they are placed on a
+   * `trialing` subscription for `product_id` (a dedicated, hidden product) that
+   * ends at `max(cohort_end, activation + floor_days)` — see
+   * `computeFoundingTrialEnd` in ./trialOffer. Absent = no trial (paid signup).
+   */
+  host_trial?: {
+    /** The dedicated competition product the trial grants (own price/rules). */
+    product_id: string | null;
+    /** Fixed cohort free-access end, e.g. "2026-12-31". Doc §5.2. */
+    cohort_end: string | null;
+    /** Rolling minimum free days for late joiners, e.g. 30. Doc §5.3. */
+    floor_days: number | null;
+  } | null;
 };
 
 // Bands sorted ascending by ceiling (null ceiling = the top, open-ended band).

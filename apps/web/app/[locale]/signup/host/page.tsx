@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getReferredByPrefill } from "@/lib/affiliate/attribution";
+import { getCompetitionTrialOffer } from "@/lib/affiliate/trialOffer";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { getBrandName } from "@/lib/brand";
@@ -215,6 +216,12 @@ export default async function HostSignupPage({
   // only — the quote-only plan (Wielo Quotes) belongs to /signup/quotes.
   const products = await getSubscriptionProducts("host");
 
+  // If they arrived via a partner link during an active competition that grants
+  // a free trial, the toolkit step shows the trial instead of forcing payment.
+  // Display-only here (drives copy); the finalize action re-resolves this
+  // server-side from the bound referral before creating the trialing sub.
+  const trialOffer = await getCompetitionTrialOffer();
+
   // Flatten the category tree to accommodation leaves only (skip the
   // Accommodation root). MVP lists accommodation only.
   const tree = await getCategoryTree();
@@ -245,6 +252,7 @@ export default async function HostSignupPage({
       leadCity={lead.town}
       categoryLeaves={categoryLeaves}
       products={products}
+      trialOffer={trialOffer}
       purchasedProductName={purchasedProductName}
       purchasedOrderToken={purchasedOrderToken}
       purchasedEmail={purchasedEmail}
