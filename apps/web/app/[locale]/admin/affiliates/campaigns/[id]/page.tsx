@@ -43,7 +43,7 @@ import { CampaignEmailPanel } from "../_components/CampaignEmailPanel";
 import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
 import { CampaignResultsPanel } from "../_components/CampaignResultsPanel";
 import { FloorAwardManager } from "../_components/FloorAwardManager";
-import { CampaignRulesEditor } from "../_components/CampaignRulesEditor";
+import { CampaignRulesPanel } from "../_components/CampaignRulesPanel";
 import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
 
 export const dynamic = "force-dynamic";
@@ -567,10 +567,7 @@ export default async function AdminCampaignPage({
   // ── RULES & PRIZES panel ────────────────────────────────────────
   const rulesPanel = (
     <div className="space-y-6">
-      <CampaignRulesEditor
-        campaignId={campaign.id}
-        campaignSlug={campaign.slug}
-        campaignName={campaign.name}
+      <CampaignRulesPanel
         initial={{
           slug: (campaign.rules_doc_slug as string | null) ?? null,
           title: (rulesDoc?.title as string | undefined) ?? null,

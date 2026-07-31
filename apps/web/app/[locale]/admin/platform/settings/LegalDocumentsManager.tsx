@@ -163,7 +163,10 @@ function DocumentCard({ doc }: { doc: LegalDocInput }) {
   }
 
   return (
-    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <div
+      id={`doc-${doc.slug}`}
+      className="scroll-mt-24 rounded-card border border-brand-line bg-white p-5 shadow-card"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <FileText className="h-4 w-4 shrink-0 text-brand-primary" />
