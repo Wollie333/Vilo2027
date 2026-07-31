@@ -33,6 +33,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { FxEstimateMark } from "@/components/currency/FxEstimateMark";
 import { railSupportsCurrency } from "@/lib/currency";
@@ -2280,25 +2281,17 @@ export function BookingForm({
                 ) : (
                   "the "
                 )}
-                <a
-                  href="/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <LegalDocModalLink
+                  docKey="terms"
+                  label="booking terms"
                   className="font-medium text-brand-primary underline underline-offset-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  booking terms
-                </a>{" "}
+                />{" "}
                 and{" "}
-                <a
-                  href="/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <LegalDocModalLink
+                  docKey="privacy"
+                  label="privacy notice"
                   className="font-medium text-brand-primary underline underline-offset-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  privacy notice
-                </a>
+                />
                 .
               </span>
             </label>

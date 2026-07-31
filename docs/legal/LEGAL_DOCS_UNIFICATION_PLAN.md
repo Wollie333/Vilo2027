@@ -404,3 +404,26 @@ truth, so a document changes in exactly one place:
 
 Validated: lint clean, tsc 0 errors, full `pnpm build` green. **New SQL to apply:
 `20260731180000_legal_document_versions.sql`.**
+
+## 17. Build log — in-page legal MODAL on checkout + signup
+
+Legal links on flows where navigating away is costly now open a **modal** instead:
+- **`GET /api/legal/[key]`** — returns the PUBLISHED doc (`terms`/`privacy`/
+  `cookies` via placement; anything else a `/legal/<slug>` doc) as JSON; 404 when
+  nothing is published.
+- **`LegalDocModalLink`** (client) — renders an inline link; on click fetches the
+  doc and shows it in the app `Dialog`. If nothing is published yet it falls back
+  to opening the full page in a new tab (which shows the static copy), so the link
+  is always useful. `stopPropagation` so it can live inside a consent `<label>`.
+- Wired into: guest / host / partner / quotes signup forms and the **directory
+  checkout** (`property/[slug]/book/BookingForm`) — Terms, Privacy, and the
+  partner competition-rules link.
+
+**No consent-path change.** Acceptance snapshots are untouched and remain the
+proof of record — the affiliate agreement (`affiliate_agreement_acceptances`) and
+competition rules (`affiliate_campaign_rule_acceptances`) each store the exact
+`body_snapshot` + `body_sha256` + version + IP + signatory, keyed to the
+user/partner; bookings store the accepted version number backed by the retained
+version history. The modal shows the SAME text those snapshots capture (same
+resolver / same doc), so display and proof stay identical. No migration.
+Validated: lint clean, tsc 0 errors, full build green.

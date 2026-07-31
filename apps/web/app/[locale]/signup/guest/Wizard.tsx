@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { VLogo } from "@/app/_components/home/VLogo";
 import { Link } from "@/i18n/navigation";
+import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -780,19 +781,17 @@ function StepAccount({
             />
             <span className="text-xs leading-relaxed text-brand-mute">
               I agree to {brandName}&apos;s{" "}
-              <Link
-                href="/terms"
+              <LegalDocModalLink
+                docKey="terms"
+                label="Terms of Service"
                 className="text-brand-primary hover:underline"
-              >
-                Terms of Service
-              </Link>{" "}
+              />{" "}
               and{" "}
-              <Link
-                href="/privacy"
+              <LegalDocModalLink
+                docKey="privacy"
+                label="Privacy Policy"
                 className="text-brand-primary hover:underline"
-              >
-                Privacy Policy
-              </Link>
+              />
               .
             </span>
           </label>

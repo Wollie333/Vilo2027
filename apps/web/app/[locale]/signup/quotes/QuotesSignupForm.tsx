@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useRouter, Link } from "@/i18n/navigation";
+import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
@@ -123,19 +124,17 @@ export function QuotesSignupForm() {
         />
         <span>
           I agree to the{" "}
-          <Link
-            href="/terms"
+          <LegalDocModalLink
+            docKey="terms"
+            label="Terms"
             className="font-semibold text-brand-primary hover:underline"
-          >
-            Terms
-          </Link>{" "}
+          />{" "}
           and{" "}
-          <Link
-            href="/privacy"
+          <LegalDocModalLink
+            docKey="privacy"
+            label="Privacy Policy"
             className="font-semibold text-brand-primary hover:underline"
-          >
-            Privacy Policy
-          </Link>
+          />
           .
         </span>
       </label>
