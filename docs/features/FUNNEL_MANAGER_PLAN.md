@@ -1,6 +1,6 @@
 # Funnel Manager & Lead Pipeline — Plan
 
-**Status:** Planning complete — ready to build (pre-code)
+**Status:** 🟢 Phase 1 (data model) SHIPPED 2026-08-01 — Phases 2–6 pending
 **Owner:** Founder + Marketing/Sales team
 **Author:** drafted + refined 2026-07-31
 **Related:** `BUSINESS_PRINCIPLES.md` #1 (guest identity), #5 (one source of truth),
@@ -418,8 +418,14 @@ file or YouTube URL), thank-you CTA text/target, and the nurture email copy per 
 
 ## 11. Phasing (Principle #7 — each phase = a committed, pushed save point)
 
-1. **Data model + migrations** (funnels, pipeline_stages/leads/activities,
-   nurture_*) + seed default stages/sequences + types regen.
+1. ✅ **DONE (2026-08-01)** — **Data model + migrations** (funnels, pipeline_stages/leads/activities,
+   nurture_*) + seed default stages/sequences + types regen. Migrations
+   `20260801100000_funnels_pipeline` (7 tables, RLS super-admin-select + service-role
+   writes, `update_updated_at` triggers, seeded stages + 2 inactive sequences),
+   `20260801100100_pipeline_rbac` (`pipeline.view`/`pipeline.manage` perms, `sales_team`
+   role, grants incl. explicit super_admin, `admin_audit_log` target_type += `pipeline`),
+   `20260801100200_funnel_assets_bucket` (public PDF bucket). Applied to linked DB, types
+   regenerated, lint green.
 2. **Hosts funnel end-to-end** — `/go/hosts` + thank-you + `/api/funnel-submit` →
    lead → card → resource email → on-page resource. Proves the whole spine
    (identity + affiliate binding + card + email). Verify in BOTH the live page and

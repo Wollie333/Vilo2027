@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-08-01 — Funnel Manager Phase 1 (data model) + clean-slate data wipe.
+
+**Clean slate:** wiped all demo/test users and their data to a vanilla platform for testing.
+Kept 4 logins only (super-admin `wollie@manamarketing.co.za`, the `support@wielo.co.za` SYSTEM
+user, plus founder-choice `wollie333`/`sumarie`); every other account + host/booking/affiliate
+content purged. Fixed `scripts/reset-keep-superadmin.mjs` to keep by `platform_staff` (not
+`user_profiles.role`) + a system-user allowlist. Signed affiliate agreements (immutable 3-yr
+retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Reference/config intact.
+
+**Funnel Manager — Phase 1 (data model, no UI yet):** first slice of
+`docs/features/FUNNEL_MANAGER_PLAN.md`.
+- **Migrations:** `20260801100000_funnels_pipeline` — 7 tables (`funnels`, `pipeline_stages`,
+  `pipeline_leads`, `pipeline_activities`, `nurture_sequences`, `nurture_steps`,
+  `nurture_enrollments`); `text`+CHECK (no enums), `update_updated_at` triggers, RLS enabled
+  (super-admin SELECT; all writes via service-role), seeded per-audience stages + 2 (inactive)
+  nurture sequences. `20260801100100_pipeline_rbac` — `pipeline.view`/`pipeline.manage`
+  permissions, new `sales_team` role, grants (incl. explicit super_admin), `admin_audit_log`
+  target_type += `pipeline`. `20260801100200_funnel_assets_bucket` — public `funnel-assets` PDF bucket.
+- **A "lead" is not a new table** — it's a `user_profiles` row (`is_lead=true`); `pipeline_leads`
+  references that identity. Applied to linked DB, `database.types.ts` regenerated, lint green.
+- Verified against live code/DB first: all plan integration points exist (identity, affiliate
+  cookie/ledger, email queue, review-request cron pattern, admin RBAC, `@dnd-kit`, Turnstile).
+
 ## 2026-07-31 — Founding Race partner cap REMOVED (uncapped).
 
 Founder decision: the Founding Programme no longer caps partners at 25. Scarcity moves from a

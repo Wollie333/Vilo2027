@@ -2,6 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢 SAVE POINT (2026-08-01) — **FUNNEL MANAGER build + clean slate**
+
+**Scope this stretch:** build the **Funnel Manager & Lead Pipeline** feature per
+`docs/features/FUNNEL_MANAGER_PLAN.md` (founder: "crucial for the business"). Verified the plan
+against live code + DB first — all integration points exist, no blockers.
+
+**✅ DONE — Phase 1 (data model):** migrations `20260801100000_funnels_pipeline` (7 tables +
+RLS + triggers + seed stages/sequences), `20260801100100_pipeline_rbac` (perms + `sales_team`
+role + audit target_type), `20260801100200_funnel_assets_bucket` (public PDF bucket). Applied to
+linked DB, types regenerated, lint green.
+
+**▶️ NEXT — Phase 2:** Hosts funnel end-to-end — `/go/hosts` + thank-you page +
+`/api/funnel-submit` → `findOrCreateLeadIdentity` → `pipeline_leads` card → resource email +
+on-page resource + magic-link/`/claim` redirect. Then Phase 3 (admin board), 4 (nurture drip),
+5 (affiliate funnel), 6 (lifecycle doc). See plan §11.
+
+**Also done 2026-08-01:** clean-slate data wipe (4 logins kept, all demo data purged); see
+CHANGELOG + memory `feedback-clean-wipe-user-data-only`.
+
+---
+
+
 ## 🟢 SAVE POINT (2026-07-23 pt79) — **START HERE**
 
 **Pushed `ed6296e5`. Tree clean. 0 node procs.** Resume anchor = memory `project-savepoint-jul23-pt79`.

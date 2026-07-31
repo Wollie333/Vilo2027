@@ -3683,6 +3683,65 @@ export type Database = {
           },
         ]
       }
+      funnels: {
+        Row: {
+          audience: string
+          brochure_name: string | null
+          brochure_path: string | null
+          created_at: string
+          headline: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sequence_id: string | null
+          slug: string
+          subcopy: string | null
+          thankyou_config: Json
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          audience: string
+          brochure_name?: string | null
+          brochure_path?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sequence_id?: string | null
+          slug: string
+          subcopy?: string | null
+          thankyou_config?: Json
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          audience?: string
+          brochure_name?: string | null
+          brochure_path?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sequence_id?: string | null
+          slug?: string
+          subcopy?: string | null
+          thankyou_config?: Json
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnels_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "nurture_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           base_currency: string
@@ -5272,6 +5331,47 @@ export type Database = {
           },
         ]
       }
+      legal_document_versions: {
+        Row: {
+          body_html: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string | null
+          slug: string
+          title: string
+          version: number
+        }
+        Insert: {
+          body_html?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          slug: string
+          title: string
+          version: number
+        }
+        Update: {
+          body_html?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          slug?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_document_versions_slug_fkey"
+            columns: ["slug"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       legal_documents: {
         Row: {
           body_html: string | null
@@ -5310,6 +5410,35 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      legal_placements: {
+        Row: {
+          doc_slug: string | null
+          slot: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          doc_slug?: string | null
+          slot: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          doc_slug?: string | null
+          slot?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_placements_doc_slug_fkey"
+            columns: ["doc_slug"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       listing_reports: {
         Row: {
@@ -6523,6 +6652,125 @@ export type Database = {
           },
         ]
       }
+      nurture_enrollments: {
+        Row: {
+          created_at: string
+          current_step: number
+          id: string
+          lead_id: string
+          next_send_at: string | null
+          sequence_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          id?: string
+          lead_id: string
+          next_send_at?: string | null
+          sequence_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          id?: string
+          lead_id?: string
+          next_send_at?: string | null
+          sequence_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurture_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nurture_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "nurture_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nurture_sequences: {
+        Row: {
+          audience: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nurture_steps: {
+        Row: {
+          created_at: string
+          delay_hours: number
+          email_type: string
+          id: string
+          is_active: boolean
+          sequence_id: string
+          step_order: number
+          subject_override: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delay_hours?: number
+          email_type: string
+          id?: string
+          is_active?: boolean
+          sequence_id: string
+          step_order: number
+          subject_override?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delay_hours?: number
+          email_type?: string
+          id?: string
+          is_active?: boolean
+          sequence_id?: string
+          step_order?: number
+          subject_override?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurture_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "nurture_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -6716,6 +6964,179 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_activities: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          meta: Json
+          staff_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          lead_id: string
+          meta?: Json
+          staff_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          meta?: Json
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_activities_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "platform_staff"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      pipeline_leads: {
+        Row: {
+          ad_source: string | null
+          affiliate_ref: string | null
+          audience: string
+          created_at: string
+          funnel_id: string | null
+          id: string
+          last_activity_at: string | null
+          marketing_consent: boolean
+          owner_staff_id: string | null
+          score: number
+          source_kind: string
+          source_label: string | null
+          stage_id: string
+          status: string
+          suppress_default_nurture: boolean
+          updated_at: string
+          user_id: string
+          utm: Json
+        }
+        Insert: {
+          ad_source?: string | null
+          affiliate_ref?: string | null
+          audience: string
+          created_at?: string
+          funnel_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          marketing_consent?: boolean
+          owner_staff_id?: string | null
+          score?: number
+          source_kind?: string
+          source_label?: string | null
+          stage_id: string
+          status?: string
+          suppress_default_nurture?: boolean
+          updated_at?: string
+          user_id: string
+          utm?: Json
+        }
+        Update: {
+          ad_source?: string | null
+          affiliate_ref?: string | null
+          audience?: string
+          created_at?: string
+          funnel_id?: string | null
+          id?: string
+          last_activity_at?: string | null
+          marketing_consent?: boolean
+          owner_staff_id?: string | null
+          score?: number
+          source_kind?: string
+          source_label?: string | null
+          stage_id?: string
+          status?: string
+          suppress_default_nurture?: boolean
+          updated_at?: string
+          user_id?: string
+          utm?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_leads_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_leads_owner_staff_id_fkey"
+            columns: ["owner_staff_id"]
+            isOneToOne: false
+            referencedRelation: "platform_staff"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pipeline_leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_leads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          audience: string
+          created_at: string
+          id: string
+          is_lost: boolean
+          is_won: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_won?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_won?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       plan_features: {
         Row: {
