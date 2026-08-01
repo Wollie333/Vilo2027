@@ -278,8 +278,14 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   for direct-host model); `getHostPayPalForBusiness` `.maybeSingle()` (should loop like
   paystack); `direct_booking` default-on gating leak (paid-tier concern);
   `setManualBlocksAction` multi-room whole-block; iCal export UTC boundary.
-  **LIVE-VERIFY pending founder:** PayPal replay-closed proof (sandbox), full host
-  loop walkthrough (re-seed `pnpm seed:demo` first — 08-01 wipe purged the demo host),
+  **PayPal replay — PROVEN by a regression test** (`lib/payments/pay-booking.replay.test.ts`):
+  drives the real `capturePayPalOrderForBooking` with a mocked admin client + resolvable
+  creds; the replay returns false, never confirms booking B, never calls the PayPal API.
+  Verified to have TEETH — it FAILS on the pre-fix code (returns true + confirms) and passes
+  on the fix. (Fills the payments layer's zero-test gap.) A live PayPal-sandbox replay is
+  still worth doing once a host connects PayPal, but the guard is now regression-locked.
+  **LIVE-VERIFY pending founder:** full host loop walkthrough (re-seed `pnpm seed:demo`
+  first — 08-01 wipe purged the demo host + there are 0 properties/PayPal gateways live now),
   2nd host connecting own gateway, one real OTA round-trip.
 
 - **2026-06-14 (cont.)** — Audited the FINAL batch #21–#23 (parallel). #21 Help +
