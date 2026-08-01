@@ -128,6 +128,17 @@ async function seedBooking(base, finalStatus, { rooms = [], addons = [] } = {}) 
   if (rooms.length) await up("booking_rooms", rooms);
   if (addons.length) await up("booking_addons", addons);
 
+  // Freeze the cancellation policy exactly as the production booking paths do
+  // (persist.ts / quote-convert / host-manual all call this RPC). Without it a
+  // demo booking has no policy_snapshot, so calculate_policy_refund_amount falls
+  // back to no_policy_snapshot → 0% refund, which makes demo cancel/refund
+  // testing look broken. Snapshot AFTER booking_rooms so room-scope resolves.
+  const { error: snapErr } = await admin.rpc("snapshot_booking_policies", {
+    p_booking_id: base.id,
+    p_listing_id: base.property_id,
+  });
+  if (snapErr) throw new Error(`snapshot booking ${base.id}: ${snapErr.message}`);
+
   if (finalStatus === "confirmed") {
     await setBookingStatus(base.id, { status: "confirmed", confirmed_at: nowIso() });
   } else if (finalStatus === "completed") {

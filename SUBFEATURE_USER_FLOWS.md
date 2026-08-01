@@ -84,27 +84,39 @@
 ## 4. POLICIES (cancellation policies)
 
 ### Host flow
-1. Dashboard → **Policies** → create / edit a cancellation policy (tiers, refund %, windows) ⬜ (live click)
-2. Assign a policy to a listing ⬜
+1. Dashboard → **Policies** → create / edit a cancellation policy (tiers, refund %, windows) 🟢
+   (code-verified: `createPolicyAction`/`updatePolicyAction` → `policies` + `policy_cancellation_rules` +
+   `policy_content`; live UI click pending founder)
+2. Assign a policy to a listing 🟢 (`setListingPolicyAction` → `property_policies` join; precedence:
+   room → listing → host default; probe: 2/2 published listings resolve a policy)
 3. Gate: entitled via Beta product (source=product) ✅; correctly locks Free ✅
 
 ### Guest flow
 1. Guest sees the cancellation policy at booking time 🟡
 2. **Snapshot frozen** at booking creation (`policy_snapshots`) — host edits later do NOT change an
-   existing booking's terms 🟡 (harness I6 + immutability trigger `20260712150000`)
-3. On cancel, the **refund math reads the snapshot**, not the live policy 🟡 (harness cancellation path)
+   existing booking's terms 🟢 (code-verified: 4 prod call sites snapshot; immutability trigger
+   `20260712150000` blocks UPDATE always + DELETE outside GDPR purge)
+3. On cancel, the **refund math reads the snapshot**, not the live policy 🟢 (probe: `verify-policy-resolver.mjs`
+   refund calc reads `snapshot_data->'rules'`, returns a real rule)
 4. Refund → credit note / refund request per the frozen policy 🟡
+5. ⚠️ **Demo-data caveat (NOT a prod bug):** seed scripts insert bookings via direct insert and skip the
+   snapshot RPC → seeded demo bookings return **0% refund** on cancel. Fixed `seed-demo.mjs` to snapshot;
+   to live-test refund, cancel a booking created **through the UI** (which snapshots), not a seeded one.
 
 ---
 
 ## 5. CALENDAR SYNC (iCal import/export)
 
 ### Host flow
-1. Dashboard → **Calendar sync** → add an import URL (Airbnb / Booking.com `.ics`) → `ical_feeds` row ⬜
-2. Sync pulls VEVENTs → writes `blocked_dates` (source `ical`) ⬜ (`syncFeed` / `/api/ical-sync-worker`)
-3. Import **SSRF guard** — resolves DNS, rejects private/metadata IPs, re-validates every redirect hop 🟡
-   (verified in code, `SECURITY_CHECKLIST` §11)
-4. Remove feed clears only ITS `ical`-sourced blocks (never another host's) 🟡 (ownership-gated)
+1. Dashboard → **Calendar sync** → add an import URL (Airbnb / Booking.com `.ics`) → `ical_feeds` row 🟢
+   (code-verified: `addIcalFeedAction` — Zod + `assertFullHost` + `assertOwnsListing` + room guard, RLS
+   client; live UI click pending founder)
+2. Sync pulls VEVENTs → writes `blocked_dates` (source `ical`) 🟢 (`syncFeed` → RPC `import_ical_blocks`,
+   non-destructive `DO NOTHING`, per-feed scoped, manual blocks win; `/api/ical-sync-worker` bearer-gated)
+3. Import **SSRF guard** — resolves DNS, rejects private/metadata IPs, re-validates every redirect hop 🟢
+   (code-verified `lib/security/ssrf.ts`: `fetchGuarded` re-checks every hop, `redirect:"manual"`)
+4. Remove feed clears only ITS `ical`-sourced blocks (never another host's) 🟢 (`removeIcalFeedAction`:
+   ownership verified first, delete scoped `.eq("ical_feed_id").eq("source","ical")`)
 
 ### Guest flow
 1. Imported blocked dates read **unavailable** to the guest at checkout 🟡 (`listing_is_available_whole`)
@@ -116,12 +128,16 @@
 ## 6. REVIEWS
 
 ### Host flow
-1. Dashboard → **Reviews** → request a review (email + in-app enqueued) ⬜ (live click; `sendReviewRequest`)
-2. Host is notified `new_review_host` when a guest submits 🟡
+1. Dashboard → **Reviews** → request a review (email + in-app enqueued) 🟢 (code-verified:
+   `sendReviewRequest` SSOT + `requestReviewsAction` + auto-request cron; live UI click pending founder)
+2. Host is notified `new_review_host` when a guest submits 🟢 (code-verified: dispatched from
+   `submitReviewAction:177`, registry + resolver + email template wired)
 3. Host **responds** → `review_response_guest` fires to the guest ✅ (live-verified 2026-08-01: in_app+email;
    editing the reply does NOT re-notify — first-reply guard holds)
-4. Host can **flag** a review → admin moderation queue (`review_flags`) ⬜
-5. Aggregate listing rating recalculated on new review (trigger) 🟡 (Reviews page showed 4.80 avg + 20% reply)
+4. Host can **flag** a review → admin moderation queue (`review_flags`) 🟢 (code-verified: `flagReviewAction`
+   → `review_flags` w/ RLS + UNIQUE-per-flagger; admin hide/restore via `withAdminAudit`)
+5. Aggregate listing rating recalculated on new review (trigger) 🟢 (code-verified: `trigger_review_published`
+   → `on_review_published()` recomputes property + host `avg_rating`/`total_reviews`; probe green)
 
 ### Guest flow
 1. Guest receives the review request (24h after checkout cron, or host-initiated) 🟡

@@ -23,9 +23,12 @@ const checks = [
     sb.from("reviews").select(
       "id, rating, body, trip_type, helpful_count, host_response, guest:user_profiles!reviews_guest_id_fkey ( full_name ), booking:bookings ( nights ), photos:review_photos ( storage_path, sort_order )",
     ).eq("is_published", true).limit(1)],
+  // Must use the reviews_listing_id_fkey hint: reviews has >1 FK path to
+  // properties, so a bare properties embed is ambiguous. This mirrors the real
+  // loader in app/[locale]/dashboard/reviews/page.tsx.
   ["dashboard reviews embed", () =>
     sb.from("reviews").select(
-      "id, rating, host_response, flagged, listing:properties ( id, name ), booking:bookings ( id, nights, guest_name ), guest:user_profiles!reviews_guest_id_fkey ( full_name ), photos:review_photos ( storage_path, sort_order )",
+      "id, rating, host_response, flagged, listing:properties!reviews_listing_id_fkey ( id, name ), booking:bookings ( id, nights, guest_name ), guest:user_profiles!reviews_guest_id_fkey ( full_name ), photos:review_photos ( storage_path, sort_order )",
     ).limit(1)],
   ["storage bucket review-photos", async () => {
     const { data, error } = await sb.storage.getBucket("review-photos");
