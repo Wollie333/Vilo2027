@@ -145,13 +145,27 @@ async function applyTransition(
     }
   }
 
-  const { error } = await supabase
+  const { data: transitioned, error } = await supabase
     .from("bookings")
     .update(patch)
     .eq("id", bookingId)
-    .eq("status", booking.status); // optimistic concurrency
+    .eq("status", booking.status) // optimistic concurrency
+    .select("id");
   if (error) {
     return { ok: false, error: "Could not update booking. Try again." };
+  }
+  // The optimistic guard can match 0 rows without erroring: the status changed
+  // under us (concurrent expire cron / guest cancel) between the SELECT above and
+  // this UPDATE, or RLS blocked the write (the caller can read the row as guest
+  // but not host-manage it). PostgREST reports that as success. Mirror the
+  // hardened finalizeCancellation guard: if nothing transitioned we must NOT emit
+  // the guest notification, enqueue the review, or return a success toast for a
+  // change that never happened.
+  if (!transitioned || transitioned.length === 0) {
+    return {
+      ok: false,
+      error: "This booking just changed. Refresh and try again.",
+    };
   }
 
   const notifyKind = NOTIFY_KIND[kind as keyof typeof NOTIFY_KIND];

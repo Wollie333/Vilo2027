@@ -105,13 +105,20 @@ export async function createManualBookingAction(
   if (bookingStatus === "confirmed") {
     if (data.scope === "rooms" && data.rooms.length > 0) {
       for (const r of data.rooms) {
-        const { data: free } = await supabase.rpc("room_is_available", {
-          p_listing_id: data.property_id,
-          p_room_id: r.room_id,
-          p_check_in: data.check_in,
-          p_check_out: data.check_out,
-        });
-        if (free === false) {
+        const { data: free, error: availErr } = await supabase.rpc(
+          "room_is_available",
+          {
+            p_listing_id: data.property_id,
+            p_room_id: r.room_id,
+            p_check_in: data.check_in,
+            p_check_out: data.check_out,
+          },
+        );
+        // Fail CLOSED on an RPC error — mirror the guest create path
+        // (createBooking.ts). Proceeding on a null result would write a confirmed
+        // booking with no calendar block (the blocks insert below silently drops
+        // on the unique index) → a double-booking.
+        if (availErr || free === false) {
           return {
             ok: false,
             error: "One of the selected rooms isn't free for those dates.",
@@ -119,12 +126,15 @@ export async function createManualBookingAction(
         }
       }
     } else {
-      const { data: free } = await supabase.rpc("listing_is_available_whole", {
-        p_listing_id: data.property_id,
-        p_check_in: data.check_in,
-        p_check_out: data.check_out,
-      });
-      if (free === false) {
+      const { data: free, error: availErr } = await supabase.rpc(
+        "listing_is_available_whole",
+        {
+          p_listing_id: data.property_id,
+          p_check_in: data.check_in,
+          p_check_out: data.check_out,
+        },
+      );
+      if (availErr || free === false) {
         return {
           ok: false,
           error: "Those dates are already blocked or booked.",
