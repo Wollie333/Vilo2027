@@ -13,6 +13,7 @@ import {
   CampaignKickoff,
   CampaignStandingsDigest,
   CampaignEndingSoon,
+  FunnelNurture,
   BookingCancelledGuest,
   BroadcastCritical,
   NotificationDigest,
@@ -62,7 +63,31 @@ export type EmailRegistryEntry = {
 const str = (v: unknown, fallback = ""): string =>
   typeof v === "string" && v.length > 0 ? v : fallback;
 
+// Automated funnel-nurture drip (host + affiliate). All six steps render through
+// the one FunnelNurture template; copy + subjects come from the payload (built
+// from lib/funnels/nurtureCopy.ts) so the admin preview matches what a lead gets.
+const nurtureEntry = (fallbackSubject: string): EmailRegistryEntry => ({
+  Template: FunnelNurture as ComponentType<Record<string, unknown>>,
+  recipient: "custom",
+  subject: (p) => str(p.subject, fallbackSubject),
+});
+
 export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
+  nurture_host_welcome: nurtureEntry(
+    "Your Direct Booking Starter Kit — start here",
+  ),
+  nurture_host_value: nurtureEntry("What direct booking actually saves you"),
+  nurture_host_offer: nurtureEntry("Ready to take bookings on Wielo?"),
+  nurture_affiliate_welcome: nurtureEntry(
+    "Welcome — here's how partners earn with Wielo",
+  ),
+  nurture_affiliate_value: nurtureEntry(
+    "How much can you earn referring hosts?",
+  ),
+  nurture_affiliate_offer: nurtureEntry(
+    "Grab your referral link and start earning",
+  ),
+
   affiliate_commission_earned: {
     Template: AffiliateCommissionEarned as ComponentType<
       Record<string, unknown>

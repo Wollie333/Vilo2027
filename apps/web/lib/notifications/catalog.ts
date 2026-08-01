@@ -23,7 +23,8 @@ export type AreaKey =
   | "msg"
   | "lf"
   | "aff"
-  | "comp";
+  | "comp"
+  | "nur";
 
 export const AREAS: { key: AreaKey; label: string; icon: string }[] = [
   { key: "bh", label: "Bookings · host", icon: "calendar-check" },
@@ -37,6 +38,7 @@ export const AREAS: { key: AreaKey; label: string; icon: string }[] = [
   { key: "lf", label: "Looking For", icon: "search" },
   { key: "aff", label: "Affiliates", icon: "handshake" },
   { key: "comp", label: "Competitions", icon: "trophy" },
+  { key: "nur", label: "Funnel nurture", icon: "workflow" },
 ];
 
 export type CatalogEntry = {
@@ -347,6 +349,49 @@ export const MESSAGE_CATALOG: CatalogEntry[] = [
     area: "comp",
     label: "Ending soon",
     description: "“2 weeks left” → partner",
+    isNew: true,
+  },
+  // ── Funnel nurture (automated drip to /go/* leads)
+  {
+    kind: "nurture_host_welcome",
+    area: "nur",
+    label: "Host · welcome",
+    description: "Day 0 — resource + start here → host lead",
+    isNew: true,
+  },
+  {
+    kind: "nurture_host_value",
+    area: "nur",
+    label: "Host · value",
+    description: "Day 2 — what direct booking saves → host lead",
+    isNew: true,
+  },
+  {
+    kind: "nurture_host_offer",
+    area: "nur",
+    label: "Host · offer",
+    description: "Day 5 — sign up as a host → host lead",
+    isNew: true,
+  },
+  {
+    kind: "nurture_affiliate_welcome",
+    area: "nur",
+    label: "Affiliate · welcome",
+    description: "Day 0 — how partners earn → affiliate lead",
+    isNew: true,
+  },
+  {
+    kind: "nurture_affiliate_value",
+    area: "nur",
+    label: "Affiliate · value",
+    description: "Day 2 — earnings potential → affiliate lead",
+    isNew: true,
+  },
+  {
+    kind: "nurture_affiliate_offer",
+    area: "nur",
+    label: "Affiliate · offer",
+    description: "Day 5 — grab your link → affiliate lead",
     isNew: true,
   },
 ];

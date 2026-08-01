@@ -312,6 +312,55 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `host_offer_final:${r.host_id}`,
   } satisfies EventBuilder<AccountRefs>,
 
+  // ── Funnel nurture drip (automated marketing to /go/* leads) ──────────
+  // Email-only, "custom" recipient (account-less leads). Sent DIRECTLY by the
+  // nurture worker (not dispatchEvent) — these entries exist so the messages are
+  // first-class in the Communications catalog + previewable, and so the worker
+  // can honour the per-message email toggle. marketing_tips category = correct
+  // taxonomy (the worker's own marketing_consent gate governs actual sends).
+  nurture_host_welcome: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_host_welcome",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+  nurture_host_value: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_host_value",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+  nurture_host_offer: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_host_offer",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+  nurture_affiliate_welcome: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_affiliate_welcome",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+  nurture_affiliate_value: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_affiliate_value",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+  nurture_affiliate_offer: {
+    category: "marketing_tips",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "nurture_affiliate_offer",
+    refKeys: ["recipient_email"],
+  } satisfies EventBuilder<AccountRefs>,
+
   // Wielo (an admin) topped up the user's credit wallet.
   credits_added_admin: {
     category: "subscription",

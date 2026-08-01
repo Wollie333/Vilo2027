@@ -6,7 +6,28 @@
  * The shape matches what real notification_queue rows put in `payload`
  * (camelCase keys flow through to the React component as props).
  */
+import {
+  NURTURE_EMAIL_TYPES,
+  nurtureEmailProps,
+} from "@/lib/funnels/nurtureCopy";
+
+// Funnel-nurture drip previews use the SAME copy source the worker sends from,
+// so the Communications preview renders exactly what a lead receives.
+const NURTURE_SAMPLES: Record<
+  string,
+  Record<string, unknown>
+> = Object.fromEntries(
+  NURTURE_EMAIL_TYPES.map((t) => [
+    t,
+    {
+      recipient_email: "lead@example.com",
+      ...nurtureEmailProps(t, { firstName: "Thandi" }),
+    },
+  ]),
+);
+
 export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
+  ...NURTURE_SAMPLES,
   welcome_host: {
     firstName: "Amara",
   },
