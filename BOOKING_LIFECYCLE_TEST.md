@@ -153,8 +153,18 @@ type-check+lint green.** Resume anchor: memory `launch-prep-host-then-affiliate`
 - **Delete (item 3):** `refund_admin_override_host` fully removed (moot in Model 2).
 - **Code fixes (item 4):** date-change refreshes `price_breakdown` + invoice `line_items`; pay-page resolves
   rails by the BOOKING's business.
-- **⏳ LIVE-VERIFY (founder-driven):** the 3 notification/pay flows above — trigger each in the UI, then Claude
-  asserts `notification_delivery_log`/`notification_queue` + invoice PDF + rails via service role.
+- **✅ LIVE-VERIFIED (2026-08-01, host@wielodemo.com, real UI + service-role DB):**
+  - **Date-change (BK-0085):** moved 2026-06-10→13 → 2026-09-10→13 in the Change-dates modal ("Booking dates
+    updated" toast). DB: booking dates moved; `price_breakdown` refreshed (`source:change_dates`); **invoice
+    INV-0203 `line_items` dates → 09-10→13** (PDF fix proven); `blocked_dates` moved to 09-10/11/12;
+    **`notification_delivery_log` 0→3 rows** (`booking_dates_changed_guest`: in_app+push+email).
+  - **Review-reply (Sven, 4★):** posted a public reply ("Reply posted" toast) → `host_response` set +
+    `responded_at`; **`notification_delivery_log` 0→2 rows** (`review_response_guest`: in_app+email; no push =
+    seeded guest has no device). **Edited** the reply → `responded_at` bumped but **still 2 rows** — the
+    first-reply-only guard holds (edits don't re-notify).
+  - **Pay-page rails:** resolution proven business-keyed (BK-0085's business → EFT/FNB; a different business_id →
+    nothing). Guest-only page + single-business demo, so no visual differentiation to render; logic + type-safe
+    wiring + mirrors the already-working token pay page.
 
 **▶️ REMAINING (founder order): item 5 migrations (C1 drop-duplicate-trigger + C2 orphan-fn drop + per-business
 numbering — batched with the FINAL main-merge + `db push`, founder said "merge & push to main LAST"), then
