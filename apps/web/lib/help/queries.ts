@@ -283,25 +283,31 @@ export async function fetchGettingStartedState(
   //   policies_set      → host's first listing has a non-null check_in_time
   //                        (default cancellation_policy is 'moderate' so we
   //                         can't use that alone to detect "the host chose")
-  const [{ data: authUserRes }, { data: profile }, { data: host }] =
-    await Promise.all([
-      supabase.auth.getUser(),
-      supabase
-        .from("user_profiles")
-        .select("id, created_at, full_name, email")
-        .eq("id", userId)
-        .maybeSingle(),
-      supabase
-        .from("hosts")
-        .select("id, bio, avatar_url, languages_spoken")
-        .eq("user_id", userId)
-        .maybeSingle(),
-    ]);
+  const [{ data: profile }, { data: host }] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("id, created_at, full_name, email, email_verified_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("hosts")
+      .select("id, bio, avatar_url, languages_spoken")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
 
   const accountCreatedAt = (profile as { created_at?: string } | null)
     ?.created_at;
   const profileEmail = (profile as { email?: string | null } | null)?.email;
-  const emailConfirmedAt = authUserRes?.user?.email_confirmed_at ?? null;
+  // The publish gate reads user_profiles.email_verified_at (the real "clicked the
+  // link" signal), NOT auth.email_confirmed_at. GoTrue auto-confirms on signup
+  // (email_confirm:true), so email_confirmed_at is always set — the checklist item
+  // would read green even for a host who never verified, who is then blocked at
+  // publish with nothing in the checklist pointing at email. Read the same column
+  // the gate does so the checklist and the gate agree.
+  const emailVerifiedAt =
+    (profile as { email_verified_at?: string | null } | null)
+      ?.email_verified_at ?? null;
   const hostRow = host as {
     id?: string;
     bio?: string | null;
@@ -454,8 +460,8 @@ export async function fetchGettingStartedState(
       meta: accountCreatedAt ? formatRelativeDate(accountCreatedAt) : undefined,
     },
     email_verified: {
-      done: Boolean(emailConfirmedAt),
-      meta: emailConfirmedAt
+      done: Boolean(emailVerifiedAt),
+      meta: emailVerifiedAt
         ? `${profileEmail ?? "Email"} · verified`
         : `Check ${profileEmail ?? "your inbox"} for the link`,
     },

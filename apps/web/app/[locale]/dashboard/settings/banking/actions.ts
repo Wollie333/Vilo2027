@@ -198,6 +198,31 @@ export async function updateBankAccountAction(
     return { ok: false, error: "Account not found." };
   }
 
+  const supabase = createServerClient();
+
+  // Guard the "there is always exactly one default" invariant the publish gate
+  // AND the trg_listing_requires_bank DB trigger both depend on. Unchecking
+  // "default" on the account that is currently the default would leave the host
+  // with zero defaults: the setup checklist would still read green (it counts
+  // non-archived accounts, not is_default), but publishing and the trigger would
+  // then reject — "setup says done, listing won't publish." Mirror the archive
+  // guard: refuse, and point the host at setting another default first.
+  if (!parsed.data.is_default) {
+    const { data: current } = await supabase
+      .from("eft_banking_details")
+      .select("is_default")
+      .eq("id", accountId)
+      .eq("host_id", host.hostId)
+      .maybeSingle();
+    if (current?.is_default) {
+      return {
+        ok: false,
+        error:
+          "Set another account as default before removing default from this one — invoices and EFT need a default.",
+      };
+    }
+  }
+
   if (parsed.data.is_default) {
     const bizId = await accountBusinessId(accountId);
     if (bizId) await clearExistingDefault(bizId);
@@ -220,7 +245,6 @@ export async function updateBankAccountAction(
     update.account_number = encryptAccountNumber(parsed.data.account_number);
   }
 
-  const supabase = createServerClient();
   const { error } = await supabase
     .from("eft_banking_details")
     .update(update)
