@@ -9,13 +9,14 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Inbox, Users } from "lucide-react";
+import { Inbox, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import type { BoardStage } from "@/lib/pipeline/queries";
 
 import { moveLeadStageAction } from "../actions";
+import { DeleteLeadDialog } from "./DeleteLeadDialog";
 
 function band(score: number): [string, string] {
   if (score >= 70) return ["Hot", "bg-red-50 text-red-700 border-red-200"];
@@ -42,6 +43,17 @@ export function PipelineBoard({
   );
 
   const total = stages.reduce((n, s) => n + s.leads.length, 0) || 1;
+
+  // Drop a deleted lead out of every column immediately, then refresh for truth.
+  function removeLead(leadId: string) {
+    setStages((prev) =>
+      prev.map((s) => ({
+        ...s,
+        leads: s.leads.filter((l) => l.id !== leadId),
+      })),
+    );
+    router.refresh();
+  }
 
   function onDragEnd(e: DragEndEvent) {
     const leadId = String(e.active.id);
@@ -86,7 +98,7 @@ export function PipelineBoard({
       <div className="thin-scroll min-h-0 flex-1 overflow-x-auto bg-[#FBFDFC] px-4 py-4 lg:px-6">
         <div className="flex h-full items-stretch gap-4">
           {stages.map((s) => (
-            <Column key={s.id} stage={s} total={total} />
+            <Column key={s.id} stage={s} total={total} onDeleted={removeLead} />
           ))}
         </div>
       </div>
@@ -94,7 +106,15 @@ export function PipelineBoard({
   );
 }
 
-function Column({ stage, total }: { stage: BoardStage; total: number }) {
+function Column({
+  stage,
+  total,
+  onDeleted,
+}: {
+  stage: BoardStage;
+  total: number;
+  onDeleted: (leadId: string) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const pct = Math.round((stage.leads.length / total) * 100);
 
@@ -151,7 +171,12 @@ function Column({ stage, total }: { stage: BoardStage; total: number }) {
           </div>
         ) : (
           stage.leads.map((l) => (
-            <LeadCard key={l.id} lead={l} stageId={stage.id} />
+            <LeadCard
+              key={l.id}
+              lead={l}
+              stageId={stage.id}
+              onDeleted={onDeleted}
+            />
           ))
         )}
       </div>
@@ -162,9 +187,11 @@ function Column({ stage, total }: { stage: BoardStage; total: number }) {
 function LeadCard({
   lead,
   stageId,
+  onDeleted,
 }: {
   lead: BoardStage["leads"][number];
   stageId: string;
+  onDeleted: (leadId: string) => void;
 }) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -173,6 +200,7 @@ function LeadCard({
   });
   const [bl, bc] = band(lead.score);
   const av = lead.name.trim().slice(0, 2).toUpperCase();
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <div
@@ -180,11 +208,39 @@ function LeadCard({
       {...listeners}
       {...attributes}
       onClick={() => router.push(`/admin/pipeline/${lead.id}`)}
-      className={`cursor-grab rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
+      className={`group relative cursor-grab rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
         isDragging ? "opacity-40" : ""
       }`}
     >
-      <div className="flex items-start gap-2.5">
+      {/* Delete — kept out of the drag/navigate path via stopPropagation. */}
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setConfirming(true);
+        }}
+        className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+        title="Delete lead"
+        aria-label="Delete lead"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+
+      {confirming ? (
+        <DeleteLeadDialog
+          leadId={lead.id}
+          leadName={lead.name}
+          leadEmail={lead.email}
+          isLead={lead.isLead}
+          onClose={() => setConfirming(false)}
+          onDeleted={() => {
+            setConfirming(false);
+            onDeleted(lead.id);
+          }}
+        />
+      ) : null}
+
+      <div className="flex items-start gap-2.5 pr-6">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-display text-[11px] font-bold text-white">
           {av}
         </span>

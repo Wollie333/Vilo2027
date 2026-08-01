@@ -245,6 +245,74 @@ export const addLeadNoteAction = withAdminAudit<
   },
 );
 
+// ─── Delete lead ──────────────────────────────────────────────────────
+
+/**
+ * Delete a pipeline lead. The CRM card + everything hanging off it
+ * (activities, tasks, file rows, nurture enrolments — all FK ON DELETE CASCADE)
+ * is always removed, along with the stored file objects (storage doesn't cascade
+ * with the DB rows). The underlying guest `user_profiles` account is KEPT unless
+ * `deleteGuest` is set — in which case it's SOFT-deleted (recoverable, 30-day
+ * hold), and that stronger action is separately gated on `users.delete` so a
+ * pipeline-only operator can't remove accounts.
+ */
+export const deleteLeadAction = withAdminAudit<
+  { leadId: string; deleteGuest?: boolean; reason?: string },
+  { ok: true; deletedGuest: boolean }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.delete_lead",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    // Deleting the guest account is a heavier right than managing the pipeline.
+    if (a.deleteGuest) await requirePermission("users.delete");
+
+    // Resolve the lead + its guest identity before the card is gone.
+    const { data: lead } = await service
+      .from("pipeline_leads")
+      .select("id, user_id")
+      .eq("id", a.leadId)
+      .maybeSingle();
+    if (!lead) throw new Error("Lead not found.");
+
+    // Storage objects aren't cascaded by the DB — remove them first.
+    const { data: fileRows } = await service
+      .from("pipeline_files")
+      .select("path")
+      .eq("lead_id", a.leadId);
+    const paths = (fileRows ?? [])
+      .map((f) => f.path)
+      .filter((p): p is string => Boolean(p));
+    if (paths.length) {
+      await service.storage.from("pipeline-files").remove(paths);
+    }
+
+    // Delete the CRM card. FK ON DELETE CASCADE clears activities, tasks,
+    // file rows and nurture enrolments in the same statement.
+    const { error: delErr } = await service
+      .from("pipeline_leads")
+      .delete()
+      .eq("id", a.leadId);
+    if (delErr) throw new Error(delErr.message);
+
+    // Optionally soft-delete the guest account behind the lead (recoverable).
+    const deletedGuest = Boolean(a.deleteGuest && lead.user_id);
+    if (deletedGuest) {
+      const { softDeleteUserAccount } =
+        await import("@/lib/users/accountLifecycle");
+      await softDeleteUserAccount(service, lead.user_id);
+    }
+
+    return {
+      result: { ok: true as const, deletedGuest },
+      after: { id: a.leadId, user_id: lead.user_id, deletedGuest },
+    };
+  },
+);
+
 // ─── Tasks ────────────────────────────────────────────────────────────
 
 export const addLeadTaskAction = withAdminAudit<

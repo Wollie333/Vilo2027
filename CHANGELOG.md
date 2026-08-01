@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-08-01 — Pipeline: delete a lead (card + record), optional guest soft-delete.
+
+Admins can now remove a lead from the pipeline. A trash button on each board card (hover-revealed,
+kept out of the drag/navigate path) and a **Delete** button in the lead-record header both open one
+shared confirm modal (`_components/DeleteLeadDialog.tsx`). The modal always removes the CRM card and
+everything hanging off it — activities, notes, tasks, files (DB rows cascade; storage objects removed
+explicitly). An opt-in **"Also delete the guest account"** checkbox additionally **soft-deletes**
+(recoverable, 30-day hold + sign-in ban via `softDeleteUserAccount`) the underlying `user_profiles`
+guest; the row is retained, not purged. Claimed/real accounts (`is_lead=false`) show a warning but are
+still allowed. New `deleteLeadAction` (`withAdminAudit`, `pipeline.manage`); the guest-delete branch is
+separately gated on `users.delete` so a pipeline-only operator can't remove accounts. `BoardLead` now
+carries `is_lead` to drive the warning. **Live-verified** as super-admin against both branches: plain
+delete removed the card and left the guest account fully intact (`deleted_at=null`, not banned);
+delete-with-guest removed the card and soft-deleted the guest (`deleted_at` set, banned, row retained).
+build + lint green.
+
 ## 2026-08-01 — Admin sidebar reorg into expandable groups + Legal de-dup + Team/Host-staff unhide.
 
 Reorganised the admin rail (`AdminSidebar.tsx`) from a flat 26-link wall into **Overview (pinned) + 7

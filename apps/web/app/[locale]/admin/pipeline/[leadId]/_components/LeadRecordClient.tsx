@@ -21,6 +21,7 @@ import { useRef, useState, useTransition } from "react";
 
 import type { LeadFile, LeadRecord, LeadTask } from "@/lib/pipeline/queries";
 
+import { DeleteLeadDialog } from "../../_components/DeleteLeadDialog";
 import {
   addLeadNoteAction,
   addLeadTaskAction,
@@ -135,6 +136,7 @@ export function LeadRecordClient({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const emailHistory = lead.activities.filter((a) => a.kind === "email_sent");
   const openTasks = tasks.filter((t) => t.status === "open");
@@ -340,8 +342,32 @@ export function LeadRecordClient({
                 <XCircle className="h-4 w-4" />
                 Lost
               </button>
+              <button
+                disabled={pending}
+                onClick={() => setConfirmingDelete(true)}
+                className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-red-200 bg-white px-3 text-[13px] font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                title="Delete lead"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
             </div>
           </div>
+
+          {confirmingDelete ? (
+            <DeleteLeadDialog
+              leadId={lead.id}
+              leadName={lead.name}
+              leadEmail={lead.email}
+              isLead={lead.isLead}
+              onClose={() => setConfirmingDelete(false)}
+              onDeleted={() => {
+                setConfirmingDelete(false);
+                // The lead no longer exists — leave the record and go to the board.
+                router.push(`/admin/pipeline?audience=${lead.audience}`);
+              }}
+            />
+          ) : null}
 
           {/* Stage track */}
           <div className="mt-5 flex items-stretch gap-1">

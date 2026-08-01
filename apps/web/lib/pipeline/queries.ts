@@ -21,6 +21,8 @@ export type BoardLead = {
   ownerInitials: string | null;
   ageDays: number;
   suppressed: boolean;
+  /** Wielo account state behind the card: passwordless lead vs claimed account. */
+  isLead: boolean;
 };
 
 export type BoardStage = {
@@ -70,7 +72,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
     admin
       .from("pipeline_leads")
       .select(
-        "id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, user_profiles(full_name, email)",
+        "id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, user_profiles(full_name, email, is_lead)",
       )
       .eq("audience", audience)
       .order("score", { ascending: false }),
@@ -97,6 +99,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
     const prof = l.user_profiles as {
       full_name?: string;
       email?: string;
+      is_lead?: boolean;
     } | null;
     const lead: BoardLead = {
       id: l.id,
@@ -113,6 +116,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
         : null,
       ageDays: daysSince(l.last_activity_at ?? l.created_at),
       suppressed: Boolean(l.suppress_default_nurture),
+      isLead: Boolean(prof?.is_lead),
     };
     const arr = byStage.get(l.stage_id) ?? [];
     arr.push(lead);
