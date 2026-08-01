@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **211** (211 with RLS) |
-| Functions | **195** (154 SECURITY DEFINER, 73 trigger fns) |
+| Functions | **196** (155 SECURITY DEFINER, 74 trigger fns) |
 | Cron jobs | **49** (20 Vault-gated, 0 inactive) |
 | Vault secrets set | **24** |
 
@@ -222,6 +222,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `on_booking_cancelled` | **yes** | yes | trigger |
 | `on_booking_confirmed` | **yes** | yes | trigger |
 | `on_booking_confirmed_create_invoice` | **yes** | yes | trigger |
+| `on_host_created` | **yes** | yes | trigger |
 | `on_host_created_default_business` | **yes** | yes | trigger |
 | `on_message_inserted` | **yes** | yes | trigger |
 | `on_payment_completed_mark_invoice_paid` | **yes** | yes | trigger |
@@ -2910,6 +2911,7 @@ CASE
 
 **Triggers:**
 - `set_updated_at` → `update_updated_at()`
+- `trg_host_created` → `on_host_created()` *(SECURITY DEFINER)*
 - `trg_host_default_business` → `on_host_created_default_business()` *(SECURITY DEFINER)*
 - `trg_seed_host_policies` → `seed_host_policies_on_create()` *(SECURITY DEFINER)*
 - `trigger_host_handle` → `generate_host_handle()`

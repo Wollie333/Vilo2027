@@ -178,6 +178,19 @@ export async function createAccountAction(
   // on the user — the host row is created later in finalizeOnboardingAction.
   await bindAffiliateReferral(newUserId, null, d.referred_by ?? null);
 
+  // Surface this signup on the Hosts pipeline immediately, at stage "New"
+  // (= started host signup, onboarding unfinished). Completing onboarding
+  // advances it to "Signed up" (on_host_created DB trigger); a trial/payment
+  // moves it on. Best-effort — a pipeline hiccup must never block signup.
+  try {
+    const { createHostSignupLeadCard } =
+      await import("@/lib/pipeline/hostSignupLead");
+    await createHostSignupLeadCard(admin, { userId: newUserId });
+  } catch {
+    // Non-critical to signup; the on_host_created trigger still catches them
+    // if they finish onboarding.
+  }
+
   return { ok: true };
 }
 

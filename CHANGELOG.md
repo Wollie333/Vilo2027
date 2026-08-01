@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-08-01 — Pipeline: default signups appear on the Hosts board + board hardening.
+
+**Founder ask:** the default `/signup/host` flow (not just the `/go/hosts` landing page) must surface
+hosts on the pipeline, and the card must reflect **how far they got** — reversing plan §4b ("cold
+direct signup → no card"). Migration `20260801240000_signup_pipeline_stage.sql` +
+`apps/web/lib/pipeline/hostSignupLead.ts`.
+- **New "Signed up" host stage** inserted between New and Contacted. Board order is now
+  **New → Signed up → Contacted → Qualified → Demo booked → Nurturing → Trial → Won → Lost.**
+- **Starts host signup** (auth account created, onboarding unfinished) → card at **New**, written
+  best-effort from `createAccountAction` (host-intent only — a pure `/signup/guest` never lands on the
+  host board). **Completes onboarding** (a `hosts` row inserted, any path) → `on_host_created` trigger
+  advances the card to **Signed up**, or creates it there if the host was made outside the start flow
+  (admin / quote-only / free-product fulfilment). Trialing → Trial and paying → Won stay handled by the
+  existing move-only triggers, which now always have a card to move. `ON CONFLICT (user_id, audience)`
+  means a `/go/hosts` funnel lead who later signs up keeps their card + attribution; affiliate-referred
+  direct signups are badged `affiliate_referral`.
+- **Backfill:** every existing host without a card got one, placed by real state (paid → Won,
+  trialing → Trial, else Signed up). Verified live: 2 hosts → 2 cards (1 signed_up, 1 won).
+- **Hardening — Won is earned, never asserted.** Removed the manual "Mark won" control;
+  `setLeadOutcomeAction` rejects manual won and `moveLeadStageAction` now also refuses to move a *won*
+  card (no silent un-winning). Customer cards (Trial/Won) are non-draggable on the board. A card wins
+  ONLY via real payment (host) or registration (affiliate), keeping the board's value + conversion KPIs
+  honest.
+- Self-verifying migration (RAISEs if the stage is missing). SCHEMA.md regenerated; no table/column
+  change, so `database.types.ts` untouched.
+
 ## 2026-08-01 — Help-centre accuracy pass: content vs real code.
 
 Audited all 61 help articles + 6 FAQs + 4 videos (pulled live from `help_articles`) against the actual

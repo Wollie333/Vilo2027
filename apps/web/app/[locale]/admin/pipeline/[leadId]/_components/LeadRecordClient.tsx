@@ -318,20 +318,13 @@ export function LeadRecordClient({
               >
                 {isMine ? "Unassign" : "Assign to me"}
               </button>
+              {/* No manual "Mark won": a card wins only when the host pays or
+                  the affiliate registers (DB triggers). Keeps Won — and the
+                  board's value/conversion KPIs — honest. */}
               <button
-                disabled={pending || lead.status === "won"}
-                onClick={() =>
-                  run(() =>
-                    setLeadOutcomeAction({ leadId: lead.id, outcome: "won" }),
-                  )
+                disabled={
+                  pending || lead.status === "lost" || lead.status === "won"
                 }
-                className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-primary px-3.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Mark won
-              </button>
-              <button
-                disabled={pending || lead.status === "lost"}
                 onClick={() =>
                   run(() =>
                     setLeadOutcomeAction({ leadId: lead.id, outcome: "lost" }),

@@ -27,6 +27,20 @@ export const moveLeadStageAction = withAdminAudit<
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
+    // A won lead is a real, paying/registered customer — never silently un-win
+    // one with a stray drag or dropdown change. It stays Won while they're a
+    // customer (reopening is a system event, not a manual one).
+    const { data: current } = await service
+      .from("pipeline_leads")
+      .select("status")
+      .eq("id", a.leadId)
+      .maybeSingle();
+    if (!current) throw new Error("Lead not found.");
+    if (current.status === "won") {
+      throw new Error(
+        "This lead is a won customer — it stays Won while they're paying and can't be moved by hand.",
+      );
+    }
     // Customer stages (Trial + Won) are SYSTEM-driven: a card lands there only
     // when the host actually starts a trial or pays (DB triggers). Block manual
     // drags in so the board can't claim a customer who isn't one.
@@ -86,25 +100,38 @@ export const setLeadOutcomeAction = withAdminAudit<
   },
   async (a, service) => {
     const ctx = await requireAdmin();
+    // "Won" is earned, not asserted: a host card wins when they pay
+    // (on_platform_ledger_settled) and an affiliate card wins when they
+    // register (on_affiliate_activated). Blocking the manual path keeps the
+    // board's Won column — and therefore its value + conversion KPIs — honest.
+    if (a.outcome === "won") {
+      throw new Error(
+        "Won is set automatically when a lead pays (host) or registers (affiliate) — it can't be marked by hand.",
+      );
+    }
     const { data: lead } = await service
       .from("pipeline_leads")
-      .select("audience")
+      .select("audience, status")
       .eq("id", a.leadId)
       .maybeSingle();
     if (!lead) throw new Error("Lead not found.");
-    const flag = a.outcome === "won" ? "is_won" : "is_lost";
+    // Don't let a paying customer be manually marked Lost either.
+    if (lead.status === "won") {
+      throw new Error("This lead is a won customer and can't be marked lost.");
+    }
+    // Only "lost" reaches here — "won" is rejected above (system-driven).
     const { data: stage } = await service
       .from("pipeline_stages")
       .select("id, label")
       .eq("audience", lead.audience)
-      .eq(flag, true)
+      .eq("is_lost", true)
       .maybeSingle();
     if (!stage) throw new Error("No terminal stage configured.");
     const { data: after, error } = await service
       .from("pipeline_leads")
       .update({
         stage_id: stage.id,
-        status: a.outcome,
+        status: "lost",
         last_activity_at: new Date().toISOString(),
       })
       .eq("id", a.leadId)
@@ -114,9 +141,9 @@ export const setLeadOutcomeAction = withAdminAudit<
     await service.from("pipeline_activities").insert({
       lead_id: a.leadId,
       staff_id: ctx.userId,
-      kind: a.outcome === "won" ? "converted" : "note",
-      body: a.outcome === "won" ? "Marked won." : "Marked lost.",
-      meta: { stage_id: stage.id, status: a.outcome },
+      kind: "note",
+      body: "Marked lost.",
+      meta: { stage_id: stage.id, status: "lost" },
     });
     return { result: { ok: true as const }, after };
   },

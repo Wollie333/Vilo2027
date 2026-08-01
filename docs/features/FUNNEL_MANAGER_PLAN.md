@@ -134,21 +134,44 @@ Submit → `POST /api/funnel-submit` (Route Handler, `runtime='nodejs'`,
 
 ---
 
-## 4b. Direct paid signups bypass the pipeline
+## 4b. Direct signups DO appear on the board (founder reversal, 2026-08-01)
 
-A host who signs up **and pays** directly (skipping the landing page) is already
-converted — they are a *customer*, not a *lead*, and must not be worked as one.
+> ⚠️ **This section's original rule ("cold direct signup → no card") was REVERSED
+> by founder directive.** The founder wants drop-off visibility: the default
+> `/signup/host` flow — not just the `/go/hosts` landing page — must surface hosts
+> on the Hosts board, and the stage must reflect **how far they got**. Implemented
+> in migration `20260801240000_signup_pipeline_stage.sql` +
+> `lib/pipeline/hostSignupLead.ts`.
 
-- **If a lead card already exists** for that person (they came through `/go/hosts`
-  earlier): paying **auto-moves the card to "Won (became host)"** and cancels any
-  running nurture drip (the conversion hook in §7). History is preserved.
-- **If there is no prior lead card** (cold direct signup): **do not create a pipeline
-  card.** They enter the normal host/subscription system directly. Manufacturing a
-  "lead" here would pollute conversion metrics.
+The host board's early stages now read as a signup funnel:
+
+- **Starts host signup** (auth account created in `createAccountAction`, onboarding
+  unfinished) → a card is created at **"New"** (app-side, best-effort, host-intent
+  only — a pure `/signup/guest` account never lands here). Stalled signups are now
+  visible to sales.
+- **Completes onboarding** (a `hosts` row is inserted, via ANY path) → the
+  `on_host_created` trigger advances that card to the **new "Signed up"** stage, or
+  creates it there if the host was made outside the start flow (admin / quote-only /
+  free-product fulfilment).
+- **Starts a trial** → **Trial** (existing `on_subscription_trialing`).
+- **Pays** → **Won (became host)** (existing `on_platform_ledger_settled`). Those
+  triggers stay move-only, and now always have a card to move.
+- **A funnel lead who later signs up** keeps their existing card + attribution
+  (`ON CONFLICT (user_id, audience) DO NOTHING`); we only ever advance a card,
+  never downgrade it or duplicate it.
 - **Affiliate credit is unaffected** either way — `bindAffiliateReferral()` fires at
-  signup independent of the pipeline (§8a). Direct conversions are measured in
-  revenue/subscription reporting; the pipeline measures only leads that needed
-  nurturing. Clean separation, no double-counting.
+  signup independent of the pipeline (§8a). A direct signup with a bound referral is
+  badged `affiliate_referral`.
+
+Host board stage order is now:
+**New → Signed up → Contacted → Qualified → Demo booked → Nurturing → Trial → Won → Lost.**
+
+### Hardening shipped alongside (board integrity)
+- **Won is earned, never asserted.** The manual "Mark won" control is removed and
+  `setLeadOutcomeAction`/`moveLeadStageAction` reject any hand-move into (or, for a
+  won card, out of) a customer stage. A card wins ONLY via a real payment (host) or
+  registration (affiliate), so the board's value + conversion KPIs stay honest.
+  Customer cards (Trial/Won) are non-draggable on the board.
 
 ---
 

@@ -200,6 +200,8 @@ function LeadCard({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { stageId },
+    // Customer cards (Trial/Won) are system-managed — not draggable.
+    disabled: locked,
   });
   const [bl, bc] = band(lead.score);
   const av = lead.name.trim().slice(0, 2).toUpperCase();
@@ -208,12 +210,12 @@ function LeadCard({
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      {...(locked ? {} : listeners)}
+      {...(locked ? {} : attributes)}
       onClick={() => router.push(`/admin/pipeline/${lead.id}`)}
-      className={`group relative cursor-grab rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
-        isDragging ? "opacity-40" : ""
-      }`}
+      className={`group relative rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
+        locked ? "cursor-pointer" : "cursor-grab"
+      } ${isDragging ? "opacity-40" : ""}`}
     >
       {/* Delete — kept out of the drag/navigate path via stopPropagation.
           Hidden on customer cards (Trial/Won): they're locked (server enforces). */}
