@@ -61,11 +61,19 @@ const created = {
 };
 
 async function cleanup() {
-  // blocked_dates / invoices / booking_addons / booking_rooms cascade or are
-  // cleared by booking delete; refund_requests + payments reference bookings.
   for (const id of created.refunds)
     await db.from("refund_requests").delete().eq("id", id);
   for (const id of created.bookings) {
+    // Prefer the service-role purge RPC: it sets app.allow_policy_snapshot_purge so
+    // the INSERT-only policy_snapshots (which REST can NEVER delete) go too — without
+    // it, any booking that snapshotted a policy is undeletable and leaks (that was
+    // the pile of orphan TESTFLOW bookings). Fall back to best-effort REST deletes
+    // when the RPC isn't deployed yet (pre-migration 20260801240000); those clean
+    // everything except the snapshot, same as before.
+    const { error: purgeErr } = await db.rpc("purge_test_booking", {
+      p_booking_id: id,
+    });
+    if (!purgeErr) continue;
     await db.from("blocked_dates").delete().eq("booking_id", id);
     await db.from("credit_notes").delete().eq("booking_id", id);
     await db.from("invoices").delete().eq("booking_id", id);

@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-08-01 (pt5) — Host launch-hardening: flow harness stopped leaking undeletable bookings.
+
+**Root-caused a real cleanup leak during live-verify.** `policy_snapshots` is INSERT-only (a BEFORE DELETE
+trigger, `20260712150000`, refuses deletes unless the GDPR-purge GUC is set). The service-role/REST client
+can't set a transaction-local GUC, so **any booking that ever snapshotted a policy became undeletable via the
+API** — the flow harness's `cleanup()` silently failed on those (the booking DELETE hit the policy_snapshots
+FK), leaking ~38 orphan `TESTFLOW-*` bookings into the demo DB over many runs. Same wall would block a pre-MVP
+wipe.
+
+- **New RPC `purge_test_booking(p_booking_id)`** (`20260801240000`) — SECURITY DEFINER, EXECUTE locked to
+  `service_role`: sets `app.allow_policy_snapshot_purge` locally and deletes the booking's children (FK-safe
+  order) + the booking. service_role already bypasses RLS, so this grants no new reach — it only unblocks the
+  immutable-snapshot delete.
+- **Harness `cleanup()`** now calls the RPC first, falling back to the old best-effort REST deletes when the RPC
+  isn't deployed yet (pre-migration). Once `20260801240000` lands, flow-test runs self-clean fully — no residue.
+- Founder cleared the existing 38 orphans via a one-off `TESTFLOW-`-scoped SQL snippet (Supabase SQL editor).
+
+---
+
 ## 2026-08-01 (pt4) — Host launch-hardening: date-change stale-data + multi-business pay-page rails.
 
 Branch `fix/host-launch-hardening`. tsc + lint green. Two code fixes from the finance/pricing audit:
