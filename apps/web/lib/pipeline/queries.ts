@@ -131,9 +131,6 @@ export async function getBoard(audience: Audience): Promise<Board> {
   // KPIs.
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
   const total = leads.length;
   const newToday = leads.filter(
     (l) => new Date(l.created_at).getTime() >= startOfToday.getTime(),

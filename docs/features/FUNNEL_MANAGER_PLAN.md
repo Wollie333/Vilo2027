@@ -1,6 +1,6 @@
 # Funnel Manager & Lead Pipeline — Plan
 
-**Status:** 🟢 Phases 1–3 SHIPPED 2026-08-01 (data model + Hosts funnel + admin pipeline board & lead record) — Phases 4–6 pending
+**Status:** 🟢 Phases 1–4 SHIPPED 2026-08-01 (data model + Hosts funnel + admin pipeline + nurture drip) — Phases 5–6 pending. ⚠️ Phase 4 conversion-cancel DB triggers (subscription→Won, affiliate joins) deferred to Phase 4b.
 **Owner:** Founder + Marketing/Sales team
 **Author:** drafted + refined 2026-07-31
 **Related:** `BUSINESS_PRINCIPLES.md` #1 (guest identity), #5 (one source of truth),
@@ -448,8 +448,19 @@ file or YouTube URL), thank-you CTA text/target, and the nurture email copy per 
    empty states), card→record, add note (→ timeline, attributed to admin), mark won + move stage
    (→ status/stage/activities + audit rows). ⚠️ drag GESTURE not exercisable via synthetic events, but
    `moveLeadStageAction` proven via the stage dropdown. build + lint green.
-4. **Nurture drip engine** — sequence + `drain-nurture` cron + `/api/nurture-worker`
-   + templates + conversion-cancels-drip hooks.
+4. ✅ **DONE (2026-08-01)** — **Nurture drip engine** — migration
+   `20260801110000_nurture_engine` seeds 3 host steps (0/48/120h) + activates the host sequence +
+   schedules the `drain-nurture` pg_cron (Vault `nurture_worker_url` + shared `email_worker_secret`,
+   fail-soft). `app/api/nurture-worker/route.ts` (clone of review-request-worker: timing-safe
+   `EMAIL_WORKER_SECRET` bearer, batch-drains due active enrolments, sends each step via
+   `sendTransactionalEmail` inline HTML, logs `email_sent` on the lead, advances/completes;
+   consent-withdrawn → `unsubscribed`). **Live-verified:** consenting funnel submit → enrolment
+   (due now) → worker POST (200, sent 1) → step 1 email + `email_sent` activity + advance to step 2
+   (`next_send_at` +48h); 401 without the secret. build + lint green.
+   ⚠️ **DEFERRED (Phase 4b):** inline step HTML instead of polished React Email templates + registry;
+   the **conversion-cancels-drip DB triggers** (subscriptions active → Won + enrolment `converted`;
+   `affiliate_accounts`/`affiliate_clicks` → affiliate-board moves); the SQL Editor Vault
+   `nurture_worker_url` provisioning per env (prod URL) — until set, the cron is a fail-soft no-op.
 5. **Affiliate funnel** (`/go/affiliate` + its board + drip) + affiliate-link
    verification (`/r/<slug>?next=/go/hosts` credits correctly) + UTM/analytics.
 6. **Lifecycle doc** `docs/lifecycles/funnel.md` (Principle #12) + index it.

@@ -14,6 +14,18 @@ content purged. Fixed `scripts/reset-keep-superadmin.mjs` to keep by `platform_s
 `user_profiles.role`) + a system-user allowlist. Signed affiliate agreements (immutable 3-yr
 retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Reference/config intact.
 
+**Funnel Manager — Phase 4 (nurture drip engine):** migration `20260801110000_nurture_engine` seeds
+the host sequence's 3 steps (0/48/120h), activates it, and schedules the per-minute `drain-nurture`
+pg_cron (Vault `nurture_worker_url` + shared `email_worker_secret`, fail-soft — a no-op until the
+secret is set). `/api/nurture-worker` clones the review-request worker: timing-safe `EMAIL_WORKER_SECRET`
+bearer, drains due active enrolments, sends each step (inline HTML via `sendTransactionalEmail`), logs
+an `email_sent` activity on the lead, advances/completes; consent-withdrawn → `unsubscribed`.
+**Live-verified:** a consenting funnel submit enrolled the lead (due now) → worker POST returned
+`sent 1` → step-1 email + timeline entry + advance to step 2 (`next_send_at` +48h); 401 without the
+secret. Also brought the remote migration history in sync (applied the earlier additive
+`help_article_seo` migration — columns already existed, so a no-op). Deferred to Phase 4b: React Email
+templates, the conversion-cancels-drip DB triggers, and per-env Vault `nurture_worker_url`. build + lint green.
+
 **Funnel Manager — Phase 3 (admin pipeline board + lead record):** the sales CRM. `/admin/pipeline`
 nav item (gated `pipeline.view`) + `pipeline.view`/`pipeline.manage` in the `PermissionKey` union +
 `pipeline` audit target-type. Board: Host/Affiliate tabs, real KPI tiles, columns from
