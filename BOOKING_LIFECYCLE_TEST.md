@@ -191,11 +191,27 @@ numbering migrations are BLOCKED** until those files land in the repo (coordinat
   discount into `line_items` (total is correct; a transparency gap, low). Decide: itemise on the invoice, or
   adjust the test.
 
-### REMAINING PUNCH-LIST (founder order: harness first)
-1. **Harness:** rewrite the 9 stale tests → green; add a **C1 double-decrement assertion** (cancel a special-
-   redeeming booking → `redemptions_used`/`total_bookings` drop by exactly 1 — currently fails, DOCUMENTS the C1
-   bug until the migration lands); extend with **decline, forfeit, date-change, seasonal, add-ons, payment-method
-   enable/disable** journeys.
+### ✅ HARNESS DONE (2026-08-01 pt2) — `pnpm test:flows` = **93 passed, 0 failed, 1 known issue watched**
+- **9 stale tests rewritten to current-correct behaviour:** **G** now asserts a completed refund mints NO credit
+  note + rolls `payments.refunded_amount`/`payment_status`/`balance_due` (refund ≠ credit note); **I1** flipped —
+  insert-as-confirmed DOES mint the invoice (INSERT-path fix), calendar block stays UPDATE-only (I2); **L** now
+  asserts an over-refund is REFUSED by the DB (`refunded_amount <= amount` CHECK) + a within-capture refund still
+  completes (was "cap the credit note"); **M4** sources its CN from a CANCELLATION (via `mintCancellationCN`,
+  mirroring `cancel-settlement.ts`) since a refund no longer mints one.
+- **Q2/Q3 fixed** (was a test artefact — two confirmed stays on the SAME nights collided on `blocked_dates` and
+  rolled back the 2nd invoice; each booking now gets its own dates). **T1/T3 fixed** — the discount IS itemised,
+  just under `line_items.stay_discount` (non-coupon); invoice `subtotal` is NET (total − vat). Assertions realigned.
+- **New journeys:** **V** decline (no invoice, no block, dates stay free) · **W** no-show/forfeit releases the
+  calendar block (room re-sells) · **X** special-redemption release — the **C1 double-decrement is now PROVEN LIVE**
+  (cancel drops `redemptions_used` 2→0, should be 2→1) as a non-fatal `documented()` probe that flips to a hard
+  `check()` the moment the DROP-duplicate-trigger migration lands. New `documented()` reporter + `specials` cleanup.
+
+### REMAINING PUNCH-LIST (founder order: harness first — HARNESS ✅)
+1. ~~**Harness:** rewrite the 9 stale tests → green; add a **C1 double-decrement assertion**; extend journeys.~~
+   ✅ DONE (see above). **BLOCKER LIFTED** (founder 2026-08-01): the help/docs + funnel migrations are now pushed
+   & live on `origin/main`, so C1/C2/numbering migrations are UNBLOCKED — but this branch is 12 ahead / 13 behind
+   `origin/main`; reconciling the migration history (merge main in, or merge this branch to main first) is a
+   branch-strategy call to confirm with the founder before pushing the C1 DROP migration.
 2. **Notification events (new):** `booking_dates_changed_guest` + `review_response_guest` — each needs a registry
    entry + email template + resolver + catalog. Then assert firing via `notification_delivery_log`.
 3. **Delete `refund_admin_override_host`** (registry + catalog + email registry + resolver + admin sample/refs;

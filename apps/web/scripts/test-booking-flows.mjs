@@ -37,12 +37,27 @@ function check(name, cond, detail = "") {
     console.log(`  \x1b[31m✗ ${name}${detail ? ` — ${detail}` : ""}\x1b[0m`);
   }
 }
+// A KNOWN, un-fixed bug we want the harness to keep watching without failing the
+// run (the fix is blocked on something outside this pass — e.g. a migration). When
+// `cond` is true the issue has been resolved and the probe nudges you to promote it
+// to check(). Tracked separately so a green suite never hides an open defect.
+let knownIssues = 0;
+function documented(name, cond, detail = "") {
+  if (cond) {
+    passed++;
+    console.log(`  \x1b[32m✓\x1b[0m ${name} \x1b[33m(known issue resolved — promote to check())\x1b[0m`);
+  } else {
+    knownIssues++;
+    console.log(`  \x1b[33m⚠ KNOWN ISSUE ${name}${detail ? ` — ${detail}` : ""}\x1b[0m`);
+  }
+}
 const created = {
   bookings: [],
   payments: [],
   refunds: [],
   coupons: [],
   quotes: [],
+  specials: [],
 };
 
 async function cleanup() {
@@ -69,6 +84,10 @@ async function cleanup() {
     await db.from("quote_addons").delete().eq("quote_id", id);
     await db.from("quotes").delete().eq("id", id);
   }
+  // Specials last — bookings.special_id is ON DELETE SET NULL, so bookings are gone
+  // by now and nothing references these rows.
+  for (const id of created.specials)
+    await db.from("specials").delete().eq("id", id);
 }
 
 async function insertQuote(over = {}) {
@@ -143,6 +162,67 @@ async function insertBooking(over = {}) {
   if (error) throw new Error(`insertBooking: ${error.message}`);
   created.bookings.push(data.id);
   return data;
+}
+
+// Resolve the demo host's default business — drives per-business doc numbering.
+async function defaultBusinessId() {
+  const { data: biz } = await db
+    .from("businesses")
+    .select("id")
+    .eq("host_id", HOST_ID)
+    .eq("is_default", true)
+    .maybeSingle();
+  return biz?.id ?? null;
+}
+
+// Mint a cancellation credit note exactly the way lib/bookings/cancel-settlement.ts
+// does: anchored to the booking's live invoice, numbered per-business via
+// next_credit_note_number, origin='cancellation'. A cancellation (or forfeiture) is
+// the ONLY path that auto-mints a CN — a plain refund never does (a refund returns
+// cash; a credit note reverses an invoice). Returns the credit_note_number or null.
+async function mintCancellationCN(bookingId, amount = 1000) {
+  const { data: invoice } = await db
+    .from("invoices")
+    .select("id, host_snapshot, guest_snapshot")
+    .eq("booking_id", bookingId)
+    .eq("kind", "booking")
+    .is("voided_at", null)
+    .order("issued_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!invoice) return null; // never-invoiced → nothing to reverse
+  const businessId = await defaultBusinessId();
+  const { data: number } = await db.rpc("next_credit_note_number", {
+    p_business_id: businessId,
+  });
+  if (!number) return null;
+  const { data: bk } = await db
+    .from("bookings")
+    .select("guest_id, currency")
+    .eq("id", bookingId)
+    .maybeSingle();
+  const { data: inserted } = await db
+    .from("credit_notes")
+    .insert({
+      credit_note_number: number,
+      invoice_id: invoice.id,
+      booking_id: bookingId,
+      host_id: HOST_ID,
+      guest_id: bk?.guest_id ?? null,
+      host_snapshot: invoice.host_snapshot,
+      guest_snapshot: invoice.guest_snapshot,
+      line_items: [{ label: "Cancellation reversal", amount }],
+      reason: "Cancellation reversal",
+      subtotal: amount,
+      vat_amount: 0,
+      total_amount: amount,
+      currency: bk?.currency ?? "ZAR",
+      origin: "cancellation",
+      status: "issued",
+    })
+    .select("credit_note_number")
+    .single();
+  return inserted?.credit_note_number ?? null;
 }
 
 async function main() {
@@ -477,8 +557,14 @@ async function main() {
     check("E3 total = base_total + cleaning", price && Number(price.total) === Number(price.base_total) + Number(price.cleaning_fee));
   }
 
-  // ── Journey G: refund completion auto-creates a credit note ──
-  console.log("\nJourney G — refund completion mints a credit note");
+  // ── Journey G: a completed refund bumps refunded_amount, mints NO credit note ──
+  // A refund and a credit note are DISTINCT accounting events — a refund returns
+  // cash, a credit note reverses an invoice + grants store credit. The old
+  // auto-CN-on-refund trigger was removed (migration 20260607000004): completing a
+  // refund must NOT mint a credit note. What it MUST do is roll the ledger via
+  // update_payment_refunded_amount — payments.refunded_amount, the payment/booking
+  // payment_status, and the denormalised balance_due.
+  console.log("\nJourney G — a completed refund bumps refunded_amount, mints NO credit note");
   {
     const b = await insertBooking({ guest_id: GUEST_UID });
     const { data: pay } = await db
@@ -498,7 +584,7 @@ async function main() {
       p_booking_id: b.id,
       p_listing_id: LISTING_A,
     });
-    // Confirm → invoice auto-created (the credit note credits against it).
+    // Confirm → invoice minted; payment already completed so it lands paid.
     await db
       .from("bookings")
       .update({ status: "confirmed", payment_status: "completed" })
@@ -508,7 +594,7 @@ async function main() {
       .select("id")
       .eq("booking_id", b.id)
       .maybeSingle();
-    check("G1 invoice exists to credit against", !!inv);
+    check("G1 invoice minted on confirm", !!inv);
 
     const { data: rr } = await db
       .from("refund_requests")
@@ -519,7 +605,7 @@ async function main() {
         guest_id: GUEST_UID,
         requested_amount: 1200,
         currency: "ZAR",
-        reason: "Test flow credit note",
+        reason: "Partial refund flow",
         initiated_by: "host",
         status: "approved",
       })
@@ -527,7 +613,7 @@ async function main() {
       .single();
     if (rr) created.refunds.push(rr.id);
 
-    // Complete the refund → on_refund_completed_create_credit_note fires.
+    // Complete the refund → update_payment_refunded_amount rolls the money.
     await db
       .from("refund_requests")
       .update({
@@ -537,31 +623,40 @@ async function main() {
       })
       .eq("id", rr.id);
 
-    const { data: cn } = await db
+    // A refund is NOT a credit note — the booking has NO credit-note rows.
+    const { count: cnCount } = await db
       .from("credit_notes")
-      .select(
-        "id, credit_note_number, invoice_id, booking_id, total_amount, origin, status",
-      )
-      .eq("refund_request_id", rr.id)
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", b.id);
+    check("G2 a completed refund mints NO credit note", cnCount === 0, `got ${cnCount}`);
+
+    // The completion trigger rolls the payment + booking money.
+    const { data: pay2 } = await db
+      .from("payments")
+      .select("refunded_amount, status")
+      .eq("id", pay.id)
       .maybeSingle();
-    check("G2 credit note auto-created on completion", !!cn);
     check(
-      "G3 credit note has a number",
-      !!cn && typeof cn.credit_note_number === "string" && cn.credit_note_number.startsWith("CN-"),
-      cn ? cn.credit_note_number : "no note",
+      "G3 payments.refunded_amount rolled to the refund",
+      pay2 && Number(pay2.refunded_amount) === 1200,
+      pay2 ? `got ${pay2.refunded_amount}` : "no payment",
     );
     check(
-      "G4 credit note links to booking + invoice",
-      !!cn && cn.booking_id === b.id && cn.invoice_id === (inv && inv.id),
+      "G4 partial refund flags the payment partially_refunded",
+      pay2?.status === "partially_refunded",
+      pay2?.status,
     );
+    const { data: bk } = await db
+      .from("bookings")
+      .select("payment_status, balance_due")
+      .eq("id", b.id)
+      .maybeSingle();
+    check("G5 booking reads partially_refunded", bk?.payment_status === "partially_refunded", bk?.payment_status);
+    // net paid = 3500 − 1200 = 2300; the guest owes the rest = 3500 − 2300 = 1200.
     check(
-      "G5 credit amount = approved refund",
-      !!cn && Number(cn.total_amount) === 1200,
-      cn ? `got ${cn.total_amount}` : "no note",
-    );
-    check(
-      "G6 origin=refund_auto, status=issued",
-      !!cn && cn.origin === "refund_auto" && cn.status === "issued",
+      "G6 balance re-derived from the ledger",
+      bk && Number(bk.balance_due) === 1200,
+      bk ? `got ${bk.balance_due}` : "none",
     );
   }
 
@@ -607,13 +702,16 @@ async function main() {
     check("H4 paid_at stamped", !!inv2?.paid_at);
   }
 
-  // ── Journey I: confirm must fire via UPDATE (the convert-quote fix) ──
-  // The invoice + calendar-block triggers are AFTER UPDATE OF status. A booking
-  // inserted *already* confirmed skips them — which is exactly the bug the quote
-  // converter had. This journey pins the contract both ways.
-  console.log("\nJourney I — confirm fires triggers only via status UPDATE");
+  // ── Journey I: the two confirm triggers have DIFFERENT firing contracts ──
+  // • The invoice trigger (trigger_booking_confirmed_invoice) fires AFTER INSERT OR
+  //   UPDATE OF status — widened in 20260610190000 so a direct-confirmed manual
+  //   booking still gets invoiced.
+  // • The calendar-block trigger (trigger_booking_confirmed) is AFTER UPDATE OF
+  //   status ONLY — an insert-already-confirmed lays no block. That asymmetry is
+  //   exactly why the quote converter must go pending → UPDATE → confirmed (I-b).
+  console.log("\nJourney I — invoice fires on INSERT+UPDATE; calendar block only on UPDATE");
   {
-    // I-a: inserted straight as confirmed → NO invoice, NO blocks.
+    // I-a: inserted straight as confirmed → invoice minted (INSERT path), NO blocks.
     const direct = await insertBooking({
       guest_id: GUEST_UID,
       status: "confirmed",
@@ -627,12 +725,12 @@ async function main() {
       .select("id")
       .eq("booking_id", direct.id)
       .maybeSingle();
-    check("I1 insert-as-confirmed creates NO invoice (proves the bug)", !invDirect);
+    check("I1 insert-as-confirmed mints the invoice (INSERT-path fix)", !!invDirect);
     const { count: blkDirect } = await db
       .from("blocked_dates")
       .select("date", { count: "exact", head: true })
       .eq("booking_id", direct.id);
-    check("I2 insert-as-confirmed lays NO calendar block", blkDirect === 0, `got ${blkDirect}`);
+    check("I2 insert-as-confirmed lays NO calendar block (UPDATE-only)", blkDirect === 0, `got ${blkDirect}`);
 
     // I-b: the converter's path — insert pending, snapshot, UPDATE → confirmed.
     const conv = await insertBooking({
@@ -735,8 +833,13 @@ async function main() {
     check("K2 the night of checkout is bookable again", free === true);
   }
 
-  // ── Journey L: credit note never exceeds the invoice (break-it) ──
-  console.log("\nJourney L — a credit note can't exceed its invoice total");
+  // ── Journey L: a refund can never exceed the cash captured (break-it) ──
+  // There is no "cap the credit note" fallback anymore — an over-refund is REFUSED
+  // at the DB by CHECK (refunded_amount <= amount) (migration 20260717001000). The
+  // completion trigger's row-locked UPDATE trips the constraint (23514) and the whole
+  // refund_requests UPDATE aborts, so refunded_amount stays put and no money that was
+  // never collected is paid out. A within-capture refund still completes fine.
+  console.log("\nJourney L — an over-refund is refused; refunded_amount can't exceed capture");
   {
     const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(140), check_out: isoPlus(143) });
     const { data: pay } = await db
@@ -756,13 +859,8 @@ async function main() {
       .from("bookings")
       .update({ status: "confirmed", payment_status: "completed" })
       .eq("id", b.id);
-    const { data: inv } = await db
-      .from("invoices")
-      .select("id, total_amount")
-      .eq("booking_id", b.id)
-      .maybeSingle();
 
-    // Over-refund: approve MORE than the invoice total and complete it.
+    // Over-refund: approve MORE than the captured 3500 and try to complete it.
     const { data: rr } = await db
       .from("refund_requests")
       .insert({
@@ -779,20 +877,52 @@ async function main() {
       .select("id")
       .single();
     if (rr) created.refunds.push(rr.id);
-    await db
+    const { error: overErr } = await db
       .from("refund_requests")
       .update({ status: "completed", approved_amount: 9999, actioned_at: new Date().toISOString() })
       .eq("id", rr.id);
-    const { data: cn } = await db
-      .from("credit_notes")
-      .select("total_amount")
-      .eq("refund_request_id", rr.id)
+    check("L1 over-refund completion is rejected by the DB", !!overErr, overErr ? overErr.code : "no error");
+    const { data: pay2 } = await db
+      .from("payments")
+      .select("refunded_amount, status")
+      .eq("id", pay.id)
       .maybeSingle();
-    check("L1 over-refund still mints a credit note", !!cn);
     check(
-      "L2 credit note is capped at the invoice total",
-      !!cn && !!inv && Number(cn.total_amount) <= Number(inv.total_amount),
-      cn && inv ? `note ${cn.total_amount} vs invoice ${inv.total_amount}` : "missing",
+      "L2 the payment's refunded_amount is untouched",
+      pay2 && Number(pay2.refunded_amount ?? 0) === 0,
+      pay2 ? `got ${pay2.refunded_amount}` : "none",
+    );
+
+    // A within-capture full refund on the same payment still completes.
+    const { data: rr2 } = await db
+      .from("refund_requests")
+      .insert({
+        booking_id: b.id,
+        payment_id: pay.id,
+        host_id: HOST_ID,
+        guest_id: GUEST_UID,
+        requested_amount: 3500,
+        currency: "ZAR",
+        reason: "Full refund within capture",
+        initiated_by: "host",
+        status: "approved",
+      })
+      .select("id")
+      .single();
+    if (rr2) created.refunds.push(rr2.id);
+    const { error: okErr } = await db
+      .from("refund_requests")
+      .update({ status: "completed", approved_amount: 3500, actioned_at: new Date().toISOString() })
+      .eq("id", rr2.id);
+    const { data: pay3 } = await db
+      .from("payments")
+      .select("refunded_amount, status")
+      .eq("id", pay.id)
+      .maybeSingle();
+    check(
+      "L3 a within-capture full refund completes → payment refunded",
+      !okErr && pay3 && Number(pay3.refunded_amount) === 3500 && pay3.status === "refunded",
+      pay3 ? `${pay3.status} @ ${pay3.refunded_amount}${okErr ? ` err ${okErr.code}` : ""}` : "none",
     );
   }
 
@@ -847,13 +977,10 @@ async function main() {
     if (rr) created.refunds.push(rr.id);
     check("M3 refund ref is REF-NNNN", /^REF-\d{4,}$/.test(rr?.reference ?? ""), rr?.reference);
 
-    await db.from("refund_requests").update({ status: "completed", approved_amount: 500, actioned_at: new Date().toISOString() }).eq("id", rr.id);
-    const { data: cn } = await db
-      .from("credit_notes")
-      .select("credit_note_number")
-      .eq("refund_request_id", rr.id)
-      .maybeSingle();
-    check("M4 credit note number is CN-NNNN", /^CN-\d{4,}$/.test(cn?.credit_note_number ?? ""), cn?.credit_note_number);
+    // Credit note → CN-NNNN. A CN is minted by a CANCELLATION (not a refund), so
+    // mint one the way cancel-settlement.ts does and assert the per-business number.
+    const cnNumber = await mintCancellationCN(b.id, 500);
+    check("M4 credit note number is CN-NNNN", /^CN-\d{4,}$/.test(cnNumber ?? ""), cnNumber);
 
     // Quote → Q-NNNN.
     const q = await insertQuote();
@@ -1063,10 +1190,13 @@ async function main() {
   }
 
   // ── Journey Q: per-business invoice numbers are unique + monotonic ──
+  // Each booking gets its OWN nights — two confirmed stays on the same dates would
+  // collide on blocked_dates and roll back the second confirm (no invoice), which
+  // is a test artefact, not a numbering bug.
   console.log("\nJourney Q — invoice numbers are unique and sequential");
   {
-    const mk = async () => {
-      const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(210), check_out: isoPlus(212) });
+    const mk = async (offset) => {
+      const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(offset), check_out: isoPlus(offset + 2) });
       await db
         .from("bookings")
         .update({ status: "confirmed", payment_status: "completed" })
@@ -1078,8 +1208,8 @@ async function main() {
         .maybeSingle();
       return inv?.invoice_number ?? "";
     };
-    const n1 = await mk();
-    const n2 = await mk();
+    const n1 = await mk(210);
+    const n2 = await mk(213);
     const seq = (s) => parseInt(s.slice(s.lastIndexOf("-") + 1), 10);
     check("Q1 two invoices have distinct numbers", n1 !== n2, `${n1} vs ${n2}`);
     check("Q2 numbers increase per business", seq(n2) === seq(n1) + 1, `${n1} → ${n2}`);
@@ -1150,10 +1280,23 @@ async function main() {
       .select("subtotal, total_amount, line_items")
       .eq("booking_id", b.id)
       .maybeSingle();
-    check("T1 invoice subtotal is pre-discount", inv && Number(inv.subtotal) === 3500, inv ? `got ${inv.subtotal}` : "no invoice");
+    // The stay/length-of-stay (non-coupon) discount rides bookings.discount_amount
+    // and is itemised on the invoice as line_items.stay_discount (migration
+    // 20260719220000). line_items.discount_amount carries the COUPON discount only.
+    // The pre-discount components stay in line_items.base_amount + cleaning_fee; the
+    // invoice `subtotal` is the NET (total − vat), so it foots to the post-discount total.
+    const li = inv?.line_items ?? {};
+    check(
+      "T1 invoice line items carry the pre-discount components",
+      inv && Number(li.base_amount) + Number(li.cleaning_fee) === 3500,
+      inv ? `got ${Number(li.base_amount) + Number(li.cleaning_fee)}` : "no invoice",
+    );
     check("T2 invoice total is post-discount", inv && Number(inv.total_amount) === 3150, inv ? `got ${inv.total_amount}` : "none");
-    check("T3 invoice records the discount", inv && Number(inv.line_items?.discount_amount) === 350, inv ? `got ${inv.line_items?.discount_amount}` : "none");
-    check("T4 subtotal − discount === total", inv && Number(inv.subtotal) - Number(inv.line_items?.discount_amount) === Number(inv.total_amount));
+    check("T3 invoice itemises the stay discount", inv && Number(li.stay_discount) === 350, inv ? `got ${li.stay_discount}` : "none");
+    check(
+      "T4 (base + cleaning) − stay discount === total",
+      inv && Number(li.base_amount) + Number(li.cleaning_fee) - Number(li.stay_discount) === Number(inv.total_amount),
+    );
   }
 
   // ── Journey U: deposit terms on the quote + balance tracking on the booking ──
@@ -1202,8 +1345,139 @@ async function main() {
     check("U4 invoice is the FULL amount (balance is tracking only)", inv && Number(inv.total_amount) === 3150, inv ? `got ${inv.total_amount}` : "none");
   }
 
+  // ── Journey V: decline is terminal-before-confirm — no invoice, no blocks ──
+  console.log("\nJourney V — declining a pending booking mints nothing, blocks nothing");
+  {
+    const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(230), check_out: isoPlus(233) });
+    await db.rpc("snapshot_booking_policies", { p_booking_id: b.id, p_listing_id: LISTING_A });
+    await db
+      .from("bookings")
+      .update({ status: "declined", declined_at: new Date().toISOString() })
+      .eq("id", b.id);
+    const { data: bk } = await db.from("bookings").select("status").eq("id", b.id).maybeSingle();
+    check("V1 booking reads declined", bk?.status === "declined", bk?.status);
+    // The invoice trigger fires only on status='confirmed'; a decline never invoices.
+    const { data: inv } = await db.from("invoices").select("id").eq("booking_id", b.id).maybeSingle();
+    check("V2 a declined booking mints NO invoice", !inv);
+    // Dates were never confirmed, so nothing was ever blocked to release.
+    const { count: blk } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("booking_id", b.id);
+    check("V3 a declined booking holds NO calendar block", blk === 0, `got ${blk}`);
+    // The dates stay bookable for the next guest.
+    const { data: free } = await db.rpc("listing_is_available_whole", {
+      p_listing_id: LISTING_A,
+      p_check_in: isoPlus(230),
+      p_check_out: isoPlus(233),
+    });
+    check("V4 the declined dates remain available", free === true);
+  }
+
+  // ── Journey W: no-show / forfeit releases the calendar block ──
+  // forfeitBookingAction flips a confirmed booking to no_show; the on_booking_cancelled
+  // trigger (no_show is terminal) frees every date it held so the room can re-sell.
+  console.log("\nJourney W — a no-show releases the calendar block");
+  {
+    const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(240), check_out: isoPlus(243) });
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed" }).eq("id", b.id);
+    const { count: blkOn } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("booking_id", b.id);
+    check("W1 confirm laid the calendar block", blkOn === 3, `got ${blkOn}`);
+    // The dates read unavailable while the booking stands.
+    const { data: heldBefore } = await db.rpc("listing_is_available_whole", {
+      p_listing_id: LISTING_A,
+      p_check_in: isoPlus(240),
+      p_check_out: isoPlus(243),
+    });
+    check("W2 the held dates read unavailable", heldBefore === false);
+    // Forfeit → no_show.
+    await db
+      .from("bookings")
+      .update({ status: "no_show", payment_status: "forfeited", cancelled_by: "host" })
+      .eq("id", b.id);
+    const { count: blkOff } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("booking_id", b.id);
+    check("W3 no_show releases every block it laid", blkOff === 0, `got ${blkOff}`);
+    const { data: freeAfter } = await db.rpc("listing_is_available_whole", {
+      p_listing_id: LISTING_A,
+      p_check_in: isoPlus(240),
+      p_check_out: isoPlus(243),
+    });
+    check("W4 the room is bookable again after the no-show", freeAfter === true);
+  }
+
+  // ── Journey X: a cancelled special booking returns exactly ONE redemption ──
+  // C1 (open bug): on_booking_cancelled is wired to TWO identical triggers
+  // (trigger_booking_cancelled + trigger_on_booking_cancelled), so a single cancel
+  // runs the release twice — redemptions_used AND hosts/properties.total_bookings each
+  // drop by 2 instead of 1 (masked only when the counter is already at its floor). A
+  // DROP-duplicate-trigger migration fixes it; until it lands this stays a documented
+  // probe (drop-by-exactly-1) so the harness watches without going red.
+  console.log("\nJourney X — cancelling a special booking releases exactly one redemption");
+  {
+    const { data: prop } = await db
+      .from("properties")
+      .select("business_id")
+      .eq("id", LISTING_A)
+      .maybeSingle();
+    const businessId = prop?.business_id ?? (await defaultBusinessId());
+    const { data: special } = await db
+      .from("specials")
+      .insert({
+        host_id: HOST_ID,
+        business_id: businessId,
+        property_id: LISTING_A,
+        slug: `testflow-special-${Math.random().toString(36).slice(2, 8)}`,
+        title: "Test-flow deal",
+        date_mode: "fixed",
+        fixed_check_in: isoPlus(250),
+        fixed_check_out: isoPlus(253),
+        price_mode: "flat",
+        flat_total: 3000,
+        currency: "ZAR",
+        quantity: 5,
+        redemptions_used: 2, // two units already claimed — must sit ABOVE the floor
+        status: "active",
+      })
+      .select("id, redemptions_used")
+      .single();
+    created.specials.push(special.id);
+
+    // A booking that redeemed this special, confirmed then cancelled.
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      special_id: special.id,
+      check_in: isoPlus(250),
+      check_out: isoPlus(253),
+    });
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed" }).eq("id", b.id);
+
+    const { data: before } = await db.from("specials").select("redemptions_used").eq("id", special.id).maybeSingle();
+    check("X1 the special sits at 2 redemptions before the cancel", Number(before?.redemptions_used) === 2, `got ${before?.redemptions_used}`);
+
+    await db
+      .from("bookings")
+      .update({ status: "cancelled_by_host", cancelled_by: "host" })
+      .eq("id", b.id);
+
+    const { data: after } = await db.from("specials").select("redemptions_used").eq("id", special.id).maybeSingle();
+    // Correct behaviour: 2 → 1 (one unit returned). The duplicate trigger makes it
+    // 2 → 0. Documented (non-fatal) until the DROP-duplicate-trigger migration lands.
+    documented(
+      "X2 cancel returns EXACTLY one redemption (C1 duplicate-trigger)",
+      Number(after?.redemptions_used) === 1,
+      `expected 1, got ${after?.redemptions_used} (double-decrement — see C1)`,
+    );
+  }
+
   console.log(
-    `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m`,
+    `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m` +
+      (knownIssues ? `  \x1b[33m(${knownIssues} known issue${knownIssues === 1 ? "" : "s"} watched)\x1b[0m` : ""),
   );
   if (failures.length) {
     console.log("\nFailures:");
