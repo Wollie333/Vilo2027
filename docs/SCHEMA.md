@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **211** (211 with RLS) |
-| Functions | **196** (155 SECURITY DEFINER, 74 trigger fns) |
+| Functions | **197** (156 SECURITY DEFINER, 75 trigger fns) |
 | Cron jobs | **49** (20 Vault-gated, 0 inactive) |
 | Vault secrets set | **24** |
 
@@ -219,6 +219,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `next_refund_number` | **yes** | yes | callable |
 | `notify_subscription_event` | **yes** | yes | callable |
 | `on_affiliate_activated` | **yes** | yes | trigger |
+| `on_affiliate_commission_accrued` | **yes** | yes | trigger |
 | `on_booking_cancelled` | **yes** | yes | trigger |
 | `on_booking_confirmed` | **yes** | yes | trigger |
 | `on_booking_confirmed_create_invoice` | **yes** | yes | trigger |
@@ -857,6 +858,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'cleared'::text, 'voided'::text, 'paid'::text])))`
 
 **Triggers:**
+- `trg_affiliate_commission_accrued` → `on_affiliate_commission_accrued()` *(SECURITY DEFINER)*
 - `trg_emit_affiliate_commission_ledger` → `emit_affiliate_commission_ledger()` *(SECURITY DEFINER)*
 - `trg_notify_affiliate_earned` → `tg_notify_affiliate_commission_earned()` *(SECURITY DEFINER)*
 

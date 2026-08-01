@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-08-01 — Affiliate pipeline: Won = referred a paying member; drop Nurturing.
+
+Founder: on the affiliate board only affiliates who have **successfully referred a paying member**
+belong in Won; everyone who has merely registered sits in **Joined program**; the **Nurturing** stage is
+redundant. Migration `20260801260000_affiliate_won_paying_referral.sql`.
+- **Rewrote `on_affiliate_activated`:** registering (affiliate account → active) now lands the card in
+  **Joined program** (was Won), creating one if none exists so every registered affiliate is visible.
+  Keeps the Meta CompleteRegistration event.
+- **New `on_affiliate_commission_accrued` trigger:** an `affiliate_commissions` row with
+  `entry_type='accrual'` (a referred member actually paid) moves that affiliate's card to **Won**
+  (create-if-missing). Clawbacks don't count.
+- **Removed the Nurturing stage** (0 cards, no trigger moves anyone there, no email attached — the
+  nurture drip is funnel/enrolment driven, not stage driven). Relabelled Won → "Won (referred a paying
+  member)"; recompacted order to New → Contacted → Joined program → Won → Lost.
+- Backfill demotes any Won affiliate with no accrual back to Joined and promotes any with an accrual to
+  Won (no-op today: 0 Won cards, 0 accruals).
+- Live rollback-verified: affiliate activation → Joined program (created); accrual commission → Won.
+  SCHEMA.md regenerated; no table/column change.
+
 ## 2026-08-01 — Pipeline: default signups appear on the Hosts board + board hardening.
 
 **Founder ask:** the default `/signup/host` flow (not just the `/go/hosts` landing page) must surface
