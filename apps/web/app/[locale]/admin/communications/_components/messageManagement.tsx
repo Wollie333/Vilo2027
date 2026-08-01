@@ -153,6 +153,86 @@ export function MessageRow({
   );
 }
 
+// Card lens on a single message — used by the Communications hub's Automated
+// grid. Same store + handlers as MessageRow (which the campaign Email tab still
+// uses); this just lays the message out as a self-contained white card.
+export function MessageCard({
+  m,
+  onToggleMaster,
+  onToggleChannel,
+  onEdit,
+  onPreview,
+}: {
+  m: MessageConfig;
+  onToggleMaster: () => void;
+  onToggleChannel: (ch: Channel) => void;
+  onEdit: () => void;
+  onPreview: () => void;
+}) {
+  return (
+    <div className={`mcard ${m.masterEnabled ? "" : "off"}`}>
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mname text-[13.5px] font-semibold text-brand-ink">
+              {m.label}
+            </span>
+            {m.isNew ? <span className="newdot">New</span> : null}
+            {m.customised ? <span className="custdot">Customised</span> : null}
+          </div>
+          <div className="mt-0.5 text-[12px] leading-snug text-brand-mute">
+            {m.description}
+          </div>
+        </div>
+        <button
+          type="button"
+          title="Master on/off"
+          className={`tgl shrink-0 ${m.masterEnabled ? "on" : ""}`}
+          onClick={onToggleMaster}
+        />
+      </div>
+      <div className="mcard-foot">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Chip
+            on={m.email.enabled}
+            supported={m.email.supported}
+            onClick={() => onToggleChannel("email")}
+          >
+            <Mail className="h-3.5 w-3.5" /> Email
+          </Chip>
+          <Chip
+            on={m.push.enabled}
+            supported={m.push.supported}
+            onClick={() => onToggleChannel("push")}
+          >
+            <Smartphone className="h-3.5 w-3.5" /> Push
+          </Chip>
+          <Chip
+            on={m.inApp.enabled}
+            supported={m.inApp.supported}
+            onClick={() => onToggleChannel("in_app")}
+          >
+            <Bell className="h-3.5 w-3.5" /> In-app
+          </Chip>
+        </div>
+        <div className="mcard-actions">
+          <span className="hidden sm:block">
+            <Health m={m} />
+          </span>
+          {m.email.supported ? (
+            <button className="iact" title="Preview email" onClick={onPreview}>
+              <Eye className="h-4 w-4" />
+            </button>
+          ) : null}
+          <button className="iact" title="Edit" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Chip({
   on,
   supported,

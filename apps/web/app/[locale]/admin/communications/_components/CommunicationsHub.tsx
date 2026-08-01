@@ -10,7 +10,7 @@ import type { DeliveryHealth } from "../health";
 import {
   EditDrawer,
   EmailPreviewModal,
-  MessageRow,
+  MessageCard,
   useMessageToggles,
 } from "./messageManagement";
 
@@ -199,64 +199,102 @@ function AutomatedTab({
   const editingMsg = editing ? byKind[editing]! : null;
   const previewMsg = previewing ? byKind[previewing]! : null;
 
+  const shownCount = visibleGroups.reduce((n, g) => n + g.items.length, 0);
+  const totalCount = groups.reduce((n, g) => n + g.items.length, 0);
+  const filtersActive = Boolean(q || fArea || fCh || fSt);
+  function clearFilters() {
+    setQ("");
+    setFArea("");
+    setFCh("");
+    setFSt("");
+  }
+
   return (
     <>
-      <div className="card flex flex-wrap items-center gap-2 p-3">
-        <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
-          <input
-            className="fld pl-10"
-            placeholder="Search messages…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+      <div className="card flex flex-col gap-3 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+            <input
+              className="fld pl-10"
+              placeholder="Search messages…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <select
+            className="fld w-auto text-[13px]"
+            value={fCh}
+            onChange={(e) => setFCh(e.target.value)}
+          >
+            <option value="">All channels</option>
+            <option value="email">Email</option>
+            <option value="push">Push</option>
+            <option value="inapp">In-app</option>
+          </select>
+          <select
+            className="fld w-auto text-[13px]"
+            value={fSt}
+            onChange={(e) => setFSt(e.target.value)}
+          >
+            <option value="">Any status</option>
+            <option value="on">On</option>
+            <option value="partial">Partial / off</option>
+            <option value="off">Off</option>
+            <option value="fail">Has failures</option>
+            <option value="cust">Customised</option>
+            <option value="never">Never sent</option>
+          </select>
         </div>
-        <select
-          className="fld w-auto min-w-[150px] text-[13px]"
-          value={fArea}
-          onChange={(e) => setFArea(e.target.value)}
-        >
-          <option value="">All areas</option>
+
+        {/* Area quick-filter chips — one click to jump to a category. */}
+        <div className="thin-scroll flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            className={`fchip ${fArea === "" ? "active" : ""}`}
+            onClick={() => setFArea("")}
+          >
+            All
+            <span className="fcnt">{totalCount}</span>
+          </button>
           {groups.map((g) => (
-            <option key={g.key} value={g.key}>
+            <button
+              key={g.key}
+              type="button"
+              className={`fchip ${fArea === g.key ? "active" : ""}`}
+              onClick={() => setFArea(g.key)}
+            >
               {g.label}
-            </option>
+              <span className="fcnt">{g.items.length}</span>
+            </button>
           ))}
-        </select>
-        <select
-          className="fld w-auto text-[13px]"
-          value={fCh}
-          onChange={(e) => setFCh(e.target.value)}
-        >
-          <option value="">All channels</option>
-          <option value="email">Email</option>
-          <option value="push">Push</option>
-          <option value="inapp">In-app</option>
-        </select>
-        <select
-          className="fld w-auto text-[13px]"
-          value={fSt}
-          onChange={(e) => setFSt(e.target.value)}
-        >
-          <option value="">Any status</option>
-          <option value="on">On</option>
-          <option value="partial">Partial / off</option>
-          <option value="off">Off</option>
-          <option value="fail">Has failures</option>
-          <option value="cust">Customised</option>
-          <option value="never">Never sent</option>
-        </select>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2 px-1 text-[12px] text-brand-mute">
+        <span className="num">
+          Showing {shownCount} of {totalCount}
+        </span>
+        {filtersActive ? (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="font-semibold text-brand-primary hover:underline"
+          >
+            Clear filters
+          </button>
+        ) : null}
       </div>
 
       {visibleGroups.length === 0 ? (
-        <div className="card mt-4 p-10 text-center text-[13px] text-brand-mute">
+        <div className="card mt-3 p-10 text-center text-[13px] text-brand-mute">
           No messages match. Try clearing the filters.
         </div>
       ) : (
         visibleGroups.map((g) => {
           const offs = g.items.filter((m) => !m.masterEnabled).length;
           return (
-            <div key={g.key}>
+            <div key={g.key} className="mb-2">
               <div className="grouphd">
                 <span className="smallcaps">{g.label}</span>
                 <span className="num text-[11px] text-[#93A79E]">
@@ -265,9 +303,9 @@ function AutomatedTab({
                 </span>
                 <div className="h-px flex-1 bg-brand-line" />
               </div>
-              <div className="card overflow-hidden">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {g.items.map((m) => (
-                  <MessageRow
+                  <MessageCard
                     key={m.kind}
                     m={m}
                     onToggleMaster={() => toggleMaster(m.kind)}
