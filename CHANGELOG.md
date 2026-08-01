@@ -5,6 +5,13 @@
 
 ---
 
+## 2026-08-01 — Qualified stage fires a Meta QualifiedLead event.
+
+`moveLeadStageAction` now enqueues a Meta **QualifiedLead** conversion when a card is moved into the
+Qualified stage — a higher-intent, server-matched signal distinct from the top-funnel form `Lead`.
+Best-effort + idempotent (`event_id` UNIQUE via upsert ignoreDuplicates); never blocks the move. Build +
+lint green.
+
 ## 2026-08-01 — Affiliate registration trigger (CompleteRegistration + Won).
 
 DB trigger `trg_affiliate_activated` on `affiliate_accounts` (migration `20260801200000`): when an

@@ -23,7 +23,7 @@ export const moveLeadStageAction = withAdminAudit<
     const ctx = await requireAdmin();
     const { data: stage } = await service
       .from("pipeline_stages")
-      .select("label, is_won, is_lost, is_customer")
+      .select("key, label, is_won, is_lost, is_customer")
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
@@ -54,6 +54,22 @@ export const moveLeadStageAction = withAdminAudit<
       body: `Moved to ${stage.label}.`,
       meta: { stage_id: a.stageId, status },
     });
+    // Reaching the Qualified stage fires a Meta QualifiedLead conversion (a
+    // higher-intent, server-matched signal distinct from the top-funnel form
+    // Lead). Best-effort + idempotent (event_id UNIQUE); never blocks the move.
+    if (stage.key === "qualified") {
+      await service.from("meta_conversion_events").upsert(
+        {
+          event_name: "QualifiedLead",
+          user_id: after.user_id,
+          lead_id: a.leadId,
+          event_id: `lead:${a.leadId}:QualifiedLead`,
+          source_ref: `lead:${a.leadId}`,
+          action_source: "system_generated",
+        },
+        { onConflict: "event_id", ignoreDuplicates: true },
+      );
+    }
     return { result: { ok: true as const }, after };
   },
 );
