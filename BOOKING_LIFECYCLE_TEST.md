@@ -212,10 +212,17 @@ numbering migrations are BLOCKED** until those files land in the repo (coordinat
    & live on `origin/main`, so C1/C2/numbering migrations are UNBLOCKED — but this branch is 12 ahead / 13 behind
    `origin/main`; reconciling the migration history (merge main in, or merge this branch to main first) is a
    branch-strategy call to confirm with the founder before pushing the C1 DROP migration.
-2. **Notification events (new):** `booking_dates_changed_guest` + `review_response_guest` — each needs a registry
-   entry + email template + resolver + catalog. Then assert firing via `notification_delivery_log`.
-3. **Delete `refund_admin_override_host`** (registry + catalog + email registry + resolver + admin sample/refs;
-   leave the seed migration + CHANGELOG). Founder-approved.
+2. ~~**Notification events (new):** `booking_dates_changed_guest` + `review_response_guest`.~~ ✅ DONE (2026-08-01
+   pt2). Both wired END-TO-END: registry + email template (`BookingDatesChangedGuest`/`ReviewResponseGuest`) +
+   resolver + catalog + admin sample/refs + **dispatch** (`changeBookingDatesAction` fires dates-changed with
+   old→new dates; `replyToReviewAction` fires review-response on the FIRST reply only). `notification_events` rows
+   seeded in migration `20260801230000` (staged; dispatch already works w/o the row — no FK). tsc+lint green.
+   **⏳ LIVE-VERIFY (founder):** move a booking's dates + reply to a review in the UI, then assert
+   `notification_delivery_log` + `notification_queue` rows (Claude queries via service role) + the /admin/emails
+   preview renders both.
+3. ~~**Delete `refund_admin_override_host`**~~ ✅ DONE (2026-08-01 pt2). Removed from registry + catalog + email
+   registry + resolver (refund.ts) + admin sample/refs + template file deleted; `notification_events`/overrides
+   row dropped in `20260801230000`. Seed migration + CHANGELOG left intact. Founder-approved (moot in Model 2).
 4. **Code fixes:** date-change refresh `price_breakdown`; pay-page resolve rails by the BOOKING's business_id.
 5. **Migrations (BLOCKED on divergence):** C1 drop duplicate trigger; C2 drop orphan fn; per-business numbering.
 6. **Then:** affiliate program + competition (second priority) — incl. reconfirm `create/settle_affiliate_payout`

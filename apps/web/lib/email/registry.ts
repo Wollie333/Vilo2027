@@ -22,6 +22,7 @@ import {
   BookingConfirmedGuest,
   BookingConfirmedHost,
   BookingDeclinedGuest,
+  BookingDatesChangedGuest,
   BookingRequestHost,
   EftInstructionsGuest,
   EftProofReceivedHost,
@@ -32,7 +33,7 @@ import {
   HostOfferNudge,
   HostOfferFinal,
   NewReviewHost,
-  RefundAdminOverrideHost,
+  ReviewResponseGuest,
   RefundApprovedGuest,
   RefundCompletedGuest,
   RefundDeclinedGuest,
@@ -234,6 +235,15 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
       `Update on your request for ${str(p.listingName, "your stay")}`,
   },
 
+  booking_dates_changed_guest: {
+    Template: BookingDatesChangedGuest as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "guest",
+    subject: (p) =>
+      `Your dates at ${str(p.listingName, "your stay")} have changed`,
+  },
+
   booking_cancelled_host: {
     Template: BookingCancelledHost as ComponentType<Record<string, unknown>>,
     recipient: "host",
@@ -347,6 +357,13 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     subject: (p) => `New review on ${str(p.listingName, "your listing")}`,
   },
 
+  review_response_guest: {
+    Template: ReviewResponseGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `${str(p.hostName, "Your host")} replied to your review of ${str(p.listingName, "your stay")}`,
+  },
+
   subscription_welcome: {
     Template: SubscriptionWelcome as ComponentType<Record<string, unknown>>,
     recipient: "host",
@@ -417,12 +434,6 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
         /\s+/g,
         " ",
       ),
-  },
-
-  refund_admin_override_host: {
-    Template: RefundAdminOverrideHost as ComponentType<Record<string, unknown>>,
-    recipient: "host",
-    subject: (p) => `Refund override — ${str(p.bookingReference, "")}`.trim(),
   },
 
   eft_refund_sent_guest: {

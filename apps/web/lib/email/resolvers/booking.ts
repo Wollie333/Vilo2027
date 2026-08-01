@@ -143,6 +143,26 @@ const bookingResolver: EmailResolver = async (refs, ctx) => {
   return commonBookingProps(bundle);
 };
 
+const bookingDatesChangedGuestResolver: EmailResolver = async (refs, ctx) => {
+  const bookingId = refId(refs, "booking_id");
+  if (!bookingId) return {};
+  const bundle = await loadBookingBundle(ctx.supabase, bookingId);
+  if (!bundle) return {};
+  // commonBookingProps carries the NEW (already-updated) dates + total; the OLD
+  // dates come from the refs the action passed at dispatch time.
+  return {
+    ...commonBookingProps(bundle),
+    oldCheckIn:
+      typeof refs.old_check_in === "string"
+        ? formatDateLong(refs.old_check_in)
+        : "—",
+    oldCheckOut:
+      typeof refs.old_check_out === "string"
+        ? formatDateLong(refs.old_check_out)
+        : "—",
+  };
+};
+
 const bookingCancelledHostResolver: EmailResolver = async (refs, ctx) => {
   const bookingId = refId(refs, "booking_id");
   if (!bookingId) return {};
@@ -417,6 +437,7 @@ export const BOOKING_RESOLVERS: Record<string, EmailResolver> = {
   booking_confirmed_guest: bookingResolver,
   stay_details_guest: stayDetailsGuestResolver,
   booking_declined_guest: bookingResolver,
+  booking_dates_changed_guest: bookingDatesChangedGuestResolver,
   booking_cancelled_host: bookingCancelledHostResolver,
   booking_cancelled_guest: bookingCancelledGuestResolver,
   booking_forfeited_guest: bookingForfeitedGuestResolver,

@@ -115,6 +115,20 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     checkOut: "8 Jun",
   },
 
+  booking_dates_changed_guest: {
+    guestFirstName: "Lerato",
+    listingName: "Sunbird Cottage, Hermanus",
+    hostName: "Amara",
+    oldCheckIn: "Friday, 6 June 2026",
+    oldCheckOut: "Sunday, 8 June 2026",
+    checkIn: "Friday, 13 June 2026",
+    checkOut: "Sunday, 15 June 2026",
+    nights: 2,
+    totalAmount: "R 2,400.00",
+    bookingReference: "BK-0001",
+    bookingId: "00000000-0000-0000-0000-000000000001",
+  },
+
   booking_cancelled_host: {
     hostFirstName: "Amara",
     guestName: "Lerato",
@@ -289,6 +303,18 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
       "Beautiful spot, Amara was so welcoming. The walk to the cliffs was the highlight of our weekend...",
   },
 
+  review_response_guest: {
+    guestFirstName: "Lerato",
+    hostName: "Amara",
+    listingName: "Sunbird Cottage",
+    rating: 5,
+    reviewExcerpt:
+      "Beautiful spot, Amara was so welcoming. The walk to the cliffs was the highlight of our weekend.",
+    responseText:
+      "Thank you so much, Lerato! It was a joy having you — come back any time, the cliffs are even better in spring.",
+    bookingId: "00000000-0000-0000-0000-000000000001",
+  },
+
   subscription_welcome: {
     hostFirstName: "Amara",
     planName: "Pro",
@@ -363,17 +389,6 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     bookingReference: "BK-0001",
     paymentMethod: "your Visa ending 4242",
     processingNote: "Allow 3–5 business days for the funds to appear.",
-  },
-
-  refund_admin_override_host: {
-    hostFirstName: "Amara",
-    guestName: "Lerato",
-    listingName: "Sunbird Cottage",
-    bookingReference: "BK-0001",
-    refundAmount: "R 1,200.00",
-    adminNote:
-      "Booking dates fell during the platform outage on 2026-06-01. Compromise refund applied.",
-    supportEmail: "hello@wielo.co.za",
   },
 
   eft_refund_sent_guest: {

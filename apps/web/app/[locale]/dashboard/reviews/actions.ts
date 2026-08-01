@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { sendReviewRequest } from "@/lib/reviews/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -180,6 +181,14 @@ export async function replyToReviewAction(
   if (!own.ok) return own;
 
   const supabase = createServerClient();
+  // Read the review's guest + prior response BEFORE the update: only notify on a
+  // fresh reply (a first response), and only when there's a guest account to reach.
+  const { data: before } = await supabase
+    .from("reviews")
+    .select("guest_id, host_response")
+    .eq("id", reviewId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("reviews")
     .update({
@@ -189,6 +198,17 @@ export async function replyToReviewAction(
     .eq("id", reviewId);
   if (error) {
     return { ok: false, error: "Couldn't post the reply. Try again." };
+  }
+
+  // Tell the guest the host replied — a first-time reply only, so editing the
+  // response later doesn't re-notify. Best-effort (dispatchEvent never throws).
+  if (before?.guest_id && !before.host_response) {
+    await dispatchEvent({
+      kind: "review_response_guest",
+      recipientUserId: before.guest_id,
+      guestId: before.guest_id,
+      refs: { review_id: reviewId },
+    });
   }
 
   revalidatePath("/dashboard/reviews");

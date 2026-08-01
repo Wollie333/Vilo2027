@@ -32,6 +32,10 @@ export type BookingRefs = {
   /** Set when the booking redeemed a SPECIAL/offer — surfaces the deal title so
    *  the host notification says a special was booked, not a plain room request. */
   special_title?: string;
+  /** Prior dates for booking_dates_changed_guest — the new dates come from the
+   *  (already-updated) booking; these carry what they moved FROM. */
+  old_check_in?: string;
+  old_check_out?: string;
 };
 
 export type EftRefs = {
@@ -568,6 +572,34 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `booking_cancelled_guest:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
 
+  // Host moved the stay's dates (changeBookingDatesAction) — the guest used to be
+  // told NOTHING. The new dates ride the (already-updated) booking; the resolver
+  // formats the OLD dates from old_check_in/old_check_out in the refs.
+  booking_dates_changed_guest: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    emailTemplate: "booking_dates_changed_guest",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Your booking dates changed",
+      body: clip(
+        `${r.listing_name ?? "Your stay"} — your host updated the dates. Tap for details.`,
+      ),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Booking dates updated",
+      body: r.listing_name ?? "Your host moved your stay dates.",
+      link: `/portal/trips/${r.booking_id}`,
+    }),
+    // New dates in the key so a subsequent move re-notifies rather than dedupes.
+    dedupeKey: (r) =>
+      `booking_dates_changed:${r.booking_id}:${r.check_in ?? ""}:${r.check_out ?? ""}`,
+  } satisfies EventBuilder<BookingRefs>,
+
   check_in_reminder_guest: {
     category: "bookings",
     feature: "booking",
@@ -738,20 +770,9 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `refund_completed:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,
 
-  refund_admin_override_host: {
-    category: "payments_refunds",
-    feature: "refund",
-    severity: "high",
-    emailTemplate: "refund_admin_override_host",
-    refKeys: ["refund_id"],
-    inApp: (r) => ({
-      title: "Refund override applied",
-      body:
-        r.listing_name ?? `${r.brand_name ?? "Wielo"} support issued a refund.`,
-      link: `/dashboard/payments/refunds/${r.refund_id ?? r.booking_id}`,
-    }),
-    dedupeKey: (r) => `refund_override:${r.refund_id ?? r.booking_id}`,
-  } satisfies EventBuilder<RefundRefs>,
+  // (refund_admin_override_host removed 2026-08-01 — moot in Model 2: the platform
+  //  has no refund authority, so an admin override event can never fire. See the
+  //  DELETE in migration 20260801230000_notification_events_launch_hardening.)
 
   // ─── Reviews
   review_request_guest: {
@@ -798,6 +819,28 @@ export const NOTIFICATION_REGISTRY = {
       link: "/dashboard/reviews",
     }),
     dedupeKey: (r) => `new_review:${r.review_id ?? r.booking_id ?? "x"}`,
+  } satisfies EventBuilder<ReviewRefs>,
+
+  // Host replied to a guest's review (replyToReviewAction) — the guest used to be
+  // told NOTHING. The resolver hydrates the reply text + names for the email.
+  review_response_guest: {
+    category: "reviews",
+    feature: "review",
+    severity: "default",
+    emailTemplate: "review_response_guest",
+    refKeys: ["review_id"],
+    push: (r) => ({
+      title: `${r.host_first_name ?? "Your host"} replied to your review`,
+      body: clip(r.listing_name ?? "Tap to read the reply"),
+      data: link("/portal/trips/[id]", { id: r.booking_id ?? "" }),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: "Host replied to your review",
+      body: `${r.host_first_name ?? "Your host"} · ${r.listing_name ?? ""}`.trim(),
+      link: r.booking_id ? `/portal/trips/${r.booking_id}` : "/portal/trips",
+    }),
+    dedupeKey: (r) => `review_response:${r.review_id ?? "x"}`,
   } satisfies EventBuilder<ReviewRefs>,
 
   // ─── Subscription

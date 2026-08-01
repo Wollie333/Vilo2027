@@ -103,6 +103,13 @@ export const MESSAGE_CATALOG: CatalogEntry[] = [
     description: "Cancelled by either side → guest",
   },
   {
+    kind: "booking_dates_changed_guest",
+    area: "bg",
+    label: "Booking dates changed",
+    description: "Host moves the stay dates → guest",
+    isNew: true,
+  },
+  {
     kind: "check_in_reminder_guest",
     area: "bg",
     label: "Check-in reminder",
@@ -151,18 +158,19 @@ export const MESSAGE_CATALOG: CatalogEntry[] = [
     label: "Refund completed",
     description: "Money is back with the guest → guest",
   },
-  {
-    kind: "refund_admin_override_host",
-    area: "pay",
-    label: "Refund override",
-    description: "Admin forces a refund → host",
-  },
   // ── Reviews
   {
     kind: "review_request_guest",
     area: "rev",
     label: "Review request",
     description: "Two days after checkout → guest",
+  },
+  {
+    kind: "review_response_guest",
+    area: "rev",
+    label: "Host replied to review",
+    description: "Host responds to a guest's review → guest",
+    isNew: true,
   },
   {
     kind: "new_review_host",

@@ -208,6 +208,56 @@ const newReviewHostResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+const reviewResponseGuestResolver: EmailResolver = async (refs, ctx) => {
+  const reviewId = refId(refs, "review_id");
+  if (!reviewId) return {};
+  const { data: review } = await ctx.supabase
+    .from("reviews")
+    .select(
+      "rating, body, host_response, guest_id, host_id, property_id, booking_id",
+    )
+    .eq("id", reviewId)
+    .maybeSingle();
+  if (!review) return {};
+
+  const [host, { data: guestUser }, { data: listing }, { data: booking }] =
+    await Promise.all([
+      loadHostUser(ctx.supabase, review.host_id),
+      review.guest_id
+        ? ctx.supabase
+            .from("user_profiles")
+            .select("full_name")
+            .eq("id", review.guest_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      ctx.supabase
+        .from("properties")
+        .select("name")
+        .eq("id", review.property_id)
+        .maybeSingle(),
+      // Account-less guest → first name comes from the booking.
+      ctx.supabase
+        .from("bookings")
+        .select("guest_name")
+        .eq("id", review.booking_id)
+        .maybeSingle(),
+    ]);
+
+  const guestName = guestUser?.full_name ?? booking?.guest_name ?? null;
+  const body = review.body ?? "";
+  const response = review.host_response ?? "";
+  return {
+    guestFirstName: firstName(guestName),
+    hostName: host?.user_full_name ?? host?.display_name ?? "Your host",
+    listingName: listing?.name ?? "your stay",
+    rating: review.rating,
+    reviewExcerpt: body.length > 160 ? `${body.slice(0, 160)}…` : body || null,
+    responseText:
+      response.length > 800 ? `${response.slice(0, 800)}…` : response || null,
+    bookingId: review.booking_id,
+  };
+};
+
 const welcomeHostResolver: EmailResolver = async (refs, ctx) => {
   const hostId = refId(refs, "host_id");
   if (!hostId) return {};
@@ -394,4 +444,5 @@ export const MISC_RESOLVERS: Record<string, EmailResolver> = {
   subscription_restricted: subscriptionRestrictedResolver,
   review_request_guest: reviewRequestResolver,
   new_review_host: newReviewHostResolver,
+  review_response_guest: reviewResponseGuestResolver,
 };

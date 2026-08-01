@@ -21,6 +21,7 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
   booking_confirmed_host: { required: ["booking_id"] },
   booking_confirmed_guest: { required: ["booking_id"] },
   booking_declined_guest: { required: ["booking_id"] },
+  booking_dates_changed_guest: { required: ["booking_id"] },
   booking_cancelled_host: {
     required: ["booking_id"],
     optional: ["cancelled_by", "refund_amount"],
@@ -50,6 +51,7 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
     optional: ["review_url"],
   },
   new_review_host: { required: ["review_id"] },
+  review_response_guest: { required: ["review_id"] },
 
   subscription_welcome: { required: ["subscription_id"] },
   subscription_expiring: {
@@ -74,10 +76,6 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
     optional: ["decline_reason_label", "policy_summary"],
   },
   refund_completed_guest: { required: ["refund_id"] },
-  refund_admin_override_host: {
-    required: ["refund_id"],
-    optional: ["admin_note"],
-  },
   eft_refund_sent_guest: {
     required: ["refund_id"],
     optional: ["host_note"],

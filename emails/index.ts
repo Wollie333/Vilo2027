@@ -15,6 +15,7 @@ export { default as BookingConfirmedGuest } from "./templates/BookingConfirmedGu
 export { default as BookingConfirmedHost } from "./templates/BookingConfirmedHost";
 export { default as BookingForfeitedGuest } from "./templates/BookingForfeitedGuest";
 export { default as BookingDeclinedGuest } from "./templates/BookingDeclinedGuest";
+export { default as BookingDatesChangedGuest } from "./templates/BookingDatesChangedGuest";
 export { default as BookingRequestHost } from "./templates/BookingRequestHost";
 export { default as EftInstructionsGuest } from "./templates/EftInstructionsGuest";
 export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHost";
@@ -26,8 +27,8 @@ export { default as HostOfferNudge } from "./templates/HostOfferNudge";
 export { default as HostOfferFinal } from "./templates/HostOfferFinal";
 export { default as FunnelNurture } from "./templates/FunnelNurture";
 export { default as NewReviewHost } from "./templates/NewReviewHost";
+export { default as ReviewResponseGuest } from "./templates/ReviewResponseGuest";
 export { default as NotificationDigest } from "./templates/NotificationDigest";
-export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverrideHost";
 export { default as RefundApprovedGuest } from "./templates/RefundApprovedGuest";
 export { default as RefundCompletedGuest } from "./templates/RefundCompletedGuest";
 export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";

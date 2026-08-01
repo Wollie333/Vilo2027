@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-08-01 (pt3) — Host launch-hardening: two silent guest-notification gaps closed + a dead event removed.
+
+**Two guest events were firing NOTHING; now wired end-to-end. One dead event removed.** Branch
+`fix/host-launch-hardening`. tsc + lint green. `notification_events` DB rows seeded in migration
+`20260801230000` (staged for the final migration push — dispatch already works without the row: no FK).
+
+- **`booking_dates_changed_guest`** — when a host moves a booking's dates (`changeBookingDatesAction`) the
+  guest used to be told nothing. New registry entry (push/in-app/email) + `BookingDatesChangedGuest` email
+  template (old → new dates, updated total) + resolver (`bookingDatesChangedGuestResolver` — new dates from the
+  updated booking, OLD dates from the dispatch refs) + catalog + admin sample/refs. Dispatched from
+  `changeBookingDatesAction` with the pre-update dates. (`nights` is a GENERATED column, so it self-updates —
+  only `price_breakdown` stays stale, tracked as a separate fix.)
+- **`review_response_guest`** — when a host replies to a review (`replyToReviewAction`) the guest used to be
+  told nothing. New registry entry + `ReviewResponseGuest` template (their review + the host's reply) +
+  `reviewResponseGuestResolver` + catalog + admin sample/refs. Dispatched on the FIRST reply only (guards on a
+  prior `host_response`), so editing a reply later doesn't re-notify.
+- **Removed `refund_admin_override_host`** — moot in Model 2 (the platform has no refund authority, so the event
+  can never fire). Deleted from the notifications registry, catalog, email registry, refund resolver, admin
+  sample/refs, and the template file; the `notification_events`/overrides rows are dropped in `20260801230000`.
+  Founder-approved.
+
+---
+
 ## 2026-08-01 (pt2) — Host launch-hardening: booking-flow harness back to green (`test:flows` 93/0).
 
 **`pnpm test:flows` was 70/83 — the 13 fails were STALE TESTS (the app had moved on), not bugs.**

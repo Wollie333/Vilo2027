@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { assertFullHost as requireHost } from "@/lib/host/current";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { nightsBetween } from "@/lib/pricing";
 import { computeStayPricing } from "@/lib/pricing/quote";
@@ -32,6 +33,9 @@ type BookingForEdit = {
   vat_rate: number | null;
   rooms: { room_id: string }[];
   addonsTotal: number;
+  check_in: string | null;
+  check_out: string | null;
+  guest_id: string | null;
 };
 
 async function loadBooking(
@@ -42,7 +46,7 @@ async function loadBooking(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, host_id, property_id, status, scope, guests_count, currency, cleaning_fee, vat_rate, booking_rooms ( room_id ), booking_addons ( subtotal )",
+      "id, host_id, property_id, status, scope, guests_count, currency, cleaning_fee, vat_rate, check_in, check_out, guest_id, booking_rooms ( room_id ), booking_addons ( subtotal )",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -65,6 +69,9 @@ async function loadBooking(
     vat_rate: b.vat_rate == null ? null : Number(b.vat_rate),
     rooms,
     addonsTotal,
+    check_in: (b.check_in as string | null) ?? null,
+    check_out: (b.check_out as string | null) ?? null,
+    guest_id: (b.guest_id as string | null) ?? null,
   };
 }
 
@@ -289,6 +296,24 @@ export async function changeBookingDatesAction(input: {
         updated_at: new Date().toISOString(),
       })
       .eq("id", invoice.id);
+  }
+
+  // Tell the guest their dates moved (they used to be notified NOTHING). The new
+  // dates ride the now-updated booking; b.check_in/out still hold the OLD ones
+  // (loaded before the UPDATE). Best-effort — dispatchEvent never throws.
+  if (b.guest_id) {
+    await dispatchEvent({
+      kind: "booking_dates_changed_guest",
+      recipientUserId: b.guest_id,
+      guestId: b.guest_id,
+      refs: {
+        booking_id: bookingId,
+        old_check_in: b.check_in ?? undefined,
+        old_check_out: b.check_out ?? undefined,
+        check_in: checkIn,
+        check_out: checkOut,
+      },
+    });
   }
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);
