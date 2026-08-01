@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-08-01 — Host pipeline "Trial" stage + is_customer flag.
+
+Added a **Trial** host pipeline stage (migration `20260801170000`) between Nurturing and Won — for a
+host who signed up and is on a free trial (technically a customer, not yet paying). New
+`pipeline_stages.is_customer` flag (true for Trial + every Won stage) will drive the customer-lock (a
+card in a customer stage can't be deleted). Board renders stages straight from `pipeline_stages`, so
+the column appeared with no component change — **verified live** in the admin board (order: New →
+Contacted → Qualified → Demo booked → Nurturing → Trial → Won → Lost). The subscription-trialing
+trigger that auto-moves a host card into Trial (+ fires StartTrial) is the next step of this phase.
+
 ## 2026-08-01 — Meta CAPI outbox + worker (Phase 1 of pipeline conversion events).
 
 Foundation for firing Wielo's own server-side Meta ad-conversion events off real pipeline conversions

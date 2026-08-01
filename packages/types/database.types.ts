@@ -7239,6 +7239,7 @@ export type Database = {
           audience: string
           created_at: string
           id: string
+          is_customer: boolean
           is_lost: boolean
           is_won: boolean
           key: string
@@ -7250,6 +7251,7 @@ export type Database = {
           audience: string
           created_at?: string
           id?: string
+          is_customer?: boolean
           is_lost?: boolean
           is_won?: boolean
           key: string
@@ -7261,6 +7263,7 @@ export type Database = {
           audience?: string
           created_at?: string
           id?: string
+          is_customer?: boolean
           is_lost?: boolean
           is_won?: boolean
           key?: string
