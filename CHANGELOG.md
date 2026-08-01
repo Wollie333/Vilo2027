@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-08-01 — Funnel-nurture emails in Comms · Comms card redesign · required funnel fields · notifications restyle.
+
+**Funnel-nurture emails now ship in Communications.** Finished + shipped the funnel drip
+registration: a new "Funnel nurture" area with 6 entries (Host + Affiliate · welcome/value/offer) in
+the message catalog + registry, a shared data-driven `FunnelNurture` React Email template, and
+single-source copy in `lib/funnels/nurtureCopy.ts`. Added `nurture_*` sample payloads (via
+`nurtureEmailProps`) so the admin **preview renders the exact copy a lead receives** rather than
+placeholder text. Live-verified: the "Funnel nurture" category shows 6 email cards and the Host ·
+welcome preview renders the real subject + body. (The worker's send path still uses its own inline
+HTML — copy is shared via `nurtureCopy` but the send migration is a separate follow-up.)
+
+**Communications · Automated tab redesign.** Each automated message is now its own **white card** in a
+responsive grid (new `MessageCard`; the campaign Email lens keeps `MessageRow`). Added a prominent top
+filter toolbar: search + **area quick-chips with counts** (one-click category filter) + channel/status
+selects + a live "Showing N of M" count and Clear. Live-verified: clicking "Funnel nurture" filters to
+its 6 cards. New `.fchip` / `.mcard` styles in `communications.css`.
+
+**Funnel landing pages — all fields required.** On `/go/hosts` and `/go/affiliate`, name, email and
+**phone** are now required, and **rooms** is required on the host variant (conditional so the affiliate
+form isn't affected). Marketing consent stays a genuine opt-in (POPIA — consent must be freely given,
+never a precondition). Live-verified on both variants. Variant-aware Zod schema + inline errors.
+
+**Notification pages restyled** to the founder's Notifications design. The shared `NotificationsList`
+(host `/dashboard/notifications` + guest `/portal/notifications`) is now a **time-grouped feed**
+(Today / Yesterday / Earlier this week / Older) of category-tinted icon rows in white cards, with an
+All/Unread toggle, category filter chips (counts), unread accent bar, and hover "mark read". Categories
+map to icon + colour buckets. Realtime sync, mark-read/all, and the support-access modal preserved; the
+mockup's "dismiss" was intentionally omitted (no delete backend — would be a no-op). build + lint + tsc green.
+
 ## 2026-08-01 — Pipeline: delete a lead (card + record), optional guest soft-delete.
 
 Admins can now remove a lead from the pipeline. A trash button on each board card (hover-revealed,
