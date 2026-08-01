@@ -1,14 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ArrowRight,
-  Check,
-  GitBranchPlus,
-  Loader2,
-  Play,
-  RotateCcw,
-} from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -19,8 +12,9 @@ import {
 } from "@/components/site/TurnstileWidget";
 
 // Lead-magnet capture card for the public /go/<slug> funnels. Renders the white
-// card that sits in the hero: either the form, or (on success) an inline receipt
-// confirming the lead was added to the pipeline, with a CTA to the resource page.
+// capture card in the hero. On a successful submit it redirects straight to the
+// funnel's thank-you page (which delivers the resource + fires the Lead pixel /
+// dataLayer conversion event) — no inline receipt.
 // Design direction: docs/features/FUNNEL_MANAGER_DESIGN_BRIEF + founder mockups.
 
 const schema = z.object({
@@ -51,23 +45,12 @@ const ROOM_OPTIONS = [
   "Not open yet",
 ];
 
-type Success = {
-  redirectTo: string;
-  ref: string;
-  name: string;
-  establishment: string | null;
-};
-
 export function FunnelForm({
   slug,
   variant = "host",
   magnetTitle = "Send me the Starter Kit",
   magnetSub = "14-page PDF + calculator + templates. Free, instantly.",
   submitLabel = "Send me the free kit",
-  sourceLabel = "lead-magnet / starter-kit",
-  successTitle = "Your kit is on its way.",
-  successSub = "Check your inbox — the download link and calculator are in the first email.",
-  successCta = "Watch the video & download",
   consentLabel = "Email me occasional host tips & offers. Unsubscribe anytime.",
 }: {
   slug: string;
@@ -76,17 +59,12 @@ export function FunnelForm({
   magnetTitle?: string;
   magnetSub?: string;
   submitLabel?: string;
-  sourceLabel?: string;
-  successTitle?: string;
-  successSub?: string;
-  successCta?: string;
   consentLabel?: string;
 }) {
   const isHost = variant === "host";
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<Values>({ resolver: zodResolver(schema) });
 
@@ -96,7 +74,6 @@ export function FunnelForm({
   const [adSource, setAdSource] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<Success | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -131,14 +108,13 @@ export function FunnelForm({
         }),
       });
       const data = (await res.json()) as
-        | {
-            ok: true;
-            redirectTo: string;
-            lead: { ref: string; name: string; establishment: string | null };
-          }
+        | { ok: true; redirectTo: string }
         | { ok: false; error: string };
       if (data.ok) {
-        setSuccess({ redirectTo: data.redirectTo, ...data.lead });
+        // New lead captured — go straight to the thank-you page (it delivers the
+        // resource and fires the Lead pixel / dataLayer conversion). Keep the
+        // button in its loading state until the navigation unloads the page.
+        window.location.assign(data.redirectTo);
         return;
       }
       setServerError(data.error);
@@ -149,61 +125,9 @@ export function FunnelForm({
     }
   }
 
-  function captureAnother() {
-    setSuccess(null);
-    setSubmitting(false);
-    setServerError(null);
-    reset();
-  }
-
   const field =
     "w-full h-[46px] px-3.5 rounded-[10px] border border-brand-line bg-white text-[14.5px] text-brand-ink outline-none transition focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 placeholder:text-[#9BB6A9]";
   const label = "block text-[12.5px] font-semibold text-brand-secondary mb-1.5";
-
-  if (success) {
-    return (
-      <div className="rounded-card bg-white p-6 shadow-[0_10px_34px_-14px_rgba(6,78,59,0.35)]">
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
-            <Check className="h-6 w-6" />
-          </div>
-          <h2 className="mt-4 font-display text-[20px] font-extrabold tracking-tight">
-            {successTitle}
-          </h2>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-mute">
-            {successSub}
-          </p>
-        </div>
-
-        <div className="mt-5 rounded-[12px] border border-brand-line bg-brand-light p-3.5">
-          <div className="mb-2 flex items-center gap-2 text-[12.5px] font-bold text-brand-secondary">
-            <GitBranchPlus className="h-3.5 w-3.5" />
-            Added to your pipeline
-          </div>
-          <Receipt k="Lead" v={success.name} />
-          <Receipt k="Stage" v="New" pill />
-          <Receipt k="Source" v={sourceLabel} mono />
-          <Receipt k="Lead ID" v={success.ref} mono />
-        </div>
-
-        <a
-          href={success.redirectTo}
-          className="mt-3.5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary text-[15.5px] font-bold text-white transition hover:bg-brand-secondary"
-        >
-          <Play className="h-4 w-4" />
-          {successCta}
-        </a>
-        <button
-          type="button"
-          onClick={captureAnother}
-          className="mt-2.5 flex h-[46px] w-full items-center justify-center gap-2 rounded-[10px] border border-brand-line bg-white text-[14px] font-semibold text-brand-secondary transition hover:bg-brand-light"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Send another
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="rounded-card bg-white p-6 shadow-[0_10px_34px_-14px_rgba(6,78,59,0.35)]">
@@ -343,36 +267,6 @@ export function FunnelForm({
           No spam, no commission, no card. Unsubscribe in one click.
         </p>
       </form>
-    </div>
-  );
-}
-
-function Receipt({
-  k,
-  v,
-  mono = false,
-  pill = false,
-}: {
-  k: string;
-  v: string;
-  mono?: boolean;
-  pill?: boolean;
-}) {
-  return (
-    <div className="flex justify-between gap-3 py-[5px] text-[12.5px]">
-      <span className="font-medium text-brand-mute">{k}</span>
-      {pill ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-white px-2.5 py-0.5 text-[11.5px] font-semibold">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-          {v}
-        </span>
-      ) : (
-        <span
-          className={`text-right font-semibold ${mono ? "font-mono text-[11.5px]" : ""}`}
-        >
-          {v}
-        </span>
-      )}
     </div>
   );
 }

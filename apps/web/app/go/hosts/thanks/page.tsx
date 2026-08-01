@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { funnelBrochureUrl, getFunnelBySlug } from "@/lib/funnels/getFunnel";
 import { toEmbed } from "@/lib/website/videoEmbed";
 
+import { LeadPixel } from "../../_components/LeadPixel";
+
 // Public thank-you / resource page (/go/hosts/thanks). Design direction: founder
 // mockup — dark hero with the resource cards overlapping it. Kept GENERIC (no
 // name/email in the URL — privacy): the personalised receipt lives inline on the
@@ -32,6 +34,7 @@ export default async function HostsThanksPage() {
 
   return (
     <main className="min-h-screen bg-brand-light text-brand-ink">
+      <LeadPixel audience={funnel.audience} funnelName={funnel.name} />
       {/* Header */}
       <header className="bg-brand-dark">
         <div className="mx-auto flex h-16 max-w-[1060px] items-center justify-between px-6">

@@ -1,5 +1,8 @@
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
+import { PlatformMarketing } from "@/components/analytics/PlatformMarketing";
+import { getPlatformTracking } from "@/lib/integrations/meta";
+
 import "../globals.css";
 
 // Root layout for the locale-free /go funnel branch. The app has no top-level
@@ -27,15 +30,25 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export default function GoLayout({
+export default async function GoLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Load the Wielo platform's own tracking pixels (admin-configured in Platform
+  // Settings → Tracking & pixels) on the funnel branch, so paid-traffic pixels +
+  // the GTM dataLayer exist here and the thank-you page's Lead event has somewhere
+  // to land. Same source the main app uses; no-ops when nothing is configured.
+  const tracking = await getPlatformTracking();
+  const hasTracking = Object.values(tracking).some(Boolean);
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {hasTracking ? <PlatformMarketing tracking={tracking} /> : null}
+        {children}
+      </body>
     </html>
   );
 }

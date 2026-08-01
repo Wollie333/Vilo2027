@@ -107,10 +107,6 @@ export default async function AffiliateFunnelPage() {
             magnetTitle="Send me the Partner Pack"
             magnetSub="Referral guide + link, banners and social copy. Free, instantly."
             submitLabel="Send me the Partner Pack"
-            sourceLabel="lead-magnet / partner-pack"
-            successTitle="Your Partner Pack is on its way."
-            successSub="Check your inbox — your referral guide and next steps are in the first email."
-            successCta="See how to start earning"
             consentLabel="Email me partner tips, payouts & offers. Unsubscribe anytime."
           />
         </div>
