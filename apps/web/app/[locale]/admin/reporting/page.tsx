@@ -37,7 +37,7 @@ export default async function AdminReportingPage({
 }: {
   searchParams?: { range?: string };
 }) {
-  await requirePermission("subscriptions.edit");
+  await requirePermission("payments.view");
 
   const range: ReportRange = isReportRange(searchParams?.range)
     ? (searchParams!.range as ReportRange)

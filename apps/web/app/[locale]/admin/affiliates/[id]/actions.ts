@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { requirePermission } from "@/lib/admin";
 import { withAdminAudit } from "@/lib/admin/withAdminAudit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -74,6 +75,11 @@ export async function reassignReferralAction(
       error: parsed.error.issues[0]?.message ?? "Invalid input",
     };
   }
+
+  // Gate BEFORE the service-role lookup below — otherwise an authenticated but
+  // unpermissioned caller could probe partner-code existence/status. (The
+  // mutation itself is also gated inside `wrapped`.)
+  await requirePermission("subscriptions.edit");
 
   // Resolve the target partner code → id (used both as the audit target and the
   // RPC argument). A bad code fails here, before the permission-gated mutation.

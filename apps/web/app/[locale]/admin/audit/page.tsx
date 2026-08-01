@@ -149,7 +149,7 @@ export default async function AuditLogPage({
                     {new Date(row.created_at).toLocaleString("en-ZA")}
                   </td>
                   <td className="px-4 py-2.5 text-[12px] text-brand-ink">
-                    {profile?.email ?? row.admin_id.slice(0, 8)}
+                    {profile?.email ?? row.admin_id?.slice(0, 8) ?? "system"}
                   </td>
                   <td className="px-4 py-2.5 font-mono text-[12px]">
                     <span

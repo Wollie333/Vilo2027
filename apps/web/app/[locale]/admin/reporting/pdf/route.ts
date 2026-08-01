@@ -12,7 +12,7 @@ import { renderPlatformReportPdf } from "@/lib/pdf/render";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  await requirePermission("subscriptions.edit");
+  await requirePermission("payments.view");
 
   const url = new URL(request.url);
   const rangeParam = url.searchParams.get("range") ?? undefined;
