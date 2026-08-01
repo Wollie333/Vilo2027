@@ -2,24 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-01) — **FUNNEL MANAGER build + clean slate**
+## 🟢 SAVE POINT (2026-08-01) — **FUNNEL MANAGER Phases 1–4 SHIPPED**
 
-**Scope this stretch:** build the **Funnel Manager & Lead Pipeline** feature per
-`docs/features/FUNNEL_MANAGER_PLAN.md` (founder: "crucial for the business"). Verified the plan
-against live code + DB first — all integration points exist, no blockers.
+**Pushed `fb1f4518`. Tree clean. HEAD = origin/main. 0 node procs.** Resume anchor = memory
+`project-funnel-manager-build`. Building the **Funnel Manager & Lead Pipeline** per
+`docs/features/FUNNEL_MANAGER_PLAN.md` (founder: "crucial"). Verified vs live code+DB first — no blockers.
 
-**✅ DONE — Phase 1 (data model):** migrations `20260801100000_funnels_pipeline` (7 tables +
-RLS + triggers + seed stages/sequences), `20260801100100_pipeline_rbac` (perms + `sales_team`
-role + audit target_type), `20260801100200_funnel_assets_bucket` (public PDF bucket). Applied to
-linked DB, types regenerated, lint green.
+**✅ Phase 1 (data model)** `08a6d12b` — 7 tables (`funnels`, `pipeline_stages`, `pipeline_leads`,
+`pipeline_activities`, `nurture_sequences/steps/enrollments`) + RLS + `sales_team` RBAC + `funnel-assets`
+bucket. A lead = a `user_profiles` row (`is_lead`), not a new table.
 
-**▶️ NEXT — Phase 2:** Hosts funnel end-to-end — `/go/hosts` + thank-you page +
-`/api/funnel-submit` → `findOrCreateLeadIdentity` → `pipeline_leads` card → resource email +
-on-page resource + magic-link/`/claim` redirect. Then Phase 3 (admin board), 4 (nurture drip),
-5 (affiliate funnel), 6 (lifecycle doc). See plan §11.
+**✅ Phase 2 (Hosts funnel + redesign)** `01411d48`+`274d1ebc` — `/go/hosts` + `/go/hosts/thanks` +
+`/api/funnel-submit` (→ `findOrCreateLeadIdentity` → `pipeline_leads` card → resource email). Redesigned
+to founder's lead-magnet mockups: dark hero, capture card, **inline success receipt** (real Lead ID),
+rooms field, POPIA consent, resource thank-you page. `/go` = locale-free branch w/ own `app/go/layout.tsx`.
 
-**Also done 2026-08-01:** clean-slate data wipe (4 logins kept, all demo data purged); see
-CHANGELOG + memory `feedback-clean-wipe-user-data-only`.
+**✅ Phase 3 (admin pipeline)** `d47757bd` — `/admin/pipeline` board (Host/Affiliate tabs, KPIs, `@dnd-kit`
+columns, real cards, empty states) + lead record `[leadId]` (stage track, facts, activity timeline, note
+composer, owner assign, mark won/lost) + audited actions (`withAdminAudit`). Tasks/Emails/Files = "coming
+soon" (data-backed core, founder's choice).
+
+**✅ Phase 4 (nurture drip)** `fb1f4518` — `20260801110000_nurture_engine` (3 host steps 0/48/120h +
+activate + `drain-nurture` cron) + `/api/nurture-worker` (sends step, logs `email_sent`, advances).
+Live-verified end-to-end.
+
+**▶️ NEXT — Phase 5** (affiliate funnel `/go/affiliate` + its board/drip, mirror Phase 2) · **Phase 6**
+(lifecycle doc `docs/lifecycles/funnel.md`) · **Phase 4b** deferrals: React Email templates,
+conversion-cancels-drip DB triggers (subscription active→Won), per-env Vault `nurture_worker_url`.
+
+**Also 2026-08-01:** clean-slate data wipe (4 logins kept: admin `wollie@manamarketing.co.za` + system
+`support@wielo.co.za` + `wollie333`/`sumarie`; all demo data purged). See `feedback-clean-wipe-user-data-only`.
 
 ---
 
