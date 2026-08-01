@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-08-01 — Affiliate registration trigger (CompleteRegistration + Won).
+
+DB trigger `trg_affiliate_activated` on `affiliate_accounts` (migration `20260801200000`): when an
+account reaches `status='active'` (self-serve pending→active, in-portal born-active, or admin
+activation) it enqueues a Meta **CompleteRegistration** event (no value — the affiliate pipeline's "won"
+is a registration) and moves that person's affiliate card to **Won** (move-only). Idempotent:
+reinstatement (suspended→active) won't duplicate the event or re-move a won card. **Proven** via a
+rollback-txn test: activating an affiliate enqueued one CompleteRegistration (user_id + lead_id set) and
+moved the card to the affiliate Won stage.
+
 ## 2026-08-01 — Values on pipeline cards + delete hidden on customer cards.
 
 Pipeline board cards now show a ZAR value pill: **realized Wielo revenue** (green, sum of settled
