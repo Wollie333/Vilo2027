@@ -140,6 +140,28 @@ Assert at creation (host + guest POV):
 - ✅ **Banking last-default guard** (today's fix): unticking the sole default is
   refused with the guard message. Seen live.
 
+## 🟢 SAVE POINT (2026-08-01 pt3) — harness + notifications + code-fixes ALL done; migrations + affiliate next
+
+**Branch `fix/host-launch-hardening` (NOT pushed; 3 new commits `2ba4245`/`5059e57`/`666da90`). Tree clean,
+type-check+lint green.** Resume anchor: memory `launch-prep-host-then-affiliate`.
+
+**This session (pt2/pt3/pt4) — punch-list items 1–4 DONE:**
+- **Harness (item 1):** `pnpm test:flows` 70/83 → **93/0 + 1 watched known-issue**. 9 stale tests rewritten,
+  Q/T test-artefacts fixed, new journeys V/W/X. **X proves C1 double-decrement LIVE** (documented probe).
+- **Notifications (item 2):** `booking_dates_changed_guest` + `review_response_guest` wired END-TO-END
+  (registry+template+resolver+catalog+admin+dispatch). `notification_events` rows in migration `20260801230000`.
+- **Delete (item 3):** `refund_admin_override_host` fully removed (moot in Model 2).
+- **Code fixes (item 4):** date-change refreshes `price_breakdown` + invoice `line_items`; pay-page resolves
+  rails by the BOOKING's business.
+- **⏳ LIVE-VERIFY (founder-driven):** the 3 notification/pay flows above — trigger each in the UI, then Claude
+  asserts `notification_delivery_log`/`notification_queue` + invoice PDF + rails via service role.
+
+**▶️ REMAINING (founder order): item 5 migrations (C1 drop-duplicate-trigger + C2 orphan-fn drop + per-business
+numbering — batched with the FINAL main-merge + `db push`, founder said "merge & push to main LAST"), then
+item 6 AFFILIATE.** When the C1 DROP migration lands, promote harness probe X2 from `documented()` to `check()`.
+
+---
+
 ## 🟢 SAVE POINT (2026-08-01) — money-integrity pass done; harness + comms next
 
 **Branch `fix/host-launch-hardening` (NOT pushed). All committed, tree clean, type-check+lint+build green.**
