@@ -14,6 +14,18 @@ content purged. Fixed `scripts/reset-keep-superadmin.mjs` to keep by `platform_s
 `user_profiles.role`) + a system-user allowlist. Signed affiliate agreements (immutable 3-yr
 retention) detached, not deleted; `platform_ledger` detached (INSERT-only). Reference/config intact.
 
+**Funnel Manager — Phase 3 (admin pipeline board + lead record):** the sales CRM. `/admin/pipeline`
+nav item (gated `pipeline.view`) + `pipeline.view`/`pipeline.manage` in the `PermissionKey` union +
+`pipeline` audit target-type. Board: Host/Affiliate tabs, real KPI tiles, columns from
+`pipeline_stages`, cards from real `pipeline_leads` (`@dnd-kit` drag-to-move + stage `<select>`),
+empty/loading states. Lead record (`/admin/pipeline/[leadId]`): header, stage progress track, facts
+strip, real activity timeline, note composer, owner assign, mark won/lost. Tasks/Emails/Files tabs
+are "coming soon" (data-backed core now; those need their own schema). Mutations in
+`pipeline/actions.ts` via `withAdminAudit` (move stage / set outcome / assign owner / add note). Built
+to the founder's mockups (directional). **Live-verified** as the magic-link super-admin: board render
++ KPIs, card→record nav, add note (timeline attributes to the admin), mark won + move stage → status/
+stage/activities updated + `admin_audit_log` rows written; test lead removed. build + lint green.
+
 **Funnel Manager — Phase 2 landing/thanks redesign:** rebuilt `/go/hosts` + `/go/hosts/thanks` to
 the founder's lead-magnet mockups (directional) — dark hero, white capture card, and an **inline
 success receipt** ("Added to your pipeline": lead, establishment, Stage New, source, real Lead ID)

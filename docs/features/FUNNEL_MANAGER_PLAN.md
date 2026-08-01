@@ -1,6 +1,6 @@
 # Funnel Manager & Lead Pipeline — Plan
 
-**Status:** 🟢 Phases 1–2 SHIPPED 2026-08-01 (data model + Hosts funnel end-to-end) — Phases 3–6 pending
+**Status:** 🟢 Phases 1–3 SHIPPED 2026-08-01 (data model + Hosts funnel + admin pipeline board & lead record) — Phases 4–6 pending
 **Owner:** Founder + Marketing/Sales team
 **Author:** drafted + refined 2026-07-31
 **Related:** `BUSINESS_PRINCIPLES.md` #1 (guest identity), #5 (one source of truth),
@@ -437,7 +437,17 @@ file or YouTube URL), thank-you CTA text/target, and the nurture email copy per 
    user_profiles lead + host-board card (source_kind=host_funnel, stage New, score 10) +
    `created` activity; thank-you page renders. Minimal placeholder UI (real design later); brochure/
    video null → placeholder states. `pnpm build` + `pnpm lint` green.
-3. **Pipeline admin board** — nav + RBAC + kanban + lead record page + actions.
+3. ✅ **DONE (2026-08-01)** — **Pipeline admin board** — nav + RBAC + kanban + lead record page +
+   actions. `/admin/pipeline` (nav item + `NAV_PERM` + `PermissionKey` union + audit target
+   `pipeline`); board = 2 audience tabs (host/affiliate), real KPIs, columns from `pipeline_stages`,
+   cards from real `pipeline_leads`, `@dnd-kit` drag-to-move + stage `<select>`, empty states; record
+   page `[leadId]` = header, stage track, facts, real activity timeline, note composer, owner assign,
+   mark won/lost; Tasks/Emails/Files tabs = "coming soon" (data-backed core, per founder). Actions in
+   `pipeline/actions.ts` via `withAdminAudit` (move stage / set outcome / assign / add note). Founder
+   mockups followed as direction. **Live-verified:** magic-link super-admin → board (KPIs, card,
+   empty states), card→record, add note (→ timeline, attributed to admin), mark won + move stage
+   (→ status/stage/activities + audit rows). ⚠️ drag GESTURE not exercisable via synthetic events, but
+   `moveLeadStageAction` proven via the stage dropdown. build + lint green.
 4. **Nurture drip engine** — sequence + `drain-nurture` cron + `/api/nurture-worker`
    + templates + conversion-cancels-drip hooks.
 5. **Affiliate funnel** (`/go/affiliate` + its board + drip) + affiliate-link

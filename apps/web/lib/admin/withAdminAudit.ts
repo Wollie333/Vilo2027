@@ -69,6 +69,7 @@ export const AUDIT_TARGET_TYPES = [
   "conversation",
   "feature_request",
   "changelog_entry",
+  "pipeline",
   "permission_denied",
 ] as const;
 

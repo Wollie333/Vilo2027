@@ -33,7 +33,9 @@ export type PermissionKey =
   | "taxonomy.manage"
   | "notifications.broadcast"
   | "notifications.send_individual"
-  | "notifications.view_history";
+  | "notifications.view_history"
+  | "pipeline.view"
+  | "pipeline.manage";
 
 /**
  * Resolves to the admin context if the caller holds `permissionKey`. On denial

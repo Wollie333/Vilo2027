@@ -11,6 +11,7 @@ import {
   Home as HomeIcon,
   Image as ImageIcon,
   Inbox,
+  Kanban,
   Layers,
   LifeBuoy,
   Lightbulb,
@@ -35,6 +36,9 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
+  // Funnel lead pipeline — the sales CRM board (Phase 3). Sits high so the sales
+  // team reaches it in one click.
+  { href: "/admin/pipeline", label: "Pipeline", icon: Kanban, match: "prefix" },
   // One unified Users hub — every Wielo user (hosts + guests + staff). The old
   // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
@@ -211,6 +215,7 @@ const LEGAL: GmailNavItem[] = [
 // (admin_permissions); items absent here are always shown. super_admin holds
 // every key, so it sees the full rail; narrower roles only see what they can open.
 const NAV_PERM: Record<string, string> = {
+  "/admin/pipeline": "pipeline.view",
   "/admin/legal": "legal.docs",
   "/admin/help": "help.manage",
   "/admin/inbox": "notifications.send_individual",
