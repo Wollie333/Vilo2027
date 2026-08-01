@@ -6428,6 +6428,81 @@ export type Database = {
           },
         ]
       }
+      meta_conversion_events: {
+        Row: {
+          action_source: string
+          attempts: number
+          content_ids: string[]
+          content_name: string | null
+          created_at: string
+          currency: string | null
+          event_id: string
+          event_name: string
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          response: Json | null
+          sent_at: string | null
+          source_ref: string | null
+          status: string
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          action_source?: string
+          attempts?: number
+          content_ids?: string[]
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_id: string
+          event_name: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          response?: Json | null
+          sent_at?: string | null
+          source_ref?: string | null
+          status?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          action_source?: string
+          attempts?: number
+          content_ids?: string[]
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_id?: string
+          event_name?: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          response?: Json | null
+          sent_at?: string | null
+          source_ref?: string | null
+          status?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_conversion_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_conversion_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_categories: {
         Row: {
           created_at: string

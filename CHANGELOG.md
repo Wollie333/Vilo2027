@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-08-01 — Meta CAPI outbox + worker (Phase 1 of pipeline conversion events).
+
+Foundation for firing Wielo's own server-side Meta ad-conversion events off real pipeline conversions
+(plan: `docs/features/PIPELINE_META_CAPI_PLAN.md`). Generalised `lib/integrations/meta-capi.ts` with
+`sendCapiEvent()` — hashes em/ph/**fn/ln/external_id**, configurable `action_source`
+(`system_generated` for CRM/settle events), POPIA Limited-Data-Use mode, and a rich result so a queue
+can distinguish "not configured" from "failed"; `sendCapiPurchase()` kept as a thin wrapper (the two
+booking callers are untouched). New `meta_conversion_events` outbox table (migration
+`20260801160000`, `event_id` UNIQUE = Meta dedup + exactly-once latch) drained by a new
+`/api/meta-capi-worker` route (same `EMAIL_WORKER_SECRET` bearer + batch pattern as the nurture
+worker; consent-gated PII; retry/terminal stamps) on a per-minute `drain-meta-capi` pg_cron
+(fail-soft no-op until the Vault `meta_capi_worker_url` secret is set). Additive + inert — nothing
+fires until Meta CAPI creds + the Vault URL exist. Build + lint green; migration applied to the linked
+cloud DB, types regenerated, table + cron verified live. Phases 2–6 (triggers, Trial stage, guards,
+signup gaps) still to come.
+
 ## 2026-08-01 — Pipeline metrics page (lead volume, conversion, stage duration).
 
 New **Metrics** button in the pipeline board header (left of "Landing pages") opens
