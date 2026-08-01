@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-08-01 — Help admin portal (3/3): videos/status reorder, convert-to-article.
+
+Finishes the CMS enrichment. **Status** components now drag-reorder (audited `reorderHelpStatus`; numeric
+Sort retired). **Videos** get a one-click **publish/unpublish toggle** on each grid card
+(`setHelpVideoStatus`) — the card is now a container so the toggle sits beside Edit (no nested anchor).
+**Suggestions**: a **Draft article** button turns a reader request into a pre-filled new article
+(`/admin/help/articles/new?from=<id>` seeds the title/excerpt/body from the message), plus **message
+search**. **Overview**: an actionable **Open suggestions** list with per-item Draft-article links. Build
++ lint green; every surface still redirects the deny path. Admin UI to be founder-click-tested.
+
 ## 2026-08-01 — Help admin portal (2/3): drag-reorder + toggles + rich FAQ.
 
 New local `HelpReorderList` (an @dnd-kit drag-to-reorder list kept out of the sub-branch-owned website

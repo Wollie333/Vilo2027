@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, Plus, Save, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState, useTransition } from "react";
 
 import { modal } from "@/components/ui/modal-host";
@@ -11,7 +12,8 @@ import {
   parseSparkValues,
 } from "@/lib/help/types";
 
-import { deleteHelpStatus, saveHelpStatus } from "./actions";
+import { HelpReorderList } from "../_components/HelpReorderList";
+import { deleteHelpStatus, reorderHelpStatus, saveHelpStatus } from "./actions";
 
 type Row = Omit<HelpStatusRow, "spark_values"> & {
   spark_values: number[];
@@ -98,6 +100,17 @@ export function StatusEditor({ rows }: { rows: HelpStatusRow[] }) {
     });
   }
 
+  function handleReorder(next: Row[]) {
+    setList(next);
+    setError(null);
+    const ids = next.filter((r) => !r.__new).map((r) => r.id);
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const res = await reorderHelpStatus(ids);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
   async function removeRow(row: Row) {
     if (row.__new) {
       setList((prev) => prev.filter((r) => r.id !== row.id));
@@ -122,6 +135,8 @@ export function StatusEditor({ rows }: { rows: HelpStatusRow[] }) {
     });
   }
 
+  const canReorder = !list.some((r) => r.__new);
+
   return (
     <div className="space-y-4">
       {error ? (
@@ -131,134 +146,41 @@ export function StatusEditor({ rows }: { rows: HelpStatusRow[] }) {
         </div>
       ) : null}
 
-      <div className="space-y-3">
-        {list.length === 0 ? (
-          <div className="rounded-card border border-dashed border-brand-line bg-white px-5 py-10 text-center text-sm text-brand-mute">
-            No status components yet.
-          </div>
-        ) : null}
-        {list.map((r) => {
-          const Icon = resolveHelpIcon(r.icon);
-          return (
-            <div
+      {list.length === 0 ? (
+        <div className="rounded-card border border-dashed border-brand-line bg-white px-5 py-10 text-center text-sm text-brand-mute">
+          No status components yet.
+        </div>
+      ) : canReorder ? (
+        <div className="space-y-3">
+          <HelpReorderList items={list} onReorder={handleReorder}>
+            {(r, _i, handle) => (
+              <StatusCard
+                r={r}
+                handle={handle}
+                pending={pending}
+                update={update}
+                updateSpark={updateSpark}
+                saveRow={saveRow}
+                removeRow={removeRow}
+              />
+            )}
+          </HelpReorderList>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {list.map((r) => (
+            <StatusCard
               key={r.id}
-              className={`rounded-card border bg-white p-4 ${r.__dirty ? "border-amber-300 bg-amber-50/40" : "border-brand-line"}`}
-            >
-              <div className="grid gap-3 lg:grid-cols-[auto_1fr_220px]">
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-brand-light">
-                  <Icon className="h-5 w-5 text-brand-secondary" />
-                </div>
-                <div className="space-y-2">
-                  <input
-                    value={r.name}
-                    onChange={(e) => update(r.id, { name: e.target.value })}
-                    placeholder="Channel sync"
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink focus:border-brand-primary focus:outline-none"
-                  />
-                  <input
-                    value={r.note ?? ""}
-                    onChange={(e) => update(r.id, { note: e.target.value })}
-                    placeholder="99.98% · 30d"
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-mute focus:border-brand-primary focus:outline-none"
-                  />
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                      Sparkline (7 values, 0–100)
-                    </div>
-                    <div className="mt-1 grid grid-cols-7 gap-1">
-                      {r.spark_values.map((v, i) => (
-                        <input
-                          key={i}
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={v}
-                          onChange={(e) =>
-                            updateSpark(r.id, i, Number(e.target.value))
-                          }
-                          className="num rounded border border-brand-line bg-white px-1 py-1 text-center font-mono text-[11px]"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <SelectField label="Icon">
-                    <select
-                      value={r.icon}
-                      onChange={(e) => update(r.id, { icon: e.target.value })}
-                      className="w-full rounded border border-brand-line bg-white px-2 py-1 text-sm"
-                    >
-                      {HELP_ICON_CHOICES.map((c) => (
-                        <option key={c.value} value={c.value}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </SelectField>
-                  <SelectField label="Status">
-                    <select
-                      value={r.status}
-                      onChange={(e) =>
-                        update(r.id, {
-                          status: e.target.value as HelpStatusComponentStatus,
-                        })
-                      }
-                      className="w-full rounded border border-brand-line bg-white px-2 py-1 text-sm capitalize"
-                    >
-                      <option value="normal">normal</option>
-                      <option value="degraded">degraded</option>
-                      <option value="incident">incident</option>
-                      <option value="maintenance">maintenance</option>
-                    </select>
-                  </SelectField>
-                  <SelectField label="Uptime %">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={r.uptime_pct}
-                      onChange={(e) =>
-                        update(r.id, { uptime_pct: Number(e.target.value) })
-                      }
-                      className="num w-full rounded border border-brand-line bg-white px-2 py-1 font-mono text-sm"
-                    />
-                  </SelectField>
-                  <SelectField label="Sort">
-                    <input
-                      type="number"
-                      value={r.sort_order}
-                      onChange={(e) =>
-                        update(r.id, { sort_order: Number(e.target.value) })
-                      }
-                      className="num w-full rounded border border-brand-line bg-white px-2 py-1 font-mono text-sm"
-                    />
-                  </SelectField>
-                  <div className="flex items-center gap-2 pt-2">
-                    <button
-                      type="button"
-                      disabled={pending || !r.__dirty || !r.name.trim()}
-                      onClick={() => saveRow(r)}
-                      className="inline-flex items-center gap-1 rounded bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
-                    >
-                      <Save className="h-3 w-3" /> Save
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => removeRow(r)}
-                      className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              r={r}
+              pending={pending}
+              update={update}
+              updateSpark={updateSpark}
+              saveRow={saveRow}
+              removeRow={removeRow}
+            />
+          ))}
+        </div>
+      )}
 
       <button
         type="button"
@@ -267,6 +189,137 @@ export function StatusEditor({ rows }: { rows: HelpStatusRow[] }) {
       >
         <Plus className="h-4 w-4" /> Add component
       </button>
+    </div>
+  );
+}
+
+function StatusCard({
+  r,
+  handle,
+  pending,
+  update,
+  updateSpark,
+  saveRow,
+  removeRow,
+}: {
+  r: Row;
+  handle?: ReactNode;
+  pending: boolean;
+  update: (id: string, patch: Partial<Row>) => void;
+  updateSpark: (id: string, idx: number, value: number) => void;
+  saveRow: (row: Row) => void;
+  removeRow: (row: Row) => void;
+}) {
+  const Icon = resolveHelpIcon(r.icon);
+  return (
+    <div
+      className={`rounded-card border bg-white p-4 ${r.__dirty ? "border-amber-300 bg-amber-50/40" : "border-brand-line"}`}
+    >
+      {handle ? (
+        <div className="mb-2 flex items-center gap-1 text-[11px] text-brand-mute">
+          {handle}
+          <span>Drag to reorder</span>
+        </div>
+      ) : null}
+      <div className="grid gap-3 lg:grid-cols-[auto_1fr_220px]">
+        <div className="flex h-10 w-10 items-center justify-center rounded bg-brand-light">
+          <Icon className="h-5 w-5 text-brand-secondary" />
+        </div>
+        <div className="space-y-2">
+          <input
+            value={r.name}
+            onChange={(e) => update(r.id, { name: e.target.value })}
+            placeholder="Channel sync"
+            className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink focus:border-brand-primary focus:outline-none"
+          />
+          <input
+            value={r.note ?? ""}
+            onChange={(e) => update(r.id, { note: e.target.value })}
+            placeholder="99.98% · 30d"
+            className="w-full rounded border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-mute focus:border-brand-primary focus:outline-none"
+          />
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              Sparkline (7 values, 0–100)
+            </div>
+            <div className="mt-1 grid grid-cols-7 gap-1">
+              {r.spark_values.map((v, i) => (
+                <input
+                  key={i}
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={v}
+                  onChange={(e) => updateSpark(r.id, i, Number(e.target.value))}
+                  className="num rounded border border-brand-line bg-white px-1 py-1 text-center font-mono text-[11px]"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2 text-sm">
+          <SelectField label="Icon">
+            <select
+              value={r.icon}
+              onChange={(e) => update(r.id, { icon: e.target.value })}
+              className="w-full rounded border border-brand-line bg-white px-2 py-1 text-sm"
+            >
+              {HELP_ICON_CHOICES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </SelectField>
+          <SelectField label="Status">
+            <select
+              value={r.status}
+              onChange={(e) =>
+                update(r.id, {
+                  status: e.target.value as HelpStatusComponentStatus,
+                })
+              }
+              className="w-full rounded border border-brand-line bg-white px-2 py-1 text-sm capitalize"
+            >
+              <option value="normal">normal</option>
+              <option value="degraded">degraded</option>
+              <option value="incident">incident</option>
+              <option value="maintenance">maintenance</option>
+            </select>
+          </SelectField>
+          <SelectField label="Uptime %">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              value={r.uptime_pct}
+              onChange={(e) =>
+                update(r.id, { uptime_pct: Number(e.target.value) })
+              }
+              className="num w-full rounded border border-brand-line bg-white px-2 py-1 font-mono text-sm"
+            />
+          </SelectField>
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              type="button"
+              disabled={pending || !r.__dirty || !r.name.trim()}
+              onClick={() => saveRow(r)}
+              className="inline-flex items-center gap-1 rounded bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+            >
+              <Save className="h-3 w-3" /> Save
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => removeRow(r)}
+              className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

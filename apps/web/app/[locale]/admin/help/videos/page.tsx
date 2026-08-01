@@ -10,6 +10,8 @@ import type {
 } from "@/lib/help/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { VideoPublishToggle } from "./VideoPublishToggle";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminHelpVideosPage() {
@@ -59,50 +61,57 @@ export default async function AdminHelpVideosPage() {
           </div>
         ) : null}
         {rows.map((v) => (
-          <Link
+          <div
             key={v.id}
-            href={`/admin/help/videos/${v.id}`}
             className="group overflow-hidden rounded-card border border-brand-line bg-white transition-shadow hover:shadow-lift"
           >
-            <div className="relative aspect-video overflow-hidden bg-brand-secondary">
-              {v.thumbnail_url ||
-              buildThumbnailUrl(
-                v.embed_provider as HelpVideoProvider,
-                v.embed_id,
-              ) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={
-                    v.thumbnail_url ||
-                    buildThumbnailUrl(
-                      v.embed_provider as HelpVideoProvider,
-                      v.embed_id,
-                    )
-                  }
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover opacity-80 group-hover:opacity-100"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-primary to-brand-secondary" />
-              )}
-              <div className="absolute bottom-2 right-2 rounded bg-brand-dark/90 px-1.5 py-0.5 font-mono text-[10px] text-white">
-                {formatDuration(v.duration_seconds)}
+            <Link href={`/admin/help/videos/${v.id}`} className="block">
+              <div className="relative aspect-video overflow-hidden bg-brand-secondary">
+                {v.thumbnail_url ||
+                buildThumbnailUrl(
+                  v.embed_provider as HelpVideoProvider,
+                  v.embed_id,
+                ) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={
+                      v.thumbnail_url ||
+                      buildThumbnailUrl(
+                        v.embed_provider as HelpVideoProvider,
+                        v.embed_id,
+                      )
+                    }
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover opacity-80 group-hover:opacity-100"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-primary to-brand-secondary" />
+                )}
+                <div className="absolute bottom-2 right-2 rounded bg-brand-dark/90 px-1.5 py-0.5 font-mono text-[10px] text-white">
+                  {formatDuration(v.duration_seconds)}
+                </div>
+                <StatusBadge status={v.status as HelpStatus} />
               </div>
-              <StatusBadge status={v.status as HelpStatus} />
-            </div>
-            <div className="p-4">
-              <div className="flex items-center gap-2 text-[11px] text-brand-mute">
-                <Video className="h-3.5 w-3.5" />
-                {v.embed_provider.toUpperCase()} · {v.embed_id}
+              <div className="px-4 pt-4">
+                <div className="flex items-center gap-2 text-[11px] text-brand-mute">
+                  <Video className="h-3.5 w-3.5" />
+                  {v.embed_provider.toUpperCase()} · {v.embed_id}
+                </div>
+                <h3 className="mt-1 font-display text-sm font-semibold leading-snug text-brand-ink">
+                  {v.title}
+                </h3>
               </div>
-              <h3 className="mt-1 font-display text-sm font-semibold leading-snug text-brand-ink">
-                {v.title}
-              </h3>
-              <div className="mt-3 flex items-center justify-end text-[11px] font-medium text-brand-primary">
+            </Link>
+            <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-3">
+              <VideoPublishToggle id={v.id} status={v.status as HelpStatus} />
+              <Link
+                href={`/admin/help/videos/${v.id}`}
+                className="inline-flex items-center text-[11px] font-medium text-brand-primary hover:underline"
+              >
                 Edit <ArrowRight className="ml-1 h-3 w-3" />
-              </div>
+              </Link>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

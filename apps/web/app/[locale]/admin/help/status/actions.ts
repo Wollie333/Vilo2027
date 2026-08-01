@@ -151,3 +151,50 @@ export async function deleteHelpStatus(input: {
     };
   }
 }
+
+const reorderSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  reason: z.string().optional(),
+});
+
+export const reorderHelpStatusAction = withAdminAudit<
+  z.infer<typeof reorderSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.status.reorder",
+    targetType: "help_status",
+    getTargetId: (a) => a.ids[0],
+  },
+  async (args, service) => {
+    await Promise.all(
+      args.ids.map((id, i) =>
+        service
+          .from("help_status_components")
+          .update({ sort_order: (i + 1) * 10 })
+          .eq("id", id),
+      ),
+    );
+    revalidatePath("/admin/help/status");
+    revalidatePath("/dashboard/help");
+    revalidatePath("/help");
+    return { result: { ok: true }, after: { order: args.ids } };
+  },
+);
+
+export async function reorderHelpStatus(
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = reorderSchema.safeParse({ ids });
+  if (!parsed.success) return { ok: false, error: "Nothing to reorder." };
+  try {
+    await reorderHelpStatusAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}

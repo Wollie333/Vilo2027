@@ -28,6 +28,7 @@ export default async function AdminHelpOverviewPage() {
     { count: categoryCount },
     { data: recent },
     { data: lowSignal },
+    { data: openSuggestionRows },
   ] = await Promise.all([
     service
       .from("help_articles")
@@ -76,6 +77,12 @@ export default async function AdminHelpOverviewPage() {
       .is("deleted_at", null)
       .gt("not_helpful_count", 0)
       .order("not_helpful_count", { ascending: false })
+      .limit(5),
+    service
+      .from("help_article_suggestions")
+      .select("id, message, created_at")
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
       .limit(5),
   ]);
 
@@ -258,6 +265,51 @@ export default async function AdminHelpOverviewPage() {
           )}
         </section>
       </div>
+
+      {openSuggestionRows && openSuggestionRows.length > 0 ? (
+        <section className="rounded-card border border-brand-line bg-white shadow-card">
+          <header className="flex items-center justify-between border-b border-brand-line p-5">
+            <div className="font-display text-base font-semibold text-brand-ink">
+              Open suggestions
+            </div>
+            <Link
+              href="/admin/help/suggestions"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+            >
+              Triage all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </header>
+          <ul className="divide-y divide-brand-line">
+            {(
+              openSuggestionRows as {
+                id: string;
+                message: string;
+                created_at: string;
+              }[]
+            ).map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center justify-between gap-3 px-5 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm text-brand-ink">
+                    {s.message}
+                  </div>
+                  <div className="font-mono text-[11px] text-brand-mute">
+                    {new Date(s.created_at).toLocaleDateString("en-ZA")}
+                  </div>
+                </div>
+                <Link
+                  href={`/admin/help/articles/new?from=${s.id}`}
+                  className="inline-flex shrink-0 items-center gap-1 rounded border border-brand-primary/40 bg-brand-accent/40 px-2.5 py-1.5 text-[11px] font-medium text-brand-secondary hover:bg-brand-accent"
+                >
+                  <BookOpen className="h-3 w-3" /> Draft article
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

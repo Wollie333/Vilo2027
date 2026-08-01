@@ -172,3 +172,53 @@ export async function deleteHelpVideo(input: {
     };
   }
 }
+
+// One-click publish/unpublish -----------------------------------------------
+
+const setStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["draft", "published", "archived"]),
+  reason: z.string().optional(),
+});
+
+export const setHelpVideoStatusAction = withAdminAudit<
+  z.infer<typeof setStatusSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.video.set_status",
+    targetType: "help_video",
+    getTargetId: (a) => a.id,
+  },
+  async (args, service) => {
+    const { data, error } = await service
+      .from("help_videos")
+      .update({ status: args.status })
+      .eq("id", args.id)
+      .select("id, status")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/help/videos");
+    revalidatePath("/dashboard/help");
+    revalidatePath("/help");
+    return { result: { ok: true }, after: data };
+  },
+);
+
+export async function setHelpVideoStatus(
+  id: string,
+  status: "draft" | "published" | "archived",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = setStatusSchema.safeParse({ id, status });
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  try {
+    await setHelpVideoStatusAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
