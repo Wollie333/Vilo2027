@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-08-01 — Help admin portal (2/3): drag-reorder + toggles + rich FAQ.
+
+New local `HelpReorderList` (an @dnd-kit drag-to-reorder list kept out of the sub-branch-owned website
+SortableList). **Categories**: drag to reorder (persists `sort_order`; disabled while searching/editing)
+and a **one-click publish/hide toggle** on each row — no more opening the edit panel to hide a category.
+**FAQs**: the raw-HTML answer `<textarea>` is replaced with the shared **RichTextEditor**, and FAQs
+drag-reorder too (numeric Sort field retired in favour of drag). Backed by audited reorder/toggle
+actions (`reorderHelpCategories/Faqs`, `setHelpCategoryPublished`, `help.manage`-gated). Build + lint
+green; admin pages still redirect logged-out. Remaining for portal part 3: Videos/Status drag-reorder +
+video publish toggles, suggestions convert-to-article, and an actionable overview. Admin UI to be
+founder-click-tested.
+
 ## 2026-08-01 — Help admin portal (1/3): tab-nav + articles bulk management.
 
 Turned the Help CMS into a proper portal. New `admin/help/layout.tsx` gives every sub-surface a

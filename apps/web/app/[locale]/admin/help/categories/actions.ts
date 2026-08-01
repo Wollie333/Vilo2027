@@ -184,3 +184,100 @@ export async function deleteHelpCategory(input: {
 export async function previewCategorySlug(name: string): Promise<string> {
   return slugify(name);
 }
+
+// Drag-reorder + one-click publish toggle -----------------------------------
+
+const reorderSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  reason: z.string().optional(),
+});
+const togglePublishSchema = z.object({
+  id: z.string().uuid(),
+  isPublished: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const reorderHelpCategoriesAction = withAdminAudit<
+  z.infer<typeof reorderSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.category.reorder",
+    targetType: "help_category",
+    getTargetId: (a) => a.ids[0],
+  },
+  async (args, service) => {
+    // sort_order = position * 10, leaving gaps for manual inserts.
+    await Promise.all(
+      args.ids.map((id, i) =>
+        service
+          .from("help_categories")
+          .update({ sort_order: (i + 1) * 10 })
+          .eq("id", id),
+      ),
+    );
+    revalidatePath("/admin/help/categories");
+    revalidatePath("/dashboard/help");
+    revalidatePath("/help");
+    return { result: { ok: true }, after: { order: args.ids } };
+  },
+);
+
+export const setHelpCategoryPublishedAction = withAdminAudit<
+  z.infer<typeof togglePublishSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.category.set_published",
+    targetType: "help_category",
+    getTargetId: (a) => a.id,
+  },
+  async (args, service) => {
+    const { data, error } = await service
+      .from("help_categories")
+      .update({ is_published: args.isPublished })
+      .eq("id", args.id)
+      .select("id, is_published")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/help/categories");
+    revalidatePath("/dashboard/help");
+    revalidatePath("/help");
+    return { result: { ok: true }, after: data };
+  },
+);
+
+export async function reorderHelpCategories(
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = reorderSchema.safeParse({ ids });
+  if (!parsed.success) return { ok: false, error: "Nothing to reorder." };
+  try {
+    await reorderHelpCategoriesAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+export async function setHelpCategoryPublished(
+  id: string,
+  isPublished: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = togglePublishSchema.safeParse({ id, isPublished });
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  try {
+    await setHelpCategoryPublishedAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
