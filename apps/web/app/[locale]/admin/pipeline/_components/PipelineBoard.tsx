@@ -175,6 +175,7 @@ function Column({
               key={l.id}
               lead={l}
               stageId={stage.id}
+              locked={stage.isCustomer}
               onDeleted={onDeleted}
             />
           ))
@@ -187,10 +188,12 @@ function Column({
 function LeadCard({
   lead,
   stageId,
+  locked,
   onDeleted,
 }: {
   lead: BoardStage["leads"][number];
   stageId: string;
+  locked: boolean;
   onDeleted: (leadId: string) => void;
 }) {
   const router = useRouter();
@@ -212,19 +215,22 @@ function LeadCard({
         isDragging ? "opacity-40" : ""
       }`}
     >
-      {/* Delete — kept out of the drag/navigate path via stopPropagation. */}
-      <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          setConfirming(true);
-        }}
-        className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-        title="Delete lead"
-        aria-label="Delete lead"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {/* Delete — kept out of the drag/navigate path via stopPropagation.
+          Hidden on customer cards (Trial/Won): they're locked (server enforces). */}
+      {locked ? null : (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(true);
+          }}
+          className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+          title="Delete lead"
+          aria-label="Delete lead"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {confirming ? (
         <DeleteLeadDialog
@@ -255,6 +261,25 @@ function LeadCard({
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        {lead.valueKind ? (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+              lead.valueKind === "paid"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
+            }`}
+            title={
+              lead.valueKind === "paid"
+                ? "Wielo revenue from this customer"
+                : "Expected value of their live trial"
+            }
+          >
+            R{lead.value.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+            {lead.valueKind === "trial" ? (
+              <span className="font-medium opacity-70">trial</span>
+            ) : null}
+          </span>
+        ) : null}
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${bc}`}
         >

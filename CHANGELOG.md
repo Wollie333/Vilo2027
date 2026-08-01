@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-08-01 — Values on pipeline cards + delete hidden on customer cards.
+
+Pipeline board cards now show a ZAR value pill: **realized Wielo revenue** (green, sum of settled
+`platform_ledger` charges for that user) for paying customers, or the **trial's expected price** (amber,
+"R599 trial") for a live trial — computed at read time in `getBoard` (no denormalized column). The delete
+button is hidden on cards in a customer stage (Trial/Won) to match the server-side customer-lock.
+**Verified live** (screenshot + DOM): a paid card in Won showed "R599", a trialing card in Trial showed
+"R599 trial", neither had a delete button; test data seeded + cleaned up.
+
 ## 2026-08-01 — Host settle trigger (Subscribe/Purchase + Won) + Won-gate + customer-lock.
 
 DB trigger `trg_platform_ledger_settled` on `platform_ledger` (migration `20260801190000`): when a
