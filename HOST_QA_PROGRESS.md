@@ -236,6 +236,52 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-08-01 (launch hardening — regression pass over the booking loop).** ~436
+  commits landed since the 2026-07-12 live sweep, so this pass re-audited the core
+  "receive / manage / process bookings" path for regressions + silent no-ops (4
+  parallel read-only audit agents). **Regression baseline green** (type-check +
+  lint + build). **8 real fixes shipped (code-verified; live proof pending founder):**
+  1. 🔴 **PayPal free-stay replay (BLOCKER)** — `lib/payments/pay-booking.ts`
+     `capturePayPalOrderForBooking` resolved the payment row by `provider_reference`
+     only + confirmed unconditionally; a guest reusing a completed order id on a
+     second unpaid booking flipped it to `confirmed` with paid=0. Mirrored the two
+     Paystack-twin guards (`.eq("booking_id")` lookup + `payment_status` gate).
+  2. 🔴 **Fixed-date specials unbookable on host website (BLOCKER)** —
+     `lib/website/siteCheckout.ts` counted the special's OWN `source='special'` hold
+     via the generic RPCs → 100% of guests refused. Mirrored the deal-page path's
+     special-excluding `blocked_dates` query.
+  3. **applyTransition 0-row silent success** — `dashboard/bookings/actions.ts`
+     confirm/decline/check-in/out returned `ok:true` (+ fired the guest notification)
+     when the optimistic-concurrency UPDATE matched 0 rows. Added the empty-guard
+     (mirrors hardened `finalizeCancellation`).
+  4. **Manual-booking fail-open availability** — `dashboard/bookings/new/actions.ts`
+     proceeded to a confirmed booking on an availability-RPC error → double-book.
+     Now fails closed (`availErr || free===false`), matching the guest create path.
+  5. **Host Paystack key silent platform-key fallback** — `pay-booking.ts` verified
+     a host reference against the PLATFORM account when host creds didn't decrypt
+     (cipher drift) → paid-but-stuck booking, reconcile loops. Now fails loud
+     (`notifyAdmins`) + returns instead of using the wrong key.
+  6. **Banking unset-last-default divergence** — `settings/banking/actions.ts`
+     `updateBankAccountAction` let a host unset the sole default → checklist green,
+     publish + `trg_listing_requires_bank` reject. Added last-default guard
+     (mirrors the archive guard).
+  7. **Email-verified checklist divergence** — `lib/help/queries.ts` read always-set
+     `auth.email_confirmed_at`; publish gate reads `user_profiles.email_verified_at`.
+     Aligned the checklist to the gate's column.
+  8. **iCal SSRF redirect bypass (security)** — `lib/security/ssrf.ts` +
+     `lib/ical-sync.ts`: `redirect:"follow"` let a public feed 302 to an internal IP
+     past the guard. Added `fetchGuarded` re-validating every hop.
+  **Verified STILL-fixed (no regression):** cross-host iCal block wipe, confirm-time
+  double-book race, iCal clobber of confirmed bookings, special↔calendar convert.
+  **NOT fixed (noted, lower severity):** dead `cancel` branch in TRANSITIONS (wants
+  its own delete commit); `paystack-webhook` booking-branch ledger divergence (dormant
+  for direct-host model); `getHostPayPalForBusiness` `.maybeSingle()` (should loop like
+  paystack); `direct_booking` default-on gating leak (paid-tier concern);
+  `setManualBlocksAction` multi-room whole-block; iCal export UTC boundary.
+  **LIVE-VERIFY pending founder:** PayPal replay-closed proof (sandbox), full host
+  loop walkthrough (re-seed `pnpm seed:demo` first — 08-01 wipe purged the demo host),
+  2nd host connecting own gateway, one real OTA round-trip.
+
 - **2026-06-14 (cont.)** — Audited the FINAL batch #21–#23 (parallel). #21 Help +
   #22 Settings/Data/Privacy CLEAN (POPIA flows sound; i18n gaps noted). **Fixed #23
   Dashboard home:** wrapped all 8 KPI queries in throwOnError (no more silent-zero

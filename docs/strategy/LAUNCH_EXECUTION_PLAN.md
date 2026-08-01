@@ -69,9 +69,11 @@ shell**, `computeCommission`. **The entire default program is reused verbatim.**
   JSON {model: ladder|flat|inherit, bands, ...}, **competition** JSON {events, weights, scoring_mode
   `total|net_change`, prizes, tie_breaker, leaderboard_visibility}, rules_doc_slug → `legal_documents`).
   `affiliate_campaign_enrollments` (affiliate ↔ campaign → drives the Competitions tab + campaign link).
-- **1b. Campaign attribution.** A campaign link (e.g. `/c/[campaign]/[affiliate]`, or `/partners/[slug]`
-  with a campaign variant) drops a cookie carrying **both** affiliate + campaign so signup writes
-  `affiliate_referrals.campaign_id`. Reuses the existing attribution spine unchanged.
+- **1b. Campaign attribution.** A campaign link — as-built `/r/[slug]?c=[campaign]` (capture), shared as
+  the co-branded `/partners/[slug]?c=[campaign]` — drops a cookie carrying **both** affiliate + campaign so
+  signup writes `affiliate_referrals.campaign_id`. Reuses the existing attribution spine unchanged.
+  > **⚠️ URL correction (2026-08-01):** the `/c/[campaign]/[affiliate]` shape is **dead — it 404s.**
+  > `/c/[slug]` is the **category taxonomy** page, not an affiliate route (see `apps/web/lib/affiliate/links.ts`).
 - **1c. Campaign commission resolver.** `accrue_affiliate_commission` gains **one branch**: if the source
   referral has an active `campaign_id`, resolve under that campaign's structure; else today's logic
   verbatim. For the `ladder` model: a monthly cron (`recompute-affiliate-campaign-rates`, mirrors existing

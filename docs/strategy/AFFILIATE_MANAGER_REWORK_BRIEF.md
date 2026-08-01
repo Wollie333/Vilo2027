@@ -130,8 +130,11 @@ ever letting the user think they can change the math from a screen they shouldn'
    agreement signed + platform terms accepted + **email confirmed** + (if a campaign) campaign rules
    accepted. Activation is re-evaluated at every gate (signup, email-confirm, agreement, admin action).
 2. **Get links.** A base referral link `/r/<slug>`, plus a **link builder** (any Wielo page/path or a
-   specific product, each with copy + QR + stats), plus **campaign links** `/c/<campaign>/<slug>` for
-   campaigns they've joined.
+   specific product, each with copy + QR + stats), plus **campaign links** `/r/<slug>?c=<campaign>` for
+   campaigns they've joined (shared as the co-branded page `/partners/<slug>?c=<campaign>`).
+   > **⚠️ URL correction (2026-08-01):** the `/c/<campaign>/<slug>` shape this brief used elsewhere is
+   > **dead — it 404s.** `/c/<slug>` is the **category taxonomy** page, not an affiliate route. As-built
+   > (`apps/web/lib/affiliate/links.ts`): capture = `/r/<slug>?c=<campaign>`; shareable = `/partners/<slug>?c=<campaign>`.
 3. **Share & attribute.** A click drops a cookie (affiliate + optional campaign); on a referred host's
    signup the referral binds once, forever (last-click; original binding wins).
 4. **Earn.** When a referred host pays, commission accrues (default or campaign structure), holds, then

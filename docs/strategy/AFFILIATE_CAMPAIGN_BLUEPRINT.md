@@ -56,7 +56,16 @@ We add **one nullable column**: `affiliate_referrals.campaign_id`.
 | Link the host clicked | `campaign_id` | Which rules the referral earns under |
 |---|---|---|
 | Plain `/r/[slug]` | `NULL` | **Default program** (per-product + tier), unchanged |
-| Campaign `/c/[campaign]/[slug]` | `<campaign>` | **That campaign's** commission structure |
+| Campaign `/r/[slug]?c=[campaign]` | `<campaign>` | **That campaign's** commission structure |
+
+> **⚠️ URL correction (2026-08-01).** Earlier drafts of this doc described campaign
+> links as `/c/[campaign]/[slug]`. **That shape is dead — it 404s.** `/c/[slug]` is
+> the **category taxonomy** landing page and has nothing to do with affiliates.
+> The real, as-built affiliate URLs (see `apps/web/lib/affiliate/links.ts`) are:
+> **referral capture** `/r/[slug]?c=[campaign]` (the only cookie-dropping route) and
+> the partner's **shareable competition link** `/partners/[slug]?c=[campaign]` (their
+> co-branded page whose CTAs route through `/r/…?c=…`). Read every `/c/[campaign]/…`
+> reference below as `/r/[slug]?c=[campaign]`.
 
 **A referral resolves under exactly ONE rule set.** This single fact:
 - kills the double-count risk (a referral is never both default *and* campaign),

@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-08-01 — Host launch-hardening: regression pass over the booking loop (2 blockers + 6 real bugs).
+
+**Re-audited the core host "receive / manage / process bookings" loop for launch.** ~436 commits
+landed since the 2026-07-12 live sweep, so this pass ran four parallel read-only audit agents over the
+booking-receipt, payment/ledger, onboarding→publish, and calendar/availability surfaces, hunting for
+regressions + the codebase's signature silent-no-op / fail-open / diverged-sibling bugs. **Regression
+baseline green** (type-check + lint + build). Branch `fix/host-launch-hardening`.
+
+**Two launch BLOCKERS fixed:**
+- **PayPal order-id replay = free confirmed booking** (`lib/payments/pay-booking.ts`).
+  `capturePayPalOrderForBooking` looked up the payment row by `provider_reference` alone and confirmed
+  unconditionally; reusing a completed order id on a second unpaid booking flipped it to `confirmed`
+  with paid=0. Mirrored the two guards the Paystack twin already had (`booking_id`-scoped lookup +
+  `payment_status` gate). **Live PayPal-sandbox replay proof pending founder.**
+- **Fixed-date specials unbookable on host websites** (`lib/website/siteCheckout.ts`). The availability
+  gate counted the special's own `source='special'` hold → refused 100% of guests. Mirrored the
+  deal-page path's special-excluding `blocked_dates` query.
+
+**Six real bugs fixed:** `applyTransition` reporting success (and notifying the guest) on a 0-row
+concurrent status update; manual-booking availability failing OPEN on RPC error → double-book; host
+Paystack key silently falling back to the platform key on cipher drift → paid-but-stuck booking (now
+fails loud via `notifyAdmins`); `updateBankAccountAction` letting a host unset their last default bank
+account (checklist green, publish rejected); the Getting-started checklist reading always-set
+`auth.email_confirmed_at` vs the gate's `user_profiles.email_verified_at`; and an iCal-import SSRF
+redirect bypass (`redirect:"follow"` → internal IP) closed with a hop-revalidating `fetchGuarded`.
+
+**Verified still-fixed (no regression):** cross-host iCal block wipe, confirm-time double-book race,
+iCal clobber of confirmed bookings, special↔calendar convert. **Logged, not fixed (lower severity):**
+dead `cancel` transition branch, `paystack-webhook` booking-branch ledger drift (dormant for the
+direct-host model), `getHostPayPalForBusiness` `.maybeSingle()` on duplicate rows, `direct_booking`
+default-on gating leak, a couple of calendar polish items. Full trail in `HOST_QA_PROGRESS.md`.
+
+Also corrected three affiliate strategy docs that still described the dead `/c/<campaign>/<slug>`
+campaign-link shape — as-built is `/r/<slug>?c=<campaign>` (capture) / `/partners/<slug>?c=<campaign>`
+(shareable); `/c/<slug>` is the category taxonomy page.
+
+---
+
 ## 2026-08-01 — Funnel-nurture emails in Comms · Comms card redesign · required funnel fields · notifications restyle.
 
 **Funnel-nurture emails now ship in Communications.** Finished + shipped the funnel drip
