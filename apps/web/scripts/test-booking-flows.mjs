@@ -72,8 +72,17 @@ async function cleanup() {
 }
 
 async function insertQuote(over = {}) {
+  // Quote numbering moved to per-BUSINESS (next_quote_number(p_business_id),
+  // migration 20260629160000) — the old p_host_id arg returns null → the
+  // quote_number NOT NULL insert fails. Resolve the host's default business.
+  const { data: biz } = await db
+    .from("businesses")
+    .select("id")
+    .eq("host_id", HOST_ID)
+    .eq("is_default", true)
+    .maybeSingle();
   const { data: qn } = await db.rpc("next_quote_number", {
-    p_host_id: HOST_ID,
+    p_business_id: biz?.id ?? null,
   });
   const { data, error } = await db
     .from("quotes")

@@ -122,6 +122,91 @@ Assert at creation (host + guest POV):
 
 ---
 
+## Verified live + DB — 2026-08-01 (host@wielodemo.com, BK-0085 Seaview)
+
+- ✅ **Dashboard loads** (the blank screen was a corrupted `.next` dev cache from
+  running `next build` alongside `next dev` — cleared; do NOT prod-build against a
+  live dev server).
+- ✅ **A-board:** booking appears; quick-panel balance now == full-record balance
+  (ledger-derived) after the fix below.
+- ✅ **C1 Confirm:** pending → `confirmed` persisted (`confirmed_at` set); success
+  toast fires only on a real transition; `blocked_dates` written `2026-06-10/11/12`
+  (source `booking`, checkout 13th free — no off-by-one). DB-verified.
+- ✅ **B3/B-money — record payment:** R4 850 EFT recorded → `payments` row
+  `completed`; **receipt RPT-0048** minted; ledger recompute → `payment_status
+  completed`, `balance_due 0`, 100% collected; **invoice INV-0203 → `paid`**. All
+  DB-verified. (First Save click missed on a page shift — the action itself is not a
+  no-op; it settled on the retry.)
+- ✅ **Banking last-default guard** (today's fix): unticking the sole default is
+  refused with the guard message. Seen live.
+
+## 🟢 SAVE POINT (2026-08-01) — money-integrity pass done; harness + comms next
+
+**Branch `fix/host-launch-hardening` (NOT pushed). All committed, tree clean, type-check+lint+build green.**
+Resume anchor: memory `launch-prep-host-then-affiliate`. Do **harness first, then notifications** (founder's order).
+
+### DONE & committed (this session)
+- **Money-integrity cluster** (`819e0cc`) — from the adversarial money-sequence audit: **E** markPaymentReceived
+  double-credit guard · **A** void-completed-refund now reverses `payments.refunded_amount` + re-derives
+  booking status (`resetBookingRefundStatus` in `void.ts`) · **B** void-CN reversal gated to `origin='manual'` ·
+  **C** cancel-manual-CN claws back store credit · **D** forfeit transition-first (was minting 2 CNs on race) ·
+  **I** refund-approve from-status guard · **G** stale "refund mints CN" comments corrected · **#5** rail-specific
+  refund comms wired (EFT→`eft_refund_sent_guest`, card/PayPal→`refund_approved_guest`, manual→`refund_completed_guest`).
+- Earlier commits: 2 blockers (PayPal replay, website specials), 6 host bugs, board-balance ledger fix, PayPal
+  replay regression test, dead-cancel-branch, paypal dup-rows/multi-room polish.
+- Harness `test:flows` J-fix (`next_quote_number` now takes `p_business_id`) — harness runs end-to-end again.
+
+### Verified LIVE (founder session, host@wielodemo.com): dashboard, banking last-default guard, confirm→blocked_dates (DB), board balance, record-payment→RPT-receipt→invoice paid (DB).
+
+### The three audits (full detail in the agents' reports; key items below)
+1. **Notification wiring** — most events correctly dispatch (assert via `notification_delivery_log`). SILENT-COMMS
+   GAPS: **date-change → guest** (`changeBookingDatesAction` notifies nothing — no event exists) and **host
+   review reply → guest** (`replyToReviewAction` notifies nothing — no event). Dead events: `refund_approved_guest`
+   + `eft_refund_sent_guest` (now WIRED via #5) + **`refund_admin_override_host` → FOUNDER DECIDED: DELETE**
+   (moot in Model 2 — platform has no refund authority).
+2. **Finance/policy/pricing/payment-methods** — ledger spine sound; policy refund snapshot-frozen (host policy
+   edits don't touch existing bookings ✅); seasonal via TS `priceStay` ✅; DB `calculate_booking_price` is DEAD
+   (only the harness calls it; references pre-rename tables). REAL BUGS: **C1** duplicate `on_booking_cancelled`
+   trigger (`trigger_booking_cancelled` + `trigger_on_booking_cancelled`, both identical → cancel double-decrements
+   `specials.redemptions_used` + `total_bookings`) → needs a DROP migration; **C2** orphan
+   `on_refund_completed_create_credit_note` fn + stale comments (comments fixed; fn drop needs migration);
+   date-change leaves stale `price_breakdown`; pay-page shows the DEFAULT business's rails, charge uses the
+   BOOKING's business (multi-business mismatch).
+3. **Adversarial money-sequence** — card/PayPal capture (§2) + cancellation (§5) are EXEMPLARY. Cluster A–I all
+   FIXED above. Numbering (F): CN/RPT/REF use a GLOBAL gap-prone `nextval`, not per-business (low-med).
+
+### 🚧 BLOCKER — cloud DB diverged: migrations `20260801160000`–`220000` are on the shared cloud project but in
+NO git branch (the **help & docs agent's** work). `supabase db push` from this branch will refuse. So **C1/C2/
+numbering migrations are BLOCKED** until those files land in the repo (coordinate with that agent / reconcile via main).
+
+### Harness `pnpm test:flows` state: **70 passed, 13 failed** (needs `pnpm seed:demo` first; HOST_ID
+`0a111111-…`, LISTING_A/B fixtures). The 13 fails categorised:
+- **9 STALE TESTS (not app bugs — audits confirmed the app is correct):** G2–G6 + L1–L2 + M4 test the REMOVED
+  refund→CN trigger (a standalone refund mints NO CN by design; only cancellation/forfeit do) → rewrite G to
+  assert no-CN + `refunded_amount` bumped, rewrite L/M4 to source the CN from a CANCELLATION. **I1** asserts
+  insert-as-confirmed makes NO invoice, but the invoice trigger now fires on INSERT OR UPDATE (current-correct) →
+  flip the expectation.
+- **Q2/Q3 (2):** numbering is global-sequence not per-business (the F finding) — align the test or accept.
+- **T1/T3 (2):** the invoice trigger derives `subtotal` from post-discount `total` and does NOT itemise the
+  discount into `line_items` (total is correct; a transparency gap, low). Decide: itemise on the invoice, or
+  adjust the test.
+
+### REMAINING PUNCH-LIST (founder order: harness first)
+1. **Harness:** rewrite the 9 stale tests → green; add a **C1 double-decrement assertion** (cancel a special-
+   redeeming booking → `redemptions_used`/`total_bookings` drop by exactly 1 — currently fails, DOCUMENTS the C1
+   bug until the migration lands); extend with **decline, forfeit, date-change, seasonal, add-ons, payment-method
+   enable/disable** journeys.
+2. **Notification events (new):** `booking_dates_changed_guest` + `review_response_guest` — each needs a registry
+   entry + email template + resolver + catalog. Then assert firing via `notification_delivery_log`.
+3. **Delete `refund_admin_override_host`** (registry + catalog + email registry + resolver + admin sample/refs;
+   leave the seed migration + CHANGELOG). Founder-approved.
+4. **Code fixes:** date-change refresh `price_breakdown`; pay-page resolve rails by the BOOKING's business_id.
+5. **Migrations (BLOCKED on divergence):** C1 drop duplicate trigger; C2 drop orphan fn; per-business numbering.
+6. **Then:** affiliate program + competition (second priority) — incl. reconfirm `create/settle_affiliate_payout`
+   + prize RPC anon-EXECUTE/IDOR grants (see `docs/WIRING_AUDIT.md` §0).
+
+---
+
 ## Findings & fixes log (append as we go)
 
 - **2026-08-01 — Board balance forked from the ledger (FIXED).** The bookings board
