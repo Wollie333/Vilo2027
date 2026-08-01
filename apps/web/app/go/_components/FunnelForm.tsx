@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -17,17 +17,37 @@ import {
 // dataLayer conversion event) — no inline receipt.
 // Design direction: docs/features/FUNNEL_MANAGER_DESIGN_BRIEF + founder mockups.
 
-const schema = z.object({
-  name: z.string().trim().min(2, "We'd like to know who to address it to."),
-  email: z
-    .string()
-    .trim()
-    .email("Enter a valid email — that's where the kit goes."),
-  phone: z.string().trim().optional(),
-  rooms: z.string().optional(),
-  marketing_consent: z.boolean().optional(),
-});
-type Values = z.infer<typeof schema>;
+// Every capture field is required. `rooms` only exists on the host variant, so it
+// is required conditionally (superRefine) rather than always — the affiliate form
+// never renders it. Marketing consent stays a genuine opt-in (POPIA — consent must
+// be freely given, so it is never a precondition of submitting).
+function makeSchema(isHost: boolean) {
+  return z
+    .object({
+      name: z.string().trim().min(2, "We'd like to know who to address it to."),
+      email: z
+        .string()
+        .trim()
+        .email("Enter a valid email — that's where the kit goes."),
+      phone: z
+        .string()
+        .trim()
+        .min(7, "Add a phone number we can reach you on.")
+        .regex(/^[0-9+()\s-]+$/, "Enter a valid phone number."),
+      rooms: z.string().optional(),
+      marketing_consent: z.boolean().optional(),
+    })
+    .superRefine((val, ctx) => {
+      if (isHost && !val.rooms) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["rooms"],
+          message: "Let us know how many rooms you host.",
+        });
+      }
+    });
+}
+type Values = z.infer<ReturnType<typeof makeSchema>>;
 
 const UTM_KEYS = [
   "utm_source",
@@ -62,11 +82,12 @@ export function FunnelForm({
   consentLabel?: string;
 }) {
   const isHost = variant === "host";
+  const resolver = useMemo(() => zodResolver(makeSchema(isHost)), [isHost]);
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Values>({ resolver: zodResolver(schema) });
+  } = useForm<Values>({ resolver });
 
   const honeypotRef = useRef<HTMLInputElement>(null);
   const tokenRef = useRef<string | null>(null);
@@ -200,8 +221,7 @@ export function FunnelForm({
 
         <div>
           <label className={label} htmlFor="f-phone">
-            Phone number{" "}
-            <span className="font-normal text-brand-mute">(optional)</span>
+            Phone number
           </label>
           <input
             id="f-phone"
@@ -211,6 +231,11 @@ export function FunnelForm({
             autoComplete="tel"
             {...register("phone")}
           />
+          {errors.phone ? (
+            <p className="mt-1.5 text-[12px] font-medium text-red-600">
+              {errors.phone.message}
+            </p>
+          ) : null}
         </div>
 
         {isHost ? (
@@ -226,6 +251,11 @@ export function FunnelForm({
                 </option>
               ))}
             </select>
+            {errors.rooms ? (
+              <p className="mt-1.5 text-[12px] font-medium text-red-600">
+                {errors.rooms.message}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
