@@ -346,9 +346,31 @@ export async function confirmHostCardPaymentByReference(opts: {
   const hostPaystack = businessId
     ? await getHostPaystackForBusiness(businessId)
     : await getHostPaystack(opts.hostId);
+  // A card booking is ALWAYS initialised on the host's own Paystack, so the host
+  // key must resolve here. If it doesn't (e.g. PAYMENT_CIPHER_KEY drift/rotation
+  // left the stored secret undecryptable), we must NOT call verifyTransaction with
+  // an undefined key: resolveSecretKey would silently fall back to the PLATFORM
+  // key and verify the host-account reference against Wielo's own account (always
+  // not-found) → the guest's paid card never confirms and the reconcile worker
+  // loops on the same failure forever. Fail LOUD (alert admins) and leave the
+  // booking pending for manual resolution rather than a silent stuck state.
+  if (!hostPaystack?.secretKey) {
+    try {
+      await notifyAdmins(admin, {
+        category: "finance",
+        kind: "host_gateway_unresolved",
+        title: "Host Paystack key didn’t resolve at payment confirm",
+        body: `Booking ${opts.bookingId} couldn’t be confirmed: the host’s Paystack credentials didn’t decrypt (check PAYMENT_CIPHER_KEY). The guest may already have been charged on the host’s account — verify there and reconcile manually.`,
+        href: `/admin/bookings/${opts.bookingId}`,
+      });
+    } catch {
+      // The alert must never throw back into the payment path.
+    }
+    return false;
+  }
   const verification = await verifyTransaction(
     opts.reference,
-    hostPaystack?.secretKey,
+    hostPaystack.secretKey,
   );
   if (!verification || verification.status !== "success") return false;
 
@@ -552,11 +574,19 @@ export async function capturePayPalOrderForBooking(opts: {
     : await getHostPayPal(opts.hostId);
   if (!creds) return false;
 
-  // The pending payment row created at order time (keyed by the order id).
+  // The pending payment row created at order time (keyed by the order id). The
+  // order id MUST belong to THIS booking — rows are keyed on both
+  // provider_reference AND booking_id at init, so a guest replaying another
+  // booking's (or their own past booking's) completed PayPal order id finds no
+  // row for THIS booking and cannot confirm it. This mirrors the Paystack twin's
+  // guard: without the booking_id filter the foreign 'completed' row skips
+  // capture, recompute of this booking finds paid=0, and the booking below was
+  // flipped to confirmed with balance owing — a free confirmed stay.
   const { data: paymentRow } = await admin
     .from("payments")
     .select("id, status")
     .eq("provider_reference", opts.orderId)
+    .eq("booking_id", opts.bookingId)
     .maybeSingle();
 
   if (paymentRow?.status === "pending") {
@@ -589,6 +619,22 @@ export async function capturePayPalOrderForBooking(opts: {
   // an 'issued' invoice otherwise (the confirm trigger only marks it paid when it
   // was paid in full up front).
   await markBookingInvoicesPaidIfSettled(admin, opts.bookingId);
+
+  // Only confirm a booking the ledger now shows as genuinely paid — mirrors the
+  // Paystack path. Defence in depth behind the booking_id-scoped lookup above:
+  // guards against ever confirming a booking whose recompute left
+  // payment_status='pending' (paid=0) — a confirmed, unpaid stay.
+  const { data: bkState } = await admin
+    .from("bookings")
+    .select("payment_status")
+    .eq("id", opts.bookingId)
+    .maybeSingle();
+  if (
+    bkState?.payment_status !== "completed" &&
+    bkState?.payment_status !== "partial"
+  ) {
+    return false;
+  }
 
   // Confirm the booking (pending → confirmed) so the invoice + date-blocking
   // triggers run. Same reasoning as the Paystack path: surface a confirm error
