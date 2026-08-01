@@ -4275,11 +4275,14 @@ export type Database = {
           helpful_count: number
           id: string
           last_editor_id: string | null
+          meta_description: string | null
           not_helpful_count: number
+          og_image_url: string | null
           published_at: string | null
           read_time_minutes: number
           saved_count: number
           search_tsv: unknown
+          seo_title: string | null
           slug: string
           status: string
           title: string
@@ -4300,11 +4303,14 @@ export type Database = {
           helpful_count?: number
           id?: string
           last_editor_id?: string | null
+          meta_description?: string | null
           not_helpful_count?: number
+          og_image_url?: string | null
           published_at?: string | null
           read_time_minutes?: number
           saved_count?: number
           search_tsv?: unknown
+          seo_title?: string | null
           slug: string
           status?: string
           title: string
@@ -4325,11 +4331,14 @@ export type Database = {
           helpful_count?: number
           id?: string
           last_editor_id?: string | null
+          meta_description?: string | null
           not_helpful_count?: number
+          og_image_url?: string | null
           published_at?: string | null
           read_time_minutes?: number
           saved_count?: number
           search_tsv?: unknown
+          seo_title?: string | null
           slug?: string
           status?: string
           title?: string
@@ -7010,6 +7019,54 @@ export type Database = {
           },
         ]
       }
+      pipeline_files: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          mime: string | null
+          name: string
+          path: string
+          size_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          mime?: string | null
+          name: string
+          path: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          mime?: string | null
+          name?: string
+          path?: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_files_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "platform_staff"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       pipeline_leads: {
         Row: {
           ad_source: string | null
@@ -7137,6 +7194,67 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_tasks: {
+        Row: {
+          assignee_staff_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          id: string
+          lead_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_staff_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_staff_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_tasks_assignee_staff_id_fkey"
+            columns: ["assignee_staff_id"]
+            isOneToOne: false
+            referencedRelation: "platform_staff"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pipeline_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "platform_staff"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pipeline_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_features: {
         Row: {

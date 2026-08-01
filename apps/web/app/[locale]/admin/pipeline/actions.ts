@@ -1,7 +1,9 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin/requirePermission";
 import { withAdminAudit } from "@/lib/admin/withAdminAudit";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Audited mutations for the pipeline board + lead record. Each is gated on
 // pipeline.manage and writes an admin_audit_log row + a pipeline_activities
@@ -138,6 +140,72 @@ export const assignLeadOwnerAction = withAdminAudit<
   },
 );
 
+export const sendLeadEmailAction = withAdminAudit<
+  { leadId: string; subject: string; body: string; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.send_email",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const ctx = await requireAdmin();
+    const subject = a.subject.trim();
+    const body = a.body.trim();
+    if (!subject) throw new Error("Add a subject.");
+    if (!body) throw new Error("The email is empty.");
+
+    const { data: lead } = await service
+      .from("pipeline_leads")
+      .select("id, user_profiles(email, full_name)")
+      .eq("id", a.leadId)
+      .maybeSingle();
+    const prof = lead?.user_profiles as {
+      email?: string;
+      full_name?: string;
+    } | null;
+    const to = prof?.email?.trim().toLowerCase();
+    if (!to) throw new Error("This lead has no email address.");
+
+    // Plain, safe HTML: escape the admin's text and keep paragraph breaks.
+    const esc = (s: string) =>
+      s.replace(
+        /[<>&]/g,
+        (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c,
+      );
+    const html = `${esc(body)
+      .split(/\n{2,}/)
+      .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+      .join(
+        "",
+      )}<p style="color:#6b7280;font-size:12px">Sent by the Wielo team.</p>`;
+
+    const { sendTransactionalEmail } = await import("@/lib/email/send");
+    await sendTransactionalEmail({ to, subject, html });
+
+    const { data: after, error } = await service
+      .from("pipeline_activities")
+      .insert({
+        lead_id: a.leadId,
+        staff_id: ctx.userId,
+        kind: "email_sent",
+        body: `Email sent: ${subject.slice(0, 160)}`,
+        meta: { subject, manual: true },
+      })
+      .select("id")
+      .single();
+    if (error || !after)
+      throw new Error(error?.message ?? "Couldn't log send.");
+    await service
+      .from("pipeline_leads")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", a.leadId);
+    return { result: { ok: true as const }, after };
+  },
+);
+
 export const addLeadNoteAction = withAdminAudit<
   {
     leadId: string;
@@ -174,5 +242,211 @@ export const addLeadNoteAction = withAdminAudit<
       .update({ last_activity_at: new Date().toISOString() })
       .eq("id", a.leadId);
     return { result: { ok: true as const }, after };
+  },
+);
+
+// ─── Tasks ────────────────────────────────────────────────────────────
+
+export const addLeadTaskAction = withAdminAudit<
+  { leadId: string; title: string; dueAt?: string | null; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.add_task",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const ctx = await requireAdmin();
+    const title = a.title.trim();
+    if (!title) throw new Error("Give the task a title.");
+    const { data: after, error } = await service
+      .from("pipeline_tasks")
+      .insert({
+        lead_id: a.leadId,
+        title: title.slice(0, 200),
+        due_at: a.dueAt || null,
+        assignee_staff_id: ctx.userId,
+        created_by: ctx.userId,
+      })
+      .select("id")
+      .single();
+    if (error || !after)
+      throw new Error(error?.message ?? "Couldn't add task.");
+    await service
+      .from("pipeline_leads")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", a.leadId);
+    return { result: { ok: true as const }, after };
+  },
+);
+
+export const toggleLeadTaskAction = withAdminAudit<
+  { leadId: string; taskId: string; done: boolean; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.toggle_task",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const { data: after, error } = await service
+      .from("pipeline_tasks")
+      .update({
+        status: a.done ? "done" : "open",
+        completed_at: a.done ? new Date().toISOString() : null,
+      })
+      .eq("id", a.taskId)
+      .eq("lead_id", a.leadId)
+      .select("id")
+      .single();
+    if (error || !after) throw new Error(error?.message ?? "Update failed.");
+    return { result: { ok: true as const }, after };
+  },
+);
+
+export const deleteLeadTaskAction = withAdminAudit<
+  { leadId: string; taskId: string; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.delete_task",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const { error } = await service
+      .from("pipeline_tasks")
+      .delete()
+      .eq("id", a.taskId)
+      .eq("lead_id", a.leadId);
+    if (error) throw new Error(error.message);
+    return { result: { ok: true as const }, after: { id: a.taskId } };
+  },
+);
+
+// ─── Files ────────────────────────────────────────────────────────────
+
+const MAX_FILE_BYTES = 26_214_400; // 25 MB (matches the bucket limit)
+
+/** Sanitise a filename to a storage-safe token (keep the extension readable). */
+function safeName(name: string): string {
+  return (
+    name
+      .normalize("NFKD")
+      .replace(/[^\w.\- ]+/g, "")
+      .replace(/\s+/g, "_")
+      .slice(0, 120) || "file"
+  );
+}
+
+/**
+ * Mint a signed direct-to-storage upload URL for a lead attachment. Direct upload
+ * (not through the server action body) because Vercel functions cap the request
+ * body well below the 25 MB file limit. Gated on pipeline.manage; no DB write yet —
+ * confirmLeadFileAction records the row once the browser PUT succeeds.
+ */
+export async function createLeadFileUploadAction(input: {
+  leadId: string;
+  name: string;
+  size: number;
+}): Promise<
+  { ok: true; uploadUrl: string; path: string } | { ok: false; error: string }
+> {
+  await requirePermission("pipeline.manage");
+  if (!input.leadId) return { ok: false, error: "Missing lead." };
+  if (input.size > MAX_FILE_BYTES) {
+    return { ok: false, error: "That file is over the 25 MB limit." };
+  }
+  const admin = createAdminClient();
+  const path = `${input.leadId}/${crypto.randomUUID()}-${safeName(input.name)}`;
+  const { data, error } = await admin.storage
+    .from("pipeline-files")
+    .createSignedUploadUrl(path);
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Couldn't start the upload." };
+  }
+  return { ok: true, uploadUrl: data.signedUrl, path };
+}
+
+export const confirmLeadFileAction = withAdminAudit<
+  {
+    leadId: string;
+    path: string;
+    name: string;
+    size: number;
+    mime?: string | null;
+    reason?: string;
+  },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.add_file",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const ctx = await requireAdmin();
+    const { data: after, error } = await service
+      .from("pipeline_files")
+      .insert({
+        lead_id: a.leadId,
+        name: a.name.slice(0, 200),
+        path: a.path,
+        size_bytes: a.size,
+        mime: a.mime || null,
+        uploaded_by: ctx.userId,
+      })
+      .select("id")
+      .single();
+    if (error || !after)
+      throw new Error(error?.message ?? "Couldn't save file.");
+    await service.from("pipeline_activities").insert({
+      lead_id: a.leadId,
+      staff_id: ctx.userId,
+      kind: "note",
+      body: `File attached: ${a.name.slice(0, 160)}`,
+      meta: { file_id: after.id },
+    });
+    await service
+      .from("pipeline_leads")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", a.leadId);
+    return { result: { ok: true as const }, after };
+  },
+);
+
+export const deleteLeadFileAction = withAdminAudit<
+  { leadId: string; fileId: string; reason?: string },
+  { ok: true }
+>(
+  {
+    permissionKey: "pipeline.manage",
+    actionName: "pipeline.delete_file",
+    targetType: "pipeline",
+    getTargetId: (a) => a.leadId,
+  },
+  async (a, service) => {
+    const { data: file } = await service
+      .from("pipeline_files")
+      .select("path")
+      .eq("id", a.fileId)
+      .eq("lead_id", a.leadId)
+      .maybeSingle();
+    if (file?.path) {
+      await service.storage.from("pipeline-files").remove([file.path]);
+    }
+    const { error } = await service
+      .from("pipeline_files")
+      .delete()
+      .eq("id", a.fileId)
+      .eq("lead_id", a.leadId);
+    if (error) throw new Error(error.message);
+    return { result: { ok: true as const }, after: { id: a.fileId } };
   },
 );

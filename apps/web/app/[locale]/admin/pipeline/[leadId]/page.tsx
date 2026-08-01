@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { requirePermission } from "@/lib/admin/requirePermission";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getLead } from "@/lib/pipeline/queries";
+import { getLead, getLeadFiles, getLeadTasks } from "@/lib/pipeline/queries";
 
 import { LeadRecordClient } from "./_components/LeadRecordClient";
 
@@ -19,15 +19,21 @@ export default async function LeadRecordPage({
   const lead = await getLead(params.leadId);
   if (!lead) notFound();
 
-  const { data: me } = await createAdminClient()
-    .from("user_profiles")
-    .select("full_name")
-    .eq("id", admin.userId)
-    .maybeSingle();
+  const [{ data: me }, tasks, files] = await Promise.all([
+    createAdminClient()
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", admin.userId)
+      .maybeSingle(),
+    getLeadTasks(params.leadId),
+    getLeadFiles(params.leadId),
+  ]);
 
   return (
     <LeadRecordClient
       lead={lead}
+      tasks={tasks}
+      files={files}
       currentStaff={{
         id: admin.userId,
         name: me?.full_name || admin.email,

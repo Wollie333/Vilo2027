@@ -3,28 +3,48 @@
 import {
   ArrowLeft,
   CheckCircle2,
+  Circle,
+  FileText,
   GitBranch,
   Mail,
   MessageSquare,
   PhoneCall,
+  Plus,
   Sparkles,
+  Trash2,
+  Upload,
   UserPlus,
   XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
-import type { LeadRecord } from "@/lib/pipeline/queries";
+import type { LeadFile, LeadRecord, LeadTask } from "@/lib/pipeline/queries";
 
 import {
   addLeadNoteAction,
+  addLeadTaskAction,
   assignLeadOwnerAction,
+  confirmLeadFileAction,
+  createLeadFileUploadAction,
+  deleteLeadFileAction,
+  deleteLeadTaskAction,
   moveLeadStageAction,
+  sendLeadEmailAction,
   setLeadOutcomeAction,
+  toggleLeadTaskAction,
 } from "../../actions";
 
 const TABS = ["Activity", "Details", "Emails", "Tasks", "Files"] as const;
 type Tab = (typeof TABS)[number];
+
+const UTM_FIELDS = [
+  { key: "utm_source", label: "Source" },
+  { key: "utm_medium", label: "Medium" },
+  { key: "utm_campaign", label: "Campaign" },
+  { key: "utm_content", label: "Content" },
+  { key: "utm_term", label: "Term" },
+] as const;
 
 function band(score: number): [string, string] {
   if (score >= 70) return ["Hot", "bg-red-50 text-red-700 border-red-200"];
@@ -47,6 +67,21 @@ function daysSince(iso: string): number {
     0,
     Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000),
   );
+}
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function fmtBytes(n: number | null): string {
+  if (!n || n <= 0) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const KIND_META: Record<
@@ -80,16 +115,30 @@ const KIND_META: Record<
 
 export function LeadRecordClient({
   lead,
+  tasks,
+  files,
   currentStaff,
 }: {
   lead: LeadRecord;
+  tasks: LeadTask[];
+  files: LeadFile[];
   currentStaff: { id: string; name: string };
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("Activity");
   const [note, setNote] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDue, setTaskDue] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+
+  const emailHistory = lead.activities.filter((a) => a.kind === "email_sent");
+  const openTasks = tasks.filter((t) => t.status === "open");
+  const doneTasks = tasks.filter((t) => t.status === "done");
 
   const [bl, bc] = band(lead.score);
   const isMine = lead.ownerStaffId === currentStaff.id;
@@ -114,6 +163,67 @@ export function LeadRecordClient({
       await addLeadNoteAction({ leadId: lead.id, body, kind });
       setNote("");
     });
+  }
+
+  function sendEmail() {
+    const subject = emailSubject.trim();
+    const body = emailBody.trim();
+    if (!subject || !body) return;
+    run(async () => {
+      await sendLeadEmailAction({ leadId: lead.id, subject, body });
+      setEmailSubject("");
+      setEmailBody("");
+    });
+  }
+
+  function addTask() {
+    const title = taskTitle.trim();
+    if (!title) return;
+    run(async () => {
+      await addLeadTaskAction({
+        leadId: lead.id,
+        title,
+        dueAt: taskDue ? new Date(taskDue).toISOString() : null,
+      });
+      setTaskTitle("");
+      setTaskDue("");
+    });
+  }
+
+  // Direct-to-storage upload: mint a signed URL, PUT the bytes, then record the
+  // row. Keeps the file off the server-action body (Vercel's small body cap).
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErr(null);
+    setUploading(true);
+    try {
+      const signed = await createLeadFileUploadAction({
+        leadId: lead.id,
+        name: file.name,
+        size: file.size,
+      });
+      if (!signed.ok) throw new Error(signed.error);
+      const put = await fetch(signed.uploadUrl, {
+        method: "PUT",
+        headers: { "content-type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!put.ok) throw new Error("Upload failed. Please try again.");
+      await confirmLeadFileAction({
+        leadId: lead.id,
+        path: signed.path,
+        name: file.name,
+        size: file.size,
+        mime: file.type || null,
+      });
+      router.refresh();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   return (
@@ -361,28 +471,59 @@ export function LeadRecordClient({
           ) : null}
 
           {tab === "Details" ? (
-            <div className="grid gap-4 pt-5">
+            <div className="grid gap-4 pt-5 lg:grid-cols-2">
               <DetailCard title="Contact">
-                <Row k="Email" v={lead.email ?? "—"} />
-                <Row k="Phone" v={lead.phone ?? "—"} />
-                <Row k="Establishment" v={lead.establishment ?? "—"} />
-                <Row k="Rooms" v={lead.rooms ?? "—"} />
+                <Row
+                  k="Email"
+                  v={lead.email ?? "—"}
+                  href={lead.email ? `mailto:${lead.email}` : undefined}
+                />
+                <Row
+                  k="Phone"
+                  v={lead.phone ?? "—"}
+                  href={
+                    lead.phone
+                      ? `tel:${lead.phone.replace(/[^\d+]/g, "")}`
+                      : undefined
+                  }
+                />
+                {lead.audience === "host" ? (
+                  <Row k="Rooms" v={lead.rooms ?? "—"} />
+                ) : null}
               </DetailCard>
+
+              <DetailCard title="Lead & account">
+                <Row k="Lead ID" v={lead.ref} mono />
+                <Row
+                  k="Account"
+                  v={
+                    lead.isLead
+                      ? "Guest lead (passwordless)"
+                      : "Claimed account"
+                  }
+                />
+                <Row
+                  k="Board"
+                  v={lead.audience === "host" ? "Hosts" : "Affiliates"}
+                />
+                <Row k="Funnel" v={lead.funnelName ?? "—"} />
+                <Row k="Stage" v={lead.stageLabel ?? "—"} />
+                <Row
+                  k="Status"
+                  v={
+                    lead.status === "won"
+                      ? "Won"
+                      : lead.status === "lost"
+                        ? "Lost"
+                        : "Open"
+                  }
+                />
+              </DetailCard>
+
               <DetailCard title="Attribution & consent">
                 <Row k="Source" v={sourceLabel(lead.sourceKind)} />
-                <Row k="Ad source" v={lead.adSource ?? "—"} />
-                <Row
-                  k="UTM"
-                  v={
-                    Object.keys(lead.utm).length
-                      ? Object.entries(lead.utm)
-                          .map(([k, v]) => `${k}=${String(v)}`)
-                          .join(" · ")
-                      : "—"
-                  }
-                  mono
-                />
                 <Row k="Referred by" v={lead.affiliateRef ?? "—"} />
+                <Row k="Ad source" v={lead.adSource ?? "—"} />
                 <Row
                   k="Marketing consent"
                   v={
@@ -390,11 +531,312 @@ export function LeadRecordClient({
                   }
                 />
               </DetailCard>
+
+              <DetailCard title="Campaign / UTM">
+                {UTM_FIELDS.map((f) => (
+                  <Row
+                    key={f.key}
+                    k={f.label}
+                    v={String(lead.utm[f.key] ?? "—") || "—"}
+                    mono
+                  />
+                ))}
+              </DetailCard>
+
+              <DetailCard title="Timeline">
+                <Row k="Created" v={fmt(lead.createdAt)} />
+                <Row
+                  k="Last activity"
+                  v={lead.lastActivityAt ? fmt(lead.lastActivityAt) : "—"}
+                />
+                <Row k="In pipeline" v={`${daysSince(lead.createdAt)} days`} />
+              </DetailCard>
             </div>
           ) : null}
 
-          {tab === "Emails" || tab === "Tasks" || tab === "Files" ? (
-            <ComingSoon what={tab} />
+          {tab === "Emails" ? (
+            <div className="pt-5">
+              {/* Composer */}
+              <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+                <div className="mb-2.5 flex items-center gap-2 text-[12.5px] font-semibold text-brand-secondary">
+                  <Mail className="h-4 w-4 text-brand-primary" />
+                  Send an email {lead.email ? `to ${lead.email}` : ""}
+                </div>
+                {lead.email ? (
+                  <>
+                    <input
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="Subject"
+                      className="mb-2.5 w-full rounded-xl border border-brand-line px-3.5 py-2.5 text-[13.5px] outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10"
+                    />
+                    <textarea
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      rows={5}
+                      placeholder="Write your message…"
+                      className="w-full resize-y rounded-xl border border-brand-line px-3.5 py-2.5 text-[13.5px] outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10"
+                    />
+                    <div className="mt-2.5">
+                      <button
+                        disabled={
+                          pending || !emailSubject.trim() || !emailBody.trim()
+                        }
+                        onClick={sendEmail}
+                        className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-primary px-3.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Send email
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[13px] text-brand-mute">
+                    This lead has no email address on file.
+                  </p>
+                )}
+              </div>
+
+              {/* History */}
+              <div className="mt-5">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-brand-mute">
+                  Sent to this lead
+                </div>
+                {emailHistory.length === 0 ? (
+                  <p className="rounded-card border border-dashed border-brand-line bg-white px-4 py-8 text-center text-[13px] text-brand-mute">
+                    No emails yet — nurture emails and anything you send appear
+                    here.
+                  </p>
+                ) : (
+                  <div className="grid gap-2">
+                    {emailHistory.map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-start gap-3 rounded-card border border-brand-line bg-white p-3.5 shadow-card"
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+                          <Mail className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[13.5px] font-semibold">
+                            {(a.meta.subject as string) ||
+                              a.body ||
+                              "Email sent"}
+                          </div>
+                          <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                            {(a.meta.manual as boolean)
+                              ? (a.staffName ?? "Team")
+                              : "Automated nurture"}{" "}
+                            · {fmt(a.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {tab === "Tasks" ? (
+            <div className="pt-5">
+              {/* Add task */}
+              <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+                <div className="flex flex-col gap-2.5 sm:flex-row">
+                  <input
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addTask();
+                    }}
+                    placeholder="Add a follow-up task…"
+                    className="min-w-0 flex-1 rounded-xl border border-brand-line px-3.5 py-2.5 text-[13.5px] outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10"
+                  />
+                  <input
+                    type="date"
+                    value={taskDue}
+                    onChange={(e) => setTaskDue(e.target.value)}
+                    className="rounded-xl border border-brand-line px-3 py-2.5 text-[13.5px] text-brand-mute outline-none focus:border-brand-primary"
+                  />
+                  <button
+                    disabled={pending || !taskTitle.trim()}
+                    onClick={addTask}
+                    className="inline-flex h-[42px] items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-3.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {tasks.length === 0 ? (
+                <p className="mt-5 rounded-card border border-dashed border-brand-line bg-white px-4 py-10 text-center text-[13px] text-brand-mute">
+                  No tasks yet. Add a follow-up so this lead doesn&apos;t go
+                  cold.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-2">
+                  {[...openTasks, ...doneTasks].map((t) => {
+                    const overdue =
+                      t.status === "open" &&
+                      t.dueAt != null &&
+                      new Date(t.dueAt).getTime() < Date.now();
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-3 rounded-card border border-brand-line bg-white p-3 shadow-card"
+                      >
+                        <button
+                          disabled={pending}
+                          onClick={() =>
+                            run(() =>
+                              toggleLeadTaskAction({
+                                leadId: lead.id,
+                                taskId: t.id,
+                                done: t.status !== "done",
+                              }),
+                            )
+                          }
+                          className="shrink-0"
+                          title={
+                            t.status === "done" ? "Mark not done" : "Mark done"
+                          }
+                        >
+                          {t.status === "done" ? (
+                            <CheckCircle2 className="h-5 w-5 text-brand-primary" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-brand-mute" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className={`text-[13.5px] font-semibold ${
+                              t.status === "done"
+                                ? "text-brand-mute line-through"
+                                : ""
+                            }`}
+                          >
+                            {t.title}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11.5px] text-brand-mute">
+                            {t.dueAt ? (
+                              <span
+                                className={
+                                  overdue ? "font-semibold text-red-600" : ""
+                                }
+                              >
+                                Due {fmtDate(t.dueAt)}
+                                {overdue ? " · overdue" : ""}
+                              </span>
+                            ) : (
+                              <span>No due date</span>
+                            )}
+                            {t.assigneeName ? (
+                              <>
+                                <span className="opacity-40">·</span>
+                                <span>{t.assigneeName}</span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          disabled={pending}
+                          onClick={() =>
+                            run(() =>
+                              deleteLeadTaskAction({
+                                leadId: lead.id,
+                                taskId: t.id,
+                              }),
+                            )
+                          }
+                          className="shrink-0 rounded-lg p-1.5 text-brand-mute transition hover:bg-red-50 hover:text-red-600"
+                          title="Delete task"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {tab === "Files" ? (
+            <div className="pt-5">
+              <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={onFilePicked}
+                  className="hidden"
+                />
+                <button
+                  disabled={uploading || pending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-primary px-3.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                >
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Uploading…" : "Upload a file"}
+                </button>
+                <span className="ml-3 text-[11.5px] text-brand-mute">
+                  Proposals, contracts, IDs — up to 25 MB. Private to the team.
+                </span>
+              </div>
+
+              {files.length === 0 ? (
+                <p className="mt-5 rounded-card border border-dashed border-brand-line bg-white px-4 py-10 text-center text-[13px] text-brand-mute">
+                  No files attached yet.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-2">
+                  {files.map((f) => (
+                    <div
+                      key={f.id}
+                      className="flex items-center gap-3 rounded-card border border-brand-line bg-white p-3 shadow-card"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand-secondary">
+                        <FileText className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13.5px] font-semibold">
+                          {f.name}
+                        </div>
+                        <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                          {fmtBytes(f.sizeBytes)} · {f.uploaderName ?? "Team"} ·{" "}
+                          {fmt(f.createdAt)}
+                        </div>
+                      </div>
+                      {f.downloadUrl ? (
+                        <a
+                          href={f.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 rounded-lg border border-brand-line px-2.5 py-1.5 text-[12px] font-semibold text-brand-secondary transition hover:bg-brand-light"
+                        >
+                          Download
+                        </a>
+                      ) : null}
+                      <button
+                        disabled={pending}
+                        onClick={() =>
+                          run(() =>
+                            deleteLeadFileAction({
+                              leadId: lead.id,
+                              fileId: f.id,
+                            }),
+                          )
+                        }
+                        className="shrink-0 rounded-lg p-1.5 text-brand-mute transition hover:bg-red-50 hover:text-red-600"
+                        title="Delete file"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : null}
         </div>
 
@@ -496,26 +938,34 @@ function DetailCard({
   );
 }
 
-function Row({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
+function Row({
+  k,
+  v,
+  mono = false,
+  href,
+}: {
+  k: string;
+  v: string;
+  mono?: boolean;
+  href?: string;
+}) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <span className="w-32 shrink-0 text-[11.5px] text-brand-mute">{k}</span>
-      <span
-        className={`min-w-0 flex-1 truncate text-[13.5px] ${mono ? "font-mono text-[12px] text-brand-mute" : ""}`}
-      >
-        {v}
-      </span>
-    </div>
-  );
-}
-
-function ComingSoon({ what }: { what: string }) {
-  return (
-    <div className="mt-5 rounded-card border border-dashed border-brand-line bg-white px-6 py-14 text-center">
-      <p className="font-display text-[15px] font-bold">{what} — coming soon</p>
-      <p className="mt-1 text-[13px] text-brand-mute">
-        This tab is on the roadmap; the schema for it isn&apos;t built yet.
-      </p>
+      {href ? (
+        <a
+          href={href}
+          className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-brand-primary hover:underline"
+        >
+          {v}
+        </a>
+      ) : (
+        <span
+          className={`min-w-0 flex-1 truncate text-[13.5px] ${mono ? "font-mono text-[12px] text-brand-mute" : ""}`}
+        >
+          {v}
+        </span>
+      )}
     </div>
   );
 }

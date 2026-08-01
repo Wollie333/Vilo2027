@@ -201,6 +201,107 @@ export async function getFunnels(): Promise<FunnelSummary[]> {
   }));
 }
 
+export type LeadTask = {
+  id: string;
+  title: string;
+  dueAt: string | null;
+  status: "open" | "done";
+  assigneeName: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export async function getLeadTasks(leadId: string): Promise<LeadTask[]> {
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("pipeline_tasks")
+    .select(
+      "id, title, due_at, status, assignee_staff_id, completed_at, created_at",
+    )
+    .eq("lead_id", leadId)
+    .order("status")
+    .order("due_at", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  const tasks = rows ?? [];
+
+  const assigneeIds = [
+    ...new Set(tasks.map((t) => t.assignee_staff_id).filter(Boolean)),
+  ] as string[];
+  const names = new Map<string, string | null>();
+  if (assigneeIds.length) {
+    const { data: people } = await admin
+      .from("user_profiles")
+      .select("id, full_name")
+      .in("id", assigneeIds);
+    for (const p of people ?? []) names.set(p.id, p.full_name);
+  }
+
+  return tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    dueAt: t.due_at,
+    status: t.status as "open" | "done",
+    assigneeName: t.assignee_staff_id
+      ? (names.get(t.assignee_staff_id) ?? null)
+      : null,
+    completedAt: t.completed_at,
+    createdAt: t.created_at,
+  }));
+}
+
+export type LeadFile = {
+  id: string;
+  name: string;
+  sizeBytes: number | null;
+  mime: string | null;
+  uploaderName: string | null;
+  createdAt: string;
+  downloadUrl: string | null;
+};
+
+export async function getLeadFiles(leadId: string): Promise<LeadFile[]> {
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("pipeline_files")
+    .select("id, name, path, size_bytes, mime, uploaded_by, created_at")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false });
+  const files = rows ?? [];
+
+  const uploaderIds = [
+    ...new Set(files.map((f) => f.uploaded_by).filter(Boolean)),
+  ] as string[];
+  const names = new Map<string, string | null>();
+  if (uploaderIds.length) {
+    const { data: people } = await admin
+      .from("user_profiles")
+      .select("id, full_name")
+      .in("id", uploaderIds);
+    for (const p of people ?? []) names.set(p.id, p.full_name);
+  }
+
+  // Short-lived signed download URLs (private bucket).
+  const signed = await Promise.all(
+    files.map((f) =>
+      admin.storage
+        .from("pipeline-files")
+        .createSignedUrl(f.path, 60 * 60)
+        .then((r) => r.data?.signedUrl ?? null)
+        .catch(() => null),
+    ),
+  );
+
+  return files.map((f, i) => ({
+    id: f.id,
+    name: f.name,
+    sizeBytes: f.size_bytes,
+    mime: f.mime,
+    uploaderName: f.uploaded_by ? (names.get(f.uploaded_by) ?? null) : null,
+    createdAt: f.created_at,
+    downloadUrl: signed[i],
+  }));
+}
+
 export type LeadActivity = {
   id: string;
   kind: string;
@@ -231,7 +332,13 @@ export type LeadRecord = {
   utm: Record<string, unknown>;
   adSource: string | null;
   ref: string;
+  /** Wielo account state: a passwordless lead (is_lead) vs a claimed account. */
+  isLead: boolean;
+  /** The funnel page this lead came through (null for direct/competition). */
+  funnelName: string | null;
+  funnelSlug: string | null;
   stageId: string;
+  stageLabel: string | null;
   stages: { id: string; label: string; isWon: boolean; isLost: boolean }[];
   activities: LeadActivity[];
 };
@@ -242,7 +349,7 @@ export async function getLead(leadId: string): Promise<LeadRecord | null> {
   const { data: lead } = await admin
     .from("pipeline_leads")
     .select(
-      "id, audience, stage_id, score, status, source_kind, source_label, affiliate_ref, marketing_consent, owner_staff_id, ad_source, utm, created_at, last_activity_at, user_profiles(full_name, email, phone)",
+      "id, audience, stage_id, score, status, source_kind, source_label, affiliate_ref, marketing_consent, owner_staff_id, ad_source, utm, created_at, last_activity_at, funnel_id, funnels(name, slug), user_profiles(full_name, email, phone, is_lead)",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -290,7 +397,10 @@ export async function getLead(leadId: string): Promise<LeadRecord | null> {
     full_name?: string;
     email?: string;
     phone?: string;
+    is_lead?: boolean;
   } | null;
+  const funnel = lead.funnels as { name?: string; slug?: string } | null;
+  const stageRowsArr = stageRows ?? [];
 
   return {
     id: lead.id,
@@ -314,8 +424,12 @@ export async function getLead(leadId: string): Promise<LeadRecord | null> {
     utm: (lead.utm as Record<string, unknown>) ?? {},
     adSource: lead.ad_source,
     ref: `LD-${lead.id.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+    isLead: Boolean(prof?.is_lead),
+    funnelName: funnel?.name ?? null,
+    funnelSlug: funnel?.slug ?? null,
     stageId: lead.stage_id,
-    stages: (stageRows ?? []).map((s) => ({
+    stageLabel: stageRowsArr.find((s) => s.id === lead.stage_id)?.label ?? null,
+    stages: stageRowsArr.map((s) => ({
       id: s.id,
       label: s.label,
       isWon: s.is_won,
