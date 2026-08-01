@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
-import { slugify, uniqueSlug } from "@/lib/help/slug";
+import { uniqueSlug } from "@/lib/help/slug";
 
 const upsertSchema = z.object({
   id: z.string().uuid(),
@@ -192,8 +192,4 @@ export async function deleteDealCategory(input: {
       error: e instanceof Error ? e.message : "Failed.",
     };
   }
-}
-
-export async function previewDealCategoryKey(label: string): Promise<string> {
-  return slugify(label);
 }

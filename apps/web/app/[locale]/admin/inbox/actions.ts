@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import {
   adminPostPaymentLinkToHostThread,
-  adminPostToHostThread,
   ensureWieloSupportUser,
   resolveHostByEmail,
 } from "@/lib/inbox/platform-thread";
@@ -230,64 +229,4 @@ export async function adminMarkPlatformReadAction(
   }
   revalidatePath("/admin/inbox");
   return { ok: true };
-}
-
-// Send a message to a host's Wielo thread addressed by email — used by the
-// revenue ledger's "Send payment link → to inbox" affordance.
-const sendPlatformMessageByEmail = withAdminAudit<
-  { email: string; body: string; reason?: string },
-  Result
->(
-  {
-    permissionKey: INBOX_PERMISSION,
-    actionName: "inbox.send_message",
-    targetType: "conversation",
-    getTargetId: (args) => args.email,
-    getOwnerUserId: async (args, service) => {
-      const host = await resolveHostByEmail(service, args.email);
-      return host?.userId ?? null;
-    },
-  },
-  async (args, service) => {
-    const body = args.body.trim();
-    if (!body) {
-      return { result: { ok: false, error: "Message is empty." }, after: null };
-    }
-
-    const host = await resolveHostByEmail(service, args.email);
-    if (!host) {
-      return {
-        result: {
-          ok: false,
-          error: "That email has no host account to message.",
-        },
-        after: null,
-      };
-    }
-
-    try {
-      await adminPostToHostThread(service, {
-        host: { id: host.id, userId: host.userId },
-        body,
-      });
-    } catch (e) {
-      return {
-        result: {
-          ok: false,
-          error: e instanceof Error ? e.message : "Could not send the message.",
-        },
-        after: null,
-      };
-    }
-
-    revalidatePath("/admin/inbox");
-    return { result: { ok: true }, after: { hostId: host.id, body } };
-  },
-);
-
-export async function adminSendPlatformMessageByEmailAction(input: {
-  email: string;
-  body: string;
-}): Promise<Result> {
-  return sendPlatformMessageByEmail(input);
 }

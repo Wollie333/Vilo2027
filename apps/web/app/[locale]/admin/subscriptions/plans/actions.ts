@@ -99,40 +99,6 @@ export const upsertPlanAction = withAdminAudit<UpsertPlanInput, { ok: true }>(
   },
 );
 
-const toggleSchema = z.object({
-  key: z.string().trim().min(1).max(60),
-  isActive: z.boolean(),
-  reason: z.string().optional(),
-});
-
-// Show/hide a plan from pickers without deleting it.
-export const togglePlanActiveAction = withAdminAudit<
-  z.infer<typeof toggleSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "subscriptions.edit",
-    actionName: "subscriptions.plan.toggle_active",
-    targetType: "plan",
-    getTargetId: () => PLAN_TARGET,
-  },
-  async (args, service) => {
-    const parsed = toggleSchema.safeParse(args);
-    if (!parsed.success) throw new Error("Invalid input.");
-    const { error } = await service
-      .from("plans")
-      .update({
-        is_active: parsed.data.isActive,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("key", parsed.data.key);
-    if (error) throw new Error(error.message);
-    revalidateTag(PLANS_CACHE_TAG);
-    revalidatePath("/admin/subscriptions/plans");
-    return { result: { ok: true }, after: parsed.data };
-  },
-);
-
 const deleteSchema = z.object({
   key: z.string().trim().min(1).max(60),
   reason: z.string().optional(),

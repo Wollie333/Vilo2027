@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const MARKETING_TARGET = "00000000-0000-0000-0000-0000000ad5e7";
 const BUCKET = "marketing-assets";
@@ -190,45 +189,6 @@ export const toggleMarketingAssetAction = withAdminAudit<
     return { result: { ok: true }, after: parsed.data };
   },
 );
-
-// Browser-direct upload: hand back a signed PUT URL + the eventual public URL
-// (the marketing-assets bucket is public-read). Avoids the Vercel Server Action
-// body cap — the file goes straight to Storage, then upsert records the path.
-const uploadSchema = z.object({
-  fileName: z.string().trim().min(1).max(200),
-  contentType: z.string().trim().max(120).optional(),
-});
-
-export async function createMarketingUploadUrlAction(input: {
-  fileName: string;
-  contentType?: string;
-}): Promise<
-  | { ok: true; path: string; token: string; publicUrl: string }
-  | { ok: false; error: string }
-> {
-  try {
-    await requirePermission("subscriptions.edit");
-    const parsed = uploadSchema.safeParse(input);
-    if (!parsed.success) throw new Error("Invalid file.");
-    const service = createAdminClient();
-    const safe = parsed.data.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-");
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`;
-    const { data, error } = await service.storage
-      .from(BUCKET)
-      .createSignedUploadUrl(path);
-    if (error || !data)
-      throw new Error(error?.message ?? "Upload init failed.");
-    const { data: pub } = service.storage.from(BUCKET).getPublicUrl(path);
-    return {
-      ok: true,
-      path,
-      token: data.token,
-      publicUrl: pub.publicUrl,
-    };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
-  }
-}
 
 // ── Thin client wrappers ──────────────────────────────────────
 type Res = { ok: true; id?: string } | { ok: false; error: string };

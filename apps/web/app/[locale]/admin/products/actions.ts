@@ -221,39 +221,6 @@ export const upsertProductAction = withAdminAudit<
   },
 );
 
-const toggleSchema = z.object({
-  id: z.string().uuid(),
-  isActive: z.boolean(),
-  reason: z.string().optional(),
-});
-
-export const toggleProductActiveAction = withAdminAudit<
-  z.infer<typeof toggleSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "subscriptions.edit",
-    actionName: "products.toggle",
-    targetType: "product",
-    getTargetId: (a) => a.id,
-  },
-  async (args, service) => {
-    const parsed = toggleSchema.safeParse(args);
-    if (!parsed.success) throw new Error("Invalid input.");
-    const { error } = await service
-      .from("products")
-      .update({
-        is_active: parsed.data.isActive,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", parsed.data.id);
-    if (error) throw new Error(error.message);
-    revalidatePath("/admin/products");
-    revalidateTag(PRODUCTS_CACHE_TAG);
-    return { result: { ok: true }, after: parsed.data };
-  },
-);
-
 const deleteSchema = z.object({
   id: z.string().uuid(),
   reason: z.string().optional(),
@@ -387,12 +354,6 @@ async function wrap(fn: () => Promise<unknown>): Promise<Res> {
 
 export async function upsertProduct(input: UpsertProductInput) {
   return wrap(() => upsertProductAction(input));
-}
-export async function toggleProductActive(input: {
-  id: string;
-  isActive: boolean;
-}) {
-  return wrap(() => toggleProductActiveAction(input));
 }
 export async function deleteProduct(input: { id: string }) {
   return wrap(() => deleteProductAction(input));

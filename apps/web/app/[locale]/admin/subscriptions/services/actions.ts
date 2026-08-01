@@ -60,38 +60,6 @@ export const upsertServiceAction = withAdminAudit<
   },
 );
 
-const toggleSchema = z.object({
-  id: z.string().uuid(),
-  isActive: z.boolean(),
-  reason: z.string().optional(),
-});
-
-export const toggleServiceActiveAction = withAdminAudit<
-  z.infer<typeof toggleSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "subscriptions.edit",
-    actionName: "subscriptions.service.toggle",
-    targetType: "platform_service",
-    getTargetId: (a) => a.id,
-  },
-  async (args, service) => {
-    const parsed = toggleSchema.safeParse(args);
-    if (!parsed.success) throw new Error("Invalid input.");
-    const { error } = await service
-      .from("platform_services")
-      .update({
-        is_active: parsed.data.isActive,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", parsed.data.id);
-    if (error) throw new Error(error.message);
-    revalidatePath("/admin/subscriptions/services");
-    return { result: { ok: true }, after: parsed.data };
-  },
-);
-
 const deleteSchema = z.object({
   id: z.string().uuid(),
   reason: z.string().optional(),

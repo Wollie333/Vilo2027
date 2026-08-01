@@ -61,34 +61,6 @@ export const markProcessingAction = withAdminAudit<
   },
 );
 
-export const markCompleteAction = withAdminAudit<
-  z.infer<typeof completeSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "users.suspend",
-    actionName: "data_request.complete",
-    targetType: "user",
-    getTargetId: (a) => a.requestId,
-    getOwnerUserId: dsrOwnerUserId,
-    requireReason: true,
-  },
-  async (args, service) => {
-    const { error, data } = await service
-      .from("data_requests")
-      .update({
-        status: "completed",
-        fulfilled_at: new Date().toISOString(),
-      })
-      .eq("id", args.requestId)
-      .select("id, status, request_type, user_id, fulfilled_at")
-      .single();
-    if (error) throw new Error(error.message);
-    revalidatePath("/admin/data-requests");
-    return { result: { ok: true }, after: data };
-  },
-);
-
 export const rejectRequestAction = withAdminAudit<
   z.infer<typeof rejectSchema>,
   { ok: true }
@@ -126,23 +98,6 @@ export async function markProcessing(input: {
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   try {
     await markProcessingAction(parsed.data);
-    return { ok: true as const };
-  } catch (e) {
-    return {
-      ok: false as const,
-      error: e instanceof Error ? e.message : "Failed.",
-    };
-  }
-}
-
-export async function markComplete(input: {
-  requestId: string;
-  reason: string;
-}) {
-  const parsed = completeSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid input." };
-  try {
-    await markCompleteAction(parsed.data);
     return { ok: true as const };
   } catch (e) {
     return {

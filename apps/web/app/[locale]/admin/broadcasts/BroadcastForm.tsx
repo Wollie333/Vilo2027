@@ -60,6 +60,32 @@ export function BroadcastForm() {
   }, [severity, form]);
 
   function onSubmit(values: BroadcastInput) {
+    // Guard the blast: a broadcast fans out to a whole audience (and a critical
+    // one emails every one of them). Confirm before it goes out — a mis-click
+    // here is only undone by the after-the-fact cancel.
+    const audienceLabel =
+      (
+        {
+          all: "everyone",
+          hosts: "all hosts",
+          guests: "all guests",
+          staff: "all staff",
+          super_admins: "super admins only",
+        } as Record<string, string>
+      )[values.audience] ?? values.audience;
+    const when = values.starts_at ? "when it goes live" : "immediately";
+    const emailWarning =
+      values.severity === "critical"
+        ? `\n\n⚠ CRITICAL — this also emails ${audienceLabel}.`
+        : "";
+    if (
+      !window.confirm(
+        `Send this broadcast to ${audienceLabel} (${when})?${emailWarning}`,
+      )
+    ) {
+      return;
+    }
+
     start(async () => {
       const result = await createBroadcastAction(values);
       if (!result.ok) {
