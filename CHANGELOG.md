@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-08-01 — Trial trigger: subscription-trialing → Trial stage + StartTrial.
+
+DB trigger `trg_subscription_trial` on `subscriptions` (migration `20260801180000`): when a subscription
+enters `status='trialing'` it (a) enqueues a Meta `StartTrial` event for the host — always, even with no
+CRM card — and (b) moves that host's open pipeline card into the **Trial** stage (move-only, never
+create; won't downgrade a won/lost card). Maps `subscriptions.host_id → hosts.user_id =
+pipeline_leads.user_id`. StartTrial carries no value (a trial isn't real money). **Proven** via a
+synthetic rollback-txn test: a trialing subscription enqueued one pending `StartTrial` (user_id + lead_id
+set) and moved the card into `trial` (is_customer). No client change — the worker (Phase 1) drains it to
+Meta once CAPI creds + the Vault url are set.
+
 ## 2026-08-01 — Host pipeline "Trial" stage + is_customer flag.
 
 Added a **Trial** host pipeline stage (migration `20260801170000`) between Nurturing and Won — for a
