@@ -1,11 +1,23 @@
 "use client";
 
-import { Bell, CheckCheck, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowRight,
+  BellOff,
+  Calendar,
+  Check,
+  CheckCheck,
+  CreditCard,
+  FileText,
+  type LucideIcon,
+  Megaphone,
+  MessageSquare,
+  Search,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { SupportAccessRequestModal } from "@/components/notifications/SupportAccessRequestModal";
 import { createClient } from "@/lib/supabase/client";
 
@@ -37,42 +49,115 @@ type Props = {
   initial: ListNotification[];
 };
 
-// Display label per category. Several categories deliberately share a label so
-// they collapse into one filter tab (e.g. security + subscription + calendar →
-// "System"; platform broadcasts + product updates → "Announcements"). Unknown
-// ids fall back to a prettified version so new categories work without a change.
-const CATEGORY_LABELS: Record<string, string> = {
-  bookings: "Bookings",
-  quote_requests: "Quote requests",
-  messages: "Messages",
-  payments_refunds: "Payments",
-  reviews: "Reviews",
-  calendar_sync: "System",
-  subscription: "System",
-  account_security: "System",
-  admin_broadcasts: "Announcements",
-  marketing_tips: "Announcements",
+// Visual buckets — the 11 DB categories collapse into these display groups, each
+// with its own icon + tint (ported from the founder's Notifications design). An
+// unknown category falls back to "system" so a new category still renders.
+type Bucket = {
+  key: string;
+  label: string;
+  Icon: LucideIcon;
+  bg: string;
+  fg: string;
 };
-
-// Stable left-to-right order for the tabs that are present.
-const TAB_ORDER = [
-  "Bookings",
-  "Quote requests",
-  "Messages",
-  "Payments",
-  "Reviews",
-  "System",
-  "Announcements",
+const BUCKETS: Record<string, Bucket> = {
+  bookings: {
+    key: "bookings",
+    label: "Bookings",
+    Icon: Calendar,
+    bg: "#ECFDF5",
+    fg: "#047857",
+  },
+  quote: {
+    key: "quote",
+    label: "Quote requests",
+    Icon: FileText,
+    bg: "#ECFAFF",
+    fg: "#0369A1",
+  },
+  message: {
+    key: "message",
+    label: "Messages",
+    Icon: MessageSquare,
+    bg: "#EEF0FF",
+    fg: "#4F46E5",
+  },
+  payment: {
+    key: "payment",
+    label: "Payments",
+    Icon: CreditCard,
+    bg: "#FFFBEB",
+    fg: "#B45309",
+  },
+  review: {
+    key: "review",
+    label: "Reviews",
+    Icon: Star,
+    bg: "#FEF9EC",
+    fg: "#A16207",
+  },
+  system: {
+    key: "system",
+    label: "System",
+    Icon: ShieldCheck,
+    bg: "#F4F7F5",
+    fg: "#5B7065",
+  },
+  announcement: {
+    key: "announcement",
+    label: "Announcements",
+    Icon: Megaphone,
+    bg: "#F0FDF4",
+    fg: "#064E3B",
+  },
+  looking: {
+    key: "looking",
+    label: "Looking for",
+    Icon: Search,
+    bg: "#FDF2F8",
+    fg: "#9D174D",
+  },
+};
+const BUCKET_ORDER = [
+  "bookings",
+  "quote",
+  "message",
+  "payment",
+  "review",
+  "system",
+  "announcement",
+  "looking",
 ];
+const CATEGORY_TO_BUCKET: Record<string, string> = {
+  bookings: "bookings",
+  quote_requests: "quote",
+  messages: "message",
+  payments_refunds: "payment",
+  reviews: "review",
+  calendar_sync: "system",
+  subscription: "system",
+  account_security: "system",
+  admin_broadcasts: "announcement",
+  marketing_tips: "announcement",
+  looking_for: "looking",
+};
+function bucketOf(categoryId: string): Bucket {
+  return BUCKETS[CATEGORY_TO_BUCKET[categoryId] ?? "system"] ?? BUCKETS.system!;
+}
 
-function prettify(id: string): string {
-  return (
-    CATEGORY_LABELS[id] ??
-    id
-      .split("_")
-      .map((s, i) => (i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s))
-      .join(" ")
-  );
+// Time buckets for the grouped feed.
+const GROUP_ORDER = ["Today", "Yesterday", "Earlier this week", "Older"];
+function timeGroup(iso: string): string {
+  const t = new Date(iso).getTime();
+  const now = new Date();
+  const startToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  if (t >= startToday) return "Today";
+  if (t >= startToday - 86_400_000) return "Yesterday";
+  if (t >= startToday - 7 * 86_400_000) return "Earlier this week";
+  return "Older";
 }
 
 function timeAgo(iso: string): string {
@@ -84,29 +169,18 @@ function timeAgo(iso: string): string {
   if (hr < 24) return `${hr}h ago`;
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
-function severityBorder(
-  s: ListNotification["severity"],
-  unread: boolean,
-): string {
-  // Cards are always white; unread state is conveyed by the dot + a tinted
-  // border (stronger for higher severity), so they read as clean cards.
-  if (s === "critical")
-    return unread ? "border-red-400 bg-white" : "border-red-200 bg-white";
-  if (s === "high")
-    return unread ? "border-amber-400 bg-white" : "border-amber-200 bg-white";
-  if (unread) return "border-brand-primary bg-white";
-  return "border-brand-line bg-white";
+  return new Date(iso).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 export function NotificationsList({ initial }: Props) {
   const supabase = React.useMemo(() => createClient(), []);
   const router = useRouter();
   const [items, setItems] = React.useState<ListNotification[]>(initial);
-  const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = React.useState<string>("all");
+  const [activeCat, setActiveCat] = React.useState<string>("all");
+  const [mode, setMode] = React.useState<"all" | "unread">("all");
   const [accessReq, setAccessReq] = React.useState<{
     grantId: string;
     title: string;
@@ -148,32 +222,36 @@ export function NotificationsList({ initial }: Props) {
 
   const unreadCount = items.filter((i) => !i.read_at).length;
 
-  // The full canonical tab set always renders (even with zero notifications) so
-  // the categories read as a stable structure. Several categories collapse into
-  // one label (e.g. security + subscription + calendar → "System"). Any label
-  // present in the data but not in TAB_ORDER is appended after the canonical set.
-  const tabs = React.useMemo(() => {
-    const unreadByLabel = new Map<string, number>();
+  // Per-bucket totals for the filter chips (only buckets with items show).
+  const bucketCounts = React.useMemo(() => {
+    const c = new Map<string, number>();
     for (const it of items) {
-      const label = prettify(it.category_id);
-      unreadByLabel.set(
-        label,
-        (unreadByLabel.get(label) ?? 0) + (it.read_at ? 0 : 1),
-      );
+      const k = bucketOf(it.category_id).key;
+      c.set(k, (c.get(k) ?? 0) + 1);
     }
-    const extra = Array.from(unreadByLabel.keys()).filter(
-      (l) => !TAB_ORDER.includes(l),
-    );
-    return [...TAB_ORDER, ...extra].map((label) => ({
-      label,
-      unread: unreadByLabel.get(label) ?? 0,
-    }));
+    return c;
   }, [items]);
 
-  const visible =
-    activeTab === "all"
-      ? items
-      : items.filter((i) => prettify(i.category_id) === activeTab);
+  const visible = items.filter(
+    (i) =>
+      (activeCat === "all" || bucketOf(i.category_id).key === activeCat) &&
+      (mode === "all" || !i.read_at),
+  );
+
+  // Group the visible items by time bucket, preserving GROUP_ORDER.
+  const grouped = React.useMemo(() => {
+    const byGroup = new Map<string, ListNotification[]>();
+    for (const n of visible) {
+      const g = timeGroup(n.created_at);
+      const arr = byGroup.get(g) ?? [];
+      arr.push(n);
+      byGroup.set(g, arr);
+    }
+    return GROUP_ORDER.filter((g) => byGroup.has(g)).map((g) => ({
+      name: g,
+      items: byGroup.get(g)!,
+    }));
+  }, [visible]);
 
   async function markRead(id: string) {
     setItems((prev) =>
@@ -200,16 +278,7 @@ export function NotificationsList({ initial }: Props) {
       .is("read_at", null);
   }
 
-  function toggleExpand(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function onLinkClick(n: ListNotification) {
+  function onRowClick(n: ListNotification) {
     if (!n.read_at) void markRead(n.id);
     // Support-access requests open a decide-popup (Accept / Decline / Report)
     // instead of navigating to the settings page.
@@ -222,157 +291,110 @@ export function NotificationsList({ initial }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center justify-between gap-3">
-        <div className="text-sm text-brand-mute">
+    <div className="space-y-5">
+      {/* Sub-header: counts + read filter + mark-all */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="num text-[12.5px] text-brand-mute">
           {items.length} total
           {unreadCount > 0 ? ` · ${unreadCount} unread` : null}
         </div>
-        {unreadCount > 0 ? (
-          <Button variant="outline" size="sm" onClick={() => markAllRead()}>
-            <CheckCheck className="mr-1.5 h-3.5 w-3.5" />
-            Mark all read
-          </Button>
-        ) : null}
-      </header>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="inline-flex rounded-full border border-brand-line bg-brand-light p-0.5 text-[12px] font-semibold">
+            <button
+              type="button"
+              onClick={() => setMode("all")}
+              className={`rounded-full px-3 py-1.5 transition ${
+                mode === "all"
+                  ? "bg-white text-brand-secondary shadow-sm"
+                  : "text-brand-mute hover:text-brand-ink"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("unread")}
+              className={`rounded-full px-3 py-1.5 transition ${
+                mode === "unread"
+                  ? "bg-white text-brand-secondary shadow-sm"
+                  : "text-brand-mute hover:text-brand-ink"
+              }`}
+            >
+              Unread{unreadCount > 0 ? ` (${unreadCount})` : ""}
+            </button>
+          </div>
+          {unreadCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => markAllRead()}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+            >
+              <CheckCheck className="h-4 w-4 text-brand-primary" />
+              Mark all read
+            </button>
+          ) : null}
+        </div>
+      </div>
 
-      <nav className="flex flex-wrap gap-1.5">
-        <TabChip
-          active={activeTab === "all"}
-          onClick={() => setActiveTab("all")}
+      {/* Category filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <CatChip
+          active={activeCat === "all"}
+          onClick={() => setActiveCat("all")}
           label="All"
-          count={items.length || undefined}
+          count={items.length}
         />
-        {tabs.map((t) => (
-          <TabChip
-            key={t.label}
-            active={activeTab === t.label}
-            onClick={() => setActiveTab(t.label)}
-            label={t.label}
-            count={t.unread > 0 ? t.unread : undefined}
-          />
-        ))}
-      </nav>
+        {BUCKET_ORDER.map((k) => {
+          const n = bucketCounts.get(k) ?? 0;
+          if (n === 0) return null;
+          return (
+            <CatChip
+              key={k}
+              active={activeCat === k}
+              onClick={() => setActiveCat(k)}
+              label={BUCKETS[k]!.label}
+              count={n}
+            />
+          );
+        })}
+      </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-card border border-brand-line bg-white px-6 py-12 text-center">
-          <Bell className="mx-auto mb-2 h-6 w-6 text-brand-mute" />
-          <div className="text-sm font-medium text-brand-ink">
+        <div className="rounded-card border border-brand-line bg-white px-8 py-16 text-center shadow-card">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-light">
+            <BellOff className="h-5 w-5 text-brand-mute" />
+          </div>
+          <div className="mt-4 font-display text-[15px] font-bold text-brand-ink">
             You&apos;re all caught up
           </div>
-          <div className="mt-1 text-xs text-brand-mute">
-            {activeTab === "all"
-              ? "New activity will show up here as it happens."
-              : `Nothing in ${activeTab} yet.`}
+          <div className="mt-1 text-[13px] text-brand-mute">
+            {mode === "unread"
+              ? "No unread notifications."
+              : activeCat === "all"
+                ? "New activity will show up here as it happens."
+                : "Nothing here matches this filter."}
           </div>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {visible.map((n) => {
-            const unread = !n.read_at;
-            const isExpanded = expanded.has(n.id);
-            const isBroadcast = n.category_id === "admin_broadcasts";
-            const truncated = (n.body?.length ?? 0) > 140;
-            return (
-              <li
-                key={n.id}
-                className={`rounded-card border p-4 shadow-card transition-colors ${severityBorder(
-                  n.severity,
-                  unread,
-                )}`}
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                      unread
-                        ? n.severity === "critical"
-                          ? "bg-red-600"
-                          : n.severity === "high"
-                            ? "bg-amber-500"
-                            : "bg-brand-primary"
-                        : "bg-transparent"
-                    }`}
+        <div className="space-y-6">
+          {grouped.map((g) => (
+            <section key={g.name}>
+              <div className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                {g.name}
+              </div>
+              <div className="divide-y divide-brand-line overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                {g.items.map((n) => (
+                  <NotificationRow
+                    key={n.id}
+                    n={n}
+                    onClick={() => onRowClick(n)}
+                    onMarkRead={() => markRead(n.id)}
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {n.link ? (
-                        <button
-                          type="button"
-                          onClick={() => onLinkClick(n)}
-                          className="text-left font-medium text-brand-ink hover:text-brand-primary hover:underline"
-                        >
-                          {n.title}
-                        </button>
-                      ) : (
-                        <div className="font-medium text-brand-ink">
-                          {n.title}
-                        </div>
-                      )}
-                      <Badge className="border-0 bg-brand-light text-[10px] uppercase tracking-wide text-brand-mute">
-                        {prettify(n.category_id)}
-                      </Badge>
-                      {isBroadcast ? (
-                        <span className="inline-flex items-center rounded-full bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-primary">
-                          📢 Announcement
-                        </span>
-                      ) : null}
-                    </div>
-                    {n.body ? (
-                      <p
-                        className={`mt-1 whitespace-pre-wrap text-sm text-brand-mute ${
-                          !isExpanded && truncated ? "line-clamp-2" : ""
-                        }`}
-                      >
-                        {n.body}
-                      </p>
-                    ) : null}
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
-                      <span className="text-brand-mute">
-                        {timeAgo(n.created_at)}
-                      </span>
-                      {n.link ? (
-                        <button
-                          type="button"
-                          onClick={() => onLinkClick(n)}
-                          className="font-semibold text-brand-primary hover:underline"
-                        >
-                          View →
-                        </button>
-                      ) : null}
-                      {truncated ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(n.id)}
-                          className="inline-flex items-center gap-1 text-brand-mute hover:text-brand-ink"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="h-3 w-3" /> Collapse
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-3 w-3" /> Expand
-                            </>
-                          )}
-                        </button>
-                      ) : null}
-                      {unread ? (
-                        <button
-                          type="button"
-                          onClick={() => markRead(n.id)}
-                          className="text-brand-mute hover:text-brand-ink"
-                        >
-                          Mark read
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       )}
 
       <SupportAccessRequestModal
@@ -388,7 +410,84 @@ export function NotificationsList({ initial }: Props) {
   );
 }
 
-function TabChip({
+function NotificationRow({
+  n,
+  onClick,
+  onMarkRead,
+}: {
+  n: ListNotification;
+  onClick: () => void;
+  onMarkRead: () => void;
+}) {
+  const unread = !n.read_at;
+  const bucket = bucketOf(n.category_id);
+  const Icon = bucket.Icon;
+  const actionable = Boolean(n.link) || n.kind === "support_access_request";
+
+  return (
+    <div
+      onClick={onClick}
+      className={`group relative flex items-start gap-3.5 px-4 py-3.5 transition ${
+        actionable ? "cursor-pointer" : ""
+      } ${unread ? "bg-[#F7FCF9] hover:bg-[#F0FAF4]" : "hover:bg-[#FAFCFB]"}`}
+    >
+      {unread ? (
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-[3px] rounded-r-[3px] bg-brand-primary"
+        />
+      ) : null}
+      <span
+        className="mt-0.5 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px]"
+        style={{ background: bucket.bg, color: bucket.fg }}
+      >
+        <Icon className="h-[17px] w-[17px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={`truncate text-[14px] ${
+              unread ? "font-bold text-brand-ink" : "font-medium text-[#3A5A4E]"
+            }`}
+          >
+            {n.title}
+          </span>
+          <span className="num ml-auto shrink-0 text-[12px] text-brand-mute">
+            {timeAgo(n.created_at)}
+          </span>
+        </div>
+        {n.body ? (
+          <div className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-[13px] leading-snug text-brand-mute">
+            {n.body}
+          </div>
+        ) : null}
+        {actionable ? (
+          <div className="mt-1.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand-primary">
+            {n.kind === "support_access_request" ? "Review request" : "View"}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </div>
+        ) : null}
+      </div>
+      {unread ? (
+        <div className="flex shrink-0 items-center opacity-0 transition group-hover:opacity-100">
+          <button
+            type="button"
+            title="Mark as read"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkRead();
+            }}
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-transparent text-brand-mute transition hover:border-brand-line hover:bg-white hover:text-brand-secondary"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CatChip({
   active,
   onClick,
   label,
@@ -397,30 +496,29 @@ function TabChip({
   active: boolean;
   onClick: () => void;
   label: string;
-  count?: number;
+  count: number;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-2 rounded-full border px-3.5 text-[12.5px] font-semibold transition ${
         active
-          ? "bg-brand-primary text-white"
-          : "bg-brand-light text-brand-mute hover:bg-brand-accent hover:text-brand-ink"
+          ? "border-brand-secondary bg-brand-secondary text-white"
+          : "border-brand-line bg-white text-brand-mute hover:bg-brand-light hover:text-brand-ink"
       }`}
+      style={{ height: 32 }}
     >
-      <span>{label}</span>
-      {count !== undefined ? (
-        <span
-          className={`rounded-full px-1 text-[10px] font-bold ${
-            active
-              ? "bg-white text-brand-primary"
-              : "bg-brand-primary text-white"
-          }`}
-        >
-          {count}
-        </span>
-      ) : null}
+      {label}
+      <span
+        className={`num rounded-full px-1.5 py-px text-[11px] font-bold ${
+          active
+            ? "bg-white/20 text-brand-accent"
+            : "bg-brand-light text-brand-mute"
+        }`}
+      >
+        {count}
+      </span>
     </button>
   );
 }
