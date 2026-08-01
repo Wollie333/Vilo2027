@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-08-01 — Help centre: restored the article library + Wielo rebrand.
+
+Investigated why the public help showed zero articles: `help_articles` was empty (0 rows) on the live
+DB while the same seed migrations' categories/videos/FAQs survived. Root cause — the ~61 seeded
+articles were **hard-deleted post-migration** (a direct DELETE/TRUNCATE; no migration or DB function
+deletes articles), and because the 58 idempotent seed migrations are marked applied, `db push` never
+restored them. Re-ran those idempotent `ON CONFLICT` inserts against the live DB to restore **61
+published articles** (proven safe first in a rolled-back batch). Zeroed the base seed's fabricated
+`helpful_count`s so the restored library starts with honest engagement.
+
+New migration `20260801220000_help_rebrand_vilo_to_wielo.sql` corrects the seed content's old-brand
+voice: a case-sensitive `Vilo`→`Wielo` replace across help articles/FAQs/videos/categories (idempotent;
+makes a from-scratch rebuild brand-correct too). Verified live: `/help` now shows 8 populated topics
+and 61 Wielo-branded articles; 0 "Vilo" mentions remain.
+
 ## 2026-08-01 — Help centre: public honesty pass + real article bookmarks.
 
 Two founder asks: (1) make the public `/help` page match the real help system, (2) build real
