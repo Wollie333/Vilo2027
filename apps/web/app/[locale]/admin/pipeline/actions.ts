@@ -23,10 +23,18 @@ export const moveLeadStageAction = withAdminAudit<
     const ctx = await requireAdmin();
     const { data: stage } = await service
       .from("pipeline_stages")
-      .select("label, is_won, is_lost")
+      .select("label, is_won, is_lost, is_customer")
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
+    // Customer stages (Trial + Won) are SYSTEM-driven: a card lands there only
+    // when the host actually starts a trial or pays (DB triggers). Block manual
+    // drags in so the board can't claim a customer who isn't one.
+    if (stage.is_customer) {
+      throw new Error(
+        "Trial and Won are set automatically when a lead starts a trial or pays — you can't move a card here manually.",
+      );
+    }
     const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";
     const { data: after, error } = await service
       .from("pipeline_leads")
@@ -273,10 +281,18 @@ export const deleteLeadAction = withAdminAudit<
     // Resolve the lead + its guest identity before the card is gone.
     const { data: lead } = await service
       .from("pipeline_leads")
-      .select("id, user_id")
+      .select("id, user_id, status, pipeline_stages(is_customer)")
       .eq("id", a.leadId)
       .maybeSingle();
     if (!lead) throw new Error("Lead not found.");
+    // Customer-lock: a card in a customer stage (Trial or Won) is a real
+    // customer and can't be deleted.
+    const leadStage = lead.pipeline_stages as { is_customer?: boolean } | null;
+    if (leadStage?.is_customer || lead.status === "won") {
+      throw new Error(
+        "This lead is a customer (Trial or Won) and can't be deleted.",
+      );
+    }
 
     // Storage objects aren't cascaded by the DB — remove them first.
     const { data: fileRows } = await service

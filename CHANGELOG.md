@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-08-01 — Host settle trigger (Subscribe/Purchase + Won) + Won-gate + customer-lock.
+
+DB trigger `trg_platform_ledger_settled` on `platform_ledger` (migration `20260801190000`): when a
+Wielo-revenue charge settles (`status='completed'`, `type='charge'`, `amount>0`) it moves the payer's
+host pipeline card to **Won** (move-only, once) and enqueues a Meta event with the **real ZAR amount** —
+`membership → Subscribe` (fired once on the first membership charge; monthly renewals aren't new
+conversions), `product → Purchase` (every one-off buy), `wielo_credits → skipped`. Maps
+`platform_ledger.user_id = pipeline_leads.user_id`; value = `platform_ledger.amount`. **Proven** via a
+rollback-txn test: a R599 `founder` charge → one Subscribe (R599, ZAR, lead_id set) + card → Won; the
+renewal fired no second Subscribe; a credit top-up fired nothing. Plus two guards in the pipeline
+actions: **Won-gate** (`moveLeadStageAction` rejects manual drags into a customer stage — Trial/Won are
+system-only) and **customer-lock** (`deleteLeadAction` refuses to delete a Trial/Won card). Build green.
+
 ## 2026-08-01 — Trial trigger: subscription-trialing → Trial stage + StartTrial.
 
 DB trigger `trg_subscription_trial` on `subscriptions` (migration `20260801180000`): when a subscription
