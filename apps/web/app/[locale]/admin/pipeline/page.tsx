@@ -1,4 +1,4 @@
-import { Workflow } from "lucide-react";
+import { BarChart3, Workflow } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/requirePermission";
@@ -59,13 +59,22 @@ export default async function PipelinePage({
               it.
             </p>
           </div>
-          <a
-            href="/admin/pipeline/funnels"
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-brand-line bg-white px-3 text-[13px] font-semibold text-brand-secondary transition hover:bg-brand-light"
-          >
-            <Workflow className="h-4 w-4" />
-            Landing pages
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={`/admin/pipeline/metrics?audience=${audience}`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-line bg-white px-3 text-[13px] font-semibold text-brand-secondary transition hover:bg-brand-light"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Metrics
+            </a>
+            <a
+              href="/admin/pipeline/funnels"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-line bg-white px-3 text-[13px] font-semibold text-brand-secondary transition hover:bg-brand-light"
+            >
+              <Workflow className="h-4 w-4" />
+              Landing pages
+            </a>
+          </div>
         </div>
 
         {/* KPI tiles */}

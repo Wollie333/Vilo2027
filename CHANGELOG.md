@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-08-01 — Pipeline metrics page (lead volume, conversion, stage duration).
+
+New **Metrics** button in the pipeline board header (left of "Landing pages") opens
+`/admin/pipeline/metrics` — a per-audience (host / affiliate) sales-metrics page. Shows lead volume
+(total / open / won / lost, new this week + month), conversion (won ÷ all leads) and win rate
+(won ÷ closed), a **stage funnel** (how many leads ever reached each stage) with **average time spent
+in each stage**, average lead score, average age of open leads, average time-to-win, a stale-lead count
+(open, no activity 14d+), and breakdowns by source and by owner. Stage durations are reconstructed from
+the append-only `pipeline_activities` timeline (initial entry at `created_at` + each later stage-change's
+`meta.stage_id`), so no schema change. New `lib/pipeline/metrics.ts` (`getPipelineMetrics`) + gated on
+`pipeline.view`. Live-verified on real data (affiliate: 2 leads, moved one New→Contacted→Joined and the
+stage durations + reached funnel updated correctly) and on the empty host board (all zeros, no crash).
+
 ## 2026-08-01 — Funnel-nurture emails in Comms · Comms card redesign · required funnel fields · notifications restyle.
 
 **Funnel-nurture emails now ship in Communications.** Finished + shipped the funnel drip
