@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-08-01 — Help-centre accuracy pass: content vs real code.
+
+Audited all 61 help articles + 6 FAQs + 4 videos (pulled live from `help_articles`) against the actual
+code. Migration `20260801230000_help_content_accuracy_pass.sql` fixes the drift, verified in the live DB
+AND on the production render (`/help/*` is `force-dynamic`, so DB edits are immediate).
+**Deleted (soft)** 3 phantom-feature articles — `payout-schedule`, `payment-held-for-review`,
+`smart-pricing-rules` — all describing a payout/escrow model and a "smart pricing" engine that were
+never built (Wielo is 0% commission; guest money settles direct to the host's own gateway).
+**Rewrote** the "3% host fee" and "24h-after-check-in payout" FAQs (both false — 0% / direct settle),
+the co-host/cleaner FAQ (real roles Co-host/Cleaner/Assistant, real seats Basic 1/Pro 3/Business 10,
+Staff hidden for MVP), `property-channels` (2 → 3 channels: adds Booking management), and
+`view-and-accept-your-quotes` (accepting now drops the guest into online pay, not "arranged with the
+host"). **Corrected** stale labels/numbers across ~13 items: Banking&business → Payment processors /
+Businesses, Listings → Properties, Messages → Inbox, quote validity 14 → 3 days, refund timing 5–10 →
+3–10 working days + host-sent (not auto), iCal poll "15 min" → "every few hours" + multi-provider +
+two-way, affiliate cookie 30 → 90 days, credit-note format `CN-NNNN`, custom cancellation policy /
+two-way sync **not** Pro-gated (per pre-MVP open-on-free reality), removed a non-existent "Send a
+reminder" button and a phantom "last-minute discount" video line. Migration is self-verifying — a final
+`DO` block RAISEs (aborting) if any `replace()` silently no-ops. **Website articles NOT touched**
+(sub-branch); their duplicates documented in `docs/help/WEBSITE_HELP_ARTICLE_ISSUES.md`.
+
 ## 2026-08-01 — Help admin portal (3/3): videos/status reorder, convert-to-article.
 
 Finishes the CMS enrichment. **Status** components now drag-reorder (audited `reorderHelpStatus`; numeric
