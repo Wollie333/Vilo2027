@@ -237,11 +237,22 @@ export async function markPaymentReceivedAction(
     captured_at: new Date().toISOString(),
   };
   if (ref) patch.provider_reference = ref;
-  const { error: pErr } = await admin
+  // Optimistic-concurrency guard on the flip (mirrors the card path). The
+  // in-memory `payment.status !== "pending"` check above does NOT protect
+  // against a concurrent second "Mark received" (double-click / two tabs): both
+  // read `pending`, both flip, both post the SAME overpayment delta → the guest's
+  // store credit is credited twice. Scope the flip to status='pending' and bail
+  // (idempotent success) if it matched 0 rows — the winning call already
+  // recomputed the ledger + confirmed + marked paid, so the loser must NOT
+  // re-post overpayment.
+  const { data: flipped, error: pErr } = await admin
     .from("payments")
     .update(patch)
-    .eq("id", paymentId);
+    .eq("id", paymentId)
+    .eq("status", "pending")
+    .select("id");
   if (pErr) return { ok: false, error: "Could not update the payment." };
+  if (!flipped || flipped.length === 0) return { ok: true };
 
   const state = await recomputeBookingPaymentState(admin, booking.id);
   const paidAfter = state?.paid ?? paidBefore + Number(payment.amount);

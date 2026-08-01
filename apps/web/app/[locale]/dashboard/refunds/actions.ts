@@ -170,7 +170,12 @@ export async function approveRefundAction(input: {
 
   // Two-step UPDATE because the status trigger logs each transition.
   // First: approved. Then: completed (since no real provider call yet).
-  const { error: approveErr } = await supabase
+  // Optimistic guard on the FROM status: without it a concurrent second approval
+  // could drive completed→approved→completed and fire the refund-amount trigger
+  // twice (the DB cap `payments_refunded_le_amount` then aborts the second, but
+  // leaves the row stuck at 'approved'). Scoping to the allowed source states and
+  // bailing on 0 rows makes the approve idempotent.
+  const { data: approved, error: approveErr } = await supabase
     .from("refund_requests")
     .update({
       status: "approved",
@@ -180,13 +185,21 @@ export async function approveRefundAction(input: {
       actioned_by: host.userId,
       actioned_at: new Date().toISOString(),
     })
-    .eq("id", refund.id);
+    .eq("id", refund.id)
+    .in("status", ["pending", "failed"])
+    .select("id");
 
   if (approveErr) return { ok: false, error: approveErr.message };
+  if (!approved || approved.length === 0) {
+    return { ok: false, error: "This refund has already been actioned." };
+  }
 
   // Completion — the host has confirmed the money is sent, so flag it complete
-  // and let the existing v11 trigger update payments.refunded_amount and mint
-  // the credit note.
+  // and let the existing v11 trigger roll payments.refunded_amount + the booking
+  // balance/payment_status. NOTE: a standalone refund does NOT mint a credit note
+  // (that trigger was dropped in 20260607000004 — a refund ≠ a credit note; only
+  // a CANCELLATION mints one). Don't "fix" this by re-adding a CN — it would
+  // double-represent the money.
   const { error: completeErr } = await supabase
     .from("refund_requests")
     .update(completionPatch(parsed.data.method, parsed.data.reference))
@@ -201,6 +214,7 @@ export async function approveRefundAction(input: {
       refund.booking_id,
       parsed.data.amount,
       parsed.data.method,
+      refund.id,
     );
   }
 
@@ -209,12 +223,14 @@ export async function approveRefundAction(input: {
   return { ok: true };
 }
 
-// Post a rich "refund issued" system card into the guest's booking thread, with
-// the credit note available to download. Best-effort — mirrors the payment card.
+// Post a rich "refund issued" system card into the guest's booking thread, then
+// notify the guest. Best-effort — mirrors the payment card. (No credit note is
+// attached: a standalone refund is not a credit note — see approveRefundAction.)
 async function postBookingRefundCard(
   bookingId: string,
   amount: number,
   method?: RefundMethod,
+  refundId?: string | null,
 ): Promise<void> {
   const admin = createAdminClient();
   const { data: bk } = await admin
@@ -233,15 +249,31 @@ async function postBookingRefundCard(
     readByHost: true,
     readByGuest: false,
   });
-  // Email + push + in-app to the guest — the "refund completed" notification the
-  // spec requires (was previously only an inbox card). Best-effort.
+  // Notify the guest (email + push + in-app), RAIL-SPECIFIC so the copy matches
+  // how the money actually moves — one notification per refund, never two:
+  //   • EFT         → eft_refund_sent_guest   ("EFT refund sent")
+  //   • card/PayPal → refund_approved_guest   ("on its way" — card/PayPal refunds
+  //                    take 3–10 days to land, so "funds returned" would be wrong)
+  //   • manual/other→ refund_completed_guest  ("funds returned")
+  // Previously every rail fired refund_completed_guest and the other two events
+  // were plumbed (templates/catalog/admin toggles) but NEVER dispatched. Best-effort.
+  const kind:
+    | "eft_refund_sent_guest"
+    | "refund_approved_guest"
+    | "refund_completed_guest" =
+    method === "eft"
+      ? "eft_refund_sent_guest"
+      : method === "paystack" || method === "paypal"
+        ? "refund_approved_guest"
+        : "refund_completed_guest";
   try {
     await dispatchEvent({
-      kind: "refund_completed_guest",
+      kind,
       recipientUserId: bk.guest_id,
       guestId: bk.guest_id,
       refs: {
         booking_id: bookingId,
+        refund_id: refundId ?? undefined,
         refund_amount: formatMoney(amount, bk.currency),
       },
     });
@@ -455,8 +487,13 @@ export async function hostInitiatedRefundAction(input: {
     metadata: { method: parsed.data.method },
   });
 
-  // Rich "refund issued" card into the guest's thread (with the credit note).
-  await postBookingRefundCard(booking.id, parsed.data.amount);
+  // Rich "refund issued" card + rail-specific guest notification.
+  await postBookingRefundCard(
+    booking.id,
+    parsed.data.amount,
+    parsed.data.method,
+    inserted.id,
+  );
 
   revalidatePath("/dashboard/refunds");
   revalidatePath(`/dashboard/bookings/${booking.id}`);

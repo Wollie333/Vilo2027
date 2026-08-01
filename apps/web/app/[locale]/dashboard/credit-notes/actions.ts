@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { gkeyFor } from "@/lib/guests/gkey";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, round2 } from "@/lib/format";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -186,7 +186,9 @@ export async function cancelCreditNoteAction(
 
   const { data: cn } = await supabase
     .from("credit_notes")
-    .select("id, status, host:hosts!inner ( user_id )")
+    .select(
+      "id, status, origin, booking_id, host_id, guest_id, total_amount, currency, credit_note_number, guest_snapshot, host:hosts!inner ( user_id )",
+    )
     .eq("id", creditNoteId)
     .maybeSingle();
   if (!cn) return { ok: false, error: "Credit note not found." };
@@ -197,11 +199,44 @@ export async function cancelCreditNoteAction(
     return { ok: false, error: "Already cancelled." };
   }
 
-  const { error } = await supabase
+  // Guard against a concurrent double-cancel: only the call that actually flips
+  // it to cancelled (matched 1 row) proceeds to claw back the store credit, so a
+  // manual note's credit can never be reversed twice.
+  const { data: flipped, error } = await supabase
     .from("credit_notes")
     .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-    .eq("id", creditNoteId);
+    .eq("id", creditNoteId)
+    .neq("status", "cancelled")
+    .select("id");
   if (error) return { ok: false, error: "Could not cancel the credit note." };
+  if (!flipped || flipped.length === 0) {
+    return { ok: false, error: "Already cancelled." };
+  }
+
+  // A MANUAL credit note granted the guest spendable store credit when it was
+  // issued (see createCreditNoteAction). Cancelling it must claw that back —
+  // otherwise the guest keeps spendable credit for a note that no longer exists.
+  // Cancellation-/forfeit-origin notes never posted store credit, so they need no
+  // reversal (mirrors the void.ts gate).
+  if (cn.origin === "manual") {
+    const snap = (cn.guest_snapshot ?? {}) as { email?: string | null };
+    const gkey = gkeyFor(cn.guest_id, snap.email ?? null);
+    if (gkey) {
+      await createAdminClient()
+        .from("guest_credit_ledger")
+        .insert({
+          host_id: cn.host_id,
+          gkey,
+          guest_id: cn.guest_id,
+          guest_email: snap.email ?? null,
+          amount: -round2(Number(cn.total_amount)),
+          currency: cn.currency,
+          reason: `Credit note ${cn.credit_note_number ?? ""} cancelled`.trim(),
+          booking_id: cn.booking_id,
+          created_by: user.id,
+        });
+    }
+  }
 
   revalidatePath("/dashboard/credit-notes");
   revalidatePath(`/dashboard/credit-notes/${creditNoteId}`);

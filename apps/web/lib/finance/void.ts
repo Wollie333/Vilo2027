@@ -76,7 +76,7 @@ export async function voidTransaction(
     const { data: cn } = await admin
       .from("credit_notes")
       .select(
-        "id, booking_id, host_id, guest_id, total_amount, currency, issued_at, voided_at, guest_snapshot",
+        "id, booking_id, host_id, guest_id, total_amount, currency, issued_at, voided_at, guest_snapshot, origin",
       )
       .eq("id", id)
       .eq("host_id", hostId)
@@ -86,9 +86,14 @@ export async function voidTransaction(
     const pc = await assertPeriodOpen(admin, hostId, cn.issued_at as string);
     if (!pc.ok) return pc;
     await admin.from("credit_notes").update(stamp).eq("id", id);
+    // ONLY a manual (goodwill) credit note ever posted +store credit when it was
+    // issued (createCreditNoteAction). Cancellation- and forfeit-origin CNs are
+    // pure documents that never touched guest_credit_ledger, so reversing them
+    // here would post a spurious NEGATIVE row and drive the guest's store credit
+    // negative from nothing. Reverse the credit only for the origin that granted it.
     const snap = (cn.guest_snapshot ?? {}) as { email?: string };
     const gkey = gkeyFor(cn.guest_id, snap.email ?? null);
-    if (gkey) {
+    if (gkey && cn.origin === "manual") {
       await admin.from("guest_credit_ledger").insert({
         host_id: hostId,
         gkey,
@@ -113,12 +118,12 @@ export async function voidTransaction(
     return { ok: true, bookingId: cn.booking_id };
   }
 
-  // ── Refund ── the refund-total trigger reverses on this update.
+  // ── Refund ── roll back the refund's effect on the payment ledger.
   if (prefix === "rf") {
     const { data: rf } = await admin
       .from("refund_requests")
       .select(
-        "id, booking_id, host_id, requested_amount, approved_amount, currency, created_at, voided_at",
+        "id, booking_id, host_id, status, payment_id, requested_amount, approved_amount, currency, created_at, voided_at",
       )
       .eq("id", id)
       .eq("host_id", hostId)
@@ -128,7 +133,53 @@ export async function voidTransaction(
     const pc = await assertPeriodOpen(admin, hostId, rf.created_at as string);
     if (!pc.ok) return pc;
     await admin.from("refund_requests").update(stamp).eq("id", id);
-    if (rf.booking_id) await recomputeBookingPaymentState(admin, rf.booking_id);
+
+    // Roll back the payment-ledger effect of a COMPLETED refund. The completion
+    // trigger (update_payment_refunded_amount) only fires on status
+    // pending→completed and rolls payments.refunded_amount UP; voiding changes
+    // voided_at, NOT status, so nothing rolls it back. Without this,
+    // sumPaidFromRows keeps subtracting the reversed refund and the booking shows
+    // the guest still owing money that was returned to them. (A pending/approved/
+    // declined refund never touched refunded_amount — only 'completed' reverses.)
+    if (rf.status === "completed" && rf.payment_id) {
+      const { data: pay } = await admin
+        .from("payments")
+        .select("amount, refunded_amount")
+        .eq("id", rf.payment_id)
+        .maybeSingle();
+      if (pay) {
+        const amt = Number(pay.amount);
+        const back = round2(
+          Math.max(
+            0,
+            Number(pay.refunded_amount ?? 0) -
+              Number(rf.approved_amount ?? rf.requested_amount ?? 0),
+          ),
+        );
+        await admin
+          .from("payments")
+          .update({
+            refunded_amount: back,
+            status:
+              back <= 0
+                ? "completed"
+                : back >= amt
+                  ? "refunded"
+                  : "partially_refunded",
+          })
+          .eq("id", rf.payment_id);
+      }
+    }
+
+    if (rf.booking_id) {
+      // recompute heals balance_due, but its terminal-status guard won't reset a
+      // payment_status left at refunded/partially_refunded — correct while the
+      // refund stood, now stale. Re-derive it from the corrected ledger.
+      await recomputeBookingPaymentState(admin, rf.booking_id);
+      if (rf.status === "completed") {
+        await resetBookingRefundStatus(admin, rf.booking_id);
+      }
+    }
     await logFinanceEvent(admin, {
       hostId,
       actorId: userId,
@@ -206,4 +257,58 @@ export async function voidTransaction(
   }
 
   return { ok: false, error: "This transaction can't be voided." };
+}
+
+/**
+ * After a COMPLETED refund is voided, re-derive the booking's payment_status from
+ * the corrected payment ledger. `recomputeBookingPaymentState` deliberately won't
+ * touch a terminal refund status, so a booking left at refunded/partially_refunded
+ * would stay there even though the money is back. Only overrides those two
+ * refund-terminal states (never voided/forfeited). Mirrors the trigger + recompute
+ * derivation so the number matches everywhere.
+ */
+async function resetBookingRefundStatus(
+  admin: Admin,
+  bookingId: string,
+): Promise<void> {
+  const { data: b } = await admin
+    .from("bookings")
+    .select("total_amount, payment_status")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b) return;
+  if (
+    b.payment_status !== "refunded" &&
+    b.payment_status !== "partially_refunded"
+  ) {
+    return;
+  }
+  const { data: pays } = await admin
+    .from("payments")
+    .select("amount, refunded_amount")
+    .eq("booking_id", bookingId)
+    .is("voided_at", null)
+    .in("status", ["completed", "partially_refunded", "refunded"]);
+  const captured = round2(
+    (pays ?? []).reduce((s, p) => s + Number(p.amount), 0),
+  );
+  const refunded = round2(
+    (pays ?? []).reduce((s, p) => s + Number(p.refunded_amount ?? 0), 0),
+  );
+  const netPaid = round2(captured - refunded);
+  const total = round2(Number(b.total_amount));
+  let status: string;
+  if (refunded > 0) {
+    status = refunded >= captured ? "refunded" : "partially_refunded";
+  } else if (netPaid <= 0) {
+    status = "pending";
+  } else if (netPaid + 0.001 < total) {
+    status = "partial";
+  } else {
+    status = "completed";
+  }
+  await admin
+    .from("bookings")
+    .update({ payment_status: status })
+    .eq("id", bookingId);
 }

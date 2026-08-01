@@ -128,12 +128,41 @@ export async function finalizeForfeiture(
     email: bkFull?.guest_email ?? null,
   };
 
+  // 1. Transition the booking FIRST — the optimistic status guard is the
+  // idempotency gate. A concurrent double-submit that matches 0 rows here bails
+  // BEFORE any number or credit note is minted, so two calls can never mint two
+  // cancellation credit notes for one forfeiture (finalizeCancellation uses the
+  // same transition-first pattern). Previously the CN was minted before this
+  // guard, so both racers minted one. no_show is terminal: the
+  // on_booking_cancelled trigger releases blocked_dates + rolls back counters.
+  const { data: transitioned, error: updErr } = await admin
+    .from("bookings")
+    .update({
+      status: "no_show",
+      previous_status: booking.status,
+      payment_status: "forfeited",
+      // The outstanding was written off — the guest owes nothing further.
+      balance_due: 0,
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: "host",
+      cancellation_reason: opts.reason?.trim() || "No-show / abandoned",
+    })
+    .eq("id", booking.id)
+    .eq("status", booking.status)
+    .select("id");
+  if (updErr) {
+    return { ok: false, error: "Could not forfeit the booking. Try again." };
+  }
+  if (!transitioned || transitioned.length === 0) {
+    return { ok: false, error: "This booking has already been forfeited." };
+  }
+
   const statementNumber = await allocateForfeitNumber(admin);
   if (!statementNumber) {
     return { ok: false, error: "Could not allocate a statement number." };
   }
 
-  // 1. Reverse the OUTSTANDING (total − paid) with a cancellation credit note —
+  // 2. Reverse the OUTSTANDING (total − paid) with a cancellation credit note —
   // the invoice is KEPT so the retained deposit stays recognised revenue (with
   // VAT). Refund = 0 (force-forfeit), so nothing goes back to the guest.
   const { data: bkVat } = await admin
@@ -150,26 +179,6 @@ export async function finalizeForfeiture(
     vatRate: Number(bkVat?.vat_rate ?? 0),
     reason: `Booking forfeited (no-show / abandoned) — ${statementNumber}`,
   });
-
-  // 2. Transition the booking. no_show is a terminal status: the
-  // on_booking_cancelled trigger releases blocked_dates + rolls back counters.
-  const { error: updErr } = await admin
-    .from("bookings")
-    .update({
-      status: "no_show",
-      previous_status: booking.status,
-      payment_status: "forfeited",
-      // The outstanding was written off — the guest owes nothing further.
-      balance_due: 0,
-      cancelled_at: new Date().toISOString(),
-      cancelled_by: "host",
-      cancellation_reason: opts.reason?.trim() || "No-show / abandoned",
-    })
-    .eq("id", booking.id)
-    .eq("status", booking.status);
-  if (updErr) {
-    return { ok: false, error: "Could not forfeit the booking. Try again." };
-  }
 
   // 3. Mint the immutable forfeit statement (the paper trail + ledger source).
   const { error: fsErr } = await admin.from("forfeit_statements").insert({
