@@ -2,7 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-01) — **FUNNEL MANAGER Phases 1–4 SHIPPED**
+## 🟢 SAVE POINT (2026-08-01 pt7) — **HOST SUB-FEATURE VERIFICATION — ALL 6 DONE** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `23f413c`. Tree clean. 21 ahead / 13 behind origin/main
+(NOT pushed — founder: merge & push to main LAST).** Living resume anchor = memory
+`launch-prep-host-then-affiliate` (pt7). This is the ACTIVE line of work — the Funnel Manager save
+point below is a separate stream that already landed on `main`.
+
+**Founder ask:** double-check every host sub-feature works from BOTH host + guest POV. Deliverables:
+`SUBFEATURE_USER_FLOWS.md` + `HOST_SUBFEATURE_VERIFICATION.md`.
+
+**✅ ALL 6 host sub-features verified & production-correct:** Specials · Coupons · Add-ons (LIVE earlier)
++ **Calendar sync · Policies · Reviews** (pt7 — code path fully mapped + live-DB probes). Details in the
+memory anchor. Highlights: iCal SSRF guard re-checks every redirect hop + export feed token-gated w/ no
+PII; policy snapshot frozen from all 4 prod paths + immutable + refund reads snapshot; reviews
+request/submit/notify/aggregate/flag all wired.
+
+**pt7 fixes (`23f413c`):** (1) `verify-reviews.mjs` false-fail fixed (bare `reviews→properties` embed →
+`!reviews_listing_id_fkey` hint; probe now green — was a stale probe, not an app bug). (2) Demo bookings
+had no cancellation snapshot (seed scripts bypass `snapshot_booking_policies` — NOT a prod bug, prod
+always snapshots) → **fixed `seed-demo.mjs`** to snapshot after each insert so demo cancel/refund works.
+⚠️ `seed-analytics.mjs` is stale (old column names) — likely dead, left as-is.
+
+**▶️ NEXT:** (a) GUEST-side live-verify (book a special, apply a coupon, pick an add-on, submit a token
+review, cancel a UI-made booking to see real refund %) — founder-driven; harness backstops. (b) Remaining
+founder live-clicks per feature. THEN merge branch to main + `db push` (staged migrations `230000`/`240000`/
+`250000`), THEN item 6 = AFFILIATE.
+
+---
+
+## 🟢 SAVE POINT (2026-08-01) — **FUNNEL MANAGER Phases 1–4 SHIPPED** (separate stream, on `main`)
 
 **Pushed `fb1f4518`. Tree clean. HEAD = origin/main. 0 node procs.** Resume anchor = memory
 `project-funnel-manager-build`. Building the **Funnel Manager & Lead Pipeline** per
