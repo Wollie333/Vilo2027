@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-08-01 (pt4) — Host launch-hardening: date-change stale-data + multi-business pay-page rails.
+
+Branch `fix/host-launch-hardening`. tsc + lint green. Two code fixes from the finance/pricing audit:
+
+- **Date-change left stale derived data** (`changeBookingDatesAction`). (a) `bookings.price_breakdown` still
+  described the OLD stay (wrong nights / seasonal split) — now recomputed for the new dates via
+  `computeStayPricing` (best-effort; nulled if repricing fails rather than left stale). (b) The **invoice
+  `line_items`** froze `check_in/check_out/nights/base_amount` at issue time, and the invoice PDF renders those —
+  a moved booking showed the new totals over the OLD dates. Now merged in step with the new dates. (`nights` on
+  the booking is a GENERATED column, so it already self-updated.)
+- **Pay page advertised the wrong business's rails** (`booking/[id]/pay`). It resolved Paystack/PayPal/EFT by
+  `host_id` = the host's DEFAULT business, but the charge always uses the BOOKING's business — a multi-business
+  host saw the wrong account. Now resolves by the property's `business_id` (new `businessHasValidEft` +
+  `getHostPaystackForBusiness`/`getHostPayPalForBusiness`), falling back to host-default only when unset. Mirrors
+  the token pay page (`pay/[token]`), which was already business-scoped.
+
+---
+
 ## 2026-08-01 (pt3) — Host launch-hardening: two silent guest-notification gaps closed + a dead event removed.
 
 **Two guest events were firing NOTHING; now wired end-to-end. One dead event removed.** Branch

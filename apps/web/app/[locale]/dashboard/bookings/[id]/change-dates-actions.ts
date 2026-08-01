@@ -227,6 +227,41 @@ export async function changeBookingDatesAction(input: {
   const baseAmount =
     Math.round((total - vatAmount - b.cleaning_fee - b.addonsTotal) * 100) /
     100;
+  const newNights = nightsBetween(checkIn, checkOut);
+
+  // Refresh the price_breakdown snapshot for the NEW dates — the old one described
+  // the old stay (wrong nights / seasonal split). Best-effort: if repricing fails
+  // we null it rather than leave a stale, misleading breakdown. The host may still
+  // override `total` above; the snapshot records how the stay itself prices out.
+  const repriced = await computeStayPricing(
+    admin,
+    {
+      property_id: b.property_id,
+      check_in: checkIn,
+      check_out: checkOut,
+      scope: b.scope === "rooms" ? "rooms" : "whole_listing",
+      guests: b.guests_count,
+      rooms: b.rooms.map((r) => ({
+        room_id: r.room_id,
+        guests: Math.max(
+          1,
+          Math.round(b.guests_count / Math.max(1, b.rooms.length)),
+        ),
+      })),
+    },
+    b.host_id,
+  );
+  const newBreakdown = repriced.ok
+    ? {
+        nights: repriced.data.nights,
+        base_amount: repriced.data.base_amount,
+        cleaning_fee: repriced.data.cleaning_fee,
+        accommodation_total: repriced.data.total,
+        rooms: repriced.data.rooms,
+        repriced_at: new Date().toISOString(),
+        source: "change_dates",
+      }
+    : null;
 
   const { error: upErr } = await admin
     .from("bookings")
@@ -236,6 +271,7 @@ export async function changeBookingDatesAction(input: {
       base_amount: baseAmount,
       total_amount: total,
       vat_amount: vatAmount,
+      price_breakdown: newBreakdown,
       updated_at: new Date().toISOString(),
     })
     .eq("id", bookingId);
@@ -280,19 +316,31 @@ export async function changeBookingDatesAction(input: {
   // Heal balance_due + payment_status from the (unchanged) payment ledger.
   await recomputeBookingPaymentState(admin, bookingId);
 
-  // Keep an existing invoice's figures in step with the new total.
+  // Keep an existing invoice's figures — AND its itemised line_items — in step with
+  // the new dates. The invoice PDF renders line_items.{check_in,check_out,nights,
+  // base_amount}, frozen at issue time; without this refresh a moved booking shows
+  // the new totals over the OLD dates. Merge only the date-driven fields (cleaning,
+  // rooms, addons, discounts are unchanged by a date move).
   const { data: invoice } = await admin
     .from("invoices")
-    .select("id")
+    .select("id, line_items")
     .eq("booking_id", bookingId)
     .maybeSingle();
   if (invoice) {
+    const mergedLines = {
+      ...((invoice.line_items as Record<string, unknown> | null) ?? {}),
+      check_in: checkIn,
+      check_out: checkOut,
+      nights: newNights,
+      base_amount: baseAmount,
+    };
     await admin
       .from("invoices")
       .update({
         subtotal: Math.round((total - vatAmount) * 100) / 100,
         vat_amount: vatAmount,
         total_amount: total,
+        line_items: mergedLines,
         updated_at: new Date().toISOString(),
       })
       .eq("id", invoice.id);

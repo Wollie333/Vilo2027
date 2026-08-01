@@ -28,3 +28,25 @@ export async function hostHasValidEft(hostId: string): Promise<boolean> {
     .maybeSingle();
   return !!data;
 }
+
+/**
+ * Business-scoped variant: does THIS business have a default, non-archived EFT
+ * account? A multi-business host keeps one default account per business, and a
+ * charge always uses the BOOKING's business — so the pay page must advertise the
+ * booking-business's EFT, not the host's default-business one. Falls back to
+ * hostHasValidEft at the call site when a booking has no business_id.
+ */
+export async function businessHasValidEft(
+  businessId: string,
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("eft_banking_details")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("is_default", true)
+    .eq("is_archived", false)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}

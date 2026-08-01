@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { hostHasValidEft } from "@/lib/payments/eft";
-import { getHostPayPal } from "@/lib/payments/host-paypal";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import { businessHasValidEft, hostHasValidEft } from "@/lib/payments/eft";
+import {
+  getHostPayPal,
+  getHostPayPalForBusiness,
+} from "@/lib/payments/host-paypal";
+import {
+  getHostPaystack,
+  getHostPaystackForBusiness,
+} from "@/lib/payments/host-paystack";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PayForm } from "./PayForm";
@@ -30,7 +36,7 @@ export default async function BookingPayPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, guest_id, reference, status, payment_status, total_amount, deposit_amount, currency, check_in, check_out, listing:properties ( name, host_id )",
+      "id, guest_id, reference, status, payment_status, total_amount, deposit_amount, currency, check_in, check_out, listing:properties ( name, host_id, business_id )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -43,13 +49,26 @@ export default async function BookingPayPage({
 
   const listing = (
     Array.isArray(booking.listing) ? booking.listing[0] : booking.listing
-  ) as { name: string; host_id: string } | null;
+  ) as { name: string; host_id: string; business_id: string | null } | null;
 
+  // Advertise the rails of the BOOKING's business — the charge always uses that
+  // business's Paystack/PayPal/EFT (a multi-business host has one set per business),
+  // so resolving by host default here would show the wrong account. Fall back to the
+  // host default only when the property carries no business_id.
+  const businessId = listing?.business_id ?? null;
   const [eftAvailable, cardAvailable, paypalAvailable] = listing
     ? await Promise.all([
-        hostHasValidEft(listing.host_id),
-        getHostPaystack(listing.host_id).then(Boolean),
-        getHostPayPal(listing.host_id).then(Boolean),
+        businessId
+          ? businessHasValidEft(businessId)
+          : hostHasValidEft(listing.host_id),
+        (businessId
+          ? getHostPaystackForBusiness(businessId)
+          : getHostPaystack(listing.host_id)
+        ).then(Boolean),
+        (businessId
+          ? getHostPayPalForBusiness(businessId)
+          : getHostPayPal(listing.host_id)
+        ).then(Boolean),
       ])
     : [false, false, false];
 

@@ -223,7 +223,16 @@ numbering migrations are BLOCKED** until those files land in the repo (coordinat
 3. ~~**Delete `refund_admin_override_host`**~~ ✅ DONE (2026-08-01 pt2). Removed from registry + catalog + email
    registry + resolver (refund.ts) + admin sample/refs + template file deleted; `notification_events`/overrides
    row dropped in `20260801230000`. Seed migration + CHANGELOG left intact. Founder-approved (moot in Model 2).
-4. **Code fixes:** date-change refresh `price_breakdown`; pay-page resolve rails by the BOOKING's business_id.
+4. ~~**Code fixes:** date-change refresh `price_breakdown`; pay-page resolve rails by the BOOKING's business_id.~~
+   ✅ DONE (2026-08-01 pt3). `changeBookingDatesAction` now (a) recomputes + stores a fresh `price_breakdown`
+   snapshot for the new dates (was stale — old nights/seasonal split), and (b) refreshes the **invoice
+   `line_items`** date-driven fields (`check_in/check_out/nights/base_amount`) — the invoice PDF renders those,
+   frozen at issue, so a moved booking previously showed new totals over OLD dates. Pay page
+   (`booking/[id]/pay`) resolved rails by `host_id` (default business) → now resolves Paystack/PayPal/**EFT** by
+   the BOOKING's `business_id` (new `businessHasValidEft`), falling back to host-default only when unset — the
+   charge always uses the booking-business's rails, so the advertised account now matches. tsc+lint green.
+   **⏳ LIVE-VERIFY (founder):** move a confirmed multi-business booking's dates → check the invoice PDF shows new
+   dates + a `notification_delivery_log` row; open a second-business booking's pay page → rails match that business.
 5. **Migrations (BLOCKED on divergence):** C1 drop duplicate trigger; C2 drop orphan fn; per-business numbering.
 6. **Then:** affiliate program + competition (second priority) — incl. reconfirm `create/settle_affiliate_payout`
    + prize RPC anon-EXECUTE/IDOR grants (see `docs/WIRING_AUDIT.md` §0).
