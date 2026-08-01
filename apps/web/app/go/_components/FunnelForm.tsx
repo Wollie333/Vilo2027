@@ -60,17 +60,29 @@ type Success = {
 
 export function FunnelForm({
   slug,
+  variant = "host",
   magnetTitle = "Send me the Starter Kit",
   magnetSub = "14-page PDF + calculator + templates. Free, instantly.",
   submitLabel = "Send me the free kit",
   sourceLabel = "lead-magnet / starter-kit",
+  successTitle = "Your kit is on its way.",
+  successSub = "Check your inbox — the download link and calculator are in the first email.",
+  successCta = "Watch the video & download",
+  consentLabel = "Email me occasional host tips & offers. Unsubscribe anytime.",
 }: {
   slug: string;
+  /** "host" shows the establishment/rooms fields; "affiliate" hides them. */
+  variant?: "host" | "affiliate";
   magnetTitle?: string;
   magnetSub?: string;
   submitLabel?: string;
   sourceLabel?: string;
+  successTitle?: string;
+  successSub?: string;
+  successCta?: string;
+  consentLabel?: string;
 }) {
+  const isHost = variant === "host";
   const {
     register,
     handleSubmit,
@@ -156,11 +168,10 @@ export function FunnelForm({
             <Check className="h-6 w-6" />
           </div>
           <h2 className="mt-4 font-display text-[20px] font-extrabold tracking-tight">
-            Your kit is on its way.
+            {successTitle}
           </h2>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-mute">
-            Check your inbox — the download link and calculator are in the first
-            email.
+            {successSub}
           </p>
         </div>
 
@@ -170,7 +181,9 @@ export function FunnelForm({
             Added to your pipeline
           </div>
           <Receipt k="Lead" v={success.name} />
-          <Receipt k="Establishment" v={success.establishment || "—"} />
+          {isHost ? (
+            <Receipt k="Establishment" v={success.establishment || "—"} />
+          ) : null}
           <Receipt k="Stage" v="New" pill />
           <Receipt k="Source" v={sourceLabel} mono />
           <Receipt k="Lead ID" v={success.ref} mono />
@@ -181,7 +194,7 @@ export function FunnelForm({
           className="mt-3.5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary text-[15.5px] font-bold text-white transition hover:bg-brand-secondary"
         >
           <Play className="h-4 w-4" />
-          Watch the video &amp; download
+          {successCta}
         </a>
         <button
           type="button"
@@ -253,7 +266,7 @@ export function FunnelForm({
             id="f-email"
             type="email"
             className={field}
-            placeholder="you@guesthouse.co.za"
+            placeholder={isHost ? "you@guesthouse.co.za" : "you@email.com"}
             autoComplete="email"
             {...register("email")}
           />
@@ -264,32 +277,36 @@ export function FunnelForm({
           ) : null}
         </div>
 
-        <div>
-          <label className={label} htmlFor="f-place">
-            Establishment{" "}
-            <span className="font-normal text-brand-mute">(optional)</span>
-          </label>
-          <input
-            id="f-place"
-            className={field}
-            placeholder="Karoo Sunset Guest Farm"
-            {...register("establishment_address")}
-          />
-        </div>
+        {isHost ? (
+          <>
+            <div>
+              <label className={label} htmlFor="f-place">
+                Establishment{" "}
+                <span className="font-normal text-brand-mute">(optional)</span>
+              </label>
+              <input
+                id="f-place"
+                className={field}
+                placeholder="Karoo Sunset Guest Farm"
+                {...register("establishment_address")}
+              />
+            </div>
 
-        <div>
-          <label className={label} htmlFor="f-rooms">
-            How many rooms do you host?
-          </label>
-          <select id="f-rooms" className={field} {...register("rooms")}>
-            <option value="">Select…</option>
-            {ROOM_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div>
+              <label className={label} htmlFor="f-rooms">
+                How many rooms do you host?
+              </label>
+              <select id="f-rooms" className={field} {...register("rooms")}>
+                <option value="">Select…</option>
+                {ROOM_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        ) : null}
 
         <label className="mt-0.5 flex items-start gap-2 text-[12px] leading-relaxed text-brand-mute">
           <input
@@ -297,9 +314,7 @@ export function FunnelForm({
             className="mt-0.5"
             {...register("marketing_consent")}
           />
-          <span>
-            Email me occasional host tips &amp; offers. Unsubscribe anytime.
-          </span>
+          <span>{consentLabel}</span>
         </label>
 
         <TurnstileWidget onVerify={(t) => (tokenRef.current = t)} />

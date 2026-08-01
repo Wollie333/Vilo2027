@@ -43,6 +43,12 @@ const STEP_BODIES: Record<string, (firstName: string) => string> = {
     `<p>Hi ${n},</p><p>Every OTA booking quietly takes a cut. On Wielo your payout is exactly what the guest pays — 0% commission. Here's how hosts move their calendar across in an afternoon.</p>`,
   nurture_host_offer: (n) =>
     `<p>Hi ${n},</p><p>Ready to take direct bookings? Set up your booking page, calendar and checkout on Wielo — free to start, no card. <a href="${process.env.NEXT_PUBLIC_APP_URL ?? ""}/signup/host" style="color:#10B981;font-weight:600">Start your free host account →</a></p>`,
+  nurture_affiliate_welcome: (n) =>
+    `<p>Hi ${n},</p><p>Welcome to the Wielo partner programme. The quickest first win: grab your personal referral link from the Partner Pack and share it with one host you already know. When they pay, you earn — for as long as they stay.</p>`,
+  nurture_affiliate_value: (n) =>
+    `<p>Hi ${n},</p><p>Wielo is 0%-commission direct-booking management, so hosts keep every rand — an easy thing to recommend. You earn recurring commission on every payment a referred host makes, paid out in rand, with a live dashboard tracking your clicks and earnings.</p>`,
+  nurture_affiliate_offer: (n) =>
+    `<p>Hi ${n},</p><p>Ready to start earning? Activate your partner account to get your referral link and earnings dashboard — free to join, no minimums. <a href="${process.env.NEXT_PUBLIC_APP_URL ?? ""}/signup/partner" style="color:#10B981;font-weight:600">Become a Wielo partner →</a></p>`,
 };
 
 function bodyFor(emailType: string, firstName: string): string {
