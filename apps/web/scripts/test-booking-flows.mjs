@@ -1420,12 +1420,14 @@ async function main() {
   }
 
   // ── Journey X: a cancelled special booking returns exactly ONE redemption ──
-  // C1 (open bug): on_booking_cancelled is wired to TWO identical triggers
+  // C1: on_booking_cancelled is wired to TWO identical triggers
   // (trigger_booking_cancelled + trigger_on_booking_cancelled), so a single cancel
   // runs the release twice — redemptions_used AND hosts/properties.total_bookings each
-  // drop by 2 instead of 1 (masked only when the counter is already at its floor). A
-  // DROP-duplicate-trigger migration fixes it; until it lands this stays a documented
-  // probe (drop-by-exactly-1) so the harness watches without going red.
+  // drop by 2 instead of 1 (masked only when the counter is already at its floor). The
+  // fix migration (20260801250000_drop_duplicate_cancel_trigger) is WRITTEN + staged
+  // for the final push; until it deploys this stays a documented probe (drop-by-exactly-1)
+  // so the harness watches without going red. documented() flags "resolved — promote to
+  // check()" the moment the migration lands — flip X2 to check() then.
   console.log("\nJourney X — cancelling a special booking releases exactly one redemption");
   {
     const { data: prop } = await db
