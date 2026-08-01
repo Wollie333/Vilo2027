@@ -60,3 +60,35 @@ export async function assertFetchableUrl(raw: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Fetch a user-supplied URL with the SSRF guard applied to EVERY hop. The raw
+ * `fetch(url)` default is `redirect: "follow"`, so validating only the original
+ * URL is bypassable: a public host can 302-redirect to http://169.254.169.254/…
+ * (or any internal host) and undici follows it without re-checking (redirect /
+ * TOCTOU bypass). We follow redirects manually and re-run assertFetchableUrl on
+ * every target before requesting it. Node's undici exposes the `Location` header
+ * on a manual redirect (unlike browsers, which return an opaque response), so
+ * this is safe to read here.
+ */
+export async function fetchGuarded(
+  raw: string,
+  init: RequestInit = {},
+  maxRedirects = 5,
+): Promise<Response> {
+  let current = raw;
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    await assertFetchableUrl(current);
+    const res = await fetch(current, { ...init, redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) {
+        throw new Error(`Redirect (${res.status}) with no location.`);
+      }
+      current = new URL(location, current).toString(); // resolve relative hops
+      continue;
+    }
+    return res;
+  }
+  throw new Error("Too many redirects.");
+}

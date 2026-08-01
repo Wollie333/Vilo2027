@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { parseIcal, rangesToDates } from "@/lib/ical-parser";
-import { assertFetchableUrl } from "@/lib/security/ssrf";
+import { fetchGuarded } from "@/lib/security/ssrf";
 
 /**
  * Core, session-less iCal import for ONE feed. Fetches the external feed
@@ -51,11 +51,11 @@ export async function syncFeed(
   admin: SupabaseClient,
   feed: SyncFeedInput,
 ): Promise<SyncFeedResult> {
-  // 1. Fetch — SSRF guard first (reject private/loopback/metadata hosts).
+  // 1. Fetch — SSRF guard on EVERY hop (fetchGuarded re-validates each redirect
+  // target; a plain follow would let a public host redirect to an internal IP).
   let body: string;
   try {
-    await assertFetchableUrl(feed.url);
-    const res = await fetch(feed.url, {
+    const res = await fetchGuarded(feed.url, {
       signal: AbortSignal.timeout(30_000),
       headers: { "User-Agent": "Wielo-CalendarSync/1.0" },
       cache: "no-store",
