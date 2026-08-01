@@ -146,6 +146,61 @@ export async function getBoard(audience: Audience): Promise<Board> {
   };
 }
 
+export type FunnelSummary = {
+  id: string;
+  audience: Audience;
+  slug: string;
+  name: string;
+  headline: string | null;
+  subcopy: string | null;
+  isActive: boolean;
+  hasBrochure: boolean;
+  brochureName: string | null;
+  hasVideo: boolean;
+  leadCount: number;
+};
+
+/**
+ * Directory of the public /go/<slug> funnel pages (landing + thank-you), for the
+ * admin "Landing pages" view. Read-only — a place to see what's live and grab the
+ * URLs, not a CMS. Lead counts are a lightweight per-funnel head count.
+ */
+export async function getFunnels(): Promise<FunnelSummary[]> {
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("funnels")
+    .select(
+      "id, audience, slug, name, headline, subcopy, brochure_path, brochure_name, video_url, is_active",
+    )
+    .order("audience")
+    .order("name");
+
+  const funnels = rows ?? [];
+  const counts = await Promise.all(
+    funnels.map(async (f) => {
+      const { count } = await admin
+        .from("pipeline_leads")
+        .select("id", { count: "exact", head: true })
+        .eq("funnel_id", f.id);
+      return count ?? 0;
+    }),
+  );
+
+  return funnels.map((f, i) => ({
+    id: f.id,
+    audience: f.audience as Audience,
+    slug: f.slug,
+    name: f.name,
+    headline: f.headline,
+    subcopy: f.subcopy,
+    isActive: f.is_active,
+    hasBrochure: Boolean(f.brochure_path),
+    brochureName: f.brochure_name,
+    hasVideo: Boolean(f.video_url),
+    leadCount: counts[i] ?? 0,
+  }));
+}
+
 export type LeadActivity = {
   id: string;
   kind: string;

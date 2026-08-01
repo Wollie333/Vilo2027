@@ -1,3 +1,5 @@
+import { Workflow } from "lucide-react";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/requirePermission";
 import { type Audience, getBoard } from "@/lib/pipeline/queries";
@@ -47,13 +49,23 @@ export default async function PipelinePage({
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="shrink-0 border-b border-brand-line bg-white px-4 pb-4 pt-5 lg:px-6">
-        <div>
-          <h1 className="font-display text-[24px] font-extrabold tracking-[-0.01em]">
-            Pipeline
-          </h1>
-          <p className="mt-0.5 text-[13.5px] text-brand-mute">
-            Every lead from the funnel pages, by stage. Drag a card to move it.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-[24px] font-extrabold tracking-[-0.01em]">
+              Pipeline
+            </h1>
+            <p className="mt-0.5 text-[13.5px] text-brand-mute">
+              Every lead from the funnel pages, by stage. Drag a card to move
+              it.
+            </p>
+          </div>
+          <a
+            href="/admin/pipeline/funnels"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-brand-line bg-white px-3 text-[13px] font-semibold text-brand-secondary transition hover:bg-brand-light"
+          >
+            <Workflow className="h-4 w-4" />
+            Landing pages
+          </a>
         </div>
 
         {/* KPI tiles */}
