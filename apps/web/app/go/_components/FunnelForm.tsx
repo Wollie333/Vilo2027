@@ -29,7 +29,7 @@ const schema = z.object({
     .string()
     .trim()
     .email("Enter a valid email — that's where the kit goes."),
-  establishment_address: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
   rooms: z.string().optional(),
   marketing_consent: z.boolean().optional(),
 });
@@ -71,7 +71,7 @@ export function FunnelForm({
   consentLabel = "Email me occasional host tips & offers. Unsubscribe anytime.",
 }: {
   slug: string;
-  /** "host" shows the establishment/rooms fields; "affiliate" hides them. */
+  /** "host" shows the room-count field; "affiliate" hides it. Phone shows on both. */
   variant?: "host" | "affiliate";
   magnetTitle?: string;
   magnetSub?: string;
@@ -121,7 +121,7 @@ export function FunnelForm({
           slug,
           name: values.name,
           email: values.email,
-          establishment_address: values.establishment_address || "",
+          phone: values.phone || "",
           rooms: values.rooms || "",
           marketing_consent: Boolean(values.marketing_consent),
           utm,
@@ -181,9 +181,6 @@ export function FunnelForm({
             Added to your pipeline
           </div>
           <Receipt k="Lead" v={success.name} />
-          {isHost ? (
-            <Receipt k="Establishment" v={success.establishment || "—"} />
-          ) : null}
           <Receipt k="Stage" v="New" pill />
           <Receipt k="Source" v={sourceLabel} mono />
           <Receipt k="Lead ID" v={success.ref} mono />
@@ -277,35 +274,35 @@ export function FunnelForm({
           ) : null}
         </div>
 
-        {isHost ? (
-          <>
-            <div>
-              <label className={label} htmlFor="f-place">
-                Establishment{" "}
-                <span className="font-normal text-brand-mute">(optional)</span>
-              </label>
-              <input
-                id="f-place"
-                className={field}
-                placeholder="Karoo Sunset Guest Farm"
-                {...register("establishment_address")}
-              />
-            </div>
+        <div>
+          <label className={label} htmlFor="f-phone">
+            Phone number{" "}
+            <span className="font-normal text-brand-mute">(optional)</span>
+          </label>
+          <input
+            id="f-phone"
+            type="tel"
+            className={field}
+            placeholder="082 123 4567"
+            autoComplete="tel"
+            {...register("phone")}
+          />
+        </div>
 
-            <div>
-              <label className={label} htmlFor="f-rooms">
-                How many rooms do you host?
-              </label>
-              <select id="f-rooms" className={field} {...register("rooms")}>
-                <option value="">Select…</option>
-                {ROOM_OPTIONS.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
+        {isHost ? (
+          <div>
+            <label className={label} htmlFor="f-rooms">
+              How many rooms do you host?
+            </label>
+            <select id="f-rooms" className={field} {...register("rooms")}>
+              <option value="">Select…</option>
+              {ROOM_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </div>
         ) : null}
 
         <label className="mt-0.5 flex items-start gap-2 text-[12px] leading-relaxed text-brand-mute">
