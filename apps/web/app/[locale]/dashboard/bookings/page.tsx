@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
+import { round2 } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { BookingsBoard, type BookingRow, type Kpis } from "./BookingsBoard";
@@ -110,6 +112,31 @@ export default async function BookingsListPage() {
 
   const raw = (data ?? []) as unknown as RawBooking[];
 
+  // The balance shown on the board must match the ledger-derived balance on the
+  // full record — NOT the denormalised balance_due column, which can drift from
+  // the ledger and made the quick-panel show "Paid in full" while the record
+  // showed the real amount owed (money is the spine — never fork it, RULES §3).
+  // One query for all rows' non-voided payments, summed per booking via the same
+  // canonical sumPaidFromRows the full record uses.
+  const paidByBooking = new Map<string, number>();
+  const bookingIds = raw.map((b) => b.id);
+  if (bookingIds.length > 0) {
+    const { data: payRows } = await supabase
+      .from("payments")
+      .select("booking_id, amount, kind, status, voided_at, refunded_amount")
+      .in("booking_id", bookingIds)
+      .is("voided_at", null);
+    const grouped = new Map<string, NonNullable<typeof payRows>>();
+    for (const p of payRows ?? []) {
+      const arr = grouped.get(p.booking_id) ?? [];
+      arr.push(p);
+      grouped.set(p.booking_id, arr);
+    }
+    for (const [bid, rowsForBooking] of grouped) {
+      paidByBooking.set(bid, sumPaidFromRows(rowsForBooking));
+    }
+  }
+
   // Per-guest stay index (1-based) — count bookings oldest → newest.
   const stayCounter = new Map<string, number>();
   const stayIndex = new Map<string, number>();
@@ -140,7 +167,12 @@ export default async function BookingsListPage() {
       status: b.status,
       paymentStatus: b.payment_status,
       paymentMethod: b.payment_method,
-      balanceDue: b.balance_due == null ? null : Number(b.balance_due),
+      balanceDue: (() => {
+        const outstanding = round2(
+          Number(b.total_amount) - (paidByBooking.get(b.id) ?? 0),
+        );
+        return outstanding > 0.005 ? outstanding : null;
+      })(),
       specialTitle:
         (Array.isArray(b.special) ? b.special[0]?.title : b.special?.title) ??
         null,
