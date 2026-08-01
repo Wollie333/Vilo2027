@@ -38,7 +38,10 @@ export type BookingActionResult = { ok: true } | { ok: false; error: string };
 const NOTIFY_KIND = {
   confirm: "booking_confirmed_guest",
   decline: "booking_declined_guest",
-  cancel: "booking_cancelled_guest",
+  // NB: no `cancel` here — host cancellation runs through finalizeCancellation
+  // (below), which owns the policy refund, credit note, calendar release AND the
+  // guest notification. Routing cancel through applyTransition would bypass all
+  // of that (money spine — never fork it).
   // NB: checkout does NOT notify here — it enqueues a delayed review request
   // (REVIEW_REQUEST_DELAY_MINUTES after checkout) into review_request_queue;
   // see enqueueReviewRequest.
@@ -57,7 +60,7 @@ type Transition = {
 // would leave money records disagreeing with the booking. See RULES.md §3
 // ("money is the spine — never fork it").
 const TRANSITIONS: Record<
-  "confirm" | "decline" | "cancel" | "checkIn" | "checkOut",
+  "confirm" | "decline" | "checkIn" | "checkOut",
   Transition
 > = {
   confirm: {
@@ -69,11 +72,6 @@ const TRANSITIONS: Record<
     from: ["pending"] as const,
     to: "declined",
     setField: { declined_at: "now" },
-  },
-  cancel: {
-    from: ["confirmed", "checked_in"] as const,
-    to: "cancelled_by_host",
-    setField: { cancelled_at: "now", cancelled_by: "host" },
   },
   checkIn: {
     from: ["confirmed"] as const,
