@@ -32,6 +32,12 @@ export const FULL_BLEED_ROUTES = new Set<string>([
   // inbox — it owns the whole content area. Thread selection uses a ?c= query
   // param, so the pathname stays /admin/inbox (exact match works).
   "/admin/inbox",
+  // The pipeline kanban owns its own height + horizontal scroll: header pinned,
+  // columns fill the viewport and scroll sideways at the true bottom edge. In
+  // the padded shell it produced a mid-page scrollbar and never reached 100vh.
+  // Exact match, so the lead record page (/admin/pipeline/<id>) keeps the
+  // standard padded shell.
+  "/admin/pipeline",
 ]);
 
 export function isFullBleedRoute(pathname: string | null): boolean {
