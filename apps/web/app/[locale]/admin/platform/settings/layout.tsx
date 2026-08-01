@@ -19,7 +19,8 @@ export default async function PlatformSettingsLayout({
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
           Runtime configuration for the platform — branding, business identity,
-          how Wielo gets paid, legal documents and tracking.
+          how Wielo gets paid, and tracking. (Legal documents live under Legal &
+          Audit.)
         </p>
       </header>
 

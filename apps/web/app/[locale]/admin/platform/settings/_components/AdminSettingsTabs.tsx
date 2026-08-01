@@ -18,11 +18,9 @@ const TABS: Tab[] = [
     label: "Payments",
     match: "prefix",
   },
-  {
-    href: "/admin/platform/settings/legal-docs",
-    label: "Legal docs",
-    match: "prefix",
-  },
+  // "Legal docs" tab intentionally removed — it rendered the exact same manager
+  // as the standalone /admin/legal entry (sidebar → Legal & Audit). One home for
+  // legal copy avoids the duplication. The route still exists but is unlinked.
   {
     href: "/admin/platform/settings/tracking",
     label: "Tracking",

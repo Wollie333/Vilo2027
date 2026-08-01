@@ -23,7 +23,9 @@ import {
   Sparkles,
   Star,
   Tag,
+  UserCog,
   Users,
+  UsersRound,
   Wallet,
 } from "lucide-react";
 
@@ -34,21 +36,24 @@ import {
 } from "@/app/_components/GmailNav";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
-const OPERATIONS: GmailNavItem[] = [
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar taxonomy. Overview is pinned at the top (always visible); every other
+// group is an expandable category header — collapsed by default, auto-opening
+// when it contains the active route. Keep the domain comments — they carry
+// context that isn't obvious from the label alone.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Pinned home anchor — no header, sits above the collapsible groups.
+const PINNED: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
-  // Funnel lead pipeline — the sales CRM board (Phase 3). Sits high so the sales
-  // team reaches it in one click.
-  { href: "/admin/pipeline", label: "Pipeline", icon: Kanban, match: "prefix" },
+];
+
+// Day-to-day operations: the people, their listings, the support channel, and
+// the sales pipeline.
+const OPERATIONS: GmailNavItem[] = [
   // One unified Users hub — every Wielo user (hosts + guests + staff). The old
   // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
-  {
-    // Support inbox — the host↔Wielo message channel. Sits right under Users.
-    href: "/admin/inbox",
-    label: "Inbox",
-    icon: Inbox,
-    match: "prefix",
-  },
   {
     href: "/admin/properties",
     label: "Listings",
@@ -56,13 +61,45 @@ const OPERATIONS: GmailNavItem[] = [
     match: "prefix",
   },
   {
-    // Public roadmap voting board (WS-3a). Top-level for quick access.
-    href: "/admin/build-board",
-    label: "Build Board",
-    icon: Lightbulb,
+    // Platform-wide list of host-delegated staff (co-hosts/cleaners a host
+    // assigns to their own listings — staff_members). Add staff from a host's
+    // own page; this is the read-only oversight roll-up.
+    href: "/admin/hosts/staff",
+    label: "Host staff",
+    icon: UsersRound,
     match: "prefix",
   },
-  // Host staff hidden for MVP (see the staff feature).
+  {
+    // Support inbox — the host↔Wielo message channel.
+    href: "/admin/inbox",
+    label: "Inbox",
+    icon: Inbox,
+    match: "prefix",
+  },
+  {
+    // Funnel lead pipeline — the sales CRM board (Funnel Manager, gated by
+    // pipeline.view). Sub-routes (/funnels, /[leadId]) are covered by prefix.
+    href: "/admin/pipeline",
+    label: "Pipeline",
+    icon: Kanban,
+    match: "prefix",
+  },
+];
+
+const MODERATION: GmailNavItem[] = [
+  { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
+  {
+    href: "/admin/flagged-listings",
+    label: "Flagged listings",
+    icon: Flag,
+    match: "prefix",
+  },
+  {
+    href: "/admin/data-requests",
+    label: "Data requests",
+    icon: ShieldAlert,
+    match: "prefix",
+  },
 ];
 
 const FINANCE: GmailNavItem[] = [
@@ -107,22 +144,6 @@ const FINANCE: GmailNavItem[] = [
   },
 ];
 
-const MODERATION: GmailNavItem[] = [
-  { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
-  {
-    href: "/admin/flagged-listings",
-    label: "Flagged listings",
-    icon: Flag,
-    match: "prefix",
-  },
-  {
-    href: "/admin/data-requests",
-    label: "Data requests",
-    icon: ShieldAlert,
-    match: "prefix",
-  },
-];
-
 // Help centre — the Help & docs hub. Manages the articles, videos, FAQs, status
 // components and settings that render on the public /help and /dashboard/help
 // surfaces. Gated by the "help.manage" permission (see NAV_PERM below).
@@ -135,14 +156,41 @@ const SUPPORT: GmailNavItem[] = [
   },
 ];
 
+// Outward-facing growth + how we talk to users.
+const GROWTH: GmailNavItem[] = [
+  {
+    // One hub over broadcasts + send-to-users + email templates (the old routes
+    // still work directly; this is the consolidated entry point).
+    href: "/admin/communications",
+    label: "Communications",
+    icon: Mail,
+    match: "prefix",
+  },
+  {
+    // Public roadmap voting board (WS-3a).
+    href: "/admin/build-board",
+    label: "Build Board",
+    icon: Lightbulb,
+    match: "prefix",
+  },
+  {
+    href: "/admin/changelog",
+    label: "Changelog",
+    icon: ScrollText,
+    match: "prefix",
+  },
+];
+
+// Platform configuration — team access, catalogs, flags and setup.
 const PLATFORM: GmailNavItem[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
   {
-    // App-scoped image store for the Wielo business side (affiliate resources,
-    // promo art). Distinct from a host's own media library.
-    href: "/admin/library",
-    label: "System library",
-    icon: ImageIcon,
+    // Wielo internal team — invite teammates, assign admin roles, deactivate
+    // access (platform_staff). Distinct from a host's own delegated staff
+    // (staff_members), which is managed on the host side.
+    href: "/admin/platform/staff",
+    label: "Team",
+    icon: UserCog,
     match: "prefix",
   },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
@@ -172,41 +220,34 @@ const PLATFORM: GmailNavItem[] = [
   },
   {
     href: "/admin/platform/looking-for/funnel",
-    label: "LF funnel",
+    label: "Looking-For funnel",
     icon: Activity,
     match: "prefix",
   },
   {
-    href: "/admin/changelog",
-    label: "Changelog",
-    icon: ScrollText,
-    match: "prefix",
-  },
-  {
-    // One hub over broadcasts + send-to-users + email templates (the old routes
-    // still work directly; this is the consolidated entry point).
-    href: "/admin/communications",
-    label: "Communications",
-    icon: Mail,
-    match: "prefix",
-  },
-  // Platform staff hidden for MVP (staff feature disabled site-wide).
-  {
-    href: "/admin/audit",
-    label: "Audit log",
-    icon: ShieldAlert,
+    // App-scoped image store for the Wielo business side (affiliate resources,
+    // promo art). Distinct from a host's own media library.
+    href: "/admin/library",
+    label: "System library",
+    icon: ImageIcon,
     match: "prefix",
   },
 ];
 
-// Legal documents hub — the single source of truth for Terms, Privacy, Cookies,
-// affiliate & competition rules, plus their placements. A dedicated section so a
-// Legal Counsel (legal.docs only) has a clean top-level entry.
+// Legal & audit — the source of truth for Terms/Privacy/Cookies/affiliate &
+// competition rules, plus the immutable admin audit trail. A clean top-level
+// entry for a Legal Counsel (legal.docs only).
 const LEGAL: GmailNavItem[] = [
   {
     href: "/admin/legal",
     label: "Legal docs",
     icon: ScrollText,
+    match: "prefix",
+  },
+  {
+    href: "/admin/audit",
+    label: "Audit log",
+    icon: ShieldAlert,
     match: "prefix",
   },
 ];
@@ -264,18 +305,24 @@ export function AdminSidebar({
       return !p || permSet.has(p);
     });
 
+  // Overview is pinned (no header). Every other group is a click-to-expand
+  // header: Operations opens by default; the rest stay collapsed but auto-open
+  // when they hold the active route (omit defaultOpen so it falls back to
+  // hasActive — passing `false` would suppress that auto-open).
   const sections: GmailNavSection[] = [
-    { items: vis(OPERATIONS) },
-    { label: "Finance", items: vis(FINANCE) },
-    { label: "Moderation", items: vis(MODERATION) },
-    { label: "Support", items: vis(SUPPORT) },
-    { label: "Legal", items: vis(LEGAL) },
+    { items: vis(PINNED) },
     {
-      label: "Platform",
-      items: vis(PLATFORM),
+      label: "Operations",
+      items: vis(OPERATIONS),
       collapsible: true,
-      defaultOpen: false,
+      defaultOpen: true,
     },
+    { label: "Moderation", items: vis(MODERATION), collapsible: true },
+    { label: "Finance", items: vis(FINANCE), collapsible: true },
+    { label: "Support", items: vis(SUPPORT), collapsible: true },
+    { label: "Growth & Comms", items: vis(GROWTH), collapsible: true },
+    { label: "Platform", items: vis(PLATFORM), collapsible: true },
+    { label: "Legal & Audit", items: vis(LEGAL), collapsible: true },
   ].filter((s) => s.items.length > 0);
 
   const footer: GmailNavItem[] = [

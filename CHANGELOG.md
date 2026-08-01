@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-08-01 — Admin sidebar reorg into expandable groups + Legal de-dup + Team/Host-staff unhide.
+
+Reorganised the admin rail (`AdminSidebar.tsx`) from a flat 26-link wall into **Overview (pinned) + 7
+click-to-expand groups** using GmailNav's existing collapsible sections: **Operations** (Users,
+Listings, Host staff, Inbox, Pipeline) open by default; **Moderation / Finance / Support / Growth &
+Comms / Platform / Legal & Audit** collapsed but auto-opening when they hold the active route.
+Reconciled on top of the Funnel Manager merge — kept upstream's **Pipeline** (Kanban, `pipeline.view`)
+and **Support → Help & docs** (`help.manage`). **Unhid** the **Team** panel (`/admin/platform/staff`,
+`platform.staff`, in Platform) and the **Host staff** oversight list (`/admin/hosts/staff`,
+`hosts.verify`, in Operations) — both pages were already built; only the nav links were missing, and
+super_admin already holds the keys (no migration). **De-duped Legal:** removed the redundant Platform
+Settings → "Legal docs" tab (it rendered the identical manager as the standalone `/admin/legal`);
+route left on disk, just unlinked. Renamed "LF funnel" → "Looking-For funnel". RBAC unchanged — every
+item still gated by `NAV_PERM`, so narrower roles see only what they can open. **Verified:** reconciled
+nav rendered via a temporary harness (all 30 items, groups expand/collapse, active auto-opens); `pnpm
+lint` clean; `pnpm build` green (type-check needs `--max-old-space-size=8192` post-merge).
+
 ## 2026-08-01 — Funnel Manager Phase 1 (data model) + clean-slate data wipe.
 
 **Clean slate:** wiped all demo/test users and their data to a vanilla platform for testing.
