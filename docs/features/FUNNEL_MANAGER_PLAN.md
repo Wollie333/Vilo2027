@@ -1,6 +1,6 @@
 # Funnel Manager & Lead Pipeline — Plan
 
-**Status:** 🟢 Phases 1–4 SHIPPED 2026-08-01 (data model + Hosts funnel + admin pipeline + nurture drip) — Phases 5–6 pending. ⚠️ Phase 4 conversion-cancel DB triggers (subscription→Won, affiliate joins) deferred to Phase 4b.
+**Status:** 🟢 Phases 1–5 SHIPPED 2026-08-01 (data model + Hosts funnel + admin pipeline + nurture drip + Affiliate funnel) — Phase 6 (lifecycle doc) pending. ⚠️ Phase 4 conversion-cancel DB triggers (subscription→Won, affiliate joins) still deferred to Phase 4b. Also shipped alongside Phase 5: `/admin/pipeline` made full-bleed (board fills 100vh, no mid-page scrollbar) and a read-only **Landing pages directory** (`/admin/pipeline/funnels`) listing the live `/go/*` pages with open/copy-URL + resource status.
 **Owner:** Founder + Marketing/Sales team
 **Author:** drafted + refined 2026-07-31
 **Related:** `BUSINESS_PRINCIPLES.md` #1 (guest identity), #5 (one source of truth),
@@ -461,9 +461,19 @@ file or YouTube URL), thank-you CTA text/target, and the nurture email copy per 
    the **conversion-cancels-drip DB triggers** (subscriptions active → Won + enrolment `converted`;
    `affiliate_accounts`/`affiliate_clicks` → affiliate-board moves); the SQL Editor Vault
    `nurture_worker_url` provisioning per env (prod URL) — until set, the cron is a fail-soft no-op.
-5. **Affiliate funnel** (`/go/affiliate` + its board + drip) + affiliate-link
-   verification (`/r/<slug>?next=/go/hosts` credits correctly) + UTM/analytics.
-6. **Lifecycle doc** `docs/lifecycles/funnel.md` (Principle #12) + index it.
+5. ✅ **DONE (2026-08-01)** — **Affiliate funnel** — migration `20260801120000_seed_affiliate_funnel`
+   seeds the affiliate `funnels` row + 3 nurture steps (0/48/120h) and activates the affiliate
+   sequence. `/go/affiliate` + `/go/affiliate/thanks` (CTA → `/signup/partner`); `FunnelForm` gained
+   an `affiliate` variant (hides host-only establishment/rooms, swaps copy); `nurture-worker` got
+   `nurture_affiliate_*` bodies. UTM capture reuses the existing form path. **Live-verified:** real
+   submit created an affiliate-board lead + card (`source_kind=affiliate_funnel`, stage New) +
+   activity + active nurture enrolment; card renders on the Affiliate board; `/r/<slug>?next=/go/hosts`
+   redirects to the hosts funnel (affiliate binding read-back is the existing Phase-2 host-funnel path;
+   no active affiliate account currently seeded to re-run full commission E2E — that path was proven in
+   pt98). ⚠️ Analytics dashboards (ad-spend → revenue) NOT built — pipeline KPIs + funnel lead counts
+   are the v1 measure; deferred. Commits `44855d00` (funnel), `3509ed8a` (full-bleed board fix),
+   `c50e9738` (Landing pages directory).
+6. **Lifecycle doc** `docs/lifecycles/funnel.md` (Principle #12) + index it. ⬅️ NEXT
 
 Each phase: `pnpm build` + `pnpm lint` green, verify live where user-visible, then
 commit + push to `main`.
