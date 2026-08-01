@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-08-01 — Help admin portal (1/3): tab-nav + articles bulk management.
+
+Turned the Help CMS into a proper portal. New `admin/help/layout.tsx` gives every sub-surface a
+shared horizontal **tab-nav** (Overview · Articles · Categories · FAQs · Videos · Suggestions ·
+Status · Settings; Status marked "not currently shown on public help"). The **articles list** gains an
+**audience** filter, four new sort presets (recently published, most viewed, most helpful, title A–Z),
+**real pagination** (offset + prev/next), and **bulk operations** via a new client `ArticlesTable`:
+select-all + per-row checkboxes and a bulk bar to **Publish / Archive / Move-to-category / Delete**
+(and **Restore** in the Trash view). Backed by audited bulk server actions (`bulkPublish/Archive/
+SoftDelete/Restore/MoveArticles`, `help.manage`-gated, reason-required for archive/delete/restore/
+move-out); one audit row per bulk call with the full id list in payload. Build + lint green; logged-out
+access still redirects (deny path intact). Admin UI to be founder-click-tested.
+
 ## 2026-08-01 — Help centre: restored the article library + Wielo rebrand.
 
 Investigated why the public help showed zero articles: `help_articles` was empty (0 rows) on the live

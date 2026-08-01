@@ -335,3 +335,226 @@ export async function restoreHelpArticle(input: {
 export async function previewSlug(title: string): Promise<string> {
   return slugify(title);
 }
+
+// Bulk operations ----------------------------------------------------------
+// One audited row per bulk call (the full id list + count live in payload.args);
+// target_id is the first id as a representative. Each updates all rows in a
+// single `.in("id", ids)` statement.
+
+const bulkSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  reason: z.string().optional(),
+});
+const bulkReasonSchema = bulkSchema.extend({
+  reason: z.string().min(5).max(500),
+});
+const bulkMoveSchema = bulkSchema.extend({
+  categoryId: z.string().uuid().nullable(),
+});
+
+function revalidateHelp() {
+  revalidatePath("/admin/help");
+  revalidatePath("/admin/help/articles");
+  revalidatePath("/dashboard/help");
+  revalidatePath("/help");
+  revalidatePath("/help/articles");
+}
+
+export const bulkPublishArticlesAction = withAdminAudit<
+  z.infer<typeof bulkSchema>,
+  { ok: true; count: number }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.article.bulk_publish",
+    targetType: "help_article",
+    getTargetId: (a) => a.ids[0],
+  },
+  async (args, service) => {
+    const nowIso = new Date().toISOString();
+    const { error } = await service
+      .from("help_articles")
+      .update({ status: "published" })
+      .in("id", args.ids);
+    if (error) throw new Error(error.message);
+    // Stamp published_at only where it was never set, so re-publishing keeps the
+    // original go-live date.
+    await service
+      .from("help_articles")
+      .update({ published_at: nowIso })
+      .in("id", args.ids)
+      .is("published_at", null);
+    revalidateHelp();
+    return {
+      result: { ok: true, count: args.ids.length },
+      after: { ids: args.ids, status: "published" },
+    };
+  },
+);
+
+export const bulkArchiveArticlesAction = withAdminAudit<
+  z.infer<typeof bulkReasonSchema>,
+  { ok: true; count: number }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.article.bulk_archive",
+    targetType: "help_article",
+    getTargetId: (a) => a.ids[0],
+    requireReason: true,
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("help_articles")
+      .update({ status: "archived" })
+      .in("id", args.ids);
+    if (error) throw new Error(error.message);
+    revalidateHelp();
+    return {
+      result: { ok: true, count: args.ids.length },
+      after: { ids: args.ids, status: "archived" },
+    };
+  },
+);
+
+export const bulkSoftDeleteArticlesAction = withAdminAudit<
+  z.infer<typeof bulkReasonSchema>,
+  { ok: true; count: number }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.article.bulk_soft_delete",
+    targetType: "help_article",
+    getTargetId: (a) => a.ids[0],
+    requireReason: true,
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("help_articles")
+      .update({ deleted_at: new Date().toISOString() })
+      .in("id", args.ids)
+      .is("deleted_at", null);
+    if (error) throw new Error(error.message);
+    revalidateHelp();
+    return {
+      result: { ok: true, count: args.ids.length },
+      after: { ids: args.ids, deleted: true },
+    };
+  },
+);
+
+export const bulkRestoreArticlesAction = withAdminAudit<
+  z.infer<typeof bulkReasonSchema>,
+  { ok: true; count: number }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.article.bulk_restore",
+    targetType: "help_article",
+    getTargetId: (a) => a.ids[0],
+    requireReason: true,
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("help_articles")
+      .update({ deleted_at: null, status: "draft" })
+      .in("id", args.ids);
+    if (error) throw new Error(error.message);
+    revalidateHelp();
+    return {
+      result: { ok: true, count: args.ids.length },
+      after: { ids: args.ids, restored: true },
+    };
+  },
+);
+
+export const bulkMoveArticlesAction = withAdminAudit<
+  z.infer<typeof bulkMoveSchema>,
+  { ok: true; count: number }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.article.bulk_move_category",
+    targetType: "help_article",
+    getTargetId: (a) => a.ids[0],
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("help_articles")
+      .update({ category_id: args.categoryId })
+      .in("id", args.ids);
+    if (error) throw new Error(error.message);
+    revalidateHelp();
+    return {
+      result: { ok: true, count: args.ids.length },
+      after: { ids: args.ids, category_id: args.categoryId },
+    };
+  },
+);
+
+type BulkResult = { ok: true; count: number } | { ok: false; error: string };
+
+async function runBulk<T extends { ids: string[] }>(
+  action: (a: T) => Promise<{ ok: true; count: number }>,
+  parsed: { success: true; data: T } | { success: false },
+  invalidMsg: string,
+): Promise<BulkResult> {
+  if (!parsed.success) return { ok: false, error: invalidMsg };
+  try {
+    return await action(parsed.data);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
+export async function bulkPublishArticles(ids: string[]): Promise<BulkResult> {
+  return runBulk(
+    bulkPublishArticlesAction,
+    bulkSchema.safeParse({ ids }),
+    "Select at least one article.",
+  );
+}
+
+export async function bulkArchiveArticles(
+  ids: string[],
+  reason: string,
+): Promise<BulkResult> {
+  return runBulk(
+    bulkArchiveArticlesAction,
+    bulkReasonSchema.safeParse({ ids, reason }),
+    "A reason (5+ chars) is required.",
+  );
+}
+
+export async function bulkSoftDeleteArticles(
+  ids: string[],
+  reason: string,
+): Promise<BulkResult> {
+  return runBulk(
+    bulkSoftDeleteArticlesAction,
+    bulkReasonSchema.safeParse({ ids, reason }),
+    "A reason (5+ chars) is required.",
+  );
+}
+
+export async function bulkRestoreArticles(
+  ids: string[],
+  reason: string,
+): Promise<BulkResult> {
+  return runBulk(
+    bulkRestoreArticlesAction,
+    bulkReasonSchema.safeParse({ ids, reason }),
+    "A reason (5+ chars) is required.",
+  );
+}
+
+export async function bulkMoveArticles(
+  ids: string[],
+  categoryId: string | null,
+): Promise<BulkResult> {
+  return runBulk(
+    bulkMoveArticlesAction,
+    bulkMoveSchema.safeParse({ ids, categoryId }),
+    "Select at least one article.",
+  );
+}
