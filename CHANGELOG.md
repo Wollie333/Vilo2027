@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-08-01 — Help centre: public honesty pass + real article bookmarks.
+
+Two founder asks: (1) make the public `/help` page match the real help system, (2) build real
+bookmarks. Migration `20260801210000_help_saves_and_cleanup.sql` adds `help_article_saves`
+(RLS: users manage own rows) + a **SECURITY DEFINER** `saved_count` sync trigger (same reason the
+feedback-counter trigger is DEFINER — a normal user has no update rights on `help_articles`, so an
+INVOKER trigger would silently match zero rows). **Proven** in a rollback txn impersonating a real
+non-admin guest under RLS: insert took `saved_count` 0→1, delete 1→0.
+
+Public honesty: removed the fabricated **Community forum card** and **"live, updated-minutely" System
+Status panel** (both static seed with no real system), and stripped the fake contact stats
+("live chat Online", "under 4 min", "2,480 hosts", callbacks) from `QuickActions`/`ContactSupport` —
+now honest quick actions + email support only. Seed cleanup fixed the support email to
+`support@wielo.co.za` (was a stale `viloplatform.com`), cleared the fake "degraded 14 Nov" incident and
+the fake community threads. Applied to both `/help` (public) and `/dashboard/help` (host).
+
+Bookmarks UX: `toggleSaveArticle` action; a **Save** button on public + dashboard article pages
+(logged-out → routes to login, verified live); `saved_count` wired into `LIST_COLUMNS`; the mislabeled
+"bookmark = views" affordance fixed (views now show an **eye** icon; **bookmark** now shows real saves);
+a **Saved articles** section on the host help dashboard. Build + lint green; types + `docs/SCHEMA.md`
+regenerated.
+
+**Finding surfaced:** `help_articles` is **empty (0 rows)** on the live/linked DB (categories 14,
+videos 4, FAQs 6 exist) — so the public help page correctly shows videos/FAQs but no articles. The
+article library itself has no content; the admin CMS (Phases 3–5) is where it gets authored/imported.
+
 ## 2026-08-01 — Qualified stage fires a Meta QualifiedLead event.
 
 `moveLeadStageAction` now enqueues a Meta **QualifiedLead** conversion when a card is moved into the

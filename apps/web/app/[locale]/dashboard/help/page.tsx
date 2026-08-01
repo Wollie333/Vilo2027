@@ -7,13 +7,12 @@ import {
   fetchHelpCategoriesWithCounts,
   fetchHelpFaqs,
   fetchHelpSettings,
-  fetchHelpStatus,
   fetchHelpVideos,
+  fetchSavedArticles,
 } from "@/lib/help/queries";
-import type { HelpAudience, HelpStatusComponentStatus } from "@/lib/help/types";
+import type { HelpAudience } from "@/lib/help/types";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { CommunityCard } from "./_components/CommunityCard";
 import { ContactSupport } from "./_components/ContactSupport";
 import { FAQAccordion } from "./_components/FAQAccordion";
 import { FeedbackStrip } from "./_components/FeedbackStrip";
@@ -21,7 +20,7 @@ import { GettingStarted } from "./_components/GettingStarted";
 import { HelpHero } from "./_components/HelpHero";
 import { PopularArticles } from "./_components/PopularArticles";
 import { QuickActions } from "./_components/QuickActions";
-import { SystemStatusPanel } from "./_components/SystemStatusPanel";
+import { SavedArticles } from "./_components/SavedArticles";
 import { TopicsGrid } from "./_components/TopicsGrid";
 import { VideoTutorials } from "./_components/VideoTutorials";
 import { TourButton } from "../_components/tour/TourButton";
@@ -39,15 +38,6 @@ type SearchParams = { as?: string };
 
 function resolveAudience(value: string | undefined): HelpAudience {
   return value === "guest" ? "guest" : "host";
-}
-
-function deriveOverallStatus(
-  components: { status: HelpStatusComponentStatus }[],
-): HelpStatusComponentStatus {
-  if (components.some((c) => c.status === "incident")) return "incident";
-  if (components.some((c) => c.status === "degraded")) return "degraded";
-  if (components.some((c) => c.status === "maintenance")) return "maintenance";
-  return "normal";
 }
 
 export default async function HelpPage({
@@ -70,10 +60,10 @@ export default async function HelpPage({
     updated,
     videos,
     faqs,
-    statusComponents,
     settings,
     gettingStarted,
     profile,
+    savedArticles,
   ] = await Promise.all([
     fetchHelpCategoriesWithCounts(audience),
     fetchHelpArticles({ audience, sort: "popular", limit: 6 }),
@@ -81,7 +71,6 @@ export default async function HelpPage({
     fetchHelpArticles({ audience, sort: "updated", limit: 6 }),
     fetchHelpVideos(audience, 4),
     fetchHelpFaqs(audience, true, 6),
-    fetchHelpStatus(),
     fetchHelpSettings(),
     fetchGettingStartedState(user.id),
     supabase
@@ -90,9 +79,9 @@ export default async function HelpPage({
       .eq("id", user.id)
       .maybeSingle()
       .then((r) => r.data as { full_name?: string | null } | null),
+    fetchSavedArticles(user.id),
   ]);
 
-  const overall = deriveOverallStatus(statusComponents);
   const greeting =
     (profile?.full_name ?? "").split(" ")[0]?.trim() ||
     user.email?.split("@")[0] ||
@@ -112,7 +101,10 @@ export default async function HelpPage({
         searchPath={SEARCH_PATH}
       />
 
-      <QuickActions contact={settings.contact} overallStatus={overall} />
+      <QuickActions
+        basePath={BASE_PATH}
+        supportEmail={settings.contact.support_email}
+      />
 
       {audience === "host" ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-white p-4 shadow-card">
@@ -136,22 +128,34 @@ export default async function HelpPage({
         basePath={BASE_PATH}
       />
 
-      <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
-        <div className="lg:col-span-2">
-          <PopularArticles
-            basePath={BASE_PATH}
-            popular={popular}
-            newest={newest}
-            updated={updated}
-            categoryLabel={categoryLabel}
-          />
-        </div>
-        {audience === "host" ? (
+      <SavedArticles
+        basePath={BASE_PATH}
+        articles={savedArticles}
+        categoryLabel={categoryLabel}
+      />
+
+      {audience === "host" ? (
+        <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
+          <div className="lg:col-span-2">
+            <PopularArticles
+              basePath={BASE_PATH}
+              popular={popular}
+              newest={newest}
+              updated={updated}
+              categoryLabel={categoryLabel}
+            />
+          </div>
           <GettingStarted state={gettingStarted} />
-        ) : (
-          <CommunityCard threads={settings.community} />
-        )}
-      </section>
+        </section>
+      ) : (
+        <PopularArticles
+          basePath={BASE_PATH}
+          popular={popular}
+          newest={newest}
+          updated={updated}
+          categoryLabel={categoryLabel}
+        />
+      )}
 
       <VideoTutorials
         videos={videos}
@@ -159,21 +163,9 @@ export default async function HelpPage({
         categoryLabel={categoryLabel}
       />
 
-      <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
-        <div className="lg:col-span-2">
-          <FAQAccordion faqs={faqs} basePath={BASE_PATH} />
-        </div>
-        <SystemStatusPanel components={statusComponents} overall={overall} />
-      </section>
+      <FAQAccordion faqs={faqs} basePath={BASE_PATH} />
 
-      <section className="grid gap-3 lg:grid-cols-5 lg:gap-4">
-        <div className="lg:col-span-3">
-          <ContactSupport contact={settings.contact} />
-        </div>
-        <div className="lg:col-span-2">
-          <CommunityCard threads={settings.community} />
-        </div>
-      </section>
+      <ContactSupport supportEmail={settings.contact.support_email} />
 
       <FeedbackStrip supportEmail={settings.contact.support_email} />
 

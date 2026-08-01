@@ -1,20 +1,14 @@
-import {
-  Clock,
-  Globe,
-  Headphones,
-  Mail,
-  MessageCircle,
-  PhoneCall,
-  ShieldCheck,
-} from "lucide-react";
+import { Headphones, Mail, MessageSquarePlus, ShieldCheck } from "lucide-react";
 
-import type { HelpContactSettings } from "@/lib/help/types";
-
+// Honest "talk to a human" block. The old version advertised live chat, phone
+// callbacks, "respond within 4 hours", "24/7 emergency" and "11 SA languages" —
+// none of which are real yet. Until they are, the only real, always-true path is
+// email support, so that's all we promise.
 type Props = {
-  contact: HelpContactSettings;
+  supportEmail: string;
 };
 
-export function ContactSupport({ contact }: Props) {
+export function ContactSupport({ supportEmail }: Props) {
   return (
     <div
       id="contact"
@@ -29,73 +23,48 @@ export function ContactSupport({ contact }: Props) {
           <Headphones className="h-3 w-3" /> Talk to a human
         </div>
         <h3 className="mt-4 font-display text-2xl font-bold leading-tight lg:text-3xl">
-          Still stuck? Our team is on it.
+          Still stuck? Email our team.
         </h3>
         <p className="mt-2 max-w-md text-sm leading-relaxed text-white/75">
-          Real people based in Cape Town & Johannesburg. We respond to most
-          tickets within 4 hours, 7 days a week.
+          Can&apos;t find your answer? Send us the details and a real person
+          will get back to you.
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <button
-            type="button"
-            disabled={!contact.live_chat_online}
-            className="rounded-card bg-white p-4 text-left text-brand-secondary transition-shadow hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-60"
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <a
+            href={`mailto:${supportEmail}`}
+            className="rounded-card bg-white p-4 text-left text-brand-secondary transition-shadow hover:shadow-lift"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded bg-brand-accent text-brand-secondary">
-              <MessageCircle className="h-4 w-4" />
-            </div>
-            <div className="mt-3 font-display text-sm font-semibold">
-              Live chat
-            </div>
-            <div className="mt-0.5 text-[11px] text-brand-mute">
-              {contact.live_chat_online
-                ? `~ ${contact.median_response_minutes} min response`
-                : "Offline right now"}
-            </div>
-          </button>
-
-          <a
-            href={`mailto:${contact.support_email}`}
-            className="rounded-card bg-white/10 p-4 text-left text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/15"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded bg-white/15 text-white">
               <Mail className="h-4 w-4" />
             </div>
             <div className="mt-3 font-display text-sm font-semibold">
               Email us
             </div>
-            <div className="mt-0.5 truncate font-mono text-[11px] text-white/70">
-              {contact.support_email}
+            <div className="mt-0.5 truncate font-mono text-[11px] text-brand-mute">
+              {supportEmail}
             </div>
           </a>
 
-          <button
-            type="button"
-            disabled={!contact.callback_enabled}
-            className="rounded-card bg-white/10 p-4 text-left text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+          <a
+            href="#suggest"
+            className="rounded-card bg-white/10 p-4 text-left text-white ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/15"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded bg-white/15 text-white">
-              <PhoneCall className="h-4 w-4" />
+              <MessageSquarePlus className="h-4 w-4" />
             </div>
             <div className="mt-3 font-display text-sm font-semibold">
-              Request a callback
+              Suggest an article
             </div>
             <div className="mt-0.5 text-[11px] text-white/70">
-              {contact.callback_enabled ? "Pro plan" : "Coming soon"}
+              Tell us what&apos;s missing
             </div>
-          </button>
+          </a>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-6 border-t border-white/15 pt-6 text-xs text-white/70">
           <div className="inline-flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> 24/7 emergency for active stays
-          </div>
-          <div className="inline-flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5" /> 11 official SA languages
-          </div>
-          <div className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> Secure ticket history
+            <ShieldCheck className="h-3.5 w-3.5" /> We reply to every message
           </div>
         </div>
       </div>

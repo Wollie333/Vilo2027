@@ -22,7 +22,7 @@ import {
 } from "./types";
 
 const LIST_COLUMNS =
-  "id, slug, title, excerpt, category_id, audience, status, featured_rank, read_time_minutes, helpful_count, not_helpful_count, view_count, has_video, published_at, updated_at";
+  "id, slug, title, excerpt, category_id, audience, status, featured_rank, read_time_minutes, helpful_count, not_helpful_count, view_count, saved_count, has_video, published_at, updated_at";
 
 function audienceFilter(audience: HelpAudience | "any"): string[] {
   if (audience === "any") return ["host", "guest", "both"];
@@ -129,6 +129,51 @@ export async function fetchHelpArticleBySlug(
     .is("deleted_at", null)
     .maybeSingle();
   return (data as HelpArticleRow | null) ?? null;
+}
+
+export async function fetchIsArticleSaved(
+  articleId: string,
+  userId: string,
+): Promise<boolean> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("help_article_saves")
+    .select("id")
+    .eq("article_id", articleId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function fetchSavedArticles(
+  userId: string,
+  limit = 24,
+): Promise<HelpArticleListItem[]> {
+  const supabase = createServerClient();
+  const { data: saves } = await supabase
+    .from("help_article_saves")
+    .select("article_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const ids = (saves ?? []).map(
+    (s) => (s as { article_id: string }).article_id,
+  );
+  if (ids.length === 0) return [];
+
+  // RLS on help_articles only exposes published, non-deleted rows, so a saved
+  // article that was since archived/deleted simply drops out of the list.
+  const { data } = await supabase
+    .from("help_articles")
+    .select(LIST_COLUMNS)
+    .in("id", ids)
+    .eq("status", "published")
+    .is("deleted_at", null);
+
+  const rows = (data ?? []) as HelpArticleListItem[];
+  const order = new Map(ids.map((id, i) => [id, i]));
+  return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 }
 
 export async function fetchRelatedArticles(

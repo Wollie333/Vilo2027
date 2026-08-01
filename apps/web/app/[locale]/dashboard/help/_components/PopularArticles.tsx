@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowRight, Bookmark, ClockIcon, ThumbsUp, Video } from "lucide-react";
+import {
+  ArrowRight,
+  Bookmark,
+  ClockIcon,
+  Eye,
+  ThumbsUp,
+  Video,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 
@@ -109,7 +116,12 @@ export function PopularArticles({
                       </span>
                     ) : a.view_count > 0 ? (
                       <span className="inline-flex items-center gap-1">
-                        <Bookmark className="h-3 w-3" /> Viewed {a.view_count}×
+                        <Eye className="h-3 w-3" /> Viewed {a.view_count}×
+                      </span>
+                    ) : null}
+                    {a.saved_count > 0 ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Bookmark className="h-3 w-3" /> {a.saved_count} saved
                       </span>
                     ) : null}
                   </div>

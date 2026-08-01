@@ -19,6 +19,10 @@ const viewSchema = z.object({
   articleId: z.string().uuid(),
 });
 
+const saveSchema = z.object({
+  articleId: z.string().uuid(),
+});
+
 export async function voteOnArticle(input: {
   articleId: string;
   vote: "up" | "down";
@@ -84,6 +88,66 @@ export async function submitArticleSuggestion(input: {
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function toggleSaveArticle(input: {
+  articleId: string;
+}): Promise<
+  | { ok: true; saved: boolean; saved_count: number }
+  | { ok: false; error: string; needsAuth?: boolean }
+> {
+  const parsed = saveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Sign in to save articles.", needsAuth: true };
+  }
+
+  const articleId = parsed.data.articleId;
+
+  const { data: existing } = await supabase
+    .from("help_article_saves")
+    .select("id")
+    .eq("article_id", articleId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("help_article_saves")
+      .delete()
+      .eq("article_id", articleId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    const { error } = await supabase
+      .from("help_article_saves")
+      .insert({ article_id: articleId, user_id: user.id });
+    // 23505 = unique violation (double-click race) — already saved, not an error.
+    if (error && error.code !== "23505") {
+      return { ok: false, error: error.message };
+    }
+  }
+
+  // Read the counter back after the trigger has run (separate request = the
+  // insert/delete has already committed).
+  const { data: article } = await supabase
+    .from("help_articles")
+    .select("saved_count")
+    .eq("id", articleId)
+    .maybeSingle();
+
+  return {
+    ok: true,
+    saved: !existing,
+    saved_count: Number(
+      (article as { saved_count?: number } | null)?.saved_count ?? 0,
+    ),
+  };
 }
 
 export async function trackArticleView(input: {
