@@ -253,6 +253,11 @@ export function LeadRecordClient({
                 <Tag className={bc}>
                   {bl} · {lead.score}
                 </Tag>
+                {lead.sourceKind === "competition" ? (
+                  <Tag className="border-amber-200 bg-amber-50 text-amber-700">
+                    🏆 {lead.sourceLabel ?? "Competition"}
+                  </Tag>
+                ) : null}
                 {lead.sourceKind === "affiliate_referral" ? (
                   <Tag className="border-[#D7DBFB] bg-[#EEF0FF] text-[#4F46E5]">
                     Affiliate referral

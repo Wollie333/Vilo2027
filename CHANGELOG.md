@@ -30,6 +30,16 @@ direct signup → no card"). Migration `20260801240000_signup_pipeline_stage.sql
   honest.
 - Self-verifying migration (RAISEs if the stage is missing). SCHEMA.md regenerated; no table/column
   change, so `database.types.ts` untouched.
+- **Source recorded distinctly** (migration `20260801250000` + `apps/web/lib/pipeline/leadSource.ts`):
+  a **competition** affiliate link → `source_kind='competition'` (label = campaign name, e.g. "Founding
+  Race", badge 🏆) + `suppress_default_nurture` (they're already in the competition's own comms), with
+  the referring affiliate still recorded (commission intact); a **normal** affiliate link →
+  `affiliate_referral` ("via <slug>"); a plain link → `direct`. The distinction is data-driven —
+  `affiliate_referrals.campaign_id` is set only for a real competition click. Applied at all three entry
+  points (signup start-hook, `on_host_created` create-path, `/go/*` funnel submit) + a fix-up for
+  existing cards. Board card + lead record show the 🏆 competition badge alongside the "via" chip.
+  Live-verified via rollback: competition referral → host card `competition` / "Founding Race" /
+  affiliate kept / suppressed.
 
 ## 2026-08-01 — Help-centre accuracy pass: content vs real code.
 

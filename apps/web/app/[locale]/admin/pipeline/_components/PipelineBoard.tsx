@@ -287,7 +287,15 @@ function LeadCard({
         >
           {bl} · <b className="tabular-nums">{lead.score}</b>
         </span>
-        {lead.sourceKind === "affiliate_referral" && lead.affiliateRef ? (
+        {lead.sourceKind === "competition" ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
+            title={`Competition: ${lead.sourceLabel ?? "—"}`}
+          >
+            🏆 {lead.sourceLabel ?? "Competition"}
+          </span>
+        ) : null}
+        {lead.affiliateRef ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-medium text-[#4F46E5]">
             <Users className="h-3 w-3" />
             via {lead.affiliateRef}

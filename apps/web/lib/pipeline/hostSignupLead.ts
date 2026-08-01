@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { resolveLeadSource } from "./leadSource";
+
 // Drop a Hosts-pipeline card the moment someone STARTS host signup (auth account
 // created, onboarding not yet finished) so stalled signups are visible to sales
 // at stage "New". Called best-effort from the host createAccountAction — a
@@ -30,22 +32,13 @@ export async function createHostSignupLeadCard(
   if (!stage) return;
 
   // Affiliate attribution is already bound at this point (bindAffiliateReferral
-  // runs earlier in the signup action) — read it back to badge the card.
-  let affiliateRef: string | null = null;
-  let sourceKind = "direct";
-  let sourceLabel: string | null = null;
-  const { data: ref } = await admin
-    .from("affiliate_referrals")
-    .select("affiliate_accounts(slug)")
-    .eq("referred_user_id", input.userId)
-    .maybeSingle();
-  const slug =
-    (ref?.affiliate_accounts as { slug?: string } | null)?.slug ?? null;
-  if (slug) {
-    affiliateRef = slug;
-    sourceKind = "affiliate_referral";
-    sourceLabel = slug;
-  }
+  // runs earlier in the signup action). Resolve how the card records its source:
+  // competition affiliate link → 'competition', normal affiliate link →
+  // 'affiliate_referral', otherwise a plain 'direct' signup.
+  const src = await resolveLeadSource(admin, input.userId);
+  const sourceKind = src.sourceKind ?? "direct";
+  const sourceLabel = src.sourceLabel;
+  const affiliateRef = src.affiliateRef;
 
   // Insert-if-absent. ignoreDuplicates → a real insert returns the row; an
   // existing card returns null, so the "created" activity only fires once.
@@ -59,6 +52,7 @@ export async function createHostSignupLeadCard(
         source_kind: sourceKind,
         source_label: sourceLabel,
         affiliate_ref: affiliateRef,
+        suppress_default_nurture: src.suppressNurture,
         last_activity_at: new Date().toISOString(),
       },
       { onConflict: "user_id,audience", ignoreDuplicates: true },
