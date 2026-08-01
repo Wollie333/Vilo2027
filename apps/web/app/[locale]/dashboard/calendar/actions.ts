@@ -150,15 +150,22 @@ export async function setManualBlocksAction(
       .in("date", dates);
 
     if (block) {
-      // When blocking, only insert for dates that have no block at all
-      const blockedDates = new Set(
-        (existing ?? []).map((r) => r.date as string),
+      // "Block the whole date" writes a whole-listing block (room_id null). Skip
+      // only dates that ALREADY carry a whole-listing block — a date with just a
+      // room-scoped block still needs the whole-listing row added, otherwise on a
+      // multi-room listing the other rooms stay bookable while the host believes
+      // the date is fully blocked. (property,null,date) is distinct from
+      // (property,roomId,date) in the unique index, so this never conflicts.
+      const wholeBlocked = new Set(
+        (existing ?? [])
+          .filter((r) => r.room_id == null)
+          .map((r) => r.date as string),
       );
       const {
         data: { user },
       } = await supabase.auth.getUser();
       const toInsert = dates
-        .filter((d) => !blockedDates.has(d))
+        .filter((d) => !wholeBlocked.has(d))
         .map((d) => ({
           property_id: listingId,
           date: d,

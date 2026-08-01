@@ -52,13 +52,24 @@ export async function getHostPayPalForBusiness(
   businessId: string,
 ): Promise<PayPalCreds | null> {
   const supabase = createAdminClient();
-  const { data: row } = await supabase
+  // A business can end up with more than one paypal gateway row — e.g. a
+  // re-connect that inserted a second. `.maybeSingle()` ERRORS on multiple rows
+  // and returns null, silently dropping the PayPal rail for that business. Mirror
+  // getHostPaystackForBusiness: read ALL enabled rows (newest first) and return
+  // the first that resolves to usable creds, so a stray duplicate can't knock out
+  // a business's PayPal payments.
+  const { data: rows } = await supabase
     .from("host_payment_gateways")
     .select("environment, public_identifier, secret_cipher, is_enabled")
     .eq("business_id", businessId)
     .eq("gateway", "paypal")
-    .maybeSingle();
-  return paypalFromRow(row);
+    .eq("is_enabled", true)
+    .order("created_at", { ascending: false });
+  for (const row of rows ?? []) {
+    const resolved = paypalFromRow(row);
+    if (resolved) return resolved;
+  }
+  return null;
 }
 
 /**

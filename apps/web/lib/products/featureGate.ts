@@ -8,9 +8,12 @@ import { createServerClient } from "@/lib/supabase/server";
  *
  * ENFORCING (false, 2026-07-17): access gates resolve through the real
  * entitlement chain (host override → active/trialing product → plan → default
- * false). Hosts are provisioned via the "Beta" product, which opens every host
- * feature EXCEPT the website builder (shipping later). A host with no active
- * subscription is gated out — that is the intended enforcement.
+ * false). New hosts are provisioned on the **free** plan (active) at signup
+ * (signup/host/actions.ts finalizeOnboarding), and the free plan seed + the
+ * free-floor migration open the launch feature set EXCEPT the website builder
+ * (shipping later). (Some earlier test hosts sit on a "Beta" product, which is
+ * equivalent — full-open except the builder.) A host with no active subscription
+ * is gated out — that is the intended enforcement.
  *
  * Set back to true only to temporarily re-open everything for broad smoke-testing
  * (AGENT_RULES.md §3.4).
