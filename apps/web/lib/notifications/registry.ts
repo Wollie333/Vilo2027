@@ -36,6 +36,12 @@ export type BookingRefs = {
    *  (already-updated) booking; these carry what they moved FROM. */
   old_check_in?: string;
   old_check_out?: string;
+  /** Guest-initiated request context (booking_change_request_host /
+   *  addon_added_host): what kind of change + any add-on / guest-count detail. */
+  request_kind?: string; // 'date_change' | 'guest_change' | 'addon'
+  addon_name?: string;
+  amount?: string; // formatted money for an added extra
+  guests_count?: number;
 };
 
 export type EftRefs = {
@@ -83,6 +89,9 @@ export type QuoteRefs = {
   validUntil?: string;
   /** Public accept-token → the /q/[id]/[token] page (no login to accept). */
   acceptToken?: string;
+  /** quote_response_host: 'accepted' | 'declined' — how the guest responded. */
+  responded?: string;
+  bookingId?: string;
 };
 
 export type SubscriptionRefs = {
@@ -436,6 +445,67 @@ export const NOTIFICATION_REGISTRY = {
       link: `/dashboard/bookings/${r.booking_id}`,
     }),
     dedupeKey: (r) => `booking_confirmed:${r.booking_id}`,
+  } satisfies EventBuilder<BookingRefs>,
+
+  // ─── Guest-initiated requests on a confirmed booking (unified pattern) ───
+  // Guest asked to change dates or add a guest — host must approve. Banner +
+  // inbox card are posted alongside this notification.
+  booking_change_request_host: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title:
+        r.request_kind === "guest_change"
+          ? "Guest change request"
+          : "Date change request",
+      body: clip(
+        `${r.guest_first_name ?? "A guest"} requested a ${
+          r.request_kind === "guest_change" ? "guest" : "date"
+        } change for ${r.listing_name ?? "their booking"}`,
+      ),
+      data: link("/dashboard/bookings/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title:
+        r.request_kind === "guest_change"
+          ? "Guest change request"
+          : "Date change request",
+      body: `${r.guest_first_name ?? "A guest"} · ${r.listing_name ?? ""}`.trim(),
+      link: `/dashboard/bookings/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<BookingRefs>,
+
+  // Guest attached a paid extra (add-on) to their booking — informational, the
+  // charge is already on the ledger; host sees a banner + inbox card too.
+  addon_added_host: {
+    category: "bookings",
+    feature: "booking",
+    severity: "default",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Add-on added",
+      body: clip(
+        `${r.guest_first_name ?? "A guest"} added ${r.addon_name ?? "an extra"}${
+          r.amount ? ` (${r.amount})` : ""
+        } to ${r.listing_name ?? "their booking"}`,
+      ),
+      data: link("/dashboard/bookings/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "default",
+    }),
+    inApp: (r) => ({
+      title: "Add-on added to a booking",
+      body: `${r.guest_first_name ?? "A guest"} added ${r.addon_name ?? "an extra"}${
+        r.amount ? ` · ${r.amount}` : ""
+      }`,
+      link: `/dashboard/bookings/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
   } satisfies EventBuilder<BookingRefs>,
 
   booking_cancelled_host: {
@@ -999,6 +1069,33 @@ export const NOTIFICATION_REGISTRY = {
       link: `/portal/quotes/${r.quoteId}`,
     }),
     dedupeKey: (r) => `quote_sent:${r.quoteId}`,
+  } satisfies EventBuilder<QuoteRefs>,
+
+  // Guest accepted or declined a (regular) quote → tell the host. Looking-For
+  // quotes already have their own accepted/declined events; this covers the
+  // standard accommodation/custom quotes, which previously notified nobody.
+  quote_response_host: {
+    category: "quote_requests",
+    feature: "message",
+    severity: "high",
+    refKeys: ["quoteId"],
+    push: (r) => ({
+      title: r.responded === "accepted" ? "Quote accepted" : "Quote declined",
+      body: clip(
+        `${r.guestFirstName ?? "A guest"} ${
+          r.responded === "accepted" ? "accepted" : "declined"
+        } your quote${r.listingName ? ` for ${r.listingName}` : ""}`,
+      ),
+      data: link("/dashboard/quotes/[id]", { id: r.quoteId }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: r.responded === "accepted" ? "Quote accepted" : "Quote declined",
+      body: `${r.guestFirstName ?? "A guest"}${r.listingName ? ` · ${r.listingName}` : ""}`,
+      link: `/dashboard/quotes/${r.quoteId}`,
+    }),
+    dedupeKey: (r) => `quote_response:${r.quoteId}:${r.responded ?? ""}`,
   } satisfies EventBuilder<QuoteRefs>,
 
   // ─── Website enquiries (host) — a website contact-form submission
