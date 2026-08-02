@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowRight,
   Baby,
   Building2,
   Cigarette,
@@ -39,6 +40,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+import { Link } from "@/i18n/navigation";
 
 import {
   PolicyDialog,
@@ -95,6 +98,15 @@ type Coverage = {
   roomsWithCancellation: number;
   roomsWithHouseRules: number;
   fullyCovered: boolean;
+};
+
+export type UncoveredRoom = {
+  roomId: string;
+  listingId: string;
+  roomName: string;
+  listingName: string;
+  /** Which policy types this room is missing (e.g. "cancellation"). */
+  missing: string[];
 };
 
 // Which library filter bucket a policy type falls into. booking_terms +
@@ -172,11 +184,13 @@ export function PolicyLibrary({
   coverage,
   listings,
   assignments,
+  uncoveredRooms,
 }: {
   initial: PolicyCard[];
   coverage: Coverage;
   listings: AssignListing[];
   assignments: AssignmentRow[];
+  uncoveredRooms: UncoveredRoom[];
 }) {
   const router = useRouter();
   // Policy id → name, so the Assign modal can name the policy currently
@@ -323,8 +337,8 @@ export function PolicyLibrary({
           </div>
         </section>
       ) : coverage.roomsTotal > 0 ? (
-        <section className="flex items-center gap-3.5 rounded-card border border-status-pending/30 bg-status-pending/10 px-5 py-3.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-status-pending shadow-card">
+        <section className="flex items-start gap-3.5 rounded-card border border-status-pending/30 bg-status-pending/10 px-5 py-3.5">
+          <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-status-pending shadow-card">
             <ShieldAlert className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -334,9 +348,33 @@ export function PolicyLibrary({
             <div className="mt-0.5 text-[12px] text-brand-mute">
               {coverage.roomsWithCancellation}/{coverage.roomsTotal} rooms have
               a cancellation policy · {coverage.roomsWithHouseRules}/
-              {coverage.roomsTotal} have house rules. Assign them from each
-              listing&rsquo;s editor.
+              {coverage.roomsTotal} have house rules. Click a room to assign its
+              policies.
             </div>
+            {uncoveredRooms.length > 0 ? (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {uncoveredRooms.map((r) => (
+                  <Link
+                    key={r.roomId}
+                    href={`/dashboard/properties/${r.listingId}/edit/rooms/${r.roomId}?section=policies`}
+                    className="group inline-flex items-center gap-1.5 rounded-pill border border-status-pending/30 bg-white px-2.5 py-1 text-[11.5px] font-medium text-brand-ink transition hover:border-brand-primary/50 hover:bg-brand-light"
+                    title={`Assign ${r.missing.join(" & ")} for ${r.roomName}`}
+                  >
+                    <ShieldAlert className="h-3 w-3 text-status-pending" />
+                    <span className="truncate">
+                      <span className="text-brand-mute">
+                        {r.listingName} ·{" "}
+                      </span>
+                      {r.roomName}
+                    </span>
+                    <span className="rounded-pill bg-status-pending/10 px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-wide text-status-pending">
+                      {r.missing.length === 1 ? r.missing[0] : "policies"}
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-brand-mute transition group-hover:translate-x-0.5 group-hover:text-brand-primary" />
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}

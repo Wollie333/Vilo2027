@@ -29,8 +29,10 @@ export const dynamic = "force-dynamic";
 
 export default async function EditRoomPage({
   params,
+  searchParams,
 }: {
   params: { id: string; roomId: string };
+  searchParams?: { section?: string };
 }) {
   const supabase = createServerClient();
   const {
@@ -356,6 +358,7 @@ export default async function EditRoomPage({
       initialAmenityKeys={amenityKeys}
       initialAccess={access}
       policies={policies}
+      initialSection={searchParams?.section}
     />
   );
 }

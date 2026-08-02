@@ -192,6 +192,7 @@ export function RoomEditor({
   initialAmenityKeys,
   initialAccess,
   policies,
+  initialSection,
 }: {
   listingId: string;
   listingName: string;
@@ -205,9 +206,15 @@ export function RoomEditor({
   initialAmenityKeys: string[];
   initialAccess: RoomAccessInitial | null;
   policies: RoomPolicyInfo[];
+  initialSection?: string;
 }) {
   const router = useRouter();
-  const [active, setActive] = useState<StepKey>("details");
+  // Deep-link support: ?section=policies opens straight to that tab (used by the
+  // "rooms need a policy" warning on the Policies page).
+  const startStep: StepKey = STEPS.some((s) => s.key === initialSection)
+    ? (initialSection as StepKey)
+    : "details";
+  const [active, setActive] = useState<StepKey>(startStep);
   const [room, setRoom] = useState<RoomEditorRoom>(initialRoom);
   const [photos, setPhotos] = useState<RoomEditorPhoto[]>(initialPhotos);
   const [amenityKeys, setAmenityKeys] = useState<string[]>(initialAmenityKeys);

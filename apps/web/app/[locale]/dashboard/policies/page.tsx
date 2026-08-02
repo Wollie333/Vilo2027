@@ -185,6 +185,31 @@ export default async function PoliciesPage() {
     roomsWithCancellation === roomsTotal &&
     roomsWithHouseRules === roomsTotal;
 
+  // The exact rooms that still need a cancellation policy and/or house rules —
+  // each links straight to that room's Policies tab so the host can assign it.
+  const listingNameById = new Map(
+    (listings ?? []).map((l) => [
+      l.id as string,
+      (l.name as string) || "Untitled listing",
+    ]),
+  );
+  const uncoveredRooms = allRooms
+    .map((r) => {
+      const missing: string[] = [];
+      if (!roomCovered(r.id, r.property_id, "cancellation"))
+        missing.push("cancellation");
+      if (!roomCovered(r.id, r.property_id, "house_rules"))
+        missing.push("house rules");
+      return {
+        roomId: r.id,
+        listingId: r.property_id,
+        roomName: (r.name as string) || "Room",
+        listingName: listingNameById.get(r.property_id) ?? "Listing",
+        missing,
+      };
+    })
+    .filter((r) => r.missing.length > 0);
+
   const cards: PolicyCard[] = (policies ?? []).map((p) => ({
     id: p.id,
     type: p.type as PolicyType,
@@ -237,6 +262,7 @@ export default async function PoliciesPage() {
       }}
       listings={assignListings}
       assignments={assignmentRows}
+      uncoveredRooms={uncoveredRooms}
     />
   );
 }
