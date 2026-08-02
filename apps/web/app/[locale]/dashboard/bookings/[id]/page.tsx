@@ -699,9 +699,45 @@ export default async function BookingDetailPage({
     acknowledgedAt: booking.policy_acknowledged_at,
   });
 
+  // Open guest requests the host must action (banner): date/add-guest change
+  // requests + open refund requests.
+  const [{ data: openChangeRows }, { data: openRefundRows }] =
+    await Promise.all([
+      admin
+        .from("booking_requests")
+        .select("id, type, payload, guest_message, created_at")
+        .eq("booking_id", booking.id)
+        .eq("status", "pending")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("refund_requests")
+        .select("id, requested_amount, currency, reason, created_at")
+        .eq("booking_id", booking.id)
+        .in("status", ["pending"])
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+    ]);
+  const guestChangeRequests = (openChangeRows ?? []).map((r) => ({
+    id: r.id,
+    type: r.type,
+    payload: (r.payload ?? null) as Record<string, unknown> | null,
+    guestMessage: r.guest_message,
+    createdAt: r.created_at,
+  }));
+  const openRefundRequests = (openRefundRows ?? []).map((r) => ({
+    id: r.id,
+    amount: Number(r.requested_amount),
+    currency: r.currency ?? "ZAR",
+    reason: r.reason,
+    createdAt: r.created_at,
+  }));
+
   const data: BookingDetailData = {
     id: booking.id,
     reference: booking.reference,
+    guestChangeRequests,
+    openRefundRequests,
     conversationId,
     messages,
     templates,

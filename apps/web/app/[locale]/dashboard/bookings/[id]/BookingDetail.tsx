@@ -59,6 +59,11 @@ import {
   EventTimeline,
   type TimelineEvent,
 } from "@/components/timeline/EventTimeline";
+import {
+  GuestRequestBanner,
+  type OpenChangeRequest,
+  type OpenRefundRequest,
+} from "./GuestRequestBanner";
 import type { PoliciesAsBooked as PoliciesAsBookedData } from "@/lib/bookings/policiesAsBooked";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
@@ -238,6 +243,9 @@ export type BookingDetailData = {
     authorInitials: string;
   }[];
   timeline: TimelineEvent[];
+
+  guestChangeRequests: OpenChangeRequest[];
+  openRefundRequests: OpenRefundRequest[];
 
   hostMessage: string | null;
   guestFirstName: string | null;
@@ -1096,6 +1104,10 @@ function OverviewPanel({
       </div>
 
       <div className="space-y-6">
+        <GuestRequestBanner
+          changeRequests={d.guestChangeRequests}
+          refundRequests={d.openRefundRequests}
+        />
         {d.hasWorkflow ? (
           <Card>
             <div className="flex items-center gap-2 bg-status-pending/10 px-5 py-3">
