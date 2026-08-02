@@ -17,9 +17,16 @@ builder is disabled so guests book via the platform listing + live booking link 
 5. **Cancel→refund %** — RPC reads immutable snapshot: 13d→100%, 3d→50%, 0d→0% (Moderate). ✓ (amount=0
    only because test bookings have total_paid=0.)
 
-**⚠️ Test artifacts:** BK-0105 now completed+reviewed (review 323b75d3 on The Vines); offer to revert for
-clean demo. **▶️ NEXT:** optional real-payment refund-amount demo · revert artifacts · founder host-side
-clicks · THEN merge to main + db push (`230000`/`240000`/`250000`) · THEN item 6 AFFILIATE (lockdown cleared pt8).
+**✅ Follow-ups (founder answers):** (a) **Coupon scopes all 3 verified live** — order −R500 / accommodation
+−R450 / addons −R50 (each discounts the right base, excludes cleaning). (b) **Add-on display** root-caused:
+per-listing `property_addons` enablement; Daily breakfast just wasn't enabled → enabled it, both now show.
+⚠️ No "enable across all listings" option (feature gap to decide). (c) **Real refund-amount demo:** BK-0099
+paid R2 300 → cancel 3d out → 50% → guest R1 150 + host retains R1 150 + credit note CN-0057 + pending refund.
+
+**⚠️ Test artifacts (founder: leave for now):** BK-0105 completed+reviewed (The Vines avg 4.40); BK-0099
+cancelled + INV-0305 + CN-0057 + refund_request; coupons VERIFYROOM/VERIFYADDON; Daily breakfast enabled on
+Seaview (keep). **▶️ NEXT:** founder host-side clicks · decide add-on "all listings" feature · revert artifacts
+if wanted · THEN merge to main + db push (`230000`/`240000`/`250000`) · THEN item 6 AFFILIATE (lockdown cleared pt8).
 
 ---
 
