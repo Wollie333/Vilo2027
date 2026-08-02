@@ -2,7 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-01 pt7) — **HOST SUB-FEATURE VERIFICATION — ALL 6 DONE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt8) — **AFFILIATE/PRIZE RPC LOCKDOWN CLEARED (live)** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `046095a`. Tree clean. 23 ahead / 13 behind origin/main
+(NOT pushed — founder: merge & push to main LAST).** Solo item-6 pre-work while host awaits founder
+live-verify. Regenerated `docs/SCHEMA.md` from live (211 tables / 197 fns) → **the standout affiliate
+risk is CLEARED**: the only 3 anon-executable SECURITY DEFINER fns on live are benign public helpers
+(`current_user_has_password`/`get_listing_policy_summary`/`record_error_event`); **every affiliate/prize
+payout/credit RPC is service_role-only**, incl. the post-lockdown 07-30/07-31 ones. The `p_admin`-arg IDOR
+hole is confirmed closed at the live grant level. **⚠️ New non-host finding:** `drain-nurture` cron is
+Vault-gated on an UNSET `nurture_worker_url` → reports success while sending nothing (founder must set the
+secret per env). Details in memory anchor pt8. Prior pt7 host-verification save point below still stands.
+
+---
+
+## 🟢 SAVE POINT (2026-08-01 pt7) — **HOST SUB-FEATURE VERIFICATION — ALL 6 DONE**
 
 **Branch `fix/host-launch-hardening`, HEAD `23f413c`. Tree clean. 21 ahead / 13 behind origin/main
 (NOT pushed — founder: merge & push to main LAST).** Living resume anchor = memory
