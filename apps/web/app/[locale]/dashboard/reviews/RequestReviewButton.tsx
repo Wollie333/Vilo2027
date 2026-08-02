@@ -142,8 +142,11 @@ export function RequestReviewButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        disabled={count === 0}
-        title={count === 0 ? "No guests awaiting a review request" : undefined}
+        title={
+          count === 0
+            ? "No stays are awaiting a review request yet — tap to see why"
+            : undefined
+        }
         className={btnCls}
       >
         <Star className="h-4 w-4" />

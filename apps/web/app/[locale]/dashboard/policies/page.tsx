@@ -94,9 +94,10 @@ export default async function PoliciesPage() {
         : Promise.resolve({ data: [] as never[] }),
       supabase
         .from("properties")
-        .select("id")
+        .select("id, name")
         .eq("host_id", host.id)
-        .is("deleted_at", null),
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
     ]);
 
   const listingIds = (listings ?? []).map((l) => l.id);
@@ -105,11 +106,14 @@ export default async function PoliciesPage() {
     listingIds.length
       ? supabase
           .from("property_rooms")
-          .select("id, property_id")
+          .select("id, property_id, name")
           .in("property_id", listingIds)
           .eq("is_active", true)
           .is("deleted_at", null)
-      : Promise.resolve({ data: [] as { id: string; property_id: string }[] }),
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({
+          data: [] as { id: string; property_id: string; name: string }[],
+        }),
     listingIds.length
       ? supabase
           .from("property_policies")
@@ -207,6 +211,21 @@ export default async function PoliciesPage() {
     assignedCount: assignCount.get(p.id) ?? 0,
   }));
 
+  // Listings (+ their rooms) for the in-manager "Assign" modal.
+  const assignListings = (listings ?? []).map((l) => ({
+    id: l.id,
+    name: (l.name as string) || "Untitled listing",
+    rooms: (rooms ?? [])
+      .filter((r) => r.property_id === l.id)
+      .map((r) => ({ id: r.id, name: (r.name as string) || "Room" })),
+  }));
+  const assignmentRows = (assignments ?? []).map((a) => ({
+    property_id: a.property_id,
+    room_id: a.room_id,
+    policy_id: a.policy_id,
+    policy_type: a.policy_type,
+  }));
+
   return (
     <PolicyLibrary
       initial={cards}
@@ -216,6 +235,8 @@ export default async function PoliciesPage() {
         roomsWithHouseRules,
         fullyCovered,
       }}
+      listings={assignListings}
+      assignments={assignmentRows}
     />
   );
 }

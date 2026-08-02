@@ -2,6 +2,7 @@
 
 import {
   Baby,
+  Building2,
   Cigarette,
   CigaretteOff,
   Clock,
@@ -49,6 +50,11 @@ import {
   setDefaultPolicyAction,
   togglePolicyStatusAction,
 } from "./actions";
+import {
+  AssignPolicyModal,
+  type AssignListing,
+  type AssignmentRow,
+} from "./AssignPolicyModal";
 import { PolicyEditorSheet } from "./PolicyEditorSheet";
 import { RetirePolicyModal } from "./RetirePolicyModal";
 import {
@@ -164,11 +170,22 @@ function toDialogData(p: PolicyCard): PolicyDialogData {
 export function PolicyLibrary({
   initial,
   coverage,
+  listings,
+  assignments,
 }: {
   initial: PolicyCard[];
   coverage: Coverage;
+  listings: AssignListing[];
+  assignments: AssignmentRow[];
 }) {
   const router = useRouter();
+  // Policy id → name, so the Assign modal can name the policy currently
+  // occupying a scope ("Currently: Strict 30-day").
+  const policyNamesById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const p of initial) m[p.id] = p.name;
+    return m;
+  }, [initial]);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("type");
@@ -393,6 +410,9 @@ export function PolicyLibrary({
               policy={p}
               onEdit={() => openEdit(p)}
               onChanged={onChanged}
+              listings={listings}
+              assignments={assignments}
+              policyNamesById={policyNamesById}
             />
           ))}
           {filter === "all" && query === "" ? (
@@ -585,17 +605,30 @@ function PolicyGridCard({
   policy: p,
   onEdit,
   onChanged,
+  listings,
+  assignments,
+  policyNamesById,
 }: {
   policy: PolicyCard;
   onEdit: () => void;
   onChanged: () => void;
+  listings: AssignListing[];
+  assignments: AssignmentRow[];
+  policyNamesById: Record<string, string>;
 }) {
   const [pending, start] = useTransition();
   const [retireOpen, setRetireOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const meta = TYPE_META[p.type];
   const Icon = meta.icon;
   const PillIcon = meta.pillIcon;
   const active = p.status === "active";
+  // An active, non-default policy that no listing/room uses is "not assigned" —
+  // it exists in the library but affects no booking. Defaults apply everywhere,
+  // so they're never flagged. `privacy` is platform-wide (not host-assignable).
+  const notAssigned =
+    active && !p.isDefault && p.assignedCount === 0 && p.type !== "privacy";
+  const canAssign = active && p.type !== "privacy";
   const wide = p.type === "cancellation" && p.isDefault;
   const chips = p.type === "house_rules" ? houseRuleChips(p) : [];
   const topRules = [...p.rules]
@@ -660,6 +693,11 @@ function PolicyGridCard({
               {p.locked ? (
                 <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
                   <Lock className="h-2.5 w-2.5" /> Preset
+                </span>
+              ) : null}
+              {notAssigned ? (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-status-pending/10 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-status-pending">
+                  <ShieldAlert className="h-2.5 w-2.5" /> Not assigned
                 </span>
               ) : null}
             </div>
@@ -774,6 +812,15 @@ function PolicyGridCard({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Toggle on={active} onClick={toggle} disabled={pending} />
+          {canAssign ? (
+            <IconBtn
+              label="Assign to listings"
+              onClick={() => setAssignOpen(true)}
+              disabled={pending}
+            >
+              <Building2 className="h-3.5 w-3.5" />
+            </IconBtn>
+          ) : null}
           {active && !p.isDefault ? (
             <IconBtn
               label="Set as default"
@@ -823,6 +870,19 @@ function PolicyGridCard({
         policyName={p.name}
         onDone={onChanged}
       />
+
+      {canAssign ? (
+        <AssignPolicyModal
+          open={assignOpen}
+          onOpenChange={setAssignOpen}
+          policyId={p.id}
+          policyType={p.type}
+          policyName={p.name}
+          listings={listings}
+          assignments={assignments}
+          policyNamesById={policyNamesById}
+        />
+      ) : null}
     </article>
   );
 }
