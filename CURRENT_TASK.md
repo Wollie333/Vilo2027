@@ -2,7 +2,46 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt14) — **ALL HOST FEATURES FIXED + TESTED; REPORTS + PUBLISH-NUDGE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt15) — **REPORTS FULLY SEEDED (no zeros); PRE-MERGE READINESS** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`. Tree clean after this commit. 42 ahead / 13 behind origin/main (NOT
+pushed — founder: merge & push to main LAST).** Living resume anchor = memory `launch-prep-host-then-affiliate`
+(pt15). This is the **pre-merge save point** the founder requested before merging Host side into main.
+
+**pt15 — every report card now reflects real data (was showing zeros).** New reusable, idempotent seed
+`apps/web/scripts/seed-reports-nonzero.mjs` (run: `node --env-file=.env.local scripts/seed-reports-nonzero.mjs`
+from `apps/web`) fills the demo host `0a111111…` (Cape Coast Retreats):
+- **Refunds** — flipped the 2 in-period `pending` refund_requests → `completed` (approved clamped ≤ linked
+  payment): Refunded **R6 000 / 2**, refund-rate **15.6%** (was R0).
+- **Add-ons collected** — 3 completed `payments` kind=`addon` on BK-0087/0086/0105 → **R1 450**.
+- **Coupons redeemed** — attached VERIFY10 + discount to BK-0090/0092/0087 → **3 · R950 given**.
+- **Wielo credits** — seeded `wielo_credit_wallet` (bal **120**) + 3 `wielo_credit_ledger` rows → **+150 / −30**.
+- **Quotes** — 8 `quotes` inserted (6 land in-period: **6 sent · 3 converted**) → SecondaryMetrics + funnel.
+- **Customer journey** — 13 pre-booking `property_view_events` (user_id=guest_id, dated before booking) →
+  median **10.1d**, **2.2** touchpoints, **all 5** timeframe buckets non-zero. (Root cause: base demo created
+  bookings + anonymous views at the same instant, so `fetch_time_to_book`'s HAVING never matched.)
+- Verified via the EXACT RPCs + direct queries the page runs (`fetch_secondary_metrics`,
+  `fetch_refunds_cancellations`, `fetch_time_to_book`, RevenueBreakdown queries). **NOT browser-rendered by
+  Claude** (no login) — founder refreshes `/dashboard/reports` (default YTD) to see the cards.
+- **Still-empty report charts (intentional, NOT host blockers):** Looking-For (0 posts — marketplace),
+  Website traffic (website builder disabled for MVP, `host_websites`=0).
+
+**🔴 TO GET ALL CIRCLES GREEN (host-side readiness ≈90%):**
+1. **Publish-listing nudge modal** — built (`d144356`) but NEVER live-verified; demo host has live listings so
+   it correctly won't show. Needs a host with ≥1 listing and 0 published. ← the one 🔴.
+2. **Specials C1 fix + migrations `230000`/`240000`/`250000`** — staged, go live on the final push.
+3. **Founder live clicks** (login-gated, Claude can't): add a real iCal feed · assign a policy via UI ·
+   request+submit a review via the email link.
+4. **Payments live proof:** PayPal replay (sandbox) · a 2nd host's own gateway · one real OTA round-trip.
+
+**▶️ NEXT (get green → merge → beta):** (a) stand up a no-live-listing host so the founder can verify the
+publish nudge; (b) founder runs the 4 login-gated verifications above; (c) run `pnpm build` + `pnpm lint`
+green; (d) merge `fix/host-launch-hardening` → main + `supabase db push --linked` (all 6 migrations); THEN
+onboard beta hosts. Item 6 = AFFILIATE comes after.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt14) — **ALL HOST FEATURES FIXED + TESTED; REPORTS + PUBLISH-NUDGE**
 
 **Branch `fix/host-launch-hardening`, HEAD `d144356`. Tree clean. 41 ahead / 13 behind origin/main (NOT pushed —
 founder: merge & push to main LAST).** Living resume anchor = memory `launch-prep-host-then-affiliate` (pt14).
