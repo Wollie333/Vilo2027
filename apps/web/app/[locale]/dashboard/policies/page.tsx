@@ -185,30 +185,81 @@ export default async function PoliciesPage() {
     roomsWithCancellation === roomsTotal &&
     roomsWithHouseRules === roomsTotal;
 
-  // The exact rooms that still need a cancellation policy and/or house rules —
-  // each links straight to that room's Policies tab so the host can assign it.
+  // ── Smart coverage gaps (drives the warning banner + inline assign modal) ──
+  // For cancellation + house rules, per listing:
+  //  • listing-wide assignment exists  → every room covered, no gap.
+  //  • a room has no assignment (and none listing-wide) → that ROOM is a gap.
+  //  • every room individually covered but NO listing-wide → the PROPERTY
+  //    (whole-listing) is a gap — booking the whole place has no policy.
+  // Host defaults are deliberately NOT counted as coverage: the warning nudges
+  // explicit assignment. Each gap is fixed inline from a modal (no redirect).
   const listingNameById = new Map(
     (listings ?? []).map((l) => [
       l.id as string,
       (l.name as string) || "Untitled listing",
     ]),
   );
-  const uncoveredRooms = allRooms
-    .map((r) => {
-      const missing: string[] = [];
-      if (!roomCovered(r.id, r.property_id, "cancellation"))
-        missing.push("cancellation");
-      if (!roomCovered(r.id, r.property_id, "house_rules"))
-        missing.push("house rules");
-      return {
-        roomId: r.id,
-        listingId: r.property_id,
-        roomName: (r.name as string) || "Room",
-        listingName: listingNameById.get(r.property_id) ?? "Listing",
-        missing,
-      };
-    })
-    .filter((r) => r.missing.length > 0);
+  const WARN_TYPES: PolicyType[] = ["cancellation", "house_rules"];
+  type Gap = {
+    key: string;
+    scope: "room" | "listing";
+    listingId: string;
+    listingName: string;
+    roomId: string | null;
+    targetName: string;
+    missing: PolicyType[];
+  };
+  const gapMap = new Map<string, Gap>();
+  const addGap = (
+    scope: "room" | "listing",
+    listingId: string,
+    roomId: string | null,
+    targetName: string,
+    type: PolicyType,
+  ) => {
+    const key = `${listingId}:${roomId ?? "_"}`;
+    const g =
+      gapMap.get(key) ??
+      ({
+        key,
+        scope,
+        listingId,
+        listingName: listingNameById.get(listingId) ?? "Listing",
+        roomId,
+        targetName,
+        missing: [],
+      } as Gap);
+    if (!g.missing.includes(type)) g.missing.push(type);
+    gapMap.set(key, g);
+  };
+  for (const l of listings ?? []) {
+    const lname = listingNameById.get(l.id) ?? "Listing";
+    const lrooms = allRooms.filter((r) => r.property_id === l.id);
+    for (const type of WARN_TYPES) {
+      if (wideByListing.get(l.id)?.has(type)) continue; // listing-wide covers all
+      if (lrooms.length === 0) {
+        addGap("listing", l.id, null, lname, type); // whole-listing needs it
+        continue;
+      }
+      const without = lrooms.filter((r) => !roomScoped.has(`${r.id}:${type}`));
+      if (without.length === 0) {
+        // Every room covered per-room, but the property has no whole-listing one.
+        addGap("listing", l.id, null, lname, type);
+      } else {
+        for (const r of without)
+          addGap("room", l.id, r.id, (r.name as string) || "Room", type);
+      }
+    }
+  }
+  const coverageGaps = [...gapMap.values()];
+
+  // Active policies per warn-type → options for the inline assign modal.
+  const optionsByType: Record<string, { id: string; name: string }[]> = {};
+  for (const p of policies ?? []) {
+    if (p.status === "active" && WARN_TYPES.includes(p.type as PolicyType)) {
+      (optionsByType[p.type] ??= []).push({ id: p.id, name: p.name });
+    }
+  }
 
   const cards: PolicyCard[] = (policies ?? []).map((p) => ({
     id: p.id,
@@ -262,7 +313,8 @@ export default async function PoliciesPage() {
       }}
       listings={assignListings}
       assignments={assignmentRows}
-      uncoveredRooms={uncoveredRooms}
+      coverageGaps={coverageGaps}
+      optionsByType={optionsByType}
     />
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowRight,
   Baby,
   Building2,
   Cigarette,
@@ -41,8 +40,6 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Link } from "@/i18n/navigation";
-
 import {
   PolicyDialog,
   type PolicyDialogData,
@@ -58,6 +55,7 @@ import {
   type AssignListing,
   type AssignmentRow,
 } from "./AssignPolicyModal";
+import { CoverageAssignModal, type CoverageItem } from "./CoverageAssignModal";
 import { PolicyEditorSheet } from "./PolicyEditorSheet";
 import { RetirePolicyModal } from "./RetirePolicyModal";
 import {
@@ -98,15 +96,6 @@ type Coverage = {
   roomsWithCancellation: number;
   roomsWithHouseRules: number;
   fullyCovered: boolean;
-};
-
-export type UncoveredRoom = {
-  roomId: string;
-  listingId: string;
-  roomName: string;
-  listingName: string;
-  /** Which policy types this room is missing (e.g. "cancellation"). */
-  missing: string[];
 };
 
 // Which library filter bucket a policy type falls into. booking_terms +
@@ -158,6 +147,17 @@ const TYPE_ORDER: Record<PolicyType, number> = {
   privacy: 4,
 };
 
+// Short human label for a missing policy type in the coverage chips.
+function missingLabel(type: PolicyType): string {
+  return type === "house_rules"
+    ? "house rules"
+    : type === "check_in_out"
+      ? "check-in & out"
+      : type === "booking_terms"
+        ? "terms"
+        : "cancellation";
+}
+
 const fmtTime = (t: string | null) => (t ? t.slice(0, 5) : "—");
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-ZA", {
@@ -184,15 +184,20 @@ export function PolicyLibrary({
   coverage,
   listings,
   assignments,
-  uncoveredRooms,
+  coverageGaps,
+  optionsByType,
 }: {
   initial: PolicyCard[];
   coverage: Coverage;
   listings: AssignListing[];
   assignments: AssignmentRow[];
-  uncoveredRooms: UncoveredRoom[];
+  coverageGaps: CoverageItem[];
+  optionsByType: Record<string, { id: string; name: string }[]>;
 }) {
   const router = useRouter();
+  const [coverageTarget, setCoverageTarget] = useState<CoverageItem | null>(
+    null,
+  );
   // Policy id → name, so the Assign modal can name the policy currently
   // occupying a scope ("Currently: Strict 30-day").
   const policyNamesById = useMemo(() => {
@@ -322,8 +327,8 @@ export function PolicyLibrary({
       </section>
 
       {/* ============ COVERAGE BANNER ============ */}
-      {coverage.fullyCovered ? (
-        <section className="flex items-center gap-3.5 rounded-card border border-brand-primary/30 bg-brand-light px-5 py-3.5">
+      {coverageGaps.length === 0 && coverage.roomsTotal > 0 ? (
+        <section className="flex items-center gap-3 rounded-card border border-brand-primary/30 bg-brand-light px-4 py-3.5 sm:gap-3.5 sm:px-5">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-brand-secondary shadow-card">
             <ShieldCheck className="h-5 w-5" />
           </span>
@@ -336,48 +341,61 @@ export function PolicyLibrary({
             </div>
           </div>
         </section>
-      ) : coverage.roomsTotal > 0 ? (
-        <section className="flex items-start gap-3.5 rounded-card border border-status-pending/30 bg-status-pending/10 px-5 py-3.5">
-          <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-status-pending shadow-card">
+      ) : coverageGaps.length > 0 ? (
+        <section className="flex items-start gap-3 rounded-card border border-status-pending/30 bg-status-pending/10 px-4 py-3.5 sm:gap-3.5 sm:px-5">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-status-pending shadow-card sm:h-10 sm:w-10">
             <ShieldAlert className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[13.5px] font-semibold text-brand-ink">
-              Some rooms still need a policy assigned
+              Some rooms or listings still need a policy assigned
             </div>
             <div className="mt-0.5 text-[12px] text-brand-mute">
               {coverage.roomsWithCancellation}/{coverage.roomsTotal} rooms have
               a cancellation policy · {coverage.roomsWithHouseRules}/
-              {coverage.roomsTotal} have house rules. Click a room to assign its
-              policies.
+              {coverage.roomsTotal} have house rules. Tap one to assign — it
+              opens right here.
             </div>
-            {uncoveredRooms.length > 0 ? (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {uncoveredRooms.map((r) => (
-                  <Link
-                    key={r.roomId}
-                    href={`/dashboard/properties/${r.listingId}/edit/rooms/${r.roomId}?section=policies`}
-                    className="group inline-flex items-center gap-1.5 rounded-pill border border-status-pending/30 bg-white px-2.5 py-1 text-[11.5px] font-medium text-brand-ink transition hover:border-brand-primary/50 hover:bg-brand-light"
-                    title={`Assign ${r.missing.join(" & ")} for ${r.roomName}`}
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {coverageGaps.map((g) => {
+                const GapIcon = g.scope === "listing" ? Building2 : ShieldAlert;
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => setCoverageTarget(g)}
+                    className="group inline-flex max-w-full items-center gap-1.5 rounded-pill border border-status-pending/30 bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink transition hover:border-brand-primary/50 hover:bg-brand-light"
+                    title={`Assign ${g.missing.map(missingLabel).join(" & ")}`}
                   >
-                    <ShieldAlert className="h-3 w-3 text-status-pending" />
+                    <GapIcon className="h-3 w-3 shrink-0 text-status-pending" />
                     <span className="truncate">
                       <span className="text-brand-mute">
-                        {r.listingName} ·{" "}
+                        {g.listingName} ·{" "}
                       </span>
-                      {r.roomName}
+                      {g.scope === "listing" ? "Whole listing" : g.targetName}
                     </span>
-                    <span className="rounded-pill bg-status-pending/10 px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-wide text-status-pending">
-                      {r.missing.length === 1 ? r.missing[0] : "policies"}
+                    <span className="shrink-0 rounded-pill bg-status-pending/10 px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-wide text-status-pending">
+                      {g.missing.length === 1
+                        ? missingLabel(g.missing[0])
+                        : `${g.missing.length} policies`}
                     </span>
-                    <ArrowRight className="h-3 w-3 text-brand-mute transition group-hover:translate-x-0.5 group-hover:text-brand-primary" />
-                  </Link>
-                ))}
-              </div>
-            ) : null}
+                    <Plus className="h-3 w-3 shrink-0 text-brand-mute transition group-hover:text-brand-primary" />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
       ) : null}
+
+      <CoverageAssignModal
+        open={coverageTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setCoverageTarget(null);
+        }}
+        item={coverageTarget}
+        optionsByType={optionsByType}
+      />
 
       {/* ============ FILTER BAR ============ */}
       <section>
