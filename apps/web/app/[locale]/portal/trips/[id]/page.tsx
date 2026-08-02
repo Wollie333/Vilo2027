@@ -35,6 +35,10 @@ import {
 
 import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
 import { AddTripGuestModal } from "@/app/[locale]/booking/[id]/success/AddTripGuestModal";
+import {
+  buildBookingActivity,
+  toTimelineEvents,
+} from "@/lib/bookings/activity";
 import { resolvePartyGuests } from "@/lib/bookings/party";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
@@ -817,67 +821,15 @@ export default async function PortalTripDetailPage({
     acknowledgedAt: booking.policy_acknowledged_at,
   });
 
-  // Booking timeline (guest-facing) — the same audit trail the host sees, from
-  // the booking's own status timestamps + the first captured payment. Rendered
-  // newest-last so the guest can follow requested → confirmed → paid → stay.
-  const { data: firstPaid } = await createAdminClient()
-    .from("payments")
-    .select("captured_at")
-    .eq("booking_id", booking.id)
-    // A later refund flips the payment to partially_refunded/refunded, but the
-    // money WAS received — keep the "Payment received" step in the timeline.
-    .in("status", ["completed", "partially_refunded", "refunded"])
-    .not("captured_at", "is", null)
-    .order("captured_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const timeline: TimelineEvent[] = (
-    [
-      {
-        label: "Booking requested",
-        at: booking.created_at,
-        kind: "Booking",
-        tone: "slate",
-      },
-      {
-        label: "Payment received",
-        at: firstPaid?.captured_at ?? null,
-        kind: "Payment",
-        tone: "green",
-      },
-      {
-        label: "Confirmed by host",
-        at: booking.confirmed_at,
-        kind: "Booking",
-        tone: "green",
-      },
-      {
-        label: "Checked in",
-        at: booking.checked_in_at,
-        kind: "Stay",
-        tone: "blue",
-      },
-      {
-        label: "Checked out",
-        at: booking.checked_out_at,
-        kind: "Stay",
-        tone: "green",
-      },
-      {
-        label: "Cancelled",
-        at: booking.cancelled_at,
-        kind: "Booking",
-        tone: "red",
-      },
-    ] as const
-  )
-    .filter((s) => s.at != null)
-    .map((s) => ({
-      at: s.at as string,
-      title: s.label,
-      kind: s.kind,
-      tone: s.tone,
-    }));
+  // Booking timeline (guest-facing) — the SAME shared activity aggregator the
+  // host sees, derived from the canonical tables (booking lifecycle, payments,
+  // refund_requests, booking_requests, support tickets, reviews). One source of
+  // truth → the guest and host timelines never disagree. `viewer:"guest"`
+  // renders the actor as "You" for guest-initiated actions.
+  const timeline: TimelineEvent[] = toTimelineEvents(
+    await buildBookingActivity(createAdminClient(), booking.id),
+    "guest",
+  );
 
   return (
     <div className="w-full">
