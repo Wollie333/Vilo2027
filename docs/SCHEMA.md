@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-07-31
+> **Last generated:** 2026-08-02
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,10 +16,10 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **198** (198 with RLS) |
-| Functions | **189** (149 SECURITY DEFINER, 68 trigger fns) |
-| Cron jobs | **45** (17 Vault-gated, 0 inactive) |
-| Vault secrets set | **22** |
+| Tables | **211** (211 with RLS) |
+| Functions | **197** (156 SECURITY DEFINER, 75 trigger fns) |
+| Cron jobs | **49** (20 Vault-gated, 0 inactive) |
+| Vault secrets set | **24** |
 
 ## 🚩 Automated red flags
 
@@ -31,6 +31,10 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 - `current_user_has_password`
 - `get_listing_policy_summary`
 - `record_error_event`
+
+### 1 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
+
+- `drain-nurture` needs `nurture_worker_url`
 
 
 ## Cron jobs
@@ -53,7 +57,10 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `drain-checkin-reminders` | `10 * * * *` | yes | yes |
 | `drain-digest-queue` | `5 * * * *` | yes | yes |
 | `drain-email-queue` | `* * * * *` | yes | yes |
+| `drain-host-offers` | `0 7 * * *` | yes | yes |
 | `drain-looking-for-notifications` | `20 * * * *` | yes | yes |
+| `drain-meta-capi` | `* * * * *` | yes | yes |
+| `drain-nurture` | `* * * * *` | yes | yes |
 | `drain-push-queue` | `* * * * *` | yes | yes |
 | `drain-review-requests` | `* * * * *` | yes | yes |
 | `expire-eft-bookings` | `0 * * * *` | yes | — |
@@ -61,6 +68,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `expire-pending-bookings` | `*/5 * * * *` | yes | — |
 | `expire-quotes` | `5 * * * *` | yes | — |
 | `expire-specials` | `15 2 * * *` | yes | — |
+| `expire-trials` | `15 2 * * *` | yes | — |
 | `finalize-ended-campaigns` | `30 * * * *` | yes | — |
 | `looking_for_auto_expire` | `0 * * * *` | yes | — |
 | `looking_for_expiry_notify` | `0 10 * * *` | yes | — |
@@ -124,6 +132,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clear_all` | **yes** | yes | callable |
+| `close_affiliate_account` | **yes** | yes | callable |
 | `compute_addon_subtotal` | — | — | callable |
 | `compute_campaign_results` | **yes** | yes | callable |
 | `count_broadcast_recipients` | **yes** | yes | callable |
@@ -209,18 +218,23 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `next_receipt_number` | **yes** | yes | callable |
 | `next_refund_number` | **yes** | yes | callable |
 | `notify_subscription_event` | **yes** | yes | callable |
+| `on_affiliate_activated` | **yes** | yes | trigger |
+| `on_affiliate_commission_accrued` | **yes** | yes | trigger |
 | `on_booking_cancelled` | **yes** | yes | trigger |
 | `on_booking_confirmed` | **yes** | yes | trigger |
 | `on_booking_confirmed_create_invoice` | **yes** | yes | trigger |
+| `on_host_created` | **yes** | yes | trigger |
 | `on_host_created_default_business` | **yes** | yes | trigger |
 | `on_message_inserted` | **yes** | yes | trigger |
 | `on_payment_completed_mark_invoice_paid` | **yes** | yes | trigger |
+| `on_platform_ledger_settled` | **yes** | yes | trigger |
 | `on_quote_booking_confirmed` | **yes** | yes | trigger |
 | `on_quote_status_change` | **yes** | yes | trigger |
 | `on_review_published` | **yes** | yes | trigger |
 | `on_special_status_change` | **yes** | yes | trigger |
 | `on_subscription_change` | **yes** | yes | trigger |
 | `on_subscription_insert` | **yes** | yes | trigger |
+| `on_subscription_trialing` | **yes** | yes | trigger |
 | `product_units_sold` | **yes** | yes | callable |
 | `program_affiliate_funnel` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
@@ -260,6 +274,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `sync_booking_refund_flag` | **yes** | yes | trigger |
 | `sync_feature_request_votes` | **yes** | yes | trigger |
 | `sync_help_article_feedback_counters` | **yes** | yes | trigger |
+| `sync_help_article_saved_count` | **yes** | yes | trigger |
 | `sync_listing_location` | — | — | trigger |
 | `sync_listing_policy_label` | **yes** | yes | trigger |
 | `sync_looking_for_quote_count` | **yes** | yes | trigger |
@@ -268,6 +283,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `tg_affiliate_clawback_on_refund` | **yes** | yes | trigger |
 | `tg_changelog_entries_touch` | — | — | trigger |
 | `tg_legal_documents_touch` | — | — | trigger |
+| `tg_legal_placements_touch` | — | — | trigger |
 | `tg_notify_affiliate_commission_earned` | **yes** | yes | trigger |
 | `touch_addons_updated_at` | — | — | trigger |
 | `touch_coupons_updated_at` | — | — | trigger |
@@ -375,7 +391,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (impersonating) REFERENCES user_profiles(id) ON DELETE SET NULL`
 
 **Checks:**
-- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'looking_for_post'::text, 'conversation'::text, 'feature_request'::text, 'changelog_entry'::text])))`
+- `CHECK ((target_type = ANY (ARRAY['host'::text, 'guest'::text, 'user'::text, 'booking'::text, 'listing'::text, 'business'::text, 'addon'::text, 'policy'::text, 'review'::text, 'subscription'::text, 'plan'::text, 'plan_feature'::text, 'platform_service'::text, 'product'::text, 'product_feature'::text, 'platform_ledger'::text, 'platform_coupon'::text, 'feature_override'::text, 'platform_setting'::text, 'platform_staff'::text, 'staff_member'::text, 'impersonation'::text, 'permission_denied'::text, 'help_article'::text, 'help_video'::text, 'help_faq'::text, 'help_category'::text, 'help_status'::text, 'help_settings'::text, 'help_article_suggestion'::text, 'broadcast'::text, 'notification_send'::text, 'listing_category'::text, 'amenity_group'::text, 'amenity_catalog'::text, 'special_category'::text, 'affiliate'::text, 'affiliate_payout'::text, 'affiliate_settings'::text, 'affiliate_campaign'::text, 'affiliate_campaign_enrollment'::text, 'marketing_asset'::text, 'looking_for_requirement_group'::text, 'looking_for_requirement_option'::text, 'looking_for_post'::text, 'conversation'::text, 'feature_request'::text, 'changelog_entry'::text, 'pipeline'::text])))`
 
 **Triggers:**
 - `trg_admin_audit_log_immutable` → `forbid_admin_audit_log_mutation()`
@@ -555,6 +571,9 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `public_phone` | text | yes | — |
 | `verified_at` | timestamp with time zone | yes | — |
 | `verified_by` | uuid | yes | — |
+| `closed_at` | timestamp with time zone | yes | — |
+| `closed_by` | uuid | yes | — |
+| `closed_reason` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (activated_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -570,7 +589,10 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 **Checks:**
 - `CHECK (((community_members IS NULL) OR ((community_members >= 0) AND (community_members <= 10000000))))`
 - `CHECK ((default_payout_method = ANY (ARRAY['eft'::text, 'paystack'::text, 'paypal'::text])))`
-- `CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'suspended'::text])))`
+- `CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'suspended'::text, 'closed'::text])))`
+
+**Triggers:**
+- `trg_affiliate_activated` → `on_affiliate_activated()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `affiliate_accounts_own_read` (SELECT) — `USING (user_id = auth.uid())`
@@ -836,6 +858,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'cleared'::text, 'voided'::text, 'paid'::text])))`
 
 **Triggers:**
+- `trg_affiliate_commission_accrued` → `on_affiliate_commission_accrued()` *(SECURITY DEFINER)*
 - `trg_emit_affiliate_commission_ledger` → `emit_affiliate_commission_ledger()` *(SECURITY DEFINER)*
 - `trg_notify_affiliate_earned` → `tg_notify_affiliate_commission_earned()` *(SECURITY DEFINER)*
 
@@ -2121,6 +2144,40 @@ CASE
 **RLS policies:**
 - `funnel_events_admin_read` (SELECT) — `USING is_super_admin()`
 
+### `funnels`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `audience` | text | — | — |
+| `slug` | text | — | — |
+| `name` | text | — | — |
+| `headline` | text | yes | — |
+| `subcopy` | text | yes | — |
+| `thankyou_config` | jsonb | — | `'{}'::jsonb` |
+| `sequence_id` | uuid | yes | — |
+| `brochure_path` | text | yes | — |
+| `brochure_name` | text | yes | — |
+| `video_url` | text | yes | — |
+| `is_active` | boolean | — | `true` |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (sequence_id) REFERENCES nurture_sequences(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (slug)`
+
+**Checks:**
+- `CHECK ((audience = ANY (ARRAY['host'::text, 'affiliate'::text])))`
+
+**Triggers:**
+- `trg_funnels_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `funnels_su_select` (SELECT) — `USING is_super_admin()`
+
 ### `fx_rates`
 
 | column | type | null | default |
@@ -2378,6 +2435,31 @@ CASE
 - `user_own_help_feedback_update` (UPDATE) — `USING (user_id = auth.uid()) CHECK (user_id = auth.uid())`
 - `user_own_help_feedback_write` (INSERT) — `CHECK (user_id = auth.uid())`
 
+### `help_article_saves`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `article_id` | uuid | — | — |
+| `user_id` | uuid | — | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (article_id) REFERENCES help_articles(id) ON DELETE CASCADE`
+- `FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (article_id, user_id)`
+
+**Triggers:**
+- `tr_help_article_saved_count` → `sync_help_article_saved_count()` *(SECURITY DEFINER)*
+
+**RLS policies:**
+- `admin_full_help_saves` (ALL) — `USING (is_super_admin() OR has_admin_permission('help.manage'::text))`
+- `user_own_help_saves_delete` (DELETE) — `USING (user_id = auth.uid())`
+- `user_own_help_saves_read` (SELECT) — `USING (user_id = auth.uid())`
+- `user_own_help_saves_write` (INSERT) — `CHECK (user_id = auth.uid())`
+
 ### `help_article_suggestions`
 
 | column | type | null | default |
@@ -2429,6 +2511,9 @@ CASE
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `deleted_at` | timestamp with time zone | yes | — |
 | `search_tsv` | tsvector | yes | `((setweight(to_tsvector('english'::regconfig, COALESCE(title` |
+| `seo_title` | text | yes | — |
+| `meta_description` | text | yes | — |
+| `og_image_url` | text | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (author_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -2828,6 +2913,7 @@ CASE
 
 **Triggers:**
 - `set_updated_at` → `update_updated_at()`
+- `trg_host_created` → `on_host_created()` *(SECURITY DEFINER)*
 - `trg_host_default_business` → `on_host_created_default_business()` *(SECURITY DEFINER)*
 - `trg_seed_host_policies` → `seed_host_policies_on_create()` *(SECURITY DEFINER)*
 - `trigger_host_handle` → `generate_host_handle()`
@@ -2973,6 +3059,26 @@ CASE
 - `host_update_own_invoices` (UPDATE) — `USING (host_id = get_my_host_id()) CHECK (host_id = get_my_host_id())`
 - `staff_read_invoices` (SELECT) — `USING (host_id = get_my_host_id_as_staff())`
 
+### `legal_document_versions`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `slug` | text | — | — |
+| `version` | integer | — | — |
+| `title` | text | — | — |
+| `body_html` | text | yes | — |
+| `published_at` | timestamp with time zone | yes | — |
+| `created_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+- `FOREIGN KEY (slug) REFERENCES legal_documents(slug) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (slug, version)`
+
 ### `legal_documents`
 
 | column | type | null | default |
@@ -3002,6 +3108,28 @@ CASE
 
 **RLS policies:**
 - `public reads published legal docs` (SELECT) — `USING (is_published = true)`
+
+### `legal_placements`
+
+| column | type | null | default |
+|---|---|---|---|
+| `slot` | text | — | — |
+| `doc_slug` | text | yes | — |
+| `updated_by` | uuid | yes | — |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (doc_slug) REFERENCES legal_documents(slug) ON DELETE SET NULL`
+- `FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK ((slot ~ '^[a-z0-9]+(_[a-z0-9]+)*$'::text))`
+
+**Triggers:**
+- `trg_legal_placements_touch` → `tg_legal_placements_touch()`
+
+**RLS policies:**
+- `public reads legal placements` (SELECT) — `USING true`
 
 ### `listing_reports`
 
@@ -3531,6 +3659,38 @@ CASE
    FROM conversations
   WHERE ((conversations.host_id = get_my_host_id()) OR (conversations.host_id = get_my_host_id_as_staff()) OR (conversations.guest_id = auth.uid()))))`
 
+### `meta_conversion_events`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `event_name` | text | — | — |
+| `user_id` | uuid | yes | — |
+| `lead_id` | uuid | yes | — |
+| `value` | numeric | yes | — |
+| `currency` | text | yes | — |
+| `content_ids` | text[] | — | `'{}'::text[]` |
+| `content_name` | text | yes | — |
+| `event_id` | text | — | — |
+| `source_ref` | text | yes | — |
+| `action_source` | text | — | `'system_generated'::text` |
+| `status` | text | — | `'pending'::text` |
+| `attempts` | integer | — | `0` |
+| `last_error` | text | yes | — |
+| `response` | jsonb | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `sent_at` | timestamp with time zone | yes | — |
+
+**Foreign keys:**
+- `FOREIGN KEY (lead_id) REFERENCES pipeline_leads(id) ON DELETE SET NULL`
+- `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE SET NULL`
+
+**Unique:**
+- `UNIQUE (event_id)`
+
+**Checks:**
+- `CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'skipped'::text])))`
+
 ### `notification_categories`
 
 | column | type | null | default |
@@ -3636,6 +3796,84 @@ CASE
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
 - `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
 
+### `nurture_enrollments`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `lead_id` | uuid | — | — |
+| `sequence_id` | uuid | — | — |
+| `current_step` | integer | — | `0` |
+| `next_send_at` | timestamp with time zone | yes | — |
+| `status` | text | — | `'active'::text` |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (lead_id) REFERENCES pipeline_leads(id) ON DELETE CASCADE`
+- `FOREIGN KEY (sequence_id) REFERENCES nurture_sequences(id) ON DELETE RESTRICT`
+
+**Unique:**
+- `UNIQUE (lead_id, sequence_id)`
+
+**Checks:**
+- `CHECK ((status = ANY (ARRAY['active'::text, 'completed'::text, 'cancelled'::text, 'converted'::text, 'unsubscribed'::text])))`
+
+**Triggers:**
+- `trg_nurture_enrollments_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `nurture_enrollments_su_select` (SELECT) — `USING is_super_admin()`
+
+### `nurture_sequences`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `audience` | text | — | — |
+| `name` | text | — | — |
+| `is_active` | boolean | — | `true` |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Checks:**
+- `CHECK ((audience = ANY (ARRAY['host'::text, 'affiliate'::text])))`
+
+**Triggers:**
+- `trg_nurture_sequences_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `nurture_sequences_su_select` (SELECT) — `USING is_super_admin()`
+
+### `nurture_steps`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `sequence_id` | uuid | — | — |
+| `step_order` | integer | — | — |
+| `delay_hours` | integer | — | `0` |
+| `email_type` | text | — | — |
+| `subject_override` | text | yes | — |
+| `is_active` | boolean | — | `true` |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (sequence_id) REFERENCES nurture_sequences(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (sequence_id, step_order)`
+
+**Checks:**
+- `CHECK ((delay_hours >= 0))`
+
+**Triggers:**
+- `trg_nurture_steps_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `nurture_steps_su_select` (SELECT) — `USING is_super_admin()`
+
 ### `payments`
 
 | column | type | null | default |
@@ -3727,6 +3965,147 @@ CASE
 
 **Foreign keys:**
 - `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
+
+### `pipeline_activities`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `lead_id` | uuid | — | — |
+| `staff_id` | uuid | yes | — |
+| `kind` | text | — | — |
+| `body` | text | yes | — |
+| `meta` | jsonb | — | `'{}'::jsonb` |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (lead_id) REFERENCES pipeline_leads(id) ON DELETE CASCADE`
+- `FOREIGN KEY (staff_id) REFERENCES platform_staff(user_id) ON DELETE SET NULL`
+
+**Checks:**
+- `CHECK ((kind = ANY (ARRAY['created'::text, 'email_sent'::text, 'stage_moved'::text, 'note'::text, 'call_logged'::text, 'consent_changed'::text, 'converted'::text])))`
+
+**RLS policies:**
+- `pipeline_activities_su_select` (SELECT) — `USING is_super_admin()`
+
+### `pipeline_files`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `lead_id` | uuid | — | — |
+| `name` | text | — | — |
+| `path` | text | — | — |
+| `size_bytes` | bigint | yes | — |
+| `mime` | text | yes | — |
+| `uploaded_by` | uuid | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (lead_id) REFERENCES pipeline_leads(id) ON DELETE CASCADE`
+- `FOREIGN KEY (uploaded_by) REFERENCES platform_staff(user_id) ON DELETE SET NULL`
+
+**RLS policies:**
+- `pipeline_files_su_select` (SELECT) — `USING is_super_admin()`
+
+### `pipeline_leads`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `user_id` | uuid | — | — |
+| `funnel_id` | uuid | yes | — |
+| `audience` | text | — | — |
+| `stage_id` | uuid | — | — |
+| `owner_staff_id` | uuid | yes | — |
+| `status` | text | — | `'open'::text` |
+| `score` | integer | — | `0` |
+| `utm` | jsonb | — | `'{}'::jsonb` |
+| `ad_source` | text | yes | — |
+| `marketing_consent` | boolean | — | `false` |
+| `affiliate_ref` | text | yes | — |
+| `source_kind` | text | — | `'direct'::text` |
+| `source_label` | text | yes | — |
+| `suppress_default_nurture` | boolean | — | `false` |
+| `last_activity_at` | timestamp with time zone | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (funnel_id) REFERENCES funnels(id) ON DELETE SET NULL`
+- `FOREIGN KEY (owner_staff_id) REFERENCES platform_staff(user_id) ON DELETE SET NULL`
+- `FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
+
+**Unique:**
+- `UNIQUE (user_id, audience)`
+
+**Checks:**
+- `CHECK ((audience = ANY (ARRAY['host'::text, 'affiliate'::text])))`
+- `CHECK ((source_kind = ANY (ARRAY['host_funnel'::text, 'affiliate_funnel'::text, 'affiliate_referral'::text, 'competition'::text, 'direct'::text])))`
+- `CHECK ((status = ANY (ARRAY['open'::text, 'won'::text, 'lost'::text])))`
+
+**Triggers:**
+- `trg_pipeline_leads_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `pipeline_leads_su_select` (SELECT) — `USING is_super_admin()`
+
+### `pipeline_stages`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `audience` | text | — | — |
+| `key` | text | — | — |
+| `label` | text | — | — |
+| `sort_order` | integer | — | `0` |
+| `is_won` | boolean | — | `false` |
+| `is_lost` | boolean | — | `false` |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+| `is_customer` | boolean | — | `false` |
+
+**Unique:**
+- `UNIQUE (audience, key)`
+
+**Checks:**
+- `CHECK ((audience = ANY (ARRAY['host'::text, 'affiliate'::text])))`
+
+**Triggers:**
+- `trg_pipeline_stages_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `pipeline_stages_su_select` (SELECT) — `USING is_super_admin()`
+
+### `pipeline_tasks`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `lead_id` | uuid | — | — |
+| `title` | text | — | — |
+| `due_at` | timestamp with time zone | yes | — |
+| `status` | text | — | `'open'::text` |
+| `assignee_staff_id` | uuid | yes | — |
+| `created_by` | uuid | yes | — |
+| `completed_at` | timestamp with time zone | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (assignee_staff_id) REFERENCES platform_staff(user_id) ON DELETE SET NULL`
+- `FOREIGN KEY (created_by) REFERENCES platform_staff(user_id) ON DELETE SET NULL`
+- `FOREIGN KEY (lead_id) REFERENCES pipeline_leads(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((status = ANY (ARRAY['open'::text, 'done'::text])))`
+
+**Triggers:**
+- `trg_pipeline_tasks_updated` → `update_updated_at()`
+
+**RLS policies:**
+- `pipeline_tasks_su_select` (SELECT) — `USING is_super_admin()`
 
 ### `plan_features`
 
@@ -3944,6 +4323,7 @@ CASE
 - `affiliate_clawback_on_refund` → `tg_affiliate_clawback_on_refund()` *(SECURITY DEFINER)*
 - `trg_mint_wielo_credit_note` → `mint_wielo_credit_note_on_ledger_complete()` *(SECURITY DEFINER)*
 - `trg_mint_wielo_invoice` → `mint_wielo_invoice_on_ledger_complete()` *(SECURITY DEFINER)*
+- `trg_platform_ledger_settled` → `on_platform_ledger_settled()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `platform_ledger_own_read` (SELECT) — `USING (user_id = auth.uid())`
@@ -6019,6 +6399,7 @@ CASE
 - `subscription_history_insert_trigger` → `on_subscription_insert()` *(SECURITY DEFINER)*
 - `subscription_history_trigger` → `on_subscription_change()` *(SECURITY DEFINER)*
 - `trg_one_active_membership` → `forbid_second_active_membership()`
+- `trg_subscription_trial` → `on_subscription_trialing()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `admin_full_sub` (ALL) — `USING is_super_admin()`
