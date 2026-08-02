@@ -29,7 +29,14 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
@@ -292,6 +299,7 @@ export function BookingForm({
   weeklyDiscountPct,
   monthlyDiscountPct,
   deal,
+  policyBlock,
 }: {
   listingId: string;
   listingSlug: string;
@@ -354,6 +362,9 @@ export function BookingForm({
   monthlyDiscountPct: number | null;
   // When set, the form runs in deal mode (see DealCheckoutContext).
   deal?: DealCheckoutContext | null;
+  /** The listing's POLICIES block (box 2) — rendered on the details step in
+      place of the old inline cancellation card. Passed from the server page. */
+  policyBlock?: ReactNode;
 }) {
   const router = useRouter();
   // Deal mode: a pre-priced special booked through this same checkout.
@@ -2183,121 +2194,10 @@ export function BookingForm({
         </div>
       </section>
 
-      {/* Cancellation policy — the listing's REAL effective policy (resolver),
-          so what the guest accepts here is exactly what's snapshotted onto the
-          booking and used for any refund. */}
-      <section className="rounded-card border border-brand-line bg-brand-light/50 p-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-brand-line bg-white text-brand-primary">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-display font-semibold text-brand-ink">
-              {cancellation?.name ??
-                `${cancellationPolicy} cancellation policy`}
-            </div>
-            {cancellation?.isNonRefundable ? (
-              <p className="mt-2 text-sm font-medium text-brand-ink">
-                Non-refundable — no refund at any time.
-              </p>
-            ) : cancellation && cancellation.rules.length > 0 ? (
-              <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
-                {[...cancellation.rules]
-                  .sort((a, b) => b.days_before - a.days_before)
-                  .map((r) => (
-                    <li
-                      key={`${r.days_before}-${r.refund_percent}`}
-                      className="flex items-baseline justify-between gap-3"
-                    >
-                      <span className="text-brand-mute">
-                        {r.days_before <= 0
-                          ? "Less than 24 hours before"
-                          : `${r.days_before}+ day${r.days_before === 1 ? "" : "s"} before check-in`}
-                      </span>
-                      <span
-                        className={`shrink-0 font-semibold tabular-nums ${
-                          r.refund_percent >= 100
-                            ? "text-brand-primary"
-                            : r.refund_percent <= 0
-                              ? "text-red-600"
-                              : "text-amber-600"
-                        }`}
-                      >
-                        {r.refund_percent}% refund
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
-                {CANCELLATION_BULLETS[cancellationPolicy].map((b) => (
-                  <li key={b.text} className="flex items-start gap-2">
-                    <span
-                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill ${b.dot}`}
-                    />
-                    {b.text}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {/* Explicit acceptance — required to confirm. */}
-            <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-md border border-brand-line bg-white p-3 text-sm text-brand-ink">
-              <input
-                type="checkbox"
-                checked={ack}
-                onChange={(e) => setAck(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
-              />
-              <span>
-                I understand the cancellation policy and refund schedule, and I
-                accept{" "}
-                {bookingTerms ? (
-                  <>
-                    {hostName ? `${hostName}’s ` : "the host’s "}
-                    <PolicyDialog
-                      data={{
-                        type: "booking_terms",
-                        name: bookingTerms.name,
-                        summary: null,
-                        isNonRefundable: false,
-                        rules: [],
-                        checkInTime: null,
-                        checkOutTime: null,
-                        bodyHtml: bookingTerms.bodyHtml,
-                      }}
-                      trigger={
-                        <button
-                          type="button"
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-brand-primary underline underline-offset-2"
-                        >
-                          terms &amp; conditions
-                        </button>
-                      }
-                    />
-                    {", as well as the "}
-                  </>
-                ) : (
-                  "the "
-                )}
-                <LegalDocModalLink
-                  docKey="terms"
-                  label="booking terms"
-                  className="font-medium text-brand-primary underline underline-offset-2"
-                />{" "}
-                and{" "}
-                <LegalDocModalLink
-                  docKey="privacy"
-                  label="privacy notice"
-                  className="font-medium text-brand-primary underline underline-offset-2"
-                />
-                .
-              </span>
-            </label>
-          </div>
-        </div>
-      </section>
+      {/* Box 2 — the listing's POLICIES block (passed from the server page),
+          shown here in place of the old redundant inline cancellation card.
+          The acceptance checkbox now lives in the summary rail, above the CTA. */}
+      {policyBlock}
     </div>
   );
 
@@ -3191,6 +3091,64 @@ export function BookingForm({
                   ) : null}
                 </div>
               </div>
+
+              {/* Explicit acceptance — required to confirm. Lives right above
+                  the CTA (details + payment steps) so it reads in context. */}
+              {step === 1 || step === 2 ? (
+                <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-md border border-white/15 bg-white/[0.06] p-3 text-[12.5px] leading-relaxed text-white/85">
+                  <input
+                    type="checkbox"
+                    checked={ack}
+                    onChange={(e) => setAck(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+                  />
+                  <span>
+                    I understand the cancellation policy and refund schedule,
+                    and I accept{" "}
+                    {bookingTerms ? (
+                      <>
+                        {hostName ? `${hostName}’s ` : "the host’s "}
+                        <PolicyDialog
+                          data={{
+                            type: "booking_terms",
+                            name: bookingTerms.name,
+                            summary: null,
+                            isNonRefundable: false,
+                            rules: [],
+                            checkInTime: null,
+                            checkOutTime: null,
+                            bodyHtml: bookingTerms.bodyHtml,
+                          }}
+                          trigger={
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-medium text-emerald-300 underline underline-offset-2"
+                            >
+                              terms &amp; conditions
+                            </button>
+                          }
+                        />
+                        {", as well as the "}
+                      </>
+                    ) : (
+                      "the "
+                    )}
+                    <LegalDocModalLink
+                      docKey="terms"
+                      label="booking terms"
+                      className="font-medium text-emerald-300 underline underline-offset-2"
+                    />{" "}
+                    and{" "}
+                    <LegalDocModalLink
+                      docKey="privacy"
+                      label="privacy notice"
+                      className="font-medium text-emerald-300 underline underline-offset-2"
+                    />
+                    .
+                  </span>
+                </label>
+              ) : null}
 
               {/* CTA — travels with the card (desktop) */}
               {step === 2 ? (

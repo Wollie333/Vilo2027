@@ -518,9 +518,8 @@ export default async function BookingPage({
               ? null
               : Number(listing.monthly_discount_pct)
           }
+          policyBlock={<ListingPolicyBlock listingId={listing.id} />}
         />
-
-        <ListingPolicyBlock listingId={listing.id} className="mt-6" />
       </main>
 
       <SiteFooter />
