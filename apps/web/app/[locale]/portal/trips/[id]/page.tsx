@@ -62,6 +62,7 @@ import {
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { AddExtraCard } from "./AddExtraCard";
 import { CancelTripButton } from "./CancelTripButton";
+import { MessageHostButton } from "./MessageHostButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
 export const metadata: Metadata = {
@@ -973,12 +974,13 @@ export default async function PortalTripDetailPage({
 
       {/* ===== ACTION BAR ===== */}
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        <Link
-          href="/portal/inbox"
+        <MessageHostButton
+          bookingId={booking.id}
+          hostFirstName={hostFirstName}
           className="inline-flex items-center gap-2 rounded-[10px] bg-brand-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
         >
           <MessageSquare className="h-4 w-4" /> Message {hostFirstName}
-        </Link>
+        </MessageHostButton>
         {mapsHref ? (
           <a
             href={mapsHref}
@@ -1957,13 +1959,14 @@ export default async function PortalTripDetailPage({
                     </div>
                   ) : null}
                   <HostContactLinks contact={hostContact} />
-                  <Link
-                    href="/portal/inbox"
+                  <MessageHostButton
+                    bookingId={booking.id}
+                    hostFirstName={hostFirstName}
                     className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-2.5 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary"
                   >
                     <MessageSquare className="h-4 w-4" /> Message{" "}
                     {hostFirstName}
-                  </Link>
+                  </MessageHostButton>
                 </div>
               </section>
             ) : null}

@@ -11,6 +11,8 @@ import {
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceGuestBookingAction } from "@/lib/messaging/guest-request";
+import { resolveGuestConversation } from "@/lib/messaging/system-card";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { formatMoney } from "@/lib/format";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -158,6 +160,104 @@ export async function requestRefundAction(input: {
 
   revalidatePath(`/portal/trips/${booking.id}`);
   revalidatePath("/dashboard/refunds");
+  return { ok: true };
+}
+
+// ─── Message host about a booking ─────────────────────────────────
+// Compose modal from the trip page / trip cards. Resolves (or creates) the
+// guest↔host thread for the booking, posts the guest's message into it, and
+// notifies the host (new_message). The message is booking-linked so the host's
+// booking detail can surface a "new message about this booking" banner.
+
+const messageHostSchema = z.object({
+  bookingId: z.string().uuid(),
+  body: z.string().trim().min(1, "Type a message.").max(4000),
+});
+
+export async function messageHostAboutBookingAction(input: {
+  bookingId: string;
+  body: string;
+}): Promise<Result> {
+  const parsed = messageHostSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Message looks wrong.",
+    };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id, guest_id, property_id, quote_id")
+    .eq("id", parsed.data.bookingId)
+    .maybeSingle();
+  if (!booking || booking.guest_id !== user.id) {
+    return { ok: false, error: "Booking not found." };
+  }
+
+  const conversationId = await resolveGuestConversation(admin, {
+    id: booking.id,
+    host_id: booking.host_id,
+    guest_id: booking.guest_id,
+    property_id: booking.property_id,
+    quote_id: booking.quote_id,
+  });
+  if (!conversationId) {
+    return { ok: false, error: "Couldn't open a thread for this booking." };
+  }
+
+  const { error: msgErr } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: user.id,
+    body: parsed.data.body,
+    booking_id: booking.id,
+    read_by_guest: true,
+    read_by_host: false,
+  });
+  if (msgErr) return { ok: false, error: "Could not send message. Try again." };
+
+  // Notify the host (push + in-app + email per registry). Best-effort.
+  try {
+    const [{ data: hostRow }, { data: prof }] = await Promise.all([
+      admin
+        .from("hosts")
+        .select("user_id")
+        .eq("id", booking.host_id)
+        .maybeSingle(),
+      admin
+        .from("user_profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+    if (hostRow?.user_id) {
+      await dispatchEvent({
+        kind: "new_message",
+        recipientUserId: hostRow.user_id,
+        hostId: booking.host_id,
+        refs: {
+          conversation_id: conversationId,
+          sender_first_name:
+            prof?.full_name?.trim().split(/\s+/)[0] || "New message",
+          message_body: parsed.data.body,
+          unread_count: 1,
+        },
+        supabase: admin,
+      });
+    }
+  } catch {
+    // best-effort notification
+  }
+
+  revalidatePath(`/portal/trips/${booking.id}`);
+  revalidatePath("/portal/inbox");
   return { ok: true };
 }
 

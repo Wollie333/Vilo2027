@@ -16,6 +16,8 @@ import {
 import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 
+import { MessageHostButton } from "./[id]/MessageHostButton";
+
 export type TripStatus = "confirmed" | "pending" | "completed" | "cancelled";
 export type TripBucket = "upcoming" | "past" | "cancelled";
 export type PayState =
@@ -351,13 +353,14 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
                 View booking
               </Link>
             ) : null}
-            <Link
-              href="/portal/inbox"
+            <MessageHostButton
+              bookingId={trip.id}
+              hostFirstName={trip.hostName?.split(" ")[0] ?? null}
               className="inline-flex items-center gap-2 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
             >
               <MessageSquare className="h-4 w-4 text-brand-primary" /> Message
               host
-            </Link>
+            </MessageHostButton>
             <a
               href={mapsHref(trip)}
               target="_blank"
@@ -421,13 +424,14 @@ function TripActions({ trip }: { trip: Trip }) {
             View booking
           </Link>
         )}
-        <Link
-          href="/portal/inbox"
+        <MessageHostButton
+          bookingId={trip.id}
+          hostFirstName={trip.hostName?.split(" ")[0] ?? null}
+          ariaLabel="Message host"
           className="rounded border border-brand-line px-3 py-2 text-brand-ink hover:bg-brand-light"
-          aria-label="Message host"
         >
           <MessageSquare className="h-4 w-4 text-brand-primary" />
-        </Link>
+        </MessageHostButton>
       </>
     );
   }
@@ -450,13 +454,14 @@ function TripActions({ trip }: { trip: Trip }) {
             View request
           </Link>
         )}
-        <Link
-          href="/portal/inbox"
+        <MessageHostButton
+          bookingId={trip.id}
+          hostFirstName={trip.hostName?.split(" ")[0] ?? null}
+          ariaLabel="Message host"
           className="rounded border border-brand-line px-3 py-2 text-brand-ink hover:bg-brand-light"
-          aria-label="Message host"
         >
           <MessageSquare className="h-4 w-4 text-brand-primary" />
-        </Link>
+        </MessageHostButton>
       </>
     );
   }
