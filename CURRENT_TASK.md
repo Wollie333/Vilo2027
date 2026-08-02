@@ -2,7 +2,20 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt10) — **HOST-GLOBAL ADD-ONS FEATURE (built + live-verified)** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt11) — **DASHBOARD TOGGLE VERIFIED + 2 UI FIXES** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `82ad3ee`.** Founder logged into host dashboard (their Chrome);
+Claude drove it via claude-in-chrome against dev :3001 (prod :3000 = old code). **Add-on "Offer on all my
+listings" toggle VERIFIED** (flips + persists + dims per-listing section). **Greeting fix** (`24ceec2`):
+overview now greets the user (`user_profiles.full_name` → "Thandi"), not the business ("Cape") — live-verified.
+**Checkout UI** (`82ad3ee`): consent checkbox moved into the dark rail directly above the Continue-to-payment/
+Pay CTA; redundant inline cancellation-schedule card removed and the POLICIES block (ListingPolicyBlock) now
+rendered in its place via a `policyBlock` prop — live-verified, type-check+lint green. Dev server running on
+:3001. Full detail in memory anchor pt11. Prior pt10 (host-global add-ons feature) below still stands.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt10) — **HOST-GLOBAL ADD-ONS FEATURE (built + live-verified)**
 
 **Branch `fix/host-launch-hardening`, HEAD `c917324`.** Built the founder-requested "add-ons on ALL listings"
 feature: migration `20260802120000` (additive `addons.applies_to_all_listings`, applied to LIVE via raw
