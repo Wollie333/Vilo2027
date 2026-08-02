@@ -156,6 +156,9 @@ type Props = {
   amenities: { id: string; key: string; roomId: string | null }[];
   policies: PolicyCard[];
   policyAssignments: Partial<Record<PolicyType, string | null>>;
+  /** All four host policies resolve for this listing (resolver-based, honors
+      host defaults) — the SAME check the publish gate uses. */
+  policiesComplete: boolean;
   seasonalListing: ListingGroup;
   seasonalRules: SeasonalRule[];
 };
@@ -198,8 +201,9 @@ export function SetupWizard(props: Props) {
         listing,
         photoCount: photos.length,
         roomCount: rooms.filter((r) => r.is_active).length,
-        hasCancellationPolicy: policyAssignments.cancellation != null,
-        hasHouseRules: policyAssignments.house_rules != null,
+        // All four host policies must resolve — the SAME check the publish gate
+        // uses, computed server-side and refreshed after each policy edit.
+        policiesComplete: props.policiesComplete,
         hasSeasonalRules: props.seasonalRules.length > 0,
       }),
     [
@@ -209,7 +213,7 @@ export function SetupWizard(props: Props) {
       listing,
       photos,
       rooms,
-      policyAssignments,
+      props.policiesComplete,
       props.seasonalRules,
     ],
   );

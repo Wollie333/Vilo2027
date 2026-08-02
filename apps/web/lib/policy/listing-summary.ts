@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { createServerClient } from "@/lib/supabase/server";
 
 // Shared shape + fetch for a listing's effective policies (get_listing_policy
@@ -45,6 +47,27 @@ export async function getListingPolicySummary(
     ...(roomId ? { p_room_id: roomId } : {}),
   });
   return (data ?? {}) as unknown as ListingPolicySummary;
+}
+
+/**
+ * Platform rule check: does a listing resolve ALL FOUR host policies —
+ * cancellation, check-in/out, house rules and booking terms? Uses the SAME
+ * resolver (room → listing-wide → host default) as the booking chokepoint and
+ * the publish gate, so "policies complete" means the same thing everywhere:
+ * publishable ⟺ bookable ⟺ the setup wizard's Policies step is done. Pass the
+ * caller's own supabase client (request-scoped or admin).
+ */
+export async function listingPoliciesComplete(
+  supabase: SupabaseClient,
+  listingId: string,
+): Promise<boolean> {
+  const { data } = await supabase.rpc("get_listing_policy_summary", {
+    p_listing_id: listingId,
+  });
+  const p = (data ?? {}) as Record<string, unknown>;
+  return Boolean(
+    p.cancellation && p.check_in_out && p.house_rules && p.booking_terms,
+  );
 }
 
 /**

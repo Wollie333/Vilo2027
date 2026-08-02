@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 
 import { SITE_DOMAIN } from "@/lib/contact";
+import { listingPoliciesComplete } from "@/lib/policy/listing-summary";
 import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -339,8 +340,7 @@ export async function fetchGettingStartedState(
     null;
   let setupPhotoCount = 0;
   let setupRoomCount = 0;
-  let setupHasCancellation = false;
-  let setupHasHouseRules = false;
+  let setupPoliciesComplete = false;
   if (hostId) {
     const { data: firstL } = await supabase
       .from("properties")
@@ -387,26 +387,11 @@ export async function fetchGettingStartedState(
       setupPhotoCount = photoCount ?? 0;
       setupRoomCount = roomCount ?? 0;
 
-      // A refund policy AND house rules assigned listing-wide mark the Policies
-      // step done — mirrors the wizard, which reads property_policies the same
-      // way (computeSetupCompletion requires both).
-      const [{ count: cancellationCount }, { count: houseRulesCount }] =
-        await Promise.all([
-          supabase
-            .from("property_policies")
-            .select("id", { count: "exact", head: true })
-            .eq("property_id", row.id)
-            .eq("policy_type", "cancellation")
-            .is("room_id", null),
-          supabase
-            .from("property_policies")
-            .select("id", { count: "exact", head: true })
-            .eq("property_id", row.id)
-            .eq("policy_type", "house_rules")
-            .is("room_id", null),
-        ]);
-      setupHasCancellation = (cancellationCount ?? 0) > 0;
-      setupHasHouseRules = (houseRulesCount ?? 0) > 0;
+      // All four host policies must RESOLVE for the Policies step (cancellation,
+      // check-in/out, house rules, booking terms) — the SAME resolver the publish
+      // gate + booking chokepoint use (honors host defaults), so the dashboard
+      // checklist never disagrees with what publishing actually requires.
+      setupPoliciesComplete = await listingPoliciesComplete(supabase, row.id);
     }
 
     const { data: listings } = await supabase
@@ -450,8 +435,7 @@ export async function fetchGettingStartedState(
     listing: setupListing,
     photoCount: setupPhotoCount,
     roomCount: setupRoomCount,
-    hasCancellationPolicy: setupHasCancellation,
-    hasHouseRules: setupHasHouseRules,
+    policiesComplete: setupPoliciesComplete,
   });
 
   return {

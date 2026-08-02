@@ -7,6 +7,8 @@ import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 import { getCategoriesForKind } from "@/lib/taxonomy/getCategories";
 
 import type { PolicyCard } from "../policies/PolicyManager";
+import { listingPoliciesComplete } from "@/lib/policy/listing-summary";
+
 import { isLockedPreset, type PolicyType } from "../policies/schemas";
 import type {
   ListingGroup,
@@ -167,6 +169,11 @@ export default async function SetupPage({
   await supabase.rpc("ensure_listing_policy_assignments", {
     p_listing_id: listing.id,
   });
+
+  // Policies step is done when ALL FOUR host policies resolve — the SAME
+  // resolver the publish gate + booking chokepoint use (honors host defaults),
+  // so the wizard's Policies tick matches exactly what publishing requires.
+  const policiesComplete = await listingPoliciesComplete(supabase, listing.id);
 
   const { data: policyRows } = await supabase
     .from("policies")
@@ -456,6 +463,7 @@ export default async function SetupPage({
       }))}
       policies={policies}
       policyAssignments={policyAssignments}
+      policiesComplete={policiesComplete}
       seasonalListing={seasonalListing}
       seasonalRules={seasonalRules}
     />

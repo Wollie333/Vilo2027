@@ -50,6 +50,15 @@ export type SetupCompletionInput = {
   /** A house-rules policy is assigned to the setup listing (listing-wide). */
   hasHouseRules?: boolean;
   /**
+   * Preferred, authoritative policy signal: the listing resolves ALL FOUR host
+   * policies (cancellation, check-in/out, house rules, booking terms) via the
+   * SAME resolver the publish gate + booking chokepoint use (honors host
+   * defaults). When provided it drives the Policies step, so the wizard, the
+   * dashboard checklist and the publish gate never disagree. Falls back to the
+   * legacy hasCancellationPolicy + hasHouseRules flags when omitted.
+   */
+  policiesComplete?: boolean;
+  /**
    * The host has added at least one seasonal pricing rule. Seasonal pricing is
    * OPTIONAL — it never gates publishing — so this only drives whether the
    * wizard's Seasonal step shows a "done" tick.
@@ -86,16 +95,20 @@ export function computeSetupCompletion(
   // Rooms is its own section (≥1 active room drives price + capacity).
   const roomsDone = input.roomCount > 0;
 
-  // Policies = a refund policy is set for the listing. With the Policy Manager,
-  // refund terms are reusable policies assigned via property_policies; the
-  // legacy enum is only a fallback (synced for presets, not custom policies).
-  // Both a refund policy AND house rules must be attached before publishing.
-  const policies = Boolean(
-    listing &&
-    (input.hasCancellationPolicy === true ||
-      hasText(listing.cancellation_policy)) &&
-    input.hasHouseRules === true,
-  );
+  // Policies = the listing has ALL FOUR host policies (cancellation,
+  // check-in/out, house rules, booking terms). The authoritative signal is
+  // `policiesComplete` (resolver-based, honors host defaults) — the SAME check
+  // the publish gate + booking chokepoint use, so nothing disagrees. When it's
+  // omitted, fall back to the legacy two-policy flags.
+  const policies =
+    input.policiesComplete !== undefined
+      ? input.policiesComplete === true
+      : Boolean(
+          listing &&
+          (input.hasCancellationPolicy === true ||
+            hasText(listing.cancellation_policy)) &&
+          input.hasHouseRules === true,
+        );
 
   const review = Boolean(listing?.is_published);
 

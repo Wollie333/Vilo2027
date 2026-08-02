@@ -1136,10 +1136,9 @@ export async function togglePublishAction(
     listing,
     photoCount: photoCount ?? 0,
     roomCount: roomCount ?? 0,
-    // Policies resolved above (all four required) via the RPC — pass the RPC
-    // truth so the setup-completion policies step honors host defaults too.
-    hasCancellationPolicy: !!pol.cancellation,
-    hasHouseRules: !!pol.house_rules,
+    // Policies were resolved + required above (all four); the gate returned early
+    // if any were missing, so at this point the set is complete.
+    policiesComplete: missingPolicies.length === 0,
   });
 
   const LABELS: Record<string, string> = {
