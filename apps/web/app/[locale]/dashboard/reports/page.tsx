@@ -673,7 +673,7 @@ export default async function ReportsPage({
   return (
     <>
       {/* Header */}
-      <header className="border-b border-brand-line bg-white">
+      <header className="border-b border-brand-line">
         <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8 lg:py-7">
           <div>
             <div className="text-[11px] font-medium text-brand-mute">
@@ -1017,7 +1017,7 @@ async function renderQuotesOnlyReport(
 
   return (
     <>
-      <header className="border-b border-brand-line bg-white">
+      <header className="border-b border-brand-line">
         <div className="px-5 py-6 lg:px-8 lg:py-7">
           <div className="text-[11px] font-medium text-brand-mute">
             Tools · Analytics
