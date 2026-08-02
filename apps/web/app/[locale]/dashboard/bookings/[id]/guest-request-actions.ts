@@ -29,12 +29,11 @@ type ReqRow = {
   payload: Record<string, unknown> | null;
 };
 
-async function loadOpenRequest(
-  requestId: string,
-): Promise<
+async function loadOpenRequest(requestId: string): Promise<
   | {
       ok: true;
       hostId: string;
+      userId: string;
       req: ReqRow;
       admin: ReturnType<typeof createAdminClient>;
     }
@@ -55,7 +54,13 @@ async function loadOpenRequest(
   if (req.status !== "pending") {
     return { ok: false, error: "This request has already been actioned." };
   }
-  return { ok: true, hostId: host.hostId, req: req as ReqRow, admin };
+  return {
+    ok: true,
+    hostId: host.hostId,
+    userId: host.userId,
+    req: req as ReqRow,
+    admin,
+  };
 }
 
 async function cardBooking(
@@ -107,7 +112,7 @@ export async function approveBookingChangeAction(
     .update({
       status: "approved",
       actioned_at: new Date().toISOString(),
-      actioned_by: loaded.hostId,
+      actioned_by: loaded.userId,
     })
     .eq("id", req.id);
 
@@ -148,7 +153,7 @@ export async function declineBookingChangeAction(
     .update({
       status: "declined",
       actioned_at: new Date().toISOString(),
-      actioned_by: loaded.hostId,
+      actioned_by: loaded.userId,
       decline_reason: note,
     })
     .eq("id", req.id);
