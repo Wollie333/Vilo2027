@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { assertFullHost as getHost } from "@/lib/host/current";
+import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { couponInputSchema, type CouponInput } from "./schemas";
@@ -11,10 +12,11 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
-// Pre-MVP: every feature is open on the free plan so the founder can smoke-test
-// (AGENT_RULES.md §3.4). Restore the check_feature_permission RPC before Phase 3.
-async function assertFeatureEnabled(): Promise<boolean> {
-  return true;
+// Coupons is a gated (paid) feature, like add-ons + policies. hostHasFeature
+// resolves the entitlement chain (host override → active product → plan → free
+// floor) and short-circuits open only while PRE_MVP_FEATURES_OPEN is true.
+async function assertFeatureEnabled(hostId: string): Promise<boolean> {
+  return hostHasFeature(hostId, "coupons");
 }
 
 async function assertListingOwnership(
@@ -123,7 +125,7 @@ export async function createCouponAction(
 ): Promise<ActionResult<{ id: string }>> {
   const host = await getHost();
   if (!host.ok) return host;
-  if (!(await assertFeatureEnabled())) {
+  if (!(await assertFeatureEnabled(host.hostId))) {
     return { ok: false, error: "Coupons aren’t available on your plan." };
   }
   const parsed = couponInputSchema.safeParse(input);
@@ -159,6 +161,9 @@ export async function updateCouponAction(
 ): Promise<ActionResult> {
   const host = await getHost();
   if (!host.ok) return host;
+  if (!(await assertFeatureEnabled(host.hostId))) {
+    return { ok: false, error: "Coupons aren’t available on your plan." };
+  }
   const parsed = couponInputSchema.safeParse(input);
   if (!parsed.success) {
     return {
