@@ -2,7 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt8) — **AFFILIATE/PRIZE RPC LOCKDOWN CLEARED (live)** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt9) — **GUEST-SIDE: ALL 5 FLOWS LIVE-VERIFIED** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`. Living anchor = memory `launch-prep-host-then-affiliate` (pt9).**
+Claude drove the PUBLIC guest surface in the in-app browser (no login); founder confirmed the website
+builder is disabled so guests book via the platform listing + live booking link only. Live demo host =
+`0a111111-1111-4111-8111-111111111111` (Cape Coast Retreats). **All 5 guest flows verified as an anon guest:**
+1. **Special** — `/deal/<slug>/book` locks dates+room, R3 000 pkg vs R4 850 (Save 38%). ✓
+2. **Coupon VERIFY10** — 10% server-recalc, excludes cleaning; auto-recalcs when order changes. ✓
+   (⚠️ coupon also discounts add-ons — confirm intended.)
+3. **Add-on** Welcome wine basket +R500 line item. ✓ (⚠️ only 1 of 3 add-ons offered on this property.)
+4. **Review** — token-gated submit → published review, `on_review_published` recalced The Vines avg
+   4.75→4.40 (count 4→5) + host 4.8→4.5, `new_review_host` in-app notification fired. ✓
+5. **Cancel→refund %** — RPC reads immutable snapshot: 13d→100%, 3d→50%, 0d→0% (Moderate). ✓ (amount=0
+   only because test bookings have total_paid=0.)
+
+**⚠️ Test artifacts:** BK-0105 now completed+reviewed (review 323b75d3 on The Vines); offer to revert for
+clean demo. **▶️ NEXT:** optional real-payment refund-amount demo · revert artifacts · founder host-side
+clicks · THEN merge to main + db push (`230000`/`240000`/`250000`) · THEN item 6 AFFILIATE (lockdown cleared pt8).
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt8) — **AFFILIATE/PRIZE RPC LOCKDOWN CLEARED (live)**
 
 **Branch `fix/host-launch-hardening`, HEAD `046095a`. Tree clean. 23 ahead / 13 behind origin/main
 (NOT pushed — founder: merge & push to main LAST).** Solo item-6 pre-work while host awaits founder
