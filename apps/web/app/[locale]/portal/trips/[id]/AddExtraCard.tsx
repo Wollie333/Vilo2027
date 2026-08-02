@@ -1,10 +1,17 @@
 "use client";
 
-import { Plus, Sparkles } from "lucide-react";
+import { Loader2, Plus, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatMoney } from "@/lib/format";
 
 import { addGuestBookingAddonAction } from "./addon-actions";
@@ -31,21 +38,22 @@ export function AddExtraCard({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<Option | null>(null);
 
   if (options.length === 0) return null;
 
-  function add(id: string) {
-    setBusyId(id);
+  function confirmAdd() {
+    if (!confirming) return;
+    const id = confirming.id;
     start(async () => {
       const r = await addGuestBookingAddonAction({
         bookingId,
         addonId: id,
         quantity: 1,
       });
-      setBusyId(null);
       if (r.ok) {
         toast.success("Added to your trip — your host will confirm payment.");
+        setConfirming(null);
         router.refresh();
       } else {
         toast.error(r.error);
@@ -91,16 +99,79 @@ export function AddExtraCard({
             </span>
             <button
               type="button"
-              onClick={() => add(o.id)}
+              onClick={() => setConfirming(o)}
               disabled={pending}
               className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
-              {busyId === o.id ? "Adding…" : "Add"}
+              Add
             </button>
           </li>
         ))}
       </ul>
+
+      <Dialog
+        open={!!confirming}
+        onOpenChange={(v) => {
+          if (!v && !pending) setConfirming(null);
+        }}
+      >
+        <DialogContent className="max-w-sm gap-0 rounded-card border-brand-line bg-white p-0">
+          <DialogHeader className="border-b border-brand-line px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 text-brand-ink">
+              <Sparkles className="h-4 w-4 text-brand-primary" />
+              Add this extra?
+            </DialogTitle>
+            <DialogDescription className="text-brand-mute">
+              This is a charge — it&apos;s added to your booking balance for
+              your host to collect.
+            </DialogDescription>
+          </DialogHeader>
+          {confirming ? (
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between rounded-[10px] bg-brand-light/60 px-3 py-3">
+                <div className="min-w-0">
+                  <div className="text-[13.5px] font-semibold text-brand-ink">
+                    {confirming.name}
+                  </div>
+                  {confirming.basis ? (
+                    <div className="text-[11.5px] text-brand-mute">
+                      {formatMoney(confirming.unitPrice, currency)}{" "}
+                      {confirming.basis}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="num shrink-0 font-display text-[16px] font-extrabold text-brand-ink">
+                  {formatMoney(confirming.effectiveTotal, currency)}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-end gap-2 border-t border-brand-line px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              disabled={pending}
+              className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmAdd}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+            >
+              {pending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              Confirm & add
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

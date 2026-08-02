@@ -9,9 +9,11 @@ import {
   type PricingModel,
 } from "@/app/[locale]/dashboard/addons/schemas";
 import { grossUpVat } from "@/lib/finance/vat";
+import { announceGuestBookingAction } from "@/lib/messaging/guest-request";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { nightsBetween } from "@/lib/pricing";
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -41,7 +43,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, host_id, property_id, guest_id, status, total_amount, vat_amount, vat_rate, guests_count, check_in, check_out",
+      "id, host_id, property_id, quote_id, guest_id, reference, currency, status, total_amount, vat_amount, vat_rate, guests_count, check_in, check_out",
     )
     .eq("id", input.bookingId)
     .maybeSingle();
@@ -159,6 +161,32 @@ export async function addGuestBookingAddonAction(input: {
   }
 
   await recomputeBookingPaymentState(admin, booking.id);
+
+  // Unified fan-out: inbox card + host notification (the charge is already on the
+  // ledger; this makes the host aware). The activity aggregator surfaces the
+  // extra on both timelines via booking_addons (source='guest_added').
+  const amountLabel = formatMoney(addonInclusive, booking.currency || "ZAR");
+  await announceGuestBookingAction(admin, {
+    booking: {
+      id: booking.id,
+      host_id: booking.host_id,
+      guest_id: booking.guest_id,
+      property_id: booking.property_id,
+      quote_id: booking.quote_id,
+    },
+    card: {
+      systemEvent: "addon_added",
+      body: `🧺 Added "${addon.name}" (${amountLabel}) to ${booking.reference}. It's on the balance for you to collect.`,
+    },
+    event: {
+      kind: "addon_added_host",
+      refs: {
+        booking_id: booking.id,
+        addon_name: addon.name,
+        amount: amountLabel,
+      },
+    },
+  });
 
   revalidatePath(`/portal/trips/${booking.id}`);
   revalidatePath("/dashboard/bookings");

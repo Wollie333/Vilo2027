@@ -335,9 +335,36 @@ async function assembleEvents(
     }
   }
 
+  // Guest-added extras (booking_addons, source='guest_added') → "Add-on added".
+  const addonEvents: BookingActivityEvent[] = [];
+  if (bookingIds.length > 0) {
+    const { data: addons } = await admin
+      .from("booking_addons")
+      .select("id, booking_id, label, subtotal, created_at_tx, source")
+      .in("booking_id", bookingIds)
+      .eq("source", "guest_added");
+    for (const a of addons ?? []) {
+      if (!a.created_at_tx) continue;
+      addonEvents.push({
+        id: `addon-${a.id}`,
+        at: a.created_at_tx as string,
+        kind: "addon",
+        title: "Add-on added",
+        context: (a.label as string) ?? undefined,
+        actorKind: "guest",
+        amount: Number(a.subtotal),
+        currency:
+          bookings.find((b) => b.id === a.booking_id)?.currency ?? "ZAR",
+        bookingId: a.booking_id,
+        bookingRef: refFor(a.booking_id),
+      });
+    }
+  }
+
   const events: BookingActivityEvent[] = [
     ...bookings.flatMap(bookingLifecycleEvents),
     ...payEvents,
+    ...addonEvents,
     ...refunds.flatMap((r) => refundEvents(r, refFor)),
     ...requests.flatMap((q) => requestEvents(q, refFor)),
     ...supportTickets.map((m) => ({

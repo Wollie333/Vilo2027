@@ -1,4 +1,10 @@
-import { CalendarClock, CheckCircle2, RotateCcw, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  RotateCcw,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { InboxSystemCard, type InboxCardTone } from "./InboxSystemCard";
@@ -32,6 +38,11 @@ const META: Record<
     title: "Request declined",
     tone: "rose",
     icon: <XCircle className="h-5 w-5" />,
+  },
+  addon_added: {
+    title: "Extra added",
+    tone: "sky",
+    icon: <Sparkles className="h-5 w-5" />,
   },
 };
 
