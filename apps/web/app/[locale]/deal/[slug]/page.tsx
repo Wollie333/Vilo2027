@@ -39,7 +39,7 @@ import { AmenitiesList } from "@/app/[locale]/property/[slug]/AmenitiesList";
 import {
   PhotoGallery,
   type GalleryPhoto,
-} from "@/app/[locale]/property/[slug]/PhotoGallery";
+} from "@/components/media/PhotoGallery";
 import { bedSummary } from "@/app/[locale]/property/[slug]/roomDisplay";
 
 import { ReportButton } from "@/components/report/ReportButton";

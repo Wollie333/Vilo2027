@@ -21,7 +21,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 import { AmenitiesList } from "../../AmenitiesList";
-import { PhotoGallery, type GalleryPhoto } from "../../PhotoGallery";
+import {
+  PhotoGallery,
+  type GalleryPhoto,
+} from "@/components/media/PhotoGallery";
 import { bedSummary, roomFlagPills, type PublicRoom } from "../../roomDisplay";
 import { RoomBookingWidget } from "./RoomBookingWidget";
 

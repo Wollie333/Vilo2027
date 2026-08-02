@@ -12,7 +12,6 @@ import {
   Compass,
   DoorOpen,
   Flame,
-  Images,
   KeyRound,
   Languages,
   LifeBuoy,
@@ -60,6 +59,7 @@ import {
   type PricingModel,
 } from "@/app/[locale]/dashboard/addons/schemas";
 
+import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { AddExtraCard } from "./AddExtraCard";
 import { CancelTripButton } from "./CancelTripButton";
 import { RequestRefundButton } from "./RequestRefundButton";
@@ -725,7 +725,6 @@ export default async function PortalTripDetailPage({
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((p) => p.url as string);
   const galleryCount = photos.length;
-  const bento = photos.slice(0, 5);
 
   const amenities = listing?.amenities ?? [];
   const picks = (listing?.local_picks ?? [])
@@ -963,30 +962,12 @@ export default async function PortalTripDetailPage({
         </div>
       </div>
 
-      {/* ===== GALLERY BENTO ===== */}
-      {bento.length > 0 ? (
-        <div
-          className="mt-5 grid grid-cols-4 grid-rows-2 gap-2.5 overflow-hidden rounded-card"
-          style={{ height: 380 }}
-        >
-          {bento.map((url, i) => (
-            <div
-              key={i}
-              className={`relative overflow-hidden bg-brand-accent ${
-                i === 0 ? "col-span-2 row-span-2" : ""
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              {i === bento.length - 1 && galleryCount > 5 ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/35 text-[12.5px] font-semibold text-white backdrop-blur-[1px]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Images className="h-4 w-4" /> All {galleryCount} photos
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          ))}
+      {/* ===== GALLERY (interactive, swipeable lightbox) ===== */}
+      {galleryCount > 0 ? (
+        <div className="mt-5">
+          <PhotoGallery
+            photos={photos.map((url, i) => ({ id: String(i), url }))}
+          />
         </div>
       ) : null}
 

@@ -40,7 +40,10 @@ import { SimilarListings } from "./SimilarListings";
 import { SuitabilityChips } from "./SuitabilityChips";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
-import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
+import {
+  PhotoGallery,
+  type GalleryPhoto,
+} from "@/components/media/PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
 import { ReportButton } from "@/components/report/ReportButton";
 import { RequestQuoteButton } from "./RequestQuoteButton";
