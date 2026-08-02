@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { assertFullHost } from "@/lib/host/current";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -69,10 +70,42 @@ async function cardBooking(
 ) {
   const { data: b } = await admin
     .from("bookings")
-    .select("id, host_id, guest_id, property_id, quote_id, reference")
+    .select(
+      "id, host_id, guest_id, property_id, quote_id, reference, listing:properties ( name )",
+    )
     .eq("id", bookingId)
     .maybeSingle();
   return b;
+}
+
+// Notify the guest (bell + push) of the host's decision. Best-effort.
+async function notifyGuest(
+  admin: ReturnType<typeof createAdminClient>,
+  booking: {
+    guest_id: string | null;
+    property_id?: string | null;
+    listing?: { name: string } | { name: string }[] | null;
+  },
+  kind: "booking_change_approved_guest" | "booking_change_declined_guest",
+  bookingId: string,
+): Promise<void> {
+  if (!booking.guest_id) return;
+  const listingName =
+    (
+      (Array.isArray(booking.listing)
+        ? booking.listing[0]
+        : booking.listing) as { name: string } | null
+    )?.name ?? undefined;
+  try {
+    await dispatchEvent({
+      kind,
+      recipientUserId: booking.guest_id,
+      refs: { booking_id: bookingId, listing_name: listingName },
+      supabase: admin,
+    });
+  } catch {
+    // non-fatal
+  }
 }
 
 export async function approveBookingChangeAction(
@@ -132,6 +165,16 @@ export async function approveBookingChangeAction(
       readByGuest: false,
       readByHost: true,
     });
+    // A date change already notifies via booking_dates_changed_guest; only the
+    // add-a-guest approval needs its own guest notification.
+    if (req.type !== "date_change") {
+      await notifyGuest(
+        admin,
+        booking,
+        "booking_change_approved_guest",
+        req.booking_id,
+      );
+    }
   }
 
   revalidatePath(`/dashboard/bookings/${req.booking_id}`);
@@ -170,6 +213,12 @@ export async function declineBookingChangeAction(
       readByGuest: false,
       readByHost: true,
     });
+    await notifyGuest(
+      admin,
+      booking,
+      "booking_change_declined_guest",
+      req.booking_id,
+    );
   }
 
   revalidatePath(`/dashboard/bookings/${req.booking_id}`);

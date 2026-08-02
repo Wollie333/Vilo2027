@@ -670,6 +670,52 @@ export const NOTIFICATION_REGISTRY = {
       `booking_dates_changed:${r.booking_id}:${r.check_in ?? ""}:${r.check_out ?? ""}`,
   } satisfies EventBuilder<BookingRefs>,
 
+  // Host approved a guest's change request (add-a-guest; a date change fires
+  // booking_dates_changed_guest instead). Guest gets the good news.
+  booking_change_approved_guest: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Your request was approved 🎉",
+      body: clip(
+        `${r.listing_name ?? "Your host"} approved your booking change.`,
+      ),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Booking change approved",
+      body: r.listing_name ?? "Your host approved your request.",
+      link: `/portal/trips/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<BookingRefs>,
+
+  // Host declined a guest's change request (date / add-a-guest).
+  booking_change_declined_guest: {
+    category: "bookings",
+    feature: "booking",
+    severity: "default",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Update on your request",
+      body: clip(
+        `${r.listing_name ?? "Your host"} couldn't approve your booking change.`,
+      ),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: "Booking change not approved",
+      body: r.listing_name ?? "Tap to view details or message your host.",
+      link: `/portal/trips/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<BookingRefs>,
+
   check_in_reminder_guest: {
     category: "bookings",
     feature: "booking",

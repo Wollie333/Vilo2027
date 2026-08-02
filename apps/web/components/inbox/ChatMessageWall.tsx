@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import {
+  BookingRequestCard,
+  isBookingRequestEvent,
+} from "./BookingRequestCard";
 import { BookingTxnCard } from "./BookingTxnCard";
 import { GuestBookingSupportCard } from "./GuestBookingSupportCard";
 import { InboxSystemCard } from "./InboxSystemCard";
@@ -507,6 +511,21 @@ export function ChatMessageWall({
                 <div key={m.id}>
                   {dayPill}
                   <WebsiteEnquiryCard body={m.body} />
+                </div>
+              );
+            }
+
+            // Guest-request lifecycle (refund / date-change request, host
+            // approval / decline) — a premium card in the thread.
+            if (m.isSystem && isBookingRequestEvent(m.systemEvent)) {
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <BookingRequestCard
+                    systemEvent={m.systemEvent as string}
+                    body={m.body}
+                    footer={fmtClock(m.createdAt)}
+                  />
                 </div>
               );
             }
