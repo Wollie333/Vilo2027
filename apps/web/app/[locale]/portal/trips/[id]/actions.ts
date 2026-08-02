@@ -261,6 +261,196 @@ export async function messageHostAboutBookingAction(input: {
   return { ok: true };
 }
 
+// ─── Guest-initiated booking-change requests (date / add-a-guest) ──────────
+// The guest ASKS; the host approves via the GuestRequestBanner. Writes a
+// booking_requests row (the canonical source the activity aggregator reads) +
+// the unified fan-out (inbox card + host notification). Nothing on the booking
+// changes until the host approves.
+
+const dateChangeSchema = z.object({
+  bookingId: z.string().uuid(),
+  type: z.literal("date_change"),
+  checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a check-in date."),
+  checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a check-out date."),
+  message: z.string().trim().max(1000).optional().nullable(),
+});
+
+const guestChangeSchema = z.object({
+  bookingId: z.string().uuid(),
+  type: z.literal("guest_change"),
+  fullName: z.string().trim().min(2, "Full name is required.").max(120),
+  email: z.string().trim().email("A valid email is required."),
+  phone: z.string().trim().min(6, "A contact number is required.").max(30),
+  consent: z.literal(true, {
+    message: "Please confirm you have their consent.",
+  }),
+  message: z.string().trim().max(1000).optional().nullable(),
+});
+
+const bookingChangeSchema = z.discriminatedUnion("type", [
+  dateChangeSchema,
+  guestChangeSchema,
+]);
+
+export type BookingChangeInput = z.infer<typeof bookingChangeSchema>;
+
+export async function requestBookingChangeAction(
+  input: BookingChangeInput,
+): Promise<Result> {
+  const parsed = bookingChangeSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Please check the form.",
+    };
+  }
+  const data = parsed.data;
+
+  if (data.type === "date_change" && data.checkOut <= data.checkIn) {
+    return { ok: false, error: "Check-out must be after check-in." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select(
+      "id, host_id, guest_id, property_id, quote_id, reference, status, listing:properties ( name )",
+    )
+    .eq("id", data.bookingId)
+    .maybeSingle();
+  if (!booking || booking.guest_id !== user.id) {
+    return { ok: false, error: "Booking not found." };
+  }
+  if (["cancelled", "declined", "completed"].includes(booking.status)) {
+    return {
+      ok: false,
+      error: "This booking can no longer be changed.",
+    };
+  }
+
+  // One open request of each kind at a time — the host clears it by approving or
+  // declining before the guest asks again.
+  const { data: existing } = await admin
+    .from("booking_requests")
+    .select("id")
+    .eq("booking_id", booking.id)
+    .eq("type", data.type)
+    .eq("status", "pending")
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing) {
+    return {
+      ok: false,
+      error:
+        data.type === "date_change"
+          ? "You already have a pending date-change request. Cancel it first to send a new one."
+          : "You already have a pending request to add a guest.",
+    };
+  }
+
+  const payload =
+    data.type === "date_change"
+      ? { check_in: data.checkIn, check_out: data.checkOut }
+      : {
+          full_name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          consent: true,
+        };
+
+  const { data: inserted, error } = await admin
+    .from("booking_requests")
+    .insert({
+      booking_id: booking.id,
+      host_id: booking.host_id,
+      guest_id: user.id,
+      type: data.type,
+      status: "pending",
+      payload,
+      guest_message: data.message?.trim() || null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  const listingName =
+    (
+      (Array.isArray(booking.listing)
+        ? booking.listing[0]
+        : booking.listing) as { name: string } | null
+    )?.name ?? "your booking";
+
+  const cardBody =
+    data.type === "date_change"
+      ? `📅 Requested new dates for ${booking.reference}: ${data.checkIn} → ${data.checkOut}.${
+          data.message ? ` “${data.message.trim()}”` : ""
+        } Awaiting your approval.`
+      : `👤 Asked to add a guest to ${booking.reference}: ${data.fullName}.${
+          data.message ? ` “${data.message.trim()}”` : ""
+        } Awaiting your approval.`;
+
+  await announceGuestBookingAction(admin, {
+    booking: {
+      id: booking.id,
+      host_id: booking.host_id,
+      guest_id: booking.guest_id,
+      property_id: booking.property_id,
+      quote_id: booking.quote_id,
+    },
+    card: { systemEvent: "booking_change_request", body: cardBody },
+    event: {
+      kind: "booking_change_request_host",
+      refs: {
+        booking_id: booking.id,
+        listing_name: listingName,
+        request_kind: data.type,
+      },
+    },
+  });
+
+  revalidatePath(`/portal/trips/${booking.id}`);
+  revalidatePath(`/dashboard/bookings/${booking.id}`);
+  void inserted;
+  return { ok: true };
+}
+
+export async function cancelBookingChangeAction(
+  requestId: string,
+): Promise<Result> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: req } = await admin
+    .from("booking_requests")
+    .select("id, booking_id, guest_id, status")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!req || req.guest_id !== user.id) {
+    return { ok: false, error: "Request not found." };
+  }
+  if (req.status !== "pending") {
+    return { ok: false, error: "This request has already been actioned." };
+  }
+  const { error } = await admin
+    .from("booking_requests")
+    .update({ status: "cancelled" })
+    .eq("id", requestId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/portal/trips/${req.booking_id}`);
+  return { ok: true };
+}
+
 // ─── Guest-initiated cancellation ─────────────────────────────────
 // The guest cancels their own booking from the portal. Verifies ownership in
 // code (guests have no RLS update on bookings), then runs the shared enterprise

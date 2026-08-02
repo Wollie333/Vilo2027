@@ -68,6 +68,10 @@ import { AddExtraCard } from "./AddExtraCard";
 import { GetHelpModal } from "@/components/support/GetHelpModal";
 
 import { CancelTripButton } from "./CancelTripButton";
+import {
+  ManageBookingRequests,
+  type PendingRequest,
+} from "./ManageBookingRequests";
 import { MessageHostButton } from "./MessageHostButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
@@ -829,6 +833,25 @@ export default async function PortalTripDetailPage({
   const timeline: TimelineEvent[] = toTimelineEvents(
     await buildBookingActivity(createAdminClient(), booking.id),
     "guest",
+  );
+
+  // Open change requests (date / add-guest) — shown with a Cancel control in the
+  // Manage-booking section until the host approves or declines.
+  const { data: pendingRows } = await createAdminClient()
+    .from("booking_requests")
+    .select("id, type, status, payload, created_at")
+    .eq("booking_id", booking.id)
+    .eq("status", "pending")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  const pendingChangeRequests: PendingRequest[] = (pendingRows ?? []).map(
+    (r) => ({
+      id: r.id,
+      type: r.type,
+      status: r.status,
+      payload: (r.payload ?? null) as Record<string, unknown> | null,
+      created_at: r.created_at,
+    }),
   );
 
   return (
@@ -1947,15 +1970,14 @@ export default async function PortalTripDetailPage({
                   Manage booking
                 </div>
               </div>
-              <div className="divide-y divide-brand-line">
-                <Link
-                  href="/portal/inbox"
-                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-brand-ink transition hover:bg-brand-light/60"
-                >
-                  <MessageSquare className="h-4 w-4 text-brand-mute" />
-                  <span className="flex-1">Change dates or guests</span>
-                  <ChevronRight className="h-4 w-4 text-brand-mute" />
-                </Link>
+              <ManageBookingRequests
+                bookingId={booking.id}
+                checkIn={booking.check_in}
+                checkOut={booking.check_out}
+                hostName={hostFirstName}
+                pending={pendingChangeRequests}
+              />
+              <div className="divide-y divide-brand-line border-t border-brand-line">
                 <GetHelpModal
                   bookingId={booking.id}
                   sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
