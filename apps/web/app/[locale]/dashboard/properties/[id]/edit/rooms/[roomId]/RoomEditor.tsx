@@ -13,6 +13,7 @@ import {
   KeyRound,
   ListChecks,
   Pencil,
+  ShieldCheck,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,10 @@ import {
   RoomAccessSection,
   type RoomAccessInitial,
 } from "./sections/RoomAccessSection";
+import {
+  RoomPoliciesSection,
+  type RoomPolicyInfo,
+} from "./sections/RoomPoliciesSection";
 
 export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
 
@@ -127,6 +132,7 @@ type StepKey =
   | "photos"
   | "amenities"
   | "access"
+  | "policies"
   | "review"
   | "danger";
 
@@ -137,6 +143,7 @@ const STEPS: StepDef[] = [
   { key: "photos", label: "Photos", icon: ImageIcon },
   { key: "amenities", label: "Amenities", icon: ListChecks },
   { key: "access", label: "Guest access", icon: KeyRound },
+  { key: "policies", label: "Policies", icon: ShieldCheck },
   { key: "review", label: "Review & publish", icon: ClipboardCheck },
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
@@ -157,6 +164,10 @@ const PANEL_META: Record<StepKey, { title: string; desc: string }> = {
   access: {
     title: "Guest access",
     desc: "Arrival details a guest who books this room needs.",
+  },
+  policies: {
+    title: "Policies",
+    desc: "The policies that apply to this room — inherited from the listing, or overridden here.",
   },
   review: {
     title: "Review & publish",
@@ -180,6 +191,7 @@ export function RoomEditor({
   initialPhotos,
   initialAmenityKeys,
   initialAccess,
+  policies,
 }: {
   listingId: string;
   listingName: string;
@@ -192,6 +204,7 @@ export function RoomEditor({
   initialPhotos: RoomEditorPhoto[];
   initialAmenityKeys: string[];
   initialAccess: RoomAccessInitial | null;
+  policies: RoomPolicyInfo[];
 }) {
   const router = useRouter();
   const [active, setActive] = useState<StepKey>("details");
@@ -289,6 +302,12 @@ export function RoomEditor({
           : "None yet";
       case "access":
         return "Arrival details";
+      case "policies": {
+        const overrides = policies.filter((p) => p.roomOverrideId).length;
+        return overrides > 0
+          ? `${overrides} overridden`
+          : "Inherited from listing";
+      }
       case "review":
         return readiness.allDone
           ? "Guest-ready"
@@ -319,6 +338,12 @@ export function RoomEditor({
         return amenityKeys.length > 0;
       case "access":
         return hasAccess;
+      case "policies":
+        // "Done" = every policy type resolves to something (override, listing
+        // wide, or host default) so the room is bookable-compliant.
+        return policies.every(
+          (p) => p.roomOverrideId || p.listingWide || p.hostDefault,
+        );
       case "review":
         return readiness.allDone;
       default:
@@ -575,6 +600,14 @@ export function RoomEditor({
               listingId={listingId}
               roomId={room.id}
               access={initialAccess}
+            />
+          ) : null}
+
+          {active === "policies" ? (
+            <RoomPoliciesSection
+              listingId={listingId}
+              roomId={room.id}
+              policies={policies}
             />
           ) : null}
 

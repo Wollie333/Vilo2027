@@ -11,6 +11,15 @@ import {
   type RoomEditorRoom,
   type RoomStats,
 } from "./RoomEditor";
+import type { RoomPolicyInfo } from "./sections/RoomPoliciesSection";
+import type { PolicyType } from "../../../../../policies/schemas";
+
+const ROOM_POLICY_TYPES: PolicyType[] = [
+  "cancellation",
+  "check_in_out",
+  "house_rules",
+  "booking_terms",
+];
 
 export const metadata: Metadata = {
   title: "Edit room",
@@ -89,6 +98,58 @@ export default async function EditRoomPage({
       .eq("room_id", params.roomId)
       .maybeSingle(),
   ]);
+
+  // ── Policies: available host policies + this listing's assignments ──────────
+  // A room inherits its listing's whole-listing policy (room_id null), or the
+  // host default, unless it has its own override (room_id = this room).
+  const [{ data: hostPolicies }, { data: propPolicies }] = await Promise.all([
+    supabase
+      .from("policies")
+      .select("id, name, type, is_default, status")
+      .eq("host_id", myHostId)
+      .is("deleted_at", null)
+      .in("type", ROOM_POLICY_TYPES),
+    supabase
+      .from("property_policies")
+      .select("policy_id, policy_type, room_id")
+      .eq("property_id", params.id),
+  ]);
+
+  const nameById = new Map(
+    (hostPolicies ?? []).map((p) => [p.id as string, p.name as string]),
+  );
+  const optionsByType = new Map<PolicyType, { id: string; name: string }[]>();
+  const defaultByType = new Map<PolicyType, { id: string; name: string }>();
+  for (const p of hostPolicies ?? []) {
+    const t = p.type as PolicyType;
+    if (p.status === "active") {
+      const arr = optionsByType.get(t) ?? [];
+      arr.push({ id: p.id as string, name: p.name as string });
+      optionsByType.set(t, arr);
+    }
+    if (p.is_default)
+      defaultByType.set(t, { id: p.id as string, name: p.name as string });
+  }
+  const listingWideByType = new Map<PolicyType, string>();
+  const roomOverrideByType = new Map<PolicyType, string>();
+  for (const a of propPolicies ?? []) {
+    const t = a.policy_type as PolicyType;
+    if (a.room_id === null) listingWideByType.set(t, a.policy_id as string);
+    else if (a.room_id === params.roomId)
+      roomOverrideByType.set(t, a.policy_id as string);
+  }
+  const policies: RoomPolicyInfo[] = ROOM_POLICY_TYPES.map((type) => {
+    const lwId = listingWideByType.get(type) ?? null;
+    return {
+      type,
+      options: optionsByType.get(type) ?? [],
+      roomOverrideId: roomOverrideByType.get(type) ?? null,
+      listingWide: lwId
+        ? { id: lwId, name: nameById.get(lwId) ?? "Assigned policy" }
+        : null,
+      hostDefault: defaultByType.get(type) ?? null,
+    };
+  });
 
   const roomShape: RoomEditorRoom = {
     id: room.id,
@@ -294,6 +355,7 @@ export default async function EditRoomPage({
       initialPhotos={photos}
       initialAmenityKeys={amenityKeys}
       initialAccess={access}
+      policies={policies}
     />
   );
 }
