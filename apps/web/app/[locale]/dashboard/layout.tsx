@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { PublishListingReminder } from "./_components/PublishListingReminder";
 import { TwoFactorNudge } from "@/components/auth/TwoFactorNudge";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import {
@@ -118,6 +119,9 @@ export default async function DashboardLayout({
   }
 
   let listingCount = 0;
+  // Draft-only nudge: the host has listing(s) but none published yet.
+  let hasLiveListing = false;
+  let draftListing: { id: string; name: string } | null = null;
   let plan: string | null = null;
   let inboxUnread = 0;
   let guestCount = 0;
@@ -134,7 +138,7 @@ export default async function DashboardLayout({
 
   if (host) {
     const [
-      { count },
+      { data: listingRows },
       { data: subscription },
       { count: unread },
       { data: guestSummary },
@@ -143,8 +147,10 @@ export default async function DashboardLayout({
     ] = await Promise.all([
       supabase
         .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", host.id),
+        .select("id, name, is_published")
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true }),
       supabase
         .from("subscriptions")
         .select("plan")
@@ -159,7 +165,17 @@ export default async function DashboardLayout({
       hostHasFeature(host.id, "website_builder"),
       hostHasFeature(host.id, "looking_for_access"),
     ]);
-    listingCount = count ?? 0;
+    const rows = (listingRows ?? []) as Array<{
+      id: string;
+      name: string | null;
+      is_published: boolean | null;
+    }>;
+    listingCount = rows.length;
+    hasLiveListing = rows.some((l) => l.is_published);
+    const firstDraft = rows.find((l) => !l.is_published);
+    draftListing = firstDraft
+      ? { id: firstDraft.id, name: firstDraft.name ?? "Your listing" }
+      : null;
     plan = subscription?.plan ?? null;
     inboxUnread = unread ?? 0;
     guestCount =
@@ -259,6 +275,12 @@ export default async function DashboardLayout({
             ) : null}
             <TwoFactorNudge />
             <BroadcastBanner />
+            <PublishListingReminder
+              needsPublish={
+                Boolean(host) && listingCount > 0 && !hasLiveListing
+              }
+              draft={draftListing}
+            />
           </>
         }
         bottomNav={
