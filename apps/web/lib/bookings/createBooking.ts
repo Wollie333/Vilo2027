@@ -221,6 +221,36 @@ export async function priceBooking(
     return { ok: false, error: HOST_NOT_ACCEPTING_MESSAGE };
   }
 
+  // Platform rule (protects host, guest AND Wielo): a listing may only be booked
+  // when it has ALL FOUR host policies resolved — cancellation, check-in/out,
+  // house rules and booking terms. This is exactly the set the checkout consent
+  // asks the guest to accept. Enforced at this single booking chokepoint so NO
+  // path (app checkout, website /api/site-booking, or a deal booking) can create
+  // a booking against an under-configured listing.
+  {
+    const { data: pol } = await admin.rpc("get_listing_policy_summary", {
+      p_listing_id: listing.id,
+    });
+    const p = (pol ?? {}) as {
+      cancellation?: unknown;
+      check_in_out?: unknown;
+      house_rules?: unknown;
+      booking_terms?: unknown;
+    };
+    if (
+      !p.cancellation ||
+      !p.check_in_out ||
+      !p.house_rules ||
+      !p.booking_terms
+    ) {
+      return {
+        ok: false,
+        error:
+          "This listing isn’t ready to accept bookings yet — the host still needs to publish all of its policies (cancellation, check-in/out, house rules and booking terms).",
+      };
+    }
+  }
+
   const nights = nightsBetween(d.check_in!, d.check_out!);
   if (nights <= 0) {
     return { ok: false, error: "Check-out must be after check-in." };

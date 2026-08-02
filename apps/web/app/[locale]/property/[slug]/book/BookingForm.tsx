@@ -44,7 +44,10 @@ import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { FxEstimateMark } from "@/components/currency/FxEstimateMark";
 import { railSupportsCurrency } from "@/lib/currency";
-import { PolicyDialog } from "@/components/policy/PolicyDialog";
+import {
+  PolicyDialog,
+  type PolicyDialogData,
+} from "@/components/policy/PolicyDialog";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { grossVat, vatOf } from "@/lib/pricing/vat";
 import { createClient } from "@/lib/supabase/client";
@@ -250,8 +253,6 @@ const CANCELLATION_BULLETS: Record<
   ],
 };
 
-const STEP_KEYS = ["stepRooms", "stepDetails", "stepPayment"] as const;
-
 export function BookingForm({
   listingId,
   listingSlug,
@@ -275,7 +276,6 @@ export function BookingForm({
   currency,
   cancellationPolicy,
   cancellation,
-  bookingTerms,
   instantBooking,
   bookingMode,
   checkIn,
@@ -300,6 +300,8 @@ export function BookingForm({
   monthlyDiscountPct,
   deal,
   policyBlock,
+  policyLinks,
+  policiesComplete,
 }: {
   listingId: string;
   listingSlug: string;
@@ -335,9 +337,6 @@ export function BookingForm({
     note: string | null;
   } | null;
   // The host's own property Terms & Conditions (resolver: listing-wide → host
-  // default). Accepted at checkout ALONGSIDE Wielo's platform terms + snapshotted
-  // onto the booking. Null when the host has none.
-  bookingTerms: { name: string; bodyHtml: string | null } | null;
   instantBooking: boolean;
   bookingMode: string;
   checkIn: string;
@@ -365,6 +364,15 @@ export function BookingForm({
   /** The listing's POLICIES block (box 2) — rendered on the details step in
       place of the old inline cancellation card. Passed from the server page. */
   policyBlock?: ReactNode;
+  /** Each host policy as PolicyDialog data, for the individual consent links. */
+  policyLinks?: {
+    cancellation: PolicyDialogData | null;
+    checkInOut: PolicyDialogData | null;
+    houseRules: PolicyDialogData | null;
+    bookingTerms: PolicyDialogData | null;
+  };
+  /** True only when the listing has all four host policies (platform rule). */
+  policiesComplete?: boolean;
 }) {
   const router = useRouter();
   // Deal mode: a pre-priced special booked through this same checkout.
@@ -379,6 +387,36 @@ export function BookingForm({
   // VAT-inclusive (shown == charged). 0 rate → no-op. Never applied to values
   // sent to the pricing engine, coupon check, or createBookingAction.
   const gv = (n: number) => grossVat(n, vatRate);
+
+  // Platform rule: a listing can't be booked unless it has all four host
+  // policies. The server hard-enforces this at booking creation; here we block
+  // the checkout up front so the guest never fills in a booking that can't
+  // complete. `undefined` (prop not passed) does not block.
+  const policiesBlocked = policiesComplete === false;
+
+  // A single host-policy acceptance link in the consent sentence: the policy's
+  // PolicyDialog when it exists, plain text otherwise (defensive — the platform
+  // rule requires all four, enforced server-side + at the checkout gate).
+  const policyLink = (
+    data: PolicyDialogData | null | undefined,
+    label: string,
+  ) =>
+    data ? (
+      <PolicyDialog
+        data={data}
+        trigger={
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="font-medium text-emerald-300 underline underline-offset-2"
+          >
+            {label}
+          </button>
+        }
+      />
+    ) : (
+      <>{label}</>
+    );
 
   // ── Display currency ──────────────────────────────────────────
   // Every price in this form is a HOST-currency (settlement) amount; `formatMoney`
@@ -2595,8 +2633,6 @@ export function BookingForm({
     </div>
   ) : null;
 
-  const progressPct = (step / (STEP_KEYS.length - 1)) * 100;
-
   return (
     <div className="space-y-5">
       <style
@@ -2611,67 +2647,6 @@ export function BookingForm({
 `,
         }}
       />
-
-      {/* Progress band */}
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="h-1 bg-brand-light">
-          <div
-            className="h-full bg-brand-primary transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-        <div className="hide-sb flex items-center gap-3 px-4 py-3 md:px-5">
-          <span className="hidden shrink-0 font-mono text-[10px] text-brand-mute sm:inline">
-            {String(step + 1).padStart(2, "0")}/
-            {String(STEP_KEYS.length).padStart(2, "0")}
-          </span>
-          <div className="hide-sb flex flex-1 items-center gap-2 overflow-x-auto md:gap-2.5">
-            {STEP_KEYS.map((key, i) => {
-              const done = i < step;
-              const active = i === step;
-              return (
-                <div key={key} className="flex items-center gap-2 md:gap-2.5">
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div
-                      className={`flex h-7 w-7 items-center justify-center rounded-pill text-xs font-semibold ${
-                        done
-                          ? "bg-brand-primary text-white"
-                          : active
-                            ? "ck-pulse border-2 border-brand-primary bg-white text-brand-primary"
-                            : "border border-brand-line bg-white text-brand-mute"
-                      }`}
-                    >
-                      {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                    </div>
-                    <div
-                      className={`text-xs font-medium ${
-                        done
-                          ? "text-brand-ink"
-                          : active
-                            ? "text-brand-primary"
-                            : "text-brand-mute"
-                      } ${!active ? "hidden sm:inline" : ""}`}
-                    >
-                      {t(key)}
-                    </div>
-                  </div>
-                  {i < STEP_KEYS.length - 1 ? (
-                    <div
-                      className={`h-px w-6 min-w-6 md:w-10 ${
-                        i < step ? "bg-brand-primary" : "bg-brand-line"
-                      }`}
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-          <span className="ml-auto hidden shrink-0 items-center gap-1.5 text-[11px] text-brand-mute md:inline-flex">
-            <Lock className="h-3.5 w-3.5 text-brand-primary" />{" "}
-            {t("secureCheckout")}
-          </span>
-        </div>
-      </section>
 
       <form
         onSubmit={(e) => {
@@ -3103,46 +3078,29 @@ export function BookingForm({
                     className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
                   />
                   <span>
-                    I understand the cancellation policy and refund schedule,
-                    and I accept{" "}
-                    {bookingTerms ? (
-                      <>
-                        {hostName ? `${hostName}’s ` : "the host’s "}
-                        <PolicyDialog
-                          data={{
-                            type: "booking_terms",
-                            name: bookingTerms.name,
-                            summary: null,
-                            isNonRefundable: false,
-                            rules: [],
-                            checkInTime: null,
-                            checkOutTime: null,
-                            bodyHtml: bookingTerms.bodyHtml,
-                          }}
-                          trigger={
-                            <button
-                              type="button"
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-medium text-emerald-300 underline underline-offset-2"
-                            >
-                              terms &amp; conditions
-                            </button>
-                          }
-                        />
-                        {", as well as the "}
-                      </>
-                    ) : (
-                      "the "
+                    I&apos;ve read, understood and agree to {hostName}
+                    &rsquo;s{" "}
+                    {policyLink(
+                      policyLinks?.cancellation,
+                      "cancellation policy",
                     )}
+                    ,{" "}
+                    {policyLink(
+                      policyLinks?.checkInOut,
+                      "check-in & check-out",
+                    )}
+                    , {policyLink(policyLinks?.houseRules, "house rules")} and{" "}
+                    {policyLink(policyLinks?.bookingTerms, "booking terms")},
+                    plus Wielo&rsquo;s{" "}
                     <LegalDocModalLink
                       docKey="terms"
-                      label="booking terms"
+                      label="terms"
                       className="font-medium text-emerald-300 underline underline-offset-2"
                     />{" "}
                     and{" "}
                     <LegalDocModalLink
                       docKey="privacy"
-                      label="privacy notice"
+                      label="privacy policy"
                       className="font-medium text-emerald-300 underline underline-offset-2"
                     />
                     .
@@ -3155,7 +3113,7 @@ export function BookingForm({
                 <button
                   type="button"
                   onClick={pay}
-                  disabled={isPending || !canPay}
+                  disabled={isPending || !canPay || policiesBlocked}
                   className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
                 >
                   {isPending ? (
@@ -3169,13 +3127,23 @@ export function BookingForm({
                 <button
                   type="button"
                   onClick={goNext}
-                  disabled={step === 0 && step0Blocked}
+                  disabled={(step === 0 && step0Blocked) || policiesBlocked}
                   className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
                 >
                   {step === 0 ? t("continueDetails") : t("continuePayment")}{" "}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               )}
+
+              {/* Platform rule: listing missing one or more policies → not
+                  bookable. Server hard-enforces; this explains the disabled CTA. */}
+              {policiesBlocked ? (
+                <div className="mt-2.5 flex items-start gap-1.5 rounded border border-amber-300/40 bg-amber-400/10 px-3 py-2 text-[11.5px] leading-relaxed text-amber-100">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                  This listing isn’t taking bookings yet — the host still needs
+                  to publish all of its policies.
+                </div>
+              ) : null}
 
               {/* Why you can't continue yet (rooms step) */}
               {step === 0 && step0Reason ? (

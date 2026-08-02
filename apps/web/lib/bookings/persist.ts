@@ -181,6 +181,37 @@ export async function persistBookingAndPay(
     }
   }
 
+  // 0d. Policy-completeness gate (authoritative backstop). Platform rule: a
+  // listing may only be booked when it has ALL FOUR host policies resolved —
+  // cancellation, check-in/out, house rules and booking terms — the exact set
+  // the checkout consent asks the guest to accept. Protects host, guest AND
+  // Wielo. Every booking surface (app checkout, marketplace deal, website
+  // special) funnels through here, so no channel can book an under-configured
+  // listing. createBookingCore also checks this early for nicer UX.
+  if (gatePropertyId) {
+    const { data: pol } = await admin.rpc("get_listing_policy_summary", {
+      p_listing_id: gatePropertyId,
+    });
+    const p = (pol ?? {}) as {
+      cancellation?: unknown;
+      check_in_out?: unknown;
+      house_rules?: unknown;
+      booking_terms?: unknown;
+    };
+    if (
+      !p.cancellation ||
+      !p.check_in_out ||
+      !p.house_rules ||
+      !p.booking_terms
+    ) {
+      return {
+        ok: false,
+        error:
+          "This listing isn’t ready to accept bookings yet — the host still needs to publish all of its policies (cancellation, check-in/out, house rules and booking terms).",
+      };
+    }
+  }
+
   // 0c. Creation-time idempotency (double-click / network retry). A rapid re-post
   // of the same checkout would otherwise mint a SECOND pending booking — a harmless
   // orphan the expire cron later clears, but still noise + a duplicate pending

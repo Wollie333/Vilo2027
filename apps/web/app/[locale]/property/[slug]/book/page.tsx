@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { type PolicyDialogData } from "@/components/policy/PolicyDialog";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { commerceParams } from "@/lib/analytics/pixel";
 import {
@@ -423,14 +424,66 @@ export default async function BookingPage({
         note: note?.note ?? null,
       }
     : null;
-  // The host's own property Terms & Conditions (accepted alongside Wielo's
-  // platform terms; snapshotted onto the booking by snapshot_booking_policies).
-  const checkoutBookingTerms = policySummary.booking_terms
-    ? {
-        name: policySummary.booking_terms.name,
-        bodyHtml: policySummary.booking_terms.body_html ?? null,
-      }
-    : null;
+  // All four host policies must exist for a listing to accept bookings — a
+  // platform-wide rule that protects host, guest and Wielo. Each is surfaced as
+  // its own acceptance link in the checkout consent; the server booking action
+  // enforces the same rule so a listing missing any policy cannot be booked.
+  const _c = policySummary.cancellation;
+  const _cio = policySummary.check_in_out;
+  const _hr = policySummary.house_rules;
+  const _bt = policySummary.booking_terms;
+  const policiesComplete = !!(_c && _cio && _hr && _bt);
+  const policyLinks = {
+    cancellation: _c
+      ? ({
+          type: "cancellation",
+          name: _c.name,
+          summary: _c.summary,
+          isNonRefundable: _c.is_non_refundable,
+          rules: _c.rules,
+          bodyHtml: _c.body_html,
+        } as PolicyDialogData)
+      : null,
+    checkInOut: _cio
+      ? ({
+          type: "check_in_out",
+          name: _cio.name,
+          summary: _cio.summary,
+          checkInTime: _cio.check_in_time ?? null,
+          checkOutTime: _cio.check_out_time ?? null,
+          checkInMethod: _cio.check_in_method ?? null,
+          petsAllowed: _cio.pets_allowed ?? null,
+          smokingAllowed: _cio.smoking_allowed ?? null,
+          partiesAllowed: _cio.parties_allowed ?? null,
+          childrenWelcome: _cio.children_welcome ?? null,
+          quietHoursStart: _cio.quiet_hours_start ?? null,
+          quietHoursEnd: _cio.quiet_hours_end ?? null,
+          bodyHtml: _cio.body_html,
+        } as PolicyDialogData)
+      : null,
+    houseRules: _hr
+      ? ({
+          type: "house_rules",
+          name: _hr.name,
+          summary: _hr.summary,
+          petsAllowed: _hr.pets_allowed ?? null,
+          smokingAllowed: _hr.smoking_allowed ?? null,
+          partiesAllowed: _hr.parties_allowed ?? null,
+          childrenWelcome: _hr.children_welcome ?? null,
+          quietHoursStart: _hr.quiet_hours_start ?? null,
+          quietHoursEnd: _hr.quiet_hours_end ?? null,
+          bodyHtml: _hr.body_html,
+        } as PolicyDialogData)
+      : null,
+    bookingTerms: _bt
+      ? ({
+          type: "booking_terms",
+          name: _bt.name,
+          summary: _bt.summary,
+          bodyHtml: _bt.body_html,
+        } as PolicyDialogData)
+      : null,
+  };
 
   return (
     // The mobile action bar is fixed, so the document must end above it or the
@@ -483,7 +536,8 @@ export default async function BookingPage({
           currency={listing.currency}
           cancellationPolicy={listing.cancellation_policy}
           cancellation={checkoutCancellation}
-          bookingTerms={checkoutBookingTerms}
+          policyLinks={policyLinks}
+          policiesComplete={policiesComplete}
           instantBooking={listing.instant_booking}
           bookingMode={listing.booking_mode}
           checkIn={checkIn}
