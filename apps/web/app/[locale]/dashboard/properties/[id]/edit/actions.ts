@@ -1057,16 +1057,45 @@ export async function togglePublishAction(
     };
   }
 
-  // A listing can only go live when setup is 100% — same predicates the setup
-  // wizard uses, enforced here so no surface (editor/portfolio) can bypass it.
+  // Platform rule: a listing may only go live when it has ALL FOUR host policies
+  // RESOLVED — cancellation, check-in/out, house rules and booking terms. Uses the
+  // SAME resolver the booking chokepoint (persistBookingAndPay) uses (room →
+  // listing-wide → host DEFAULT), so publishable ⟺ bookable, a host who configured
+  // host-default policies isn't wrongly blocked for lacking per-listing rows, and
+  // the guest's checkout consent always has all four to accept. Checked up front
+  // so the host gets the precise missing list. Protects host, guest & Wielo.
+  const { data: polData } = await supabase.rpc("get_listing_policy_summary", {
+    p_listing_id: listingId,
+  });
+  const pol = (polData ?? {}) as {
+    cancellation?: unknown;
+    check_in_out?: unknown;
+    house_rules?: unknown;
+    booking_terms?: unknown;
+  };
+  const missingPolicies = [
+    [!pol.cancellation, "cancellation policy"],
+    [!pol.check_in_out, "check-in & check-out policy"],
+    [!pol.house_rules, "house rules"],
+    [!pol.booking_terms, "booking terms & conditions"],
+  ]
+    .filter(([m]) => m)
+    .map(([, label]) => label as string);
+  if (missingPolicies.length > 0) {
+    return {
+      ok: false,
+      error: `Add every listing policy before going live — still needed: ${missingPolicies.join(", ")}.`,
+    };
+  }
+
+  // The rest of setup must be 100% — same predicates the setup wizard uses,
+  // enforced here so no surface (editor/portfolio) can bypass it.
   const [
     { data: hostRow },
     { data: bizRow },
     hasBankAccount,
     { count: photoCount },
     { count: roomCount },
-    { count: cancelCount },
-    { count: houseRulesCount },
   ] = await Promise.all([
     supabase
       .from("hosts")
@@ -1096,22 +1125,6 @@ export async function togglePublishAction(
       .eq("property_id", listingId)
       .is("deleted_at", null)
       .eq("is_active", true),
-    supabase
-      .from("property_policies")
-      .select("id", { count: "exact", head: true })
-      .eq("property_id", listingId)
-      .eq("policy_type", "cancellation")
-      .is("room_id", null),
-    // House rules must ALSO be assigned listing-wide — computeSetupCompletion
-    // requires both. Previously this count was missing, so hasHouseRules was
-    // always undefined → the policies step never completed server-side and
-    // publishing was blocked even when both policies were attached.
-    supabase
-      .from("property_policies")
-      .select("id", { count: "exact", head: true })
-      .eq("property_id", listingId)
-      .eq("policy_type", "house_rules")
-      .is("room_id", null),
   ]);
 
   const completion = computeSetupCompletion({
@@ -1123,8 +1136,10 @@ export async function togglePublishAction(
     listing,
     photoCount: photoCount ?? 0,
     roomCount: roomCount ?? 0,
-    hasCancellationPolicy: (cancelCount ?? 0) > 0,
-    hasHouseRules: (houseRulesCount ?? 0) > 0,
+    // Policies resolved above (all four required) via the RPC — pass the RPC
+    // truth so the setup-completion policies step honors host defaults too.
+    hasCancellationPolicy: !!pol.cancellation,
+    hasHouseRules: !!pol.house_rules,
   });
 
   const LABELS: Record<string, string> = {
@@ -1145,38 +1160,6 @@ export async function togglePublishAction(
         .map((k) => LABELS[k])
         .join(", ")}.`,
     };
-  }
-
-  // Platform rule: a listing may only go live when it has ALL FOUR host policies
-  // resolved — cancellation, check-in/out, house rules and booking terms. This is
-  // the SAME set the booking chokepoint (persistBookingAndPay) enforces and uses
-  // the SAME resolver (get_listing_policy_summary: room → listing-wide → host
-  // default), so a published listing is guaranteed bookable and the guest's
-  // checkout consent always has all four to accept. Protects host, guest & Wielo.
-  {
-    const { data: pol } = await supabase.rpc("get_listing_policy_summary", {
-      p_listing_id: listingId,
-    });
-    const p = (pol ?? {}) as {
-      cancellation?: unknown;
-      check_in_out?: unknown;
-      house_rules?: unknown;
-      booking_terms?: unknown;
-    };
-    const missingPolicies = [
-      [!p.cancellation, "cancellation policy"],
-      [!p.check_in_out, "check-in & check-out policy"],
-      [!p.house_rules, "house rules"],
-      [!p.booking_terms, "booking terms & conditions"],
-    ]
-      .filter(([m]) => m)
-      .map(([, label]) => label as string);
-    if (missingPolicies.length > 0) {
-      return {
-        ok: false,
-        error: `Add every listing policy before going live — still needed: ${missingPolicies.join(", ")}.`,
-      };
-    }
   }
 
   // Guarantee a unique slug so /property/<slug> resolves the instant we publish
