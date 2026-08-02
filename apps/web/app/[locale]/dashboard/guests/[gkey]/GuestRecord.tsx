@@ -45,6 +45,10 @@ import { RequestReviewButton } from "@/app/[locale]/dashboard/reviews/RequestRev
 import { ReviewCard } from "@/app/[locale]/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
 import { StatementDialog } from "@/components/finance/StatementDialog";
+import {
+  ActivityTimeline,
+  type ActivityEvent,
+} from "@/components/admin/ActivityTimeline";
 import { EventTimeline } from "@/components/timeline/EventTimeline";
 import {
   buildGuestStatementAction,
@@ -257,6 +261,7 @@ export type RelationshipItem = {
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "history", label: "History" },
   { key: "bookings", label: "Bookings" },
   { key: "finances", label: "Finances" },
   { key: "messages", label: "Messages" },
@@ -342,6 +347,7 @@ function statusTag(status: string): { label: string; cls: string } {
 
 export function GuestRecord({
   record,
+  activity,
   bookings,
   reviews,
   requestableReviews,
@@ -364,6 +370,7 @@ export function GuestRecord({
   nextAction,
 }: {
   record: GuestRecordData;
+  activity: ActivityEvent[];
   bookings: BookingItem[];
   reviews: ReviewItem[];
   requestableReviews: RequestableReview[];
@@ -546,6 +553,12 @@ export function GuestRecord({
                 bookings={bookings}
                 nextBooking={nextBooking}
                 pinnedNote={pinnedNote}
+              />
+            ) : tab === "history" ? (
+              <ActivityTimeline
+                events={activity}
+                title="Interaction history"
+                emptyLabel="No interactions recorded with this guest yet."
               />
             ) : tab === "bookings" ? (
               <BookingsPanel bookings={bookings} currency={r.currency} />

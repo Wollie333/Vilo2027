@@ -12,6 +12,10 @@ import {
   type RequestableReview,
 } from "@/lib/reviews/eligible";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
+import {
+  buildHostGuestActivity,
+  toActivityEvents,
+} from "@/lib/bookings/activity";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -720,9 +724,20 @@ export default async function GuestRecordPage({
     };
   }
 
+  // Full host↔guest interaction history (the "History" tab) — the shared
+  // activity aggregator across every booking with this guest, humanised for the
+  // host. Same source of truth as the booking + trip timelines.
+  const activity = guestId
+    ? toActivityEvents(
+        await buildHostGuestActivity(admin, host.id, guestId),
+        "host",
+      )
+    : [];
+
   return (
     <GuestRecord
       record={record}
+      activity={activity}
       bookings={bookings}
       reviews={reviews}
       reputation={reputation}

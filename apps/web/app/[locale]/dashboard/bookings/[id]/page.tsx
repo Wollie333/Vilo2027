@@ -17,6 +17,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { type TimelineEvent } from "@/components/timeline/EventTimeline";
+import {
+  buildBookingActivity,
+  toTimelineEvents,
+} from "@/lib/bookings/activity";
 
 import { BookingDetail, type BookingDetailData } from "./BookingDetail";
 
@@ -598,10 +602,16 @@ export default async function BookingDetailPage({
   const checkInBig = arrival ? fmtStayDate(arrival) : "—";
   const checkOutBig = departure ? fmtStayDate(departure) : "—";
 
-  // Activity timeline — booking lifecycle events (the shared EventTimeline sorts
-  // newest-first and renders the colour-coded rail; money events live on the
-  // payment record's timeline).
-  const tl: TimelineEvent[] = [];
+  // Activity timeline — the SAME shared aggregator the guest trip page renders,
+  // derived from the canonical tables (booking lifecycle, payments, refund
+  // requests + resolutions, date/guest-change + add-on requests, support tickets,
+  // reviews). One source of truth → host and guest timelines never disagree.
+  // `viewer:"host"` renders the actor as "You" for host actions. Quote milestones
+  // (below) are folded in on top since they live outside those tables.
+  const tl: TimelineEvent[] = toTimelineEvents(
+    await buildBookingActivity(admin, booking.id),
+    "host",
+  );
   const push = (
     iso: string | null,
     title: string,
@@ -611,24 +621,6 @@ export default async function BookingDetailPage({
   ) => {
     if (iso) tl.push({ at: iso, title, kind, tone, meta: meta ?? undefined });
   };
-  push(booking.checked_out_at, "Checked out", "green", "Stay");
-  push(booking.checked_in_at, "Checked in", "blue", "Stay");
-  push(
-    booking.cancelled_at,
-    "Booking cancelled",
-    "red",
-    "Booking",
-    booking.cancellation_reason,
-  );
-  push(booking.declined_at, "Booking declined", "red", "Booking");
-  push(booking.confirmed_at, "Booking confirmed", "green", "Booking");
-  push(
-    booking.created_at,
-    "Booking created",
-    "slate",
-    "Booking",
-    channel.label,
-  );
   // Fold the originating quote's lifecycle into the booking timeline (sorted by
   // date), so "Quote viewed" appears here too, not only on the quote record.
   if (quoteMilestones) {

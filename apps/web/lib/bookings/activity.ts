@@ -69,6 +69,7 @@ type BookingRow = {
   currency: string | null;
   created_at: string;
   confirmed_at: string | null;
+  declined_at: string | null;
   checked_in_at: string | null;
   checked_out_at: string | null;
   cancelled_at: string | null;
@@ -111,6 +112,15 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "stay",
       title: "Checked out",
       actorKind: "system",
+      ...base,
+    });
+  if (b.declined_at)
+    out.push({
+      id: `bk-declined-${b.id}`,
+      at: b.declined_at,
+      kind: "booking",
+      title: "Booking declined",
+      actorKind: "host",
       ...base,
     });
   if (b.cancelled_at)
@@ -268,7 +278,7 @@ function requestEvents(
 // ── Aggregators ─────────────────────────────────────────────────────────────
 
 const BOOKING_COLS =
-  "id, reference, currency, created_at, confirmed_at, checked_in_at, checked_out_at, cancelled_at";
+  "id, reference, currency, created_at, confirmed_at, declined_at, checked_in_at, checked_out_at, cancelled_at";
 const REFUND_COLS =
   "id, booking_id, created_at, actioned_at, status, requested_amount, approved_amount, currency, reason, decline_reason, initiated_by, refund_number";
 const REQUEST_COLS =
