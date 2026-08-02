@@ -1860,6 +1860,89 @@ export type Database = {
           },
         ]
       }
+      booking_requests: {
+        Row: {
+          actioned_at: string | null
+          actioned_by: string | null
+          booking_id: string
+          created_at: string
+          decline_reason: string | null
+          deleted_at: string | null
+          guest_id: string
+          guest_message: string | null
+          host_id: string
+          host_note: string | null
+          id: string
+          payload: Json
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actioned_at?: string | null
+          actioned_by?: string | null
+          booking_id: string
+          created_at?: string
+          decline_reason?: string | null
+          deleted_at?: string | null
+          guest_id: string
+          guest_message?: string | null
+          host_id: string
+          host_note?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          actioned_at?: string | null
+          actioned_by?: string | null
+          booking_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          deleted_at?: string | null
+          guest_id?: string
+          guest_message?: string | null
+          host_id?: string
+          host_note?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_requests_actioned_by_fkey"
+            columns: ["actioned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_requests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_requests_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_rooms: {
         Row: {
           base_amount: number
