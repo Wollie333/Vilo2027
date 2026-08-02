@@ -2,7 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt9) — **GUEST-SIDE: ALL 5 FLOWS LIVE-VERIFIED** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt10) — **HOST-GLOBAL ADD-ONS FEATURE (built + live-verified)** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `c917324`.** Built the founder-requested "add-ons on ALL listings"
+feature: migration `20260802120000` (additive `addons.applies_to_all_listings`, applied to LIVE via raw
+`db query` WITHOUT triggering the staged-migration batch), booking-page union+dedup, AddonEditor toggle +
+action, types regen. type-check + lint GREEN. **LIVE-VERIFIED (dev :3001):** global add-on shows on The Vines
+(no property_addons rows); Seaview dedups (explicit+global → once) + Daily breakfast; no leaks; no console
+errors. ⚠️ **Dashboard toggle needs founder click-verify** (Claude can't log into dashboard). ⚠️ Test flag
+left: "Welcome wine basket" is currently global. **▶️ NEXT:** founder verifies toggle in dashboard · other
+host clicks · revert artifacts if wanted · merge to main + db push (`120000`/`230000`/`240000`/`250000`) ·
+THEN item 6 AFFILIATE. Full detail in memory anchor pt10.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt9) — **GUEST-SIDE: ALL 5 FLOWS LIVE-VERIFIED**
 
 **Branch `fix/host-launch-hardening`. Living anchor = memory `launch-prep-host-then-affiliate` (pt9).**
 Claude drove the PUBLIC guest surface in the in-app browser (no login); founder confirmed the website
