@@ -81,6 +81,7 @@ export function EventTimeline({
   currency = "ZAR",
   emptyLabel = "No events yet.",
   sort = true,
+  variant = "rail",
   className,
 }: {
   events: TimelineEvent[];
@@ -90,6 +91,9 @@ export function EventTimeline({
   emptyLabel?: string;
   /** Sort newest-first internally (default). Pass false if already ordered. */
   sort?: boolean;
+  /** "rail" = compact left-rail rows (default); "cards" = bigger, more
+   *  prominent bordered cards for headline activity feeds. */
+  variant?: "rail" | "cards";
   className?: string;
 }) {
   const items = sort
@@ -100,6 +104,57 @@ export function EventTimeline({
 
   if (items.length === 0) {
     return <p className="text-[13px] text-brand-mute">{emptyLabel}</p>;
+  }
+
+  if (variant === "cards") {
+    return (
+      <ol className={`space-y-2.5 ${className ?? ""}`}>
+        {items.map((e, i) => {
+          const tone = TIMELINE_TONE[e.tone ?? "slate"] ?? TIMELINE_TONE.slate;
+          return (
+            <li
+              key={i}
+              className="flex items-start gap-3.5 rounded-card border border-brand-line bg-white p-3.5 shadow-sm transition hover:shadow-card"
+            >
+              <span
+                className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone.tag}`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${tone.dot}`} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14.5px] font-semibold leading-tight text-brand-ink">
+                  {e.title}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-brand-mute">
+                  <span
+                    className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${tone.tag}`}
+                  >
+                    {e.kind}
+                  </span>
+                  {e.meta ? <span>{e.meta}</span> : null}
+                  <span className="text-brand-line">·</span>
+                  <span>{fmtDt(e.at)}</span>
+                </div>
+              </div>
+              {typeof e.amount === "number" ? (
+                <div
+                  className={`shrink-0 self-center font-display text-[15px] font-extrabold ${
+                    e.flow === "in"
+                      ? "text-status-confirmed"
+                      : e.flow === "out"
+                        ? "text-status-cancelled"
+                        : "text-brand-ink"
+                  }`}
+                >
+                  {e.flow === "out" ? "−" : e.flow === "in" ? "+" : ""}
+                  {formatMoney(Math.abs(e.amount), e.currency ?? currency)}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    );
   }
 
   return (

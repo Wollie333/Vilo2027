@@ -235,6 +235,7 @@ export function ActivityTimeline({
         <div className="p-5">
           <EventTimeline
             sort={false}
+            variant="cards"
             events={filtered.slice(0, limit).map((e) => {
               // Fold the actor identity (kind + name) and any context into the
               // shared timeline's meta line.
