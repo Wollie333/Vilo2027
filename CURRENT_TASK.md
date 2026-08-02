@@ -2,7 +2,20 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt11) — **DASHBOARD TOGGLE VERIFIED + 2 UI FIXES** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt12) — **CHECKOUT POLICY CONSENT + ALL-4-POLICIES ENFORCEMENT** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `0f08796`.** Checkout consent now lists EACH policy individually
+linked (host cancellation/check-in-out/house-rules/booking-terms + Wielo terms/privacy) — founder-approved
+copy, live-verified with 6 working links. **Platform rule enforced app-wide: no booking unless the listing
+has all 4 host policies** (authoritative gate in `persistBookingAndPay` 0d = the single chokepoint; early
+check in createBookingCore; guest CTA disabled + notice). ⚠️ Block path not seen live (both demo listings
+complete) — trivial guard mirroring existing gates. Removed the checkout step-progress indicator. Also this
+session: wiring audit (clean; dropped 1 orphan DB fn, migration `130000`). type-check+lint green. Full detail
++ follow-ups in memory anchor pt12. Prior pt11 (toggle/greeting/checkout-UI) below still stands.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt11) — **DASHBOARD TOGGLE VERIFIED + 2 UI FIXES**
 
 **Branch `fix/host-launch-hardening`, HEAD `82ad3ee`.** Founder logged into host dashboard (their Chrome);
 Claude drove it via claude-in-chrome against dev :3001 (prod :3000 = old code). **Add-on "Offer on all my
