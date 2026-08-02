@@ -48,7 +48,7 @@ export default async function AddonEditorPage({
   const { data: r } = await supabase
     .from("addons")
     .select(
-      "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, is_refundable, lead_time_days, category, vat_included, daily_capacity",
+      "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, is_refundable, lead_time_days, category, vat_included, daily_capacity, applies_to_all_listings",
     )
     .eq("id", params.id)
     .eq("host_id", host.id)
@@ -77,6 +77,7 @@ export default async function AddonEditorPage({
     category: (r.category as AddonCategory | null) ?? null,
     vatIncluded: r.vat_included,
     dailyCapacity: r.daily_capacity,
+    appliesToAllListings: r.applies_to_all_listings ?? false,
   };
 
   // ----- Availability: published listings, their active rooms, and the

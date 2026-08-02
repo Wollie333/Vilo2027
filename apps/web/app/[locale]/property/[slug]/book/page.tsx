@@ -372,6 +372,38 @@ export default async function BookingPage({
         });
       }
     }
+    // Host-global add-ons: offered listing-wide on EVERY listing this host owns,
+    // without a property_addons row. Union them in at catalog price; an explicit
+    // property_addons row (possibly with an override) already in `seen` wins.
+    const { data: globalAddons } = await supabase
+      .from("addons")
+      .select(
+        "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days",
+      )
+      .eq("host_id", listing.host_id)
+      .eq("applies_to_all_listings", true)
+      .eq("is_active", true);
+    for (const a of (globalAddons ?? []) as unknown as Row["addons"][]) {
+      if (!a || seen.has(a.id)) continue;
+      seen.set(a.id, {
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        imageUrl: a.image_path
+          ? supabase.storage.from("addon-images").getPublicUrl(a.image_path)
+              .data.publicUrl
+          : null,
+        pricingModel: a.pricing_model,
+        unitPrice: Number(a.unit_price),
+        currency: a.currency,
+        minQuantity: a.min_quantity,
+        maxQuantity: a.max_quantity,
+        allowCustomQuantity: a.allow_custom_quantity,
+        stockQuantity: a.stock_quantity,
+        isRequired: a.is_required,
+        leadTimeDays: a.lead_time_days,
+      });
+    }
     availableAddons = Array.from(seen.values());
   }
 

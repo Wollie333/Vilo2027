@@ -84,6 +84,7 @@ export type Database = {
       addons: {
         Row: {
           allow_custom_quantity: boolean
+          applies_to_all_listings: boolean
           category: string | null
           created_at: string
           currency: string
@@ -108,6 +109,7 @@ export type Database = {
         }
         Insert: {
           allow_custom_quantity?: boolean
+          applies_to_all_listings?: boolean
           category?: string | null
           created_at?: string
           currency?: string
@@ -132,6 +134,7 @@ export type Database = {
         }
         Update: {
           allow_custom_quantity?: boolean
+          applies_to_all_listings?: boolean
           category?: string | null
           created_at?: string
           currency?: string
@@ -4219,6 +4222,35 @@ export type Database = {
           },
         ]
       }
+      help_article_saves: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_saves_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_article_suggestions: {
         Row: {
           created_at: string
@@ -6428,6 +6460,81 @@ export type Database = {
           },
         ]
       }
+      meta_conversion_events: {
+        Row: {
+          action_source: string
+          attempts: number
+          content_ids: string[]
+          content_name: string | null
+          created_at: string
+          currency: string | null
+          event_id: string
+          event_name: string
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          response: Json | null
+          sent_at: string | null
+          source_ref: string | null
+          status: string
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          action_source?: string
+          attempts?: number
+          content_ids?: string[]
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_id: string
+          event_name: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          response?: Json | null
+          sent_at?: string | null
+          source_ref?: string | null
+          status?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          action_source?: string
+          attempts?: number
+          content_ids?: string[]
+          content_name?: string | null
+          created_at?: string
+          currency?: string | null
+          event_id?: string
+          event_name?: string
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          response?: Json | null
+          sent_at?: string | null
+          source_ref?: string | null
+          status?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_conversion_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_conversion_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_categories: {
         Row: {
           created_at: string
@@ -7164,6 +7271,7 @@ export type Database = {
           audience: string
           created_at: string
           id: string
+          is_customer: boolean
           is_lost: boolean
           is_won: boolean
           key: string
@@ -7175,6 +7283,7 @@ export type Database = {
           audience: string
           created_at?: string
           id?: string
+          is_customer?: boolean
           is_lost?: boolean
           is_won?: boolean
           key: string
@@ -7186,6 +7295,7 @@ export type Database = {
           audience?: string
           created_at?: string
           id?: string
+          is_customer?: boolean
           is_lost?: boolean
           is_won?: boolean
           key?: string

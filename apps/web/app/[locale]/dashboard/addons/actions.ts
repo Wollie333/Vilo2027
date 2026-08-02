@@ -395,6 +395,37 @@ export async function toggleAddonActiveAction(
   return { ok: true };
 }
 
+/**
+ * Toggle whether an add-on is offered on ALL of the host's listings (current +
+ * future). When on, the booking page unions it in listing-wide on every listing,
+ * independent of property_addons rows — so the host doesn't have to enable it per
+ * listing. Explicit per-listing/room assignments still apply and win on price.
+ */
+export async function setAddonAppliesToAllListingsAction(
+  addonId: string,
+  value: boolean,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertAddonsEnabled(host.hostId))) {
+    return { ok: false, error: PLAN_GATE_MSG };
+  }
+  if (!(await assertAddonOwnership(addonId, host.hostId))) {
+    return { ok: false, error: "Not your add-on." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("addons")
+    .update({ applies_to_all_listings: value })
+    .eq("id", addonId);
+  if (error) {
+    return { ok: false, error: "Could not update availability." };
+  }
+  revalidatePath(`/dashboard/addons/${addonId}`);
+  return { ok: true };
+}
+
 export async function uploadAddonImageAction(
   addonId: string,
   formData: FormData,

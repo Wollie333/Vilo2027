@@ -36,6 +36,7 @@ import { modal } from "@/components/ui/modal-host";
 import { AddonImageInput } from "./AddonImageInput";
 import {
   deleteAddonAction,
+  setAddonAppliesToAllListingsAction,
   setAddonListingRoomsAction,
   toggleAddonActiveAction,
   updateAddonAction,
@@ -72,6 +73,8 @@ export type AddonEditModel = {
   category: AddonCategory | null;
   vatIncluded: boolean;
   dailyCapacity: number | null;
+  /** Offered listing-wide on every one of the host's listings (current + future). */
+  appliesToAllListings: boolean;
 };
 
 export type AddonAvailability = {
@@ -260,6 +263,24 @@ export function AddonEditor({
       ]),
     ),
   );
+
+  // Host-global availability: offered listing-wide on every listing (current +
+  // future). Persists immediately via its own action, like the per-listing rows.
+  const [appliesToAll, setAppliesToAll] = useState(addon.appliesToAllListings);
+
+  function persistAppliesToAll(next: boolean) {
+    const prev = appliesToAll;
+    setAppliesToAll(next);
+    startAvail(async () => {
+      const result = await setAddonAppliesToAllListingsAction(addon.id, next);
+      if (!result.ok) {
+        setAppliesToAll(prev);
+        toast.error(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function persistSelection(listingId: string, next: ListingSelection) {
     const prev = selections[listingId] ?? { mode: "off", roomIds: [] };
@@ -1277,11 +1298,47 @@ export function AddonEditor({
               </div>
 
               <div className="border-b border-brand-line p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <label className="text-[12.5px] font-semibold text-brand-ink">
+                      Offer on all my listings
+                    </label>
+                    <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                      Show this add-on on every listing you have now and any you
+                      add later — no need to enable it per listing.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={appliesToAll}
+                    disabled={availPending}
+                    onClick={() => persistAppliesToAll(!appliesToAll)}
+                    className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                      appliesToAll ? "bg-brand-primary" : "bg-brand-line"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                        appliesToAll ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={`border-b border-brand-line p-5 ${
+                  appliesToAll ? "opacity-60" : ""
+                }`}
+              >
                 <label className="text-[12.5px] font-semibold text-brand-ink">
                   Applies to rooms
                 </label>
                 <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                  Choose which listings &amp; rooms offer this add-on.
+                  {appliesToAll
+                    ? "This add-on is already on every listing (setting above). Per-listing choices below only refine pricing or rooms."
+                    : "Choose which listings & rooms offer this add-on."}
                 </p>
                 {availability.listings.length === 0 ? (
                   <div className="mt-2 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3.5 py-3 text-[12px] text-brand-mute">
