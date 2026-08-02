@@ -85,6 +85,9 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
   },
   // Merchandising
   { key: "specials", label: "Specials", scope: "toggle" },
+  { key: "addons", label: "Add-ons", scope: "toggle" },
+  { key: "coupons", label: "Coupons", scope: "toggle" },
+  { key: "policies", label: "Policies", scope: "toggle" },
   // Engagement
   { key: "inbox_messages", label: "Inbox", scope: "toggle" },
   { key: "reviews_respond", label: "Respond to reviews", scope: "toggle" },
