@@ -207,6 +207,39 @@ export async function declineMyQuoteAction(
     }
   }
 
+  // Regular (non Looking-For) quote declined → notify the host via the unified
+  // quote_response_host event. LF quotes fire their own event above; a plain
+  // accommodation/custom quote decline previously notified nobody.
+  if (!q.looking_for_post_id && q.host_id) {
+    try {
+      const [{ data: hostRow }, { data: propRow }] = await Promise.all([
+        admin.from("hosts").select("user_id").eq("id", q.host_id).maybeSingle(),
+        q.property_id
+          ? admin
+              .from("properties")
+              .select("name")
+              .eq("id", q.property_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null as { name: string } | null }),
+      ]);
+      if (hostRow?.user_id) {
+        await dispatchEvent({
+          kind: "quote_response_host",
+          recipientUserId: hostRow.user_id,
+          hostId: q.host_id,
+          refs: {
+            quoteId,
+            responded: "declined",
+            guestFirstName: (q.guest_name ?? "").split(" ")[0] || undefined,
+            listingName: propRow?.name ?? undefined,
+          },
+        });
+      }
+    } catch {
+      // Non-fatal.
+    }
+  }
+
   revalidatePath("/portal/quotes");
   revalidatePath(`/portal/quotes/${quoteId}`);
   return { ok: true };

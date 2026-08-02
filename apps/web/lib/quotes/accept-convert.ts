@@ -136,6 +136,35 @@ export async function acceptAndConvertQuote(
       });
     }
 
+    // Regular (non Looking-For) custom/upload quote accepted → notify the host
+    // via the unified quote_response_host event (LF quotes fire their own event
+    // above; a plain custom quote previously notified nobody).
+    if (!quote.looking_for_post_id && quote.host_id) {
+      try {
+        const { data: hostRow } = await admin
+          .from("hosts")
+          .select("user_id")
+          .eq("id", quote.host_id)
+          .maybeSingle();
+        if (hostRow?.user_id) {
+          await dispatchEvent({
+            kind: "quote_response_host",
+            recipientUserId: hostRow.user_id,
+            hostId: quote.host_id,
+            refs: {
+              quoteId,
+              responded: "accepted",
+              guestFirstName:
+                (quote.guest_name ?? "").split(" ")[0] || undefined,
+              listingName: quote.title ?? undefined,
+            },
+          });
+        }
+      } catch {
+        // Non-fatal — the quote is already accepted.
+      }
+    }
+
     return { ok: true, bookingId: null };
   }
 
@@ -406,6 +435,45 @@ export async function acceptAndConvertQuote(
       read_by_host: false,
       read_by_guest: true,
     });
+  }
+
+  // Regular (non Looking-For) accommodation quote accepted → notify the host via
+  // the unified quote_response_host event. LF quotes fire their own
+  // looking_for_quote_accepted above; a plain accommodation quote previously
+  // notified nobody (the host only found out if they opened the dashboard).
+  if (!quote.looking_for_post_id && quote.host_id) {
+    try {
+      const [{ data: hostRow }, { data: propRow }] = await Promise.all([
+        admin
+          .from("hosts")
+          .select("user_id")
+          .eq("id", quote.host_id)
+          .maybeSingle(),
+        quote.property_id
+          ? admin
+              .from("properties")
+              .select("name")
+              .eq("id", quote.property_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null as { name: string } | null }),
+      ]);
+      if (hostRow?.user_id) {
+        await dispatchEvent({
+          kind: "quote_response_host",
+          recipientUserId: hostRow.user_id,
+          hostId: quote.host_id,
+          refs: {
+            quoteId,
+            responded: "accepted",
+            bookingId: booking.id,
+            guestFirstName: (quote.guest_name ?? "").split(" ")[0] || undefined,
+            listingName: propRow?.name ?? undefined,
+          },
+        });
+      }
+    } catch {
+      // Non-fatal — the booking is already created.
+    }
   }
 
   return { ok: true, bookingId: booking.id };

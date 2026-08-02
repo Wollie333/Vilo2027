@@ -10,7 +10,7 @@ import {
 } from "@/lib/bookings/cancel";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { announceGuestBookingAction } from "@/lib/messaging/guest-request";
 import { formatMoney } from "@/lib/format";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -42,7 +42,7 @@ export async function requestRefundAction(input: {
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, guest_id, total_amount, currency, status, payment_status",
+      "id, host_id, guest_id, property_id, quote_id, reference, total_amount, currency, status, payment_status",
     )
     .eq("id", parsed.data.bookingId)
     .maybeSingle();
@@ -107,45 +107,54 @@ export async function requestRefundAction(input: {
     };
   }
 
-  const { error } = await admin.from("refund_requests").insert({
-    booking_id: booking.id,
-    payment_id: payment.id,
-    host_id: booking.host_id,
-    guest_id: user.id,
-    requested_amount: parsed.data.amount,
-    currency: booking.currency || "ZAR",
-    reason: parsed.data.reason,
-    reason_detail: parsed.data.reasonDetail?.trim() || null,
-    initiated_by: "guest",
-    status: "pending",
-  });
+  const { data: inserted, error } = await admin
+    .from("refund_requests")
+    .insert({
+      booking_id: booking.id,
+      payment_id: payment.id,
+      host_id: booking.host_id,
+      guest_id: user.id,
+      requested_amount: parsed.data.amount,
+      currency: booking.currency || "ZAR",
+      reason: parsed.data.reason,
+      reason_detail: parsed.data.reasonDetail?.trim() || null,
+      initiated_by: "guest",
+      status: "pending",
+    })
+    .select("id")
+    .single();
 
   if (error) return { ok: false, error: error.message };
 
-  // Notify the HOST a refund was requested (email + push + in-app) — previously
-  // the host only found out if they happened to open the dashboard. Best-effort.
-  try {
-    const { data: hostRow } = await admin
-      .from("hosts")
-      .select("user_id")
-      .eq("id", booking.host_id)
-      .maybeSingle();
-    if (hostRow?.user_id) {
-      await dispatchEvent({
-        kind: "refund_request_host",
-        recipientUserId: hostRow.user_id,
-        refs: {
-          booking_id: booking.id,
-          refund_amount: formatMoney(
-            parsed.data.amount,
-            booking.currency || "ZAR",
-          ),
-        },
-      });
-    }
-  } catch {
-    // non-fatal
-  }
+  // Unified guest-action fan-out (same standard operation as every other guest
+  // request): post an inbox system card into the host↔guest thread AND notify
+  // the host (email + push + in-app). Previously the refund only dispatched a
+  // notification — the thread showed nothing, so it was invisible in the inbox.
+  const amountLabel = formatMoney(
+    parsed.data.amount,
+    booking.currency || "ZAR",
+  );
+  await announceGuestBookingAction(admin, {
+    booking: {
+      id: booking.id,
+      host_id: booking.host_id,
+      guest_id: booking.guest_id,
+      property_id: booking.property_id,
+      quote_id: booking.quote_id,
+    },
+    card: {
+      systemEvent: "refund_requested",
+      body: `💸 Refund requested — ${amountLabel}${booking.reference ? ` for ${booking.reference}` : ""}. Reason: ${parsed.data.reason}. Your host will review and respond here.`,
+    },
+    event: {
+      kind: "refund_request_host",
+      refs: {
+        refund_id: inserted?.id,
+        booking_id: booking.id,
+        refund_amount: amountLabel,
+      },
+    },
+  });
 
   revalidatePath(`/portal/trips/${booking.id}`);
   revalidatePath("/dashboard/refunds");

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import {
   DECLINE_REASONS,
   declineReasonLabel,
@@ -102,7 +103,9 @@ export async function guestDeclineQuoteAction(
     })
     .eq("id", quoteId)
     .eq("status", "sent")
-    .select("conversation_id")
+    .select(
+      "conversation_id, host_id, looking_for_post_id, guest_name, property_id",
+    )
     .maybeSingle();
   if (!q) return { ok: false, error: "This quote can no longer be answered." };
 
@@ -128,6 +131,43 @@ export async function guestDeclineQuoteAction(
       read_by_host: false,
       read_by_guest: true,
     });
+  }
+
+  // Regular (non Looking-For) quote declined via the public link → notify the
+  // host via the unified quote_response_host event (parity with the portal
+  // decline path). Best-effort.
+  if (!q.looking_for_post_id && q.host_id) {
+    try {
+      const [{ data: hostRow }, { data: propRow }] = await Promise.all([
+        supabase
+          .from("hosts")
+          .select("user_id")
+          .eq("id", q.host_id)
+          .maybeSingle(),
+        q.property_id
+          ? supabase
+              .from("properties")
+              .select("name")
+              .eq("id", q.property_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null as { name: string } | null }),
+      ]);
+      if (hostRow?.user_id) {
+        await dispatchEvent({
+          kind: "quote_response_host",
+          recipientUserId: hostRow.user_id,
+          hostId: q.host_id,
+          refs: {
+            quoteId,
+            responded: "declined",
+            guestFirstName: (q.guest_name ?? "").split(" ")[0] || undefined,
+            listingName: propRow?.name ?? undefined,
+          },
+        });
+      }
+    } catch {
+      // Non-fatal.
+    }
   }
 
   revalidatePath(`/q/${quoteId}/${token}`);
