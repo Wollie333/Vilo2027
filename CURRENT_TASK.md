@@ -2,7 +2,34 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt12) — **CHECKOUT POLICY CONSENT + ALL-4-POLICIES ENFORCEMENT** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt14) — **ALL HOST FEATURES FIXED + TESTED; REPORTS + PUBLISH-NUDGE** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`, HEAD `d144356`. Tree clean. 41 ahead / 13 behind origin/main (NOT pushed —
+founder: merge & push to main LAST).** Living resume anchor = memory `launch-prep-host-then-affiliate` (pt14).
+
+**Every host feature is now fixed + tested** (add-ons, policies, coupons, specials, reviews, reports). This
+multi-session arc: affiliate/prize RPC lockdown cleared on live (pt8) → all 6 host sub-features verified →
+host-global add-ons feature + dashboard toggle → dashboard greeting fix → checkout per-policy consent +
+all-4-policies enforcement (booking gate + publish gate + wizard/checklist, all on ONE resolver) → coupons
+gated + all-5 features assignable per product + granted on paid tiers → **reports verified working (seeded
+120 view events; charts reflect data correctly)** → reports header white-bg fixed → **publish-listing nudge
+modal** (shows only when host has no live listing; dismissible + persistent banner).
+
+**pt14 commits:** `dbdffa3` admin catalog (addons/coupons/policies toggleable per product) · `4d6ea90`
+reports header bg blend · `d144356` PublishListingReminder modal (⚠️ NOT live-verified — demo host has live
+listings so it correctly doesn't show; needs a no-live-listing host). type-check + lint GREEN throughout.
+
+**⚠️ ENV:** dev server on :3001 (`web-dev-3001`); prod :3000 (founder logged in as demo host on Beta). Seeded
+120 property_view_events. Migrations `120000`/`130000`/`140000` already applied to LIVE via raw query;
+`230000`/`240000`/`250000` NOT yet (part of final batch). Test artifacts remain in demo DB (see memory pt14).
+
+**▶️ NEXT:** live-verify publish modal (no-live-listing host) · optionally seed quotes/looking-for/website for
+the 3 empty report charts · revert test artifacts if wanted · merge to main + `db push` (all 6 migrations) ·
+THEN **item 6 = AFFILIATE**. Full detail in memory anchor pt14.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt12) — **CHECKOUT POLICY CONSENT + ALL-4-POLICIES ENFORCEMENT**
 
 **Branch `fix/host-launch-hardening`, HEAD `0f08796`.** Checkout consent now lists EACH policy individually
 linked (host cancellation/check-in-out/house-rules/booking-terms + Wielo terms/privacy) — founder-approved
