@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
@@ -6,6 +6,7 @@ import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
+import { NotificationBell } from "@/app/[locale]/dashboard/_components/notifications/NotificationBell";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PortalSidebar } from "./_components/PortalSidebar";
@@ -120,16 +121,10 @@ export default async function PortalLayout({
           }
           actions={
             <>
-              <Link
-                href="/portal/notifications"
-                aria-label="Notifications"
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadNotifications && unreadNotifications > 0 ? (
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-status-cancelled ring-2 ring-white" />
-                ) : null}
-              </Link>
+              <NotificationBell
+                viewAllHref="/portal/notifications"
+                variant="portal"
+              />
               <AvatarMenu
                 initials={initials}
                 email={user.email ?? ""}

@@ -75,7 +75,15 @@ function dotClass(
   return "bg-brand-primary";
 }
 
-export function NotificationBell() {
+export function NotificationBell({
+  viewAllHref = "/dashboard/notifications",
+  variant = "dashboard",
+}: {
+  /** Where "View all notifications →" points. Guests pass /portal/notifications. */
+  viewAllHref?: string;
+  /** Trigger styling — the boxed dashboard bell vs the round, muted portal bell. */
+  variant?: "dashboard" | "portal";
+} = {}) {
   const { items, categories, unreadCount, loading, markRead, markAllRead } =
     useNotifications();
   const [open, setOpen] = React.useState(false);
@@ -123,10 +131,14 @@ export function NotificationBell() {
                 ? `Notifications (${unreadCount} unread)`
                 : "Notifications"
             }
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+            className={
+              variant === "portal"
+                ? "relative inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+                : "relative inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+            }
           >
             <span className="relative inline-flex">
-              <Bell className="h-4 w-4" />
+              <Bell className={variant === "portal" ? "h-5 w-5" : "h-4 w-4"} />
               {unreadCount > 0 ? (
                 <span
                   aria-hidden
@@ -249,7 +261,7 @@ export function NotificationBell() {
 
           <div className="border-t border-brand-line px-3 py-2 text-center">
             <Link
-              href="/dashboard/notifications"
+              href={viewAllHref}
               onClick={() => setOpen(false)}
               className="text-[11px] font-medium text-brand-primary hover:underline"
             >
