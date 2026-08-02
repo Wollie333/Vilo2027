@@ -1147,6 +1147,38 @@ export async function togglePublishAction(
     };
   }
 
+  // Platform rule: a listing may only go live when it has ALL FOUR host policies
+  // resolved — cancellation, check-in/out, house rules and booking terms. This is
+  // the SAME set the booking chokepoint (persistBookingAndPay) enforces and uses
+  // the SAME resolver (get_listing_policy_summary: room → listing-wide → host
+  // default), so a published listing is guaranteed bookable and the guest's
+  // checkout consent always has all four to accept. Protects host, guest & Wielo.
+  {
+    const { data: pol } = await supabase.rpc("get_listing_policy_summary", {
+      p_listing_id: listingId,
+    });
+    const p = (pol ?? {}) as {
+      cancellation?: unknown;
+      check_in_out?: unknown;
+      house_rules?: unknown;
+      booking_terms?: unknown;
+    };
+    const missingPolicies = [
+      [!p.cancellation, "cancellation policy"],
+      [!p.check_in_out, "check-in & check-out policy"],
+      [!p.house_rules, "house rules"],
+      [!p.booking_terms, "booking terms & conditions"],
+    ]
+      .filter(([m]) => m)
+      .map(([, label]) => label as string);
+    if (missingPolicies.length > 0) {
+      return {
+        ok: false,
+        error: `Add every listing policy before going live — still needed: ${missingPolicies.join(", ")}.`,
+      };
+    }
+  }
+
   // Guarantee a unique slug so /property/<slug> resolves the instant we publish
   // (the create trigger normally sets it; this is a defensive fallback).
   let slug = listing.slug;
