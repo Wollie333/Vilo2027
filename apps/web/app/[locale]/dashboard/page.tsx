@@ -77,18 +77,26 @@ export default async function DashboardPage({
 
   // The host row and the getting-started state both depend only on user.id
   // and are independent of each other — fetch them in one wave.
-  const [{ data: host }, setupState] = await Promise.all([
+  const [{ data: host }, { data: profile }, setupState] = await Promise.all([
     supabase
       .from("hosts")
       .select("id, handle, display_name, avg_rating, total_reviews")
       .eq("user_id", user!.id)
       .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", user!.id)
+      .maybeSingle(),
     fetchGettingStartedState(user!.id).catch(() => null),
   ]);
 
-  const firstName = host
-    ? host.display_name.split(" ")[0]
-    : (user?.email ?? "").split("@")[0];
+  // Greet the PERSON, not their business: host.display_name is the business /
+  // host name ("Cape Coast Retreats"), so use the user's own name. Fall back to
+  // the email local-part when no profile name is set.
+  const profileFirstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const firstName =
+    profileFirstName || (user?.email ?? "").split("@")[0] || "there";
   const setupSteps = setupState ? buildSetupSteps(setupState) : [];
   const setupComplete =
     !!host &&
