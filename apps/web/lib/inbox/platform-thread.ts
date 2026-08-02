@@ -186,6 +186,38 @@ export async function ensureWieloGuestThread(
   return conv.id as string;
 }
 
+// Post a message into a GUEST's Wielo thread FROM the guest side (e.g. a support
+// ticket from the Get-help modal). Mirror of hostPostToWieloThread: sender = the
+// guest, read_by_guest=true (they sent it), read_by_host=false → the unread
+// trigger (host_id NULL, sender = guest) bumps the Wielo/admin badge so it
+// surfaces as unread in /admin/inbox. Returns the thread id.
+export async function guestPostToWieloThread(
+  admin: Admin,
+  args: {
+    guestUserId: string;
+    body: string;
+    // Optional rich system card — otherwise a normal guest bubble.
+    systemEvent?: string;
+    // Optional booking the message relates to (support ticket about a trip) —
+    // lets the trip timeline surface it.
+    bookingId?: string | null;
+  },
+): Promise<string> {
+  const conversationId = await ensureWieloGuestThread(admin, args.guestUserId);
+  const { error } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: args.guestUserId,
+    body: args.body,
+    is_system_message: !!args.systemEvent,
+    system_event: args.systemEvent ?? null,
+    booking_id: args.bookingId ?? null,
+    read_by_host: false,
+    read_by_guest: true,
+  });
+  if (error) throw new Error(`guestPostToWieloThread: ${error.message}`);
+  return conversationId;
+}
+
 // Resolve a host (id + owner user id) from an email — the host's owner account.
 export async function resolveHostByEmail(
   admin: Admin,

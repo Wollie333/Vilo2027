@@ -61,6 +61,8 @@ import {
 
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { AddExtraCard } from "./AddExtraCard";
+import { GetHelpModal } from "@/components/support/GetHelpModal";
+
 import { CancelTripButton } from "./CancelTripButton";
 import { MessageHostButton } from "./MessageHostButton";
 import { RequestRefundButton } from "./RequestRefundButton";
@@ -893,12 +895,27 @@ export default async function PortalTripDetailPage({
             {listing?.name ?? "Trip"}
           </span>
         </div>
-        <Link
-          href="/support"
+        <GetHelpModal
+          bookingId={booking.id}
+          sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
+          context={[
+            { label: "Booking", value: booking.reference },
+            { label: "Room", value: stayLabel },
+            {
+              label: "Dates",
+              value: `${fmtLong(booking.check_in)} → ${fmtLong(booking.check_out)}`,
+            },
+            {
+              label: "Guests",
+              value: `${booking.guests_count ?? 1} guest${
+                (booking.guests_count ?? 1) === 1 ? "" : "s"
+              }`,
+            },
+          ]}
           className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
         >
           <LifeBuoy className="h-3.5 w-3.5" /> Get help
-        </Link>
+        </GetHelpModal>
       </div>
 
       {/* ===== TITLE BLOCK ===== */}
@@ -1987,14 +2004,29 @@ export default async function PortalTripDetailPage({
                   <span className="flex-1">Change dates or guests</span>
                   <ChevronRight className="h-4 w-4 text-brand-mute" />
                 </Link>
-                <Link
-                  href="/support"
+                <GetHelpModal
+                  bookingId={booking.id}
+                  sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
+                  context={[
+                    { label: "Booking", value: booking.reference },
+                    { label: "Room", value: stayLabel },
+                    {
+                      label: "Dates",
+                      value: `${fmtLong(booking.check_in)} → ${fmtLong(booking.check_out)}`,
+                    },
+                    {
+                      label: "Guests",
+                      value: `${booking.guests_count ?? 1} guest${
+                        (booking.guests_count ?? 1) === 1 ? "" : "s"
+                      }`,
+                    },
+                  ]}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-brand-ink transition hover:bg-brand-light/60"
                 >
                   <LifeBuoy className="h-4 w-4 text-brand-mute" />
                   <span className="flex-1">Get help</span>
                   <ChevronRight className="h-4 w-4 text-brand-mute" />
-                </Link>
+                </GetHelpModal>
               </div>
               {canRequestRefund || canCancel ? (
                 <div className="space-y-2 border-t border-brand-line p-4">

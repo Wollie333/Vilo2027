@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef } from "react";
 
 import { BookingTxnCard } from "./BookingTxnCard";
+import { GuestBookingSupportCard } from "./GuestBookingSupportCard";
 import { InboxSystemCard } from "./InboxSystemCard";
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
 import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
@@ -506,6 +507,20 @@ export function ChatMessageWall({
                 <div key={m.id}>
                   {dayPill}
                   <WebsiteEnquiryCard body={m.body} />
+                </div>
+              );
+            }
+
+            // Guest "Get help" / bug-report ticket — the shared premium card,
+            // reusing InboxSystemCard so it matches every other system card.
+            if (m.isSystem && m.systemEvent === "support_ticket") {
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <GuestBookingSupportCard
+                    body={m.body ?? ""}
+                    footer={fmtClock(m.createdAt)}
+                  />
                 </div>
               );
             }
