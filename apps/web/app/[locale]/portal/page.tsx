@@ -42,7 +42,8 @@ export default async function PortalOverviewPage() {
     { data: nextTrip },
     { count: tripCount },
     { count: unreadCount },
-    { count: pendingReviewCount },
+    { data: reviewEligibleRows },
+    { data: reviewedRows },
     { data: pastStays },
   ] = await Promise.all([
     supabase
@@ -72,12 +73,17 @@ export default async function PortalOverviewPage() {
       .select("id", { count: "exact", head: true })
       .eq("guest_id", user.id)
       .gt("unread_guest", 0),
+    // Review-eligible stays — MUST match /portal/reviews' "To write" rule:
+    // completed + paid (settled/refunded) + not-yet-reviewed. We subtract the
+    // already-written reviews below so the KPI and the Reviews page agree.
     supabase
       .from("bookings")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("guest_id", user.id)
       .is("deleted_at", null)
-      .eq("status", "completed"),
+      .eq("status", "completed")
+      .in("payment_status", ["completed", "partially_refunded", "refunded"]),
+    supabase.from("reviews").select("booking_id").eq("guest_id", user.id),
     // Recent completed stays → "Book again" quick links.
     supabase
       .from("bookings")
@@ -88,6 +94,15 @@ export default async function PortalOverviewPage() {
       .order("check_out", { ascending: false })
       .limit(3),
   ]);
+
+  // "Reviews to write" = eligible stays minus ones already reviewed — the exact
+  // same count the /portal/reviews page shows under "To write".
+  const reviewedBookingIds = new Set(
+    (reviewedRows ?? []).map((r) => r.booking_id),
+  );
+  const pendingReviewCount = (reviewEligibleRows ?? []).filter(
+    (b) => !reviewedBookingIds.has(b.id),
+  ).length;
 
   // Quotes awaiting the guest's reply — the most time-sensitive action. Matched
   // by guest_id OR email (host-created quotes are email-only until accepted) via
