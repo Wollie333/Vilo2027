@@ -2,7 +2,39 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt15) — **REPORTS FULLY SEEDED (no zeros); PRE-MERGE READINESS** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-02 pt16) — **GUEST-PORTAL hardening + unified guest-request PROGRAM** ⬅ START HERE
+
+**Branch `fix/host-launch-hardening`. Tree clean. NOT pushed.** Living resume anchor (FULL detail, all
+requirements) = memory **`launch-prep-host-then-affiliate` pt16** — read it first. Founder pivoted host→GUEST
+side (login guest@wielodemo.com / WieloDemo123!; Claude drives via claude-in-chrome). Dev :3001, compiles 30–50s.
+
+**✅ DONE this session:** reports seeded (pt15 `ad6b2d1`); host-side polish green (policies assign-from-manager +
+badge + smart coverage warning + inline modal + room policies tab; reviews button fix — commits `b564905`
+`11ef76e` `d4f166f` `9128abb` `3ac33e6`); **guest portal live-verified** (overview/trips/cancel-refund/quotes/
+inbox/reviews/notifications/settings). **2 guest bugs fixed:** cancel showed "No refund" → healed 9 bookings'
+missing policy_snapshot (data-only); reviews-to-write KPI 3→1 (`da69b03`). **#6 gallery** swipeable lightbox +
+z-index portal (`72038b1`). **Foundation:** `booking_requests` table (`24bd9e8`, applied to linked DB) + unified
+core `announceGuestBookingAction` + 3 registry events (`8cc1880`).
+
+**🔴 FOUNDER'S VISION:** every guest action (refund·date-change·add-guest·add-on·message·quote) = same op →
+(1) record, (2) inbox system card, (3) host notification, (4) actionable HOST BANNER on booking/quote, (5)
+timeline entries both sides. Use `lib/messaging/guest-request.ts`.
+
+**🔴 NOT DONE (resume — 8 tasks, full spec in memory pt16):** #2 date/guest-change request (modals+action; add-
+guest ALL fields+phone required + checkout-style consent; timeline) · #3 refund+quote parity (add inbox card /
+regular-quote host notif) · #4 **host GuestRequestBanner** (dashboard/bookings/[id] + quotes) approve/decline ·
+#5 add-on→trip (confirm modal + ledger charge + card/notif/banner/timeline) · #7 listings INSIDE portal (no
+leaving) · #8 reusable GetHelpModal → Wielo Support ticket (ticket#, source/context, free-text, "support"
+category; extensible to bug reports) · #9 Message-host-from-trip compose modal (detail+cards) + "you got mail"
+host banner · #10 guest notification bell → same panel as host, scoped. **ALL must be 100% responsive/mobile.**
+
+**▶️ NEXT:** resume backlog above (founder: "do all, easiest first"). Then host-side merge to main + `db push`
+(6 staged migrations incl. new `20260802300000_booking_requests` + notification_events seed for the 3 new
+events). THEN item 6 = AFFILIATE.
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt15) — **REPORTS FULLY SEEDED (no zeros); PRE-MERGE READINESS**
 
 **Branch `fix/host-launch-hardening`. Tree clean after this commit. 42 ahead / 13 behind origin/main (NOT
 pushed — founder: merge & push to main LAST).** Living resume anchor = memory `launch-prep-host-then-affiliate`
