@@ -26,6 +26,9 @@ const admin = createClient(URL, SERVICE_KEY, {
 
 // ── Config (founder-editable in Admin → Products → Commission) ──────────────
 const PARTNER_SLUG = "wollie-steenkamp";
+// Self-provisioned test partner (created if missing so the harness is standalone).
+const PARTNER_EMAIL = "affiliate-partner@wielostarter.com";
+const PARTNER_UID = "0c000000-0000-4000-8000-00000000aa01";
 const PLAN_SLUG = "pro"; // the R999 subscription (Starter)
 const PLAN_RATE = 25; // % default-program commission (standard launch rate)
 const PLAN_DURATION = "forever"; // lifetime recurring
@@ -93,14 +96,46 @@ async function ensureAuthUser(email, uid) {
   return data.user.id;
 }
 
-async function main() {
-  // 1. Resolve partner + plan product.
-  const { data: partner } = await admin
+// Ensure the test partner affiliate exists + is active (self-provision so the
+// harness never depends on external seed state). Mirrors acceptAffiliateTermsAction:
+// user → user_profile → affiliate_accounts(active).
+async function ensurePartner() {
+  const uid = await ensureAuthUser(PARTNER_EMAIL, PARTNER_UID);
+  await up("user_profiles", [{ id: uid, role: "host", full_name: "Wollie Steenkamp", email: PARTNER_EMAIL, email_verified_at: nowIso() }]);
+  const { data: existing } = await admin
     .from("affiliate_accounts")
     .select("id, user_id, status, currency")
     .eq("slug", PARTNER_SLUG)
     .maybeSingle();
-  if (!partner) throw new Error(`No affiliate account '${PARTNER_SLUG}'`);
+  let acct = existing;
+  if (existing) {
+    if (existing.status !== "active") {
+      await admin.from("affiliate_accounts").update({ status: "active" }).eq("id", existing.id);
+      existing.status = "active";
+    }
+  } else {
+    const { data: created, error } = await admin
+      .from("affiliate_accounts")
+      .insert({ user_id: uid, slug: PARTNER_SLUG, status: "active", terms_version: 1, currency: "ZAR" })
+      .select("id, user_id, status, currency")
+      .single();
+    if (error) throw new Error(`create partner: ${error.message}`);
+    console.log(`Provisioned partner ${PARTNER_SLUG} (${created.id})`);
+    acct = created;
+  }
+  // Default EFT payout method so create_affiliate_payout resolves a destination
+  // (else it returns 'no_method' and the payout leg never runs).
+  await up("affiliate_payout_methods", [{
+    id: "0c000000-0000-4000-8000-00000000aa02", affiliate_id: acct.id, method: "eft",
+    is_default: true, bank_name: "Test Bank", account_name: "Wollie Steenkamp",
+    account_number: "0000000000", branch_code: "250655",
+  }]);
+  return acct;
+}
+
+async function main() {
+  // 1. Resolve (or provision) partner + plan product.
+  const partner = await ensurePartner();
   if (partner.status !== "active") throw new Error(`Partner is ${partner.status}, not active`);
 
   const { data: plan } = await admin
