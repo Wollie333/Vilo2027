@@ -9,6 +9,7 @@ import {
   KeyRound,
   Paperclip,
   PauseCircle,
+  Star,
   XCircle,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -551,6 +552,54 @@ export function ChatMessageWall({
                     body={m.body ?? ""}
                     footer={fmtClock(m.createdAt)}
                   />
+                </div>
+              );
+            }
+
+            // Review invite — a premium card with a "Write your review" button
+            // (guest only) instead of a raw URL pasted in the body. The link is
+            // made relative so it opens on the current origin, same tab.
+            if (m.isSystem && m.systemEvent === "review_request") {
+              const rawUrl =
+                (m.body ?? "").match(/https?:\/\/\S+/)?.[0] ?? null;
+              let href: string | null = null;
+              if (rawUrl) {
+                try {
+                  const u = new URL(rawUrl);
+                  href = u.pathname + u.search;
+                } catch {
+                  href = rawUrl;
+                }
+              }
+              const text = (m.body ?? "")
+                .replace(/https?:\/\/\S+/, "")
+                .replace(/[:\s]+$/, "")
+                .replace(/^[^\w]+\s*/, "")
+                .trim();
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <InboxSystemCard
+                    tone="amber"
+                    icon={<Star className="h-5 w-5" />}
+                    title="Leave a review"
+                    action={
+                      href && viewer === "guest"
+                        ? {
+                            href,
+                            label: "Write your review",
+                            icon: <Star className="h-4 w-4" />,
+                          }
+                        : undefined
+                    }
+                    footer={fmtClock(m.createdAt)}
+                  >
+                    {text ? (
+                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-brand-ink">
+                        {text}
+                      </p>
+                    ) : null}
+                  </InboxSystemCard>
                 </div>
               );
             }

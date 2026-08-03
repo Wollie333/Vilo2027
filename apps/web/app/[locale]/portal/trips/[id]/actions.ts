@@ -162,8 +162,13 @@ export async function requestRefundAction(input: {
     },
   });
 
-  revalidatePath(`/portal/trips/${booking.id}`);
-  revalidatePath("/dashboard/refunds");
+  // NB: do NOT call revalidatePath here. A server action's revalidatePath makes
+  // the client router refresh the CURRENT route, which re-renders the trip page,
+  // flips `canRequestRefund` false (the refund now exists) and unmounts the
+  // RequestRefundButton — tearing down the success modal before the guest sees
+  // it. The SubmitSuccess "Close" does the refresh (pt19 design: defer to Close).
+  // The host sees the refund immediately via its booking banner + notification;
+  // the /dashboard/refunds list refreshes on its next load.
   return { ok: true };
 }
 

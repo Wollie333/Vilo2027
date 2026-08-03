@@ -948,6 +948,14 @@ export default async function PortalTripDetailPage({
               variant="toolbar"
             />
           ) : null}
+          {canRequestRefund ? (
+            <RequestRefundButton
+              bookingId={booking.id}
+              totalAmount={Number(booking.total_amount)}
+              currency={currency}
+              variant="toolbar"
+            />
+          ) : null}
           <GetHelpModal
             bookingId={booking.id}
             sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
