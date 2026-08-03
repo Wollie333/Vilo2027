@@ -19,7 +19,7 @@ it after any migration.
 | Tables | **212** (212 with RLS) |
 | Functions | **197** (156 SECURITY DEFINER, 75 trigger fns) |
 | Cron jobs | **49** (20 Vault-gated, 0 inactive) |
-| Vault secrets set | **24** |
+| Vault secrets set | **25** |
 
 ## 🚩 Automated red flags
 
@@ -30,10 +30,6 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 
 - `get_listing_policy_summary`
 - `record_error_event`
-
-### 1 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
-
-- `drain-nurture` needs `nurture_worker_url`
 
 
 ## Cron jobs
