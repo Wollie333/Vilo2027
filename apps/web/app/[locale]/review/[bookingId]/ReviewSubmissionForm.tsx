@@ -275,7 +275,10 @@ export function ReviewSubmissionForm({
           className="mt-1.5 block w-full rounded border border-brand-line bg-white px-3 py-2.5 text-sm text-brand-ink shadow-sm placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
         />
         <div className="mt-1.5 text-right text-[11px] text-brand-mute">
-          {remaining.toLocaleString()} characters left
+          {/* Plain number (no toLocaleString) — a locale-grouped count differs
+              between the server (en-ZA "2 000") and browser ("2,000"), which
+              tripped a hydration mismatch on first render. */}
+          {remaining} characters left
         </div>
       </div>
 
