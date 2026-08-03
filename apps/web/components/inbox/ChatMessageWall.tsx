@@ -176,7 +176,7 @@ export function ChatMessageWall({
 
   return (
     <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#E6EFE9]">
-      <div className="mx-auto max-w-[760px] space-y-1 px-4 py-5">
+      <div className="mx-auto max-w-[760px] space-y-3 px-4 py-5">
         {messages.length === 0 ? (
           <p className="py-10 text-center text-sm text-[#5B7065]">
             {emptyText}
