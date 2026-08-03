@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-08-03 (pt22) — SAVE POINT: affiliate program done+tested; competition next.
+
+Branch `feature/affiliate-program`, HEAD `d003ece` (pushed to origin). tsc + lint green, tree clean.
+Two-origin live-verify: admin=localhost (`wollie@manamarketing.co.za`), partner=127.0.0.1
+(`affiliate-partner@wielostarter.com` / `WieloStarter123!`). Canonical spec:
+`docs/strategy/WIELO_FOUNDING_PROGRAMME.md` (SoT — supersedes the blueprint + decisions docs).
+
+**DEFAULT affiliate program — DONE + tested from all sides.**
+- Test harnesses (real products, real config, never fabricated): `seed-affiliate-default.mjs` (full money
+  path: bind→charge→accrue→clear→payout→clawback→idempotency), `seed-affiliate-realproducts.mjs`
+  (Founder 25%/Starter 25%/StayFlow 10% once — all live config), `seed-affiliate-competition.mjs`
+  (flat 60%, campaign-stamped, SURVIVES campaign end via referral snapshot).
+- Hardening: **H1** (`6fbd69d`) portal accept now routes through the shared `activateAffiliateIfReady` gate
+  (no more force-active bypass); **H2** verified (clawback fires via `platform_ledger` refund row); slug
+  double-unique-indexed. Settings already SoT-aligned (cookie 90d, hold 33d, R1000 threshold, first-click).
+- UX enhancements: payout-method prominence (`ec7a798`), standardised success modal on payout request
+  (`0834250`, matches guest trip actions). Both live-verified.
+- Admin live-verified: partner list, per-affiliate funnel, payout queue → **Mark paid** works.
+
+**NEW admin "Affiliates" tab** (`5d21b63` + `d003ece`) — the founder's universal lifetime leaderboard:
+`/admin/affiliates/directory`. Top referrer/earner cards + ranked sortable table (clicks/referrals/
+lifetime/available, search, comp-badge) of EVERY affiliate. Row → per-affiliate record, now with
+**View user account** link (→ `/admin/users/[id]`), **Clicks by link**, **Products referred**. All live-verified.
+
+**Vercel OOM FIX (`fc636a7`, on main, deployed GREEN, live on wielo.co.za).** Two main deploys failed
+"No serverless pages built" = OOM during next build's in-process type-check+lint. Fix: `next.config`
+ignoreBuildErrors+ignoreDuringBuilds; `turbo.json` build dependsOn `type-check` (isolated gate). Production
+never down (Vercel doesn't promote failed builds; failed commits only touched docs/types).
+
+**NEXT — competition controls.** Founding Race is ALREADY SoT-configured (flat 60%, cash-only prizes, 1 Oct
+2026–28 Feb 2027). ⚠️ Earlier competition Q&A is SUPERSEDED by the SoT: do NOT restore the R250/R400
+conversion bonus (SoT has none — it's Fast Start R1000 + first-host-live R500); the `first_to_5`/
+`any_reaching_10_in_30d` builder milestones aren't in the SoT (remove, don't implement). Still to do:
+build/verify the competition admin controls + test leaderboard scoring, prize compute→publish→sweep, and
+enrollment from all sides. See [[affiliate-program-build]].
+
+---
+
 ## 2026-08-03 (pt21) — Yellow-batch live-verify, refund modal, block-aware calendars. MERGE-READY.
 
 Branch `fix/host-launch-hardening`, HEAD `e9b418d`. tsc + lint green, tree clean. Founder drove login; both
