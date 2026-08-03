@@ -9,6 +9,7 @@ import {
   getAffiliateForUser,
   isValidSlug,
 } from "@/lib/affiliate/account";
+import { activateAffiliateIfReady } from "@/lib/affiliate/activation";
 import { recordAcceptance } from "@/lib/affiliate/agreement";
 import { agreementHash, normaliseIp } from "@/lib/affiliate/agreement.crypto";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
@@ -124,10 +125,15 @@ export async function acceptAffiliateTermsAction(): Promise<
     const base = profile?.full_name || user.email?.split("@")[0] || "wielo";
     const slug = await findFreeSlug(admin, base);
 
+    // Create as PENDING and let the shared activation gate decide — the SAME gate
+    // the public signup form uses, so both entry points agree on what "active"
+    // means. A signed-in, email-verified user activates instantly below; an
+    // unverified one stays pending until they confirm (email-verified is the
+    // earning baseline). See lib/affiliate/activation.ts.
     const { error } = await admin.from("affiliate_accounts").insert({
       user_id: user.id,
       slug,
-      status: "active",
+      status: "pending",
       terms_version: version,
       currency: settings?.currency ?? "ZAR",
     });
@@ -171,6 +177,12 @@ export async function acceptAffiliateTermsAction(): Promise<
   if (!signed) {
     return { ok: false, error: "Could not record your agreement. Try again." };
   }
+
+  // Now that the agreement is on file, flip pending→active IF every gate is clear
+  // (email verified + platform terms + agreement). No-op for an already-active
+  // account (the re-signing path). This is the single source of truth for
+  // activation — the public signup form calls the same helper.
+  await activateAffiliateIfReady(admin, account.id);
 
   revalidatePath("/portal/affiliates");
   revalidatePath("/dashboard/affiliates");
