@@ -853,6 +853,10 @@ export default async function PortalTripDetailPage({
       created_at: r.created_at,
     }),
   );
+  // Guests can request date/guest changes while the booking is still live.
+  const canManageBooking = !["cancelled", "declined", "completed"].includes(
+    booking.status,
+  );
 
   return (
     <div className="w-full">
@@ -870,27 +874,39 @@ export default async function PortalTripDetailPage({
             {listing?.name ?? "Trip"}
           </span>
         </div>
-        <GetHelpModal
-          bookingId={booking.id}
-          sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
-          context={[
-            { label: "Booking", value: booking.reference },
-            { label: "Room", value: stayLabel },
-            {
-              label: "Dates",
-              value: `${fmtLong(booking.check_in)} → ${fmtLong(booking.check_out)}`,
-            },
-            {
-              label: "Guests",
-              value: `${booking.guests_count ?? 1} guest${
-                (booking.guests_count ?? 1) === 1 ? "" : "s"
-              }`,
-            },
-          ]}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
-        >
-          <LifeBuoy className="h-3.5 w-3.5" /> Get help
-        </GetHelpModal>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {canManageBooking ? (
+            <ManageBookingRequests
+              bookingId={booking.id}
+              checkIn={booking.check_in}
+              checkOut={booking.check_out}
+              hostName={hostFirstName}
+              pending={pendingChangeRequests}
+              variant="toolbar"
+            />
+          ) : null}
+          <GetHelpModal
+            bookingId={booking.id}
+            sourceLabel={`Trip · ${listing?.name ?? "Booking"}`}
+            context={[
+              { label: "Booking", value: booking.reference },
+              { label: "Room", value: stayLabel },
+              {
+                label: "Dates",
+                value: `${fmtLong(booking.check_in)} → ${fmtLong(booking.check_out)}`,
+              },
+              {
+                label: "Guests",
+                value: `${booking.guests_count ?? 1} guest${
+                  (booking.guests_count ?? 1) === 1 ? "" : "s"
+                }`,
+              },
+            ]}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
+          >
+            <LifeBuoy className="h-3.5 w-3.5" /> Get help
+          </GetHelpModal>
+        </div>
       </div>
 
       {/* ===== TITLE BLOCK ===== */}
@@ -1785,7 +1801,7 @@ export default async function PortalTripDetailPage({
                 </div>
               </div>
               <div className="p-6">
-                <EventTimeline events={timeline} variant="cards" />
+                <EventTimeline events={timeline} />
               </div>
             </section>
           ) : null}

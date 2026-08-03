@@ -71,12 +71,16 @@ export function ManageBookingRequests({
   checkOut,
   hostName,
   pending,
+  variant = "rail",
 }: {
   bookingId: string;
   checkIn: string | null;
   checkOut: string | null;
   hostName: string;
   pending: PendingRequest[];
+  /** "rail" = full-width rows + pending list (Manage-booking section);
+   *  "toolbar" = compact header buttons (top of the trip page). */
+  variant?: "rail" | "toolbar";
 }) {
   const router = useRouter();
   const [mode, setMode] = React.useState<null | "date" | "guest">(null);
@@ -157,22 +161,45 @@ export function ManageBookingRequests({
     });
   }
 
+  const toolbarBtn =
+    "inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-light/60";
+
   return (
     <>
-      <div className="divide-y divide-brand-line">
-        <Row
-          icon={<CalendarRange className="h-4 w-4 text-brand-mute" />}
-          label="Change dates"
-          onClick={() => setMode("date")}
-        />
-        <Row
-          icon={<UserPlus className="h-4 w-4 text-brand-mute" />}
-          label="Add a guest to the trip"
-          onClick={() => setMode("guest")}
-        />
-      </div>
+      {variant === "toolbar" ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setMode("date")}
+            className={toolbarBtn}
+          >
+            <CalendarRange className="h-3.5 w-3.5 text-brand-primary" /> Change
+            dates
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("guest")}
+            className={toolbarBtn}
+          >
+            <UserPlus className="h-3.5 w-3.5 text-brand-primary" /> Add a guest
+          </button>
+        </>
+      ) : (
+        <div className="divide-y divide-brand-line">
+          <Row
+            icon={<CalendarRange className="h-4 w-4 text-brand-mute" />}
+            label="Change dates"
+            onClick={() => setMode("date")}
+          />
+          <Row
+            icon={<UserPlus className="h-4 w-4 text-brand-mute" />}
+            label="Add a guest to the trip"
+            onClick={() => setMode("guest")}
+          />
+        </div>
+      )}
 
-      {pending.length > 0 ? (
+      {variant === "rail" && pending.length > 0 ? (
         <div className="space-y-2 border-t border-brand-line bg-brand-light/40 p-4">
           {pending.map((p) => (
             <div

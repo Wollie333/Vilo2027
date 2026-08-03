@@ -1997,11 +1997,7 @@ function ActivityPanel({ d }: { d: BookingDetailData }) {
     <Card>
       <CardHead title="Activity timeline" />
       <div className="p-5">
-        <EventTimeline
-          events={d.timeline}
-          emptyLabel="No activity yet."
-          variant="cards"
-        />
+        <EventTimeline events={d.timeline} emptyLabel="No activity yet." />
       </div>
     </Card>
   );
