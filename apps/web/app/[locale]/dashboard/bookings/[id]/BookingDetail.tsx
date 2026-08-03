@@ -965,252 +965,256 @@ function OverviewPanel({
   setTab: (t: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="min-w-0 space-y-6">
-        <Card>
-          <CardHead
-            title="Reservation summary"
-            right={
-              <span className="font-mono text-[11px] text-brand-mute">
-                {d.reference}
-              </span>
-            }
-          />
-          <div className="p-5">
-            <div className="flex flex-wrap items-center gap-4">
-              {d.cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={d.cover}
-                  alt={d.listingName}
-                  className="h-20 w-28 shrink-0 rounded-[12px] object-cover"
-                />
-              ) : (
-                <div className="h-20 w-28 shrink-0 rounded-[12px] bg-brand-light" />
-              )}
-              <div className="min-w-0 flex-1">
-                {d.listingSlug ? (
-                  <Link
-                    href={`/property/${d.listingSlug}`}
-                    target="_blank"
-                    className="font-display text-[16px] font-bold text-brand-ink hover:text-brand-primary"
-                  >
-                    {d.listingName}
-                  </Link>
+    <div className="space-y-6">
+      {/* Guest requests needing the host's attention — FULL-WIDTH at the top so
+          the host can't miss them (was buried in the right rail). */}
+      <GuestRequestBanner
+        changeRequests={d.guestChangeRequests}
+        refundRequests={d.openRefundRequests}
+      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="min-w-0 space-y-6">
+          <Card>
+            <CardHead
+              title="Reservation summary"
+              right={
+                <span className="font-mono text-[11px] text-brand-mute">
+                  {d.reference}
+                </span>
+              }
+            />
+            <div className="p-5">
+              <div className="flex flex-wrap items-center gap-4">
+                {d.cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={d.cover}
+                    alt={d.listingName}
+                    className="h-20 w-28 shrink-0 rounded-[12px] object-cover"
+                  />
                 ) : (
-                  <span className="font-display text-[16px] font-bold text-brand-ink">
-                    {d.listingName}
-                  </span>
+                  <div className="h-20 w-28 shrink-0 rounded-[12px] bg-brand-light" />
                 )}
-                {d.propertyMeta ? (
-                  <div className="mt-0.5 text-[12.5px] text-brand-mute">
-                    {d.propertyMeta}
+                <div className="min-w-0 flex-1">
+                  {d.listingSlug ? (
+                    <Link
+                      href={`/property/${d.listingSlug}`}
+                      target="_blank"
+                      className="font-display text-[16px] font-bold text-brand-ink hover:text-brand-primary"
+                    >
+                      {d.listingName}
+                    </Link>
+                  ) : (
+                    <span className="font-display text-[16px] font-bold text-brand-ink">
+                      {d.listingName}
+                    </span>
+                  )}
+                  {d.propertyMeta ? (
+                    <div className="mt-0.5 text-[12.5px] text-brand-mute">
+                      {d.propertyMeta}
+                    </div>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {d.bedrooms ? (
+                      <FeatureChip
+                        icon={BedDouble}
+                        label={`${d.bedrooms} bedroom${d.bedrooms === 1 ? "" : "s"}`}
+                      />
+                    ) : null}
+                    {d.bathrooms ? (
+                      <FeatureChip
+                        icon={Bath}
+                        label={`${d.bathrooms} bath${d.bathrooms === 1 ? "" : "s"}`}
+                      />
+                    ) : null}
                   </div>
-                ) : null}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {d.bedrooms ? (
-                    <FeatureChip
-                      icon={BedDouble}
-                      label={`${d.bedrooms} bedroom${d.bedrooms === 1 ? "" : "s"}`}
-                    />
-                  ) : null}
-                  {d.bathrooms ? (
-                    <FeatureChip
-                      icon={Bath}
-                      label={`${d.bathrooms} bath${d.bathrooms === 1 ? "" : "s"}`}
-                    />
-                  ) : null}
                 </div>
               </div>
+              <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
+                <SummaryRow label="Check-in" value={d.checkInFull} />
+                <SummaryRow label="Check-out" value={d.checkOutFull} />
+                <SummaryRow label="Occupancy" value={d.occupancyLabel} />
+                <SummaryRow
+                  label="Cancellation"
+                  value={
+                    <span className="capitalize">{d.cancellationLabel}</span>
+                  }
+                />
+              </div>
+              {d.specialRequests ? (
+                <div className="mt-4 rounded-[12px] border border-brand-line bg-brand-light/60 p-4">
+                  <div className="flex items-center gap-2 text-[12px] font-semibold text-brand-ink">
+                    <MessageSquare className="h-4 w-4 text-brand-primary" />{" "}
+                    Guest note
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-brand-mute">
+                    {d.specialRequests}
+                  </p>
+                </div>
+              ) : null}
             </div>
-            <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
-              <SummaryRow label="Check-in" value={d.checkInFull} />
-              <SummaryRow label="Check-out" value={d.checkOutFull} />
-              <SummaryRow label="Occupancy" value={d.occupancyLabel} />
-              <SummaryRow
-                label="Cancellation"
-                value={
-                  <span className="capitalize">{d.cancellationLabel}</span>
+          </Card>
+
+          <PoliciesAsBooked data={d.policiesAsBooked} audience="host" />
+
+          {d.addons.length > 0 ? (
+            <Card>
+              <CardHead
+                title="Add-ons"
+                right={
+                  <button
+                    onClick={() => setTab("payments")}
+                    className="text-[12px] font-semibold text-brand-primary hover:text-brand-secondary"
+                  >
+                    Manage
+                  </button>
+                }
+              />
+              <div className="divide-y divide-brand-line">
+                {d.addons.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between gap-3 px-5 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <PlusCircle className="h-4 w-4 shrink-0 text-brand-mute" />
+                      <span className="truncate text-[13px] font-medium text-brand-ink">
+                        {a.label}
+                      </span>
+                      {a.quantity > 1 ? (
+                        <span className="shrink-0 text-[12px] text-brand-mute">
+                          × {a.quantity}
+                        </span>
+                      ) : null}
+                      {a.isRequired ? (
+                        <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                          Required
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-[13px] font-semibold text-brand-ink">
+                      {formatMoney(a.subtotal, a.currency)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between px-5 py-3">
+                  <span className="text-[12.5px] font-semibold text-brand-ink">
+                    Add-ons total
+                  </span>
+                  <span className="font-display text-[15px] font-bold text-brand-ink">
+                    {formatMoney(d.addonsSubtotal, d.currency)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          ) : null}
+        </div>
+
+        <div className="space-y-6">
+          {d.hasWorkflow ? (
+            <Card>
+              <div className="flex items-center gap-2 bg-status-pending/10 px-5 py-3">
+                <AlertCircle className="h-4 w-4 text-status-pending" />
+                <span className="text-[12px] font-semibold text-brand-ink">
+                  {d.status === "pending"
+                    ? "Awaiting your confirmation"
+                    : "Manage booking"}
+                </span>
+              </div>
+              <div className="px-5 py-4">
+                {d.status === "pending" ? (
+                  <p className="mb-3 text-[12.5px] leading-relaxed text-brand-mute">
+                    Review the request and confirm to lock the dates, or decline
+                    to release them.
+                  </p>
+                ) : null}
+                <BookingActions
+                  bookingId={d.id}
+                  status={d.status}
+                  currency={d.currency}
+                />
+              </div>
+            </Card>
+          ) : null}
+
+          <Card>
+            <CardHead title="At a glance" />
+            <div className="divide-y divide-brand-line">
+              <GlanceRow
+                icon={CreditCard}
+                label="Payment"
+                onClick={() => setTab("payments")}
+                right={
+                  <span className="inline-flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-brand-ink">
+                      {formatMoney(d.totalAmount, d.currency)}
+                    </span>
+                    {d.paidInFull ? (
+                      <span className="inline-flex items-center gap-1 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+                        Paid
+                      </span>
+                    ) : null}
+                  </span>
+                }
+              />
+              <GlanceRow
+                icon={PlusCircle}
+                label="Add-ons"
+                onClick={() => setTab("payments")}
+                right={
+                  <span className="text-[13px] font-semibold text-brand-ink">
+                    {d.addons.length} ·{" "}
+                    {formatMoney(d.addonsSubtotal, d.currency)}
+                  </span>
+                }
+              />
+              <GlanceRow
+                icon={KeyRound}
+                label="Check-in"
+                onClick={() => setTab("arrivals")}
+                right={
+                  <span className="text-[13px] font-semibold text-brand-ink">
+                    {d.checkInBig}
+                  </span>
+                }
+              />
+              <GlanceRow
+                icon={UserRound}
+                label="Guest"
+                onClick={() => setTab("guests")}
+                right={
+                  <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-ink">
+                    {d.guestStays} stay{d.guestStays === 1 ? "" : "s"}
+                    {d.guestRating ? (
+                      <>
+                        {" · "}
+                        {d.guestRating}
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      </>
+                    ) : null}
+                  </span>
                 }
               />
             </div>
-            {d.specialRequests ? (
-              <div className="mt-4 rounded-[12px] border border-brand-line bg-brand-light/60 p-4">
-                <div className="flex items-center gap-2 text-[12px] font-semibold text-brand-ink">
-                  <MessageSquare className="h-4 w-4 text-brand-primary" /> Guest
-                  note
-                </div>
-                <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-brand-mute">
-                  {d.specialRequests}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </Card>
+          </Card>
 
-        <PoliciesAsBooked data={d.policiesAsBooked} audience="host" />
-
-        {d.addons.length > 0 ? (
           <Card>
             <CardHead
-              title="Add-ons"
+              title="Welcome note"
               right={
-                <button
-                  onClick={() => setTab("payments")}
-                  className="text-[12px] font-semibold text-brand-primary hover:text-brand-secondary"
-                >
-                  Manage
-                </button>
+                <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                  Guest sees this
+                </span>
               }
             />
-            <div className="divide-y divide-brand-line">
-              {d.addons.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between gap-3 px-5 py-3"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <PlusCircle className="h-4 w-4 shrink-0 text-brand-mute" />
-                    <span className="truncate text-[13px] font-medium text-brand-ink">
-                      {a.label}
-                    </span>
-                    {a.quantity > 1 ? (
-                      <span className="shrink-0 text-[12px] text-brand-mute">
-                        × {a.quantity}
-                      </span>
-                    ) : null}
-                    {a.isRequired ? (
-                      <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
-                        Required
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="shrink-0 text-[13px] font-semibold text-brand-ink">
-                    {formatMoney(a.subtotal, a.currency)}
-                  </span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between px-5 py-3">
-                <span className="text-[12.5px] font-semibold text-brand-ink">
-                  Add-ons total
-                </span>
-                <span className="font-display text-[15px] font-bold text-brand-ink">
-                  {formatMoney(d.addonsSubtotal, d.currency)}
-                </span>
-              </div>
-            </div>
+            <WelcomeNoteCard
+              bookingId={d.id}
+              initial={d.hostMessage}
+              guestFirstName={d.guestFirstName}
+            />
           </Card>
-        ) : null}
-      </div>
-
-      <div className="space-y-6">
-        <GuestRequestBanner
-          changeRequests={d.guestChangeRequests}
-          refundRequests={d.openRefundRequests}
-        />
-        {d.hasWorkflow ? (
-          <Card>
-            <div className="flex items-center gap-2 bg-status-pending/10 px-5 py-3">
-              <AlertCircle className="h-4 w-4 text-status-pending" />
-              <span className="text-[12px] font-semibold text-brand-ink">
-                {d.status === "pending"
-                  ? "Awaiting your confirmation"
-                  : "Manage booking"}
-              </span>
-            </div>
-            <div className="px-5 py-4">
-              {d.status === "pending" ? (
-                <p className="mb-3 text-[12.5px] leading-relaxed text-brand-mute">
-                  Review the request and confirm to lock the dates, or decline
-                  to release them.
-                </p>
-              ) : null}
-              <BookingActions
-                bookingId={d.id}
-                status={d.status}
-                currency={d.currency}
-              />
-            </div>
-          </Card>
-        ) : null}
-
-        <Card>
-          <CardHead title="At a glance" />
-          <div className="divide-y divide-brand-line">
-            <GlanceRow
-              icon={CreditCard}
-              label="Payment"
-              onClick={() => setTab("payments")}
-              right={
-                <span className="inline-flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-brand-ink">
-                    {formatMoney(d.totalAmount, d.currency)}
-                  </span>
-                  {d.paidInFull ? (
-                    <span className="inline-flex items-center gap-1 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
-                      Paid
-                    </span>
-                  ) : null}
-                </span>
-              }
-            />
-            <GlanceRow
-              icon={PlusCircle}
-              label="Add-ons"
-              onClick={() => setTab("payments")}
-              right={
-                <span className="text-[13px] font-semibold text-brand-ink">
-                  {d.addons.length} ·{" "}
-                  {formatMoney(d.addonsSubtotal, d.currency)}
-                </span>
-              }
-            />
-            <GlanceRow
-              icon={KeyRound}
-              label="Check-in"
-              onClick={() => setTab("arrivals")}
-              right={
-                <span className="text-[13px] font-semibold text-brand-ink">
-                  {d.checkInBig}
-                </span>
-              }
-            />
-            <GlanceRow
-              icon={UserRound}
-              label="Guest"
-              onClick={() => setTab("guests")}
-              right={
-                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-ink">
-                  {d.guestStays} stay{d.guestStays === 1 ? "" : "s"}
-                  {d.guestRating ? (
-                    <>
-                      {" · "}
-                      {d.guestRating}
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                    </>
-                  ) : null}
-                </span>
-              }
-            />
-          </div>
-        </Card>
-
-        <Card>
-          <CardHead
-            title="Welcome note"
-            right={
-              <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
-                Guest sees this
-              </span>
-            }
-          />
-          <WelcomeNoteCard
-            bookingId={d.id}
-            initial={d.hostMessage}
-            guestFirstName={d.guestFirstName}
-          />
-        </Card>
+        </div>
       </div>
     </div>
   );

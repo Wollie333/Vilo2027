@@ -351,7 +351,9 @@ async function assembleEvents(
         at: p.captured_at as string,
         kind: "payment",
         title: "Payment received",
-        actorKind: "system",
+        // The guest pays the host directly (Model 2 — Wielo takes no cut and is
+        // NOT a party to the money), so attribute this to the host, never "Wielo".
+        actorKind: "host",
         amount: Number(p.amount),
         currency: (p.currency as string) ?? "ZAR",
         flow: "in",

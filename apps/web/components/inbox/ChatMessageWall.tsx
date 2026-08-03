@@ -518,6 +518,16 @@ export function ChatMessageWall({
             // Guest-request lifecycle (refund / date-change request, host
             // approval / decline) — a premium card in the thread.
             if (m.isSystem && isBookingRequestEvent(m.systemEvent)) {
+              // Link the card to where the request is actioned/seen: the host's
+              // booking detail (banner) or the guest's trip page (counter card).
+              const action = m.bookingId
+                ? viewer === "host"
+                  ? {
+                      href: `/dashboard/bookings/${m.bookingId}`,
+                      label: "Open booking",
+                    }
+                  : { href: `/portal/trips/${m.bookingId}`, label: "View trip" }
+                : undefined;
               return (
                 <div key={m.id}>
                   {dayPill}
@@ -525,6 +535,7 @@ export function ChatMessageWall({
                     systemEvent={m.systemEvent as string}
                     body={m.body}
                     footer={fmtClock(m.createdAt)}
+                    action={action}
                   />
                 </div>
               );

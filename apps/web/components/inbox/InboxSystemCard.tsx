@@ -52,10 +52,13 @@ export function InboxSystemCard({
       <div className="p-4">
         {children}
         {action ? (
+          // Internal app routes (href starts with "/") navigate in the same tab;
+          // external URLs open in a new tab.
           <a
             href={action.href}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(action.href.startsWith("/")
+              ? {}
+              : { target: "_blank", rel: "noopener noreferrer" })}
             className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
           >
             {action.icon}

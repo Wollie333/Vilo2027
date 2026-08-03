@@ -1,5 +1,7 @@
 import {
+  ArrowRight,
   CalendarClock,
+  CalendarRange,
   CheckCircle2,
   RotateCcw,
   Sparkles,
@@ -29,6 +31,11 @@ const META: Record<
     tone: "amber",
     icon: <CalendarClock className="h-5 w-5" />,
   },
+  booking_change_countered: {
+    title: "Alternative dates suggested",
+    tone: "amber",
+    icon: <CalendarRange className="h-5 w-5" />,
+  },
   booking_change_approved: {
     title: "Request approved",
     tone: "brand",
@@ -54,10 +61,14 @@ export function BookingRequestCard({
   systemEvent,
   body,
   footer,
+  action,
 }: {
   systemEvent: string;
   body: string | null;
   footer?: ReactNode;
+  // Contextual CTA to where the request can be actioned/seen (host booking
+  // detail / guest trip page). Rendered as the card's full-width button.
+  action?: { href: string; label: string };
 }) {
   const meta = META[systemEvent] ?? META.booking_change_request;
   // Strip a leading emoji so the body reads cleanly under the titled header.
@@ -68,6 +79,15 @@ export function BookingRequestCard({
       icon={meta.icon}
       title={meta.title}
       footer={footer}
+      action={
+        action
+          ? {
+              href: action.href,
+              label: action.label,
+              icon: <ArrowRight className="h-4 w-4" />,
+            }
+          : undefined
+      }
     >
       {text ? (
         <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-brand-ink">

@@ -1034,6 +1034,14 @@ export default async function PortalTripDetailPage({
         </div>
       </div>
 
+      {/* ===== HOST COUNTER-OFFER (suggested alternative dates) — top of page so
+              the guest can't miss it; it needs a decision. ===== */}
+      {counterOffer ? (
+        <div className="mt-5">
+          <CounterOfferCard hostName={hostFirstName} offer={counterOffer} />
+        </div>
+      ) : null}
+
       {/* ===== GALLERY (interactive, swipeable lightbox) ===== */}
       {galleryCount > 0 ? (
         <div className="mt-5">
@@ -2040,11 +2048,6 @@ export default async function PortalTripDetailPage({
                   </MessageHostButton>
                 </div>
               </section>
-            ) : null}
-
-            {/* HOST COUNTER-OFFER (suggested alternative dates) */}
-            {counterOffer ? (
-              <CounterOfferCard hostName={hostFirstName} offer={counterOffer} />
             ) : null}
 
             {/* MANAGE BOOKING */}

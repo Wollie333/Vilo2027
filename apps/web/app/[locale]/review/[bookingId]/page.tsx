@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
-import { CheckCircle2, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { getBrandName } from "@/lib/brand";
@@ -234,6 +234,17 @@ function ReviewShell({ children }: { children: React.ReactNode }) {
     <main className="bg-brand-cream min-h-dvh px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-xl rounded-card border border-brand-line bg-white p-7 shadow-card sm:p-10">
         {children}
+      </div>
+      {/* Always offer a way back into the portal (signed-in guests land here from
+          their trip; a fresh visitor is routed through login on the way). */}
+      <div className="mx-auto mt-6 max-w-xl text-center">
+        <Link
+          href="/portal/trips"
+          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-semibold text-brand-ink shadow-sm transition hover:bg-brand-light"
+        >
+          <ArrowLeft className="h-4 w-4 text-brand-primary" /> Back to your
+          trips
+        </Link>
       </div>
     </main>
   );
