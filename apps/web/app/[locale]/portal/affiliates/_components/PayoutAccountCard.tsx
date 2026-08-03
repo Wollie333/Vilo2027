@@ -49,8 +49,17 @@ export function PayoutAccountCard({
     });
   }
 
+  // Empty + not editing = a prominent "set this up" call to action, not a muted
+  // footnote. A new partner can't withdraw until a method exists, so this is the
+  // first thing they should see (the page floats this card to the top when empty).
+  const emptyProminent = !hasAccount && !editing;
+
   return (
-    <section className="am-card fade overflow-hidden">
+    <section
+      className={`am-card fade overflow-hidden ${
+        emptyProminent ? "ring-1 ring-brand-secondary/40" : ""
+      }`}
+    >
       <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
         <span className="smallcaps">Payout account</span>
         <button
@@ -75,9 +84,29 @@ export function PayoutAccountCard({
             </div>
           </div>
         ) : (
-          <div className="p-5 text-[12.5px] text-brand-mute">
-            No payout account yet — add one so you can withdraw your cleared
-            balance.
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-[#C7F0DC] bg-brand-light">
+                <Landmark className="h-[18px] w-[18px] text-brand-secondary" />
+              </div>
+              <div>
+                <div className="text-[13.5px] font-semibold text-brand-ink">
+                  Add your payout account
+                </div>
+                <div className="mt-0.5 text-[12.5px] leading-relaxed text-brand-mute">
+                  Tell us where to send your earnings. You need this before you
+                  can withdraw your cleared balance — it only takes a minute.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="btn-pri mt-4 h-9 w-full justify-center"
+            >
+              <Landmark className="h-4 w-4" />
+              Add payout account
+            </button>
           </div>
         )
       ) : (

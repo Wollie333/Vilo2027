@@ -343,6 +343,14 @@ export default async function AffiliatePayoutsPage() {
 
       {/* RIGHT RAIL */}
       <div className="min-w-0 space-y-6">
+        {/* No payout account yet → surface the setup FIRST (can't withdraw without it). */}
+        {!defaultMethod ? (
+          <PayoutAccountCard
+            label={accountLabel}
+            detail={accountDetail}
+            hasAccount={false}
+          />
+        ) : null}
         <RequestPayoutCard
           available={available}
           fee={fee}
@@ -380,12 +388,15 @@ export default async function AffiliatePayoutsPage() {
           </div>
         </section>
 
-        {/* PAYOUT ACCOUNT */}
-        <PayoutAccountCard
-          label={accountLabel}
-          detail={accountDetail}
-          hasAccount={!!defaultMethod}
-        />
+        {/* PAYOUT ACCOUNT — when one exists it sits here (below); the empty-state
+            version is floated to the top of the rail above. */}
+        {defaultMethod ? (
+          <PayoutAccountCard
+            label={accountLabel}
+            detail={accountDetail}
+            hasAccount={true}
+          />
+        ) : null}
       </div>
     </div>
   );

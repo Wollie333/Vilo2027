@@ -96,7 +96,7 @@ export function RequestPayoutCard({
         </button>
         <p className="mt-3 text-[11px] leading-relaxed text-brand-mute">
           {!hasMethod
-            ? "Add a payout account below before you can withdraw. "
+            ? "Add your payout account above before you can withdraw. "
             : belowMin
               ? `Minimum payout ${zar0(minThreshold)} — keep earning to withdraw. `
               : `Minimum payout ${zar0(minThreshold)}. Paid ${methodLabel ? `by ${methodLabel} ` : ""}within 3 business days. `}
