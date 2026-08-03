@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/format";
 
 import {
   approveBookingChangeAction,
+  counterBookingChangeAction,
   declineBookingChangeAction,
 } from "./guest-request-actions";
 
@@ -54,6 +55,8 @@ export function GuestRequestBanner({
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [declining, setDeclining] = React.useState<string | null>(null);
   const [reason, setReason] = React.useState("");
+  const [cIn, setCIn] = React.useState("");
+  const [cOut, setCOut] = React.useState("");
   const [pending, start] = React.useTransition();
 
   if (changeRequests.length === 0 && refundRequests.length === 0) return null;
@@ -84,6 +87,34 @@ export function GuestRequestBanner({
         toast.success("Request declined — the guest has been notified.");
         setDeclining(null);
         setReason("");
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  function confirmCounter(id: string) {
+    if (!cIn || !cOut) {
+      toast.error("Pick both suggested dates.");
+      return;
+    }
+    setBusyId(id);
+    start(async () => {
+      const res = await counterBookingChangeAction(id, {
+        checkIn: cIn,
+        checkOut: cOut,
+        note: reason.trim() || undefined,
+      });
+      setBusyId(null);
+      if (res.ok) {
+        toast.success(
+          "Suggested dates sent — the guest will accept or decline.",
+        );
+        setDeclining(null);
+        setReason("");
+        setCIn("");
+        setCOut("");
         router.refresh();
       } else {
         toast.error(res.error);
@@ -146,12 +177,52 @@ export function GuestRequestBanner({
               </div>
 
               {declining === r.id ? (
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 space-y-2.5">
+                  {isDate ? (
+                    <div className="rounded-[10px] border border-brand-line bg-white p-2.5">
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                        Suggest alternative dates (optional)
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          value={cIn}
+                          onChange={(e) => setCIn(e.target.value)}
+                          aria-label="Suggested check-in"
+                          className="block w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
+                        />
+                        <input
+                          type="date"
+                          value={cOut}
+                          onChange={(e) => setCOut(e.target.value)}
+                          aria-label="Suggested check-out"
+                          className="block w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => confirmCounter(r.id)}
+                        disabled={pending || !cIn || !cOut}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+                      >
+                        {busyId === r.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CalendarRange className="h-3.5 w-3.5" />
+                        )}
+                        Suggest these dates
+                      </button>
+                    </div>
+                  ) : null}
                   <textarea
                     rows={2}
                     value={reason}
                     onChange={(e) => setReason(e.target.value.slice(0, 500))}
-                    placeholder="Reason for declining (optional, shared with the guest)"
+                    placeholder={
+                      isDate
+                        ? "Note to the guest (shared with a suggestion or a plain decline)"
+                        : "Reason for declining (optional, shared with the guest)"
+                    }
                     className="block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
                   />
                   <div className="flex items-center gap-2">
@@ -172,7 +243,7 @@ export function GuestRequestBanner({
                       {busyId === r.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : null}
-                      Confirm decline
+                      Decline without a suggestion
                     </button>
                   </div>
                 </div>
@@ -196,6 +267,8 @@ export function GuestRequestBanner({
                     onClick={() => {
                       setDeclining(r.id);
                       setReason("");
+                      setCIn("");
+                      setCOut("");
                     }}
                     disabled={pending}
                     className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"

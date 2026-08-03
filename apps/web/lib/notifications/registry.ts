@@ -42,6 +42,9 @@ export type BookingRefs = {
   addon_name?: string;
   amount?: string; // formatted money for an added extra
   guests_count?: number;
+  /** booking_counter_response_host: 'accepted' | 'declined' — how the guest
+   *  responded to the host's suggested alternative dates. */
+  counter_response?: string;
 };
 
 export type EftRefs = {
@@ -712,6 +715,68 @@ export const NOTIFICATION_REGISTRY = {
       title: "Booking change not approved",
       body: r.listing_name ?? "Tap to view details or message your host.",
       link: `/portal/trips/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<BookingRefs>,
+
+  // Host declined the guest's date request but SUGGESTED alternative dates —
+  // the ball is back in the guest's court to accept or decline.
+  booking_change_countered_guest: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Your host suggested new dates",
+      body: clip(
+        `${r.listing_name ?? "Your host"} proposed ${
+          r.check_in && r.check_out
+            ? `${r.check_in} → ${r.check_out}`
+            : "alternative dates"
+        } — accept or decline.`,
+      ),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Host suggested alternative dates",
+      body:
+        r.check_in && r.check_out
+          ? `${r.check_in} → ${r.check_out}`
+          : (r.listing_name ?? "Tap to review the suggested dates."),
+      link: `/portal/trips/${r.booking_id}`,
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<BookingRefs>,
+
+  // Guest accepted or declined the host's suggested alternative dates.
+  booking_counter_response_host: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title:
+        r.counter_response === "accepted"
+          ? "Suggested dates accepted 🎉"
+          : "Suggested dates declined",
+      body: clip(
+        `${r.guest_first_name ?? "The guest"} ${
+          r.counter_response === "accepted" ? "accepted" : "declined"
+        } your suggested dates for ${r.listing_name ?? "their booking"}`,
+      ),
+      data: link("/dashboard/bookings/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title:
+        r.counter_response === "accepted"
+          ? "Suggested dates accepted"
+          : "Suggested dates declined",
+      body: `${r.guest_first_name ?? "The guest"} · ${r.listing_name ?? ""}`.trim(),
+      link: `/dashboard/bookings/${r.booking_id}`,
     }),
     dedupeKey: () => null,
   } satisfies EventBuilder<BookingRefs>,

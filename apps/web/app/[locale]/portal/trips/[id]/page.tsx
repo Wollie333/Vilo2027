@@ -72,6 +72,7 @@ import {
   ManageBookingRequests,
   type PendingRequest,
 } from "./ManageBookingRequests";
+import { CounterOfferCard, type CounterOffer } from "./CounterOfferCard";
 import { MessageHostButton } from "./MessageHostButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
@@ -882,6 +883,39 @@ export default async function PortalTripDetailPage({
       created_at: r.created_at,
     }),
   );
+
+  // A host counter-offer (declined the guest's dates but suggested others) — the
+  // guest accepts/declines it from the CounterOfferCard.
+  const { data: counterRow } = await createAdminClient()
+    .from("booking_requests")
+    .select("id, payload, host_note")
+    .eq("booking_id", booking.id)
+    .eq("type", "date_change")
+    .eq("status", "countered")
+    .is("deleted_at", null)
+    .order("actioned_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const counterPayload = (counterRow?.payload ?? null) as Record<
+    string,
+    unknown
+  > | null;
+  const counterDates = (counterPayload?.counter ?? null) as {
+    check_in?: string;
+    check_out?: string;
+  } | null;
+  const counterOffer: CounterOffer | null =
+    counterRow && counterDates?.check_in && counterDates?.check_out
+      ? {
+          requestId: counterRow.id,
+          originalCheckIn: (counterPayload?.check_in as string | null) ?? null,
+          originalCheckOut:
+            (counterPayload?.check_out as string | null) ?? null,
+          counterCheckIn: counterDates.check_in,
+          counterCheckOut: counterDates.check_out,
+          hostNote: (counterRow.host_note as string | null) ?? null,
+        }
+      : null;
   // Guests can request date/guest changes while the booking is still live.
   const canManageBooking = !["cancelled", "declined", "completed"].includes(
     booking.status,
@@ -2006,6 +2040,11 @@ export default async function PortalTripDetailPage({
                   </MessageHostButton>
                 </div>
               </section>
+            ) : null}
+
+            {/* HOST COUNTER-OFFER (suggested alternative dates) */}
+            {counterOffer ? (
+              <CounterOfferCard hostName={hostFirstName} offer={counterOffer} />
             ) : null}
 
             {/* MANAGE BOOKING */}

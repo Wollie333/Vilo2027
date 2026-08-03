@@ -7,10 +7,14 @@ import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { previewDateChangeCore } from "@/lib/bookings/change-dates-core";
+
 import {
   changeBookingDatesAction,
   previewChangeDatesAction,
 } from "./change-dates-actions";
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 // Host responses to a guest's booking-change request (booking_requests). Approve
 // a date change → reuse the tested preview+apply flow (which already fires
@@ -174,6 +178,105 @@ export async function approveBookingChangeAction(
         "booking_change_approved_guest",
         req.booking_id,
       );
+    }
+  }
+
+  revalidatePath(`/dashboard/bookings/${req.booking_id}`);
+  revalidatePath(`/portal/trips/${req.booking_id}`);
+  return { ok: true };
+}
+
+// Host declines the guest's requested dates but SUGGESTS alternatives. The request
+// moves to 'countered' (ball back in the guest's court); the guest accepts or
+// declines from their trip. Only valid for a date-change request. We check the
+// suggested dates are free NOW so the guest doesn't hit a wall on accept.
+export async function counterBookingChangeAction(
+  requestId: string,
+  input: { checkIn: string; checkOut: string; note?: string },
+): Promise<Result> {
+  const loaded = await loadOpenRequest(requestId);
+  if (!loaded.ok) return loaded;
+  const { req, admin } = loaded;
+
+  if (req.type !== "date_change") {
+    return {
+      ok: false,
+      error: "You can only suggest dates for a date-change request.",
+    };
+  }
+  const checkIn = String(input.checkIn ?? "");
+  const checkOut = String(input.checkOut ?? "");
+  if (!ISO.test(checkIn) || !ISO.test(checkOut)) {
+    return { ok: false, error: "Pick both dates." };
+  }
+  if (checkOut <= checkIn) {
+    return { ok: false, error: "Check-out must be after check-in." };
+  }
+
+  const preview = await previewDateChangeCore(
+    admin,
+    req.booking_id,
+    req.host_id,
+    checkIn,
+    checkOut,
+  );
+  if (!preview.ok) return { ok: false, error: preview.error };
+  if (!preview.available) {
+    return {
+      ok: false,
+      error: "Those dates clash with another booking or a block — pick others.",
+    };
+  }
+
+  const note = input.note?.trim().slice(0, 500) || null;
+  const nowIso = new Date().toISOString();
+  const basePayload = (req.payload ?? {}) as Record<string, unknown>;
+  await admin
+    .from("booking_requests")
+    .update({
+      status: "countered",
+      host_note: note,
+      actioned_at: nowIso,
+      actioned_by: loaded.userId,
+      payload: {
+        ...basePayload,
+        counter: { check_in: checkIn, check_out: checkOut, at: nowIso },
+      },
+    })
+    .eq("id", req.id);
+
+  const booking = await cardBooking(admin, req.booking_id);
+  if (booking) {
+    await postGuestSystemCard(admin, booking, {
+      systemEvent: "booking_change_countered",
+      body: `📅 Your host suggested different dates for ${booking.reference}: ${checkIn} → ${checkOut}.${
+        note ? ` “${note}”` : ""
+      } Accept or decline from your trip.`,
+      readByGuest: false,
+      readByHost: true,
+    });
+    if (booking.guest_id) {
+      const listingName =
+        (
+          (Array.isArray(booking.listing)
+            ? booking.listing[0]
+            : booking.listing) as { name: string } | null
+        )?.name ?? undefined;
+      try {
+        await dispatchEvent({
+          kind: "booking_change_countered_guest",
+          recipientUserId: booking.guest_id,
+          refs: {
+            booking_id: req.booking_id,
+            listing_name: listingName,
+            check_in: checkIn,
+            check_out: checkOut,
+          },
+          supabase: admin,
+        });
+      } catch {
+        // non-fatal
+      }
     }
   }
 

@@ -1,152 +1,28 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  applyBookingDateChange,
+  previewDateChangeCore,
+  type ActionResult,
+  type ChangeDatesPreview,
+} from "@/lib/bookings/change-dates-core";
 import { assertFullHost as requireHost } from "@/lib/host/current";
-import { dispatchEvent } from "@/lib/notifications/dispatch";
-import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
-import { nightsBetween } from "@/lib/pricing";
-import { computeStayPricing } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+// Thin host-authored wrappers around the shared date-change core
+// (@/lib/bookings/change-dates-core). requireHost() gates the caller; the core
+// does the work with the service-role client. The guest counter-offer accept
+// path calls the core directly (host derived from the request row).
+
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-
-// Statuses whose dates the host may still move. A checked-in/completed/cancelled
-// stay is done — its dates are history.
-const EDITABLE = new Set([
-  "pending",
-  "confirmed",
-  "pending_eft",
-  "pending_eft_review",
-]);
-
-type BookingForEdit = {
-  id: string;
-  host_id: string;
-  property_id: string;
-  status: string;
-  scope: string;
-  guests_count: number;
-  currency: string;
-  cleaning_fee: number;
-  vat_rate: number | null;
-  rooms: { room_id: string }[];
-  addonsTotal: number;
-  check_in: string | null;
-  check_out: string | null;
-  guest_id: string | null;
-};
-
-async function loadBooking(
-  admin: ReturnType<typeof createAdminClient>,
-  bookingId: string,
-  hostId: string,
-): Promise<BookingForEdit | { error: string }> {
-  const { data: b } = await admin
-    .from("bookings")
-    .select(
-      "id, host_id, property_id, status, scope, guests_count, currency, cleaning_fee, vat_rate, check_in, check_out, guest_id, booking_rooms ( room_id ), booking_addons ( subtotal )",
-    )
-    .eq("id", bookingId)
-    .maybeSingle();
-  if (!b || b.host_id !== hostId) return { error: "Booking not found." };
-  const rooms = ((b.booking_rooms as { room_id: string }[] | null) ?? []).map(
-    (r) => ({ room_id: r.room_id }),
-  );
-  const addonsTotal = (
-    (b.booking_addons as { subtotal: number }[] | null) ?? []
-  ).reduce((s, a) => s + Number(a.subtotal), 0);
-  return {
-    id: b.id as string,
-    host_id: b.host_id as string,
-    property_id: b.property_id as string,
-    status: b.status as string,
-    scope: b.scope as string,
-    guests_count: b.guests_count as number,
-    currency: b.currency as string,
-    cleaning_fee: Number(b.cleaning_fee ?? 0),
-    vat_rate: b.vat_rate == null ? null : Number(b.vat_rate),
-    rooms,
-    addonsTotal,
-    check_in: (b.check_in as string | null) ?? null,
-    check_out: (b.check_out as string | null) ?? null,
-    guest_id: (b.guest_id as string | null) ?? null,
-  };
-}
-
-// Is the new range free for this booking's listing/rooms, IGNORING this booking's
-// own blocks (so moving a booking never conflicts with itself)? Manual blocks,
-// quote holds and OTHER bookings still count.
-async function hasConflict(
-  admin: ReturnType<typeof createAdminClient>,
-  b: BookingForEdit,
-  checkIn: string,
-  checkOut: string,
-): Promise<boolean> {
-  let q = admin
-    .from("blocked_dates")
-    .select("id", { count: "exact", head: true })
-    .eq("property_id", b.property_id)
-    .gte("date", checkIn)
-    .lt("date", checkOut)
-    .or(`booking_id.is.null,booking_id.neq.${b.id}`);
-  const roomIds = b.rooms.map((r) => r.room_id);
-  if (b.scope === "rooms" && roomIds.length > 0) {
-    // A whole-listing block (room_id null) blocks any room; else our rooms.
-    q = q.or(`room_id.is.null,room_id.in.(${roomIds.join(",")})`);
-  }
-  const { count } = await q;
-  return (count ?? 0) > 0;
-}
-
-// Accommodation total (ex-VAT) for the new dates via the canonical pricer, plus
-// the booking's existing add-ons, grossed up by VAT — the SUGGESTED total. The
-// host can override it before applying.
-async function suggestTotal(
-  admin: ReturnType<typeof createAdminClient>,
-  b: BookingForEdit,
-  checkIn: string,
-  checkOut: string,
-): Promise<number | null> {
-  const roomIds = b.rooms.map((r) => r.room_id);
-  const perRoomGuests = Math.max(
-    1,
-    Math.round(b.guests_count / Math.max(1, roomIds.length)),
-  );
-  const priced = await computeStayPricing(
-    admin,
-    {
-      property_id: b.property_id,
-      check_in: checkIn,
-      check_out: checkOut,
-      scope: b.scope === "rooms" ? "rooms" : "whole_listing",
-      guests: b.guests_count,
-      rooms: roomIds.map((room_id) => ({ room_id, guests: perRoomGuests })),
-    },
-    b.host_id,
-  );
-  if (!priced.ok) return null;
-  const exVat = priced.data.total + b.addonsTotal;
-  const rate = b.vat_rate ?? 0;
-  return rate > 0 ? Math.round(exVat * (1 + rate / 100) * 100) / 100 : exVat;
-}
 
 const previewSchema = z.object({
   bookingId: z.string().uuid(),
   checkIn: z.string().regex(ISO),
   checkOut: z.string().regex(ISO),
 });
-
-export type ChangeDatesPreview =
-  | {
-      ok: true;
-      available: boolean;
-      nights: number;
-      suggestedTotal: number | null;
-      currency: string;
-    }
-  | { ok: false; error: string };
 
 export async function previewChangeDatesAction(input: {
   bookingId: string;
@@ -155,28 +31,16 @@ export async function previewChangeDatesAction(input: {
 }): Promise<ChangeDatesPreview> {
   const parsed = previewSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Bad request." };
-  const { bookingId, checkIn, checkOut } = parsed.data;
-  if (nightsBetween(checkIn, checkOut) <= 0)
-    return { ok: false, error: "Check-out must be after check-in." };
-
   const host = await requireHost();
   if (!host.ok) return { ok: false, error: host.error };
-
   const admin = createAdminClient();
-  const b = await loadBooking(admin, bookingId, host.hostId);
-  if ("error" in b) return { ok: false, error: b.error };
-
-  const conflict = await hasConflict(admin, b, checkIn, checkOut);
-  const suggestedTotal = conflict
-    ? null
-    : await suggestTotal(admin, b, checkIn, checkOut);
-  return {
-    ok: true,
-    available: !conflict,
-    nights: nightsBetween(checkIn, checkOut),
-    suggestedTotal,
-    currency: b.currency,
-  };
+  return previewDateChangeCore(
+    admin,
+    parsed.data.bookingId,
+    host.hostId,
+    parsed.data.checkIn,
+    parsed.data.checkOut,
+  );
 }
 
 const applySchema = z.object({
@@ -186,8 +50,6 @@ const applySchema = z.object({
   total: z.number().min(0).max(100_000_000),
 });
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
-
 export async function changeBookingDatesAction(input: {
   bookingId: string;
   checkIn: string;
@@ -196,176 +58,14 @@ export async function changeBookingDatesAction(input: {
 }): Promise<ActionResult> {
   const parsed = applySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Bad request." };
-  const { bookingId, checkIn, checkOut, total } = parsed.data;
-  if (nightsBetween(checkIn, checkOut) <= 0)
-    return { ok: false, error: "Check-out must be after check-in." };
-
   const host = await requireHost();
   if (!host.ok) return { ok: false, error: host.error };
-
   const admin = createAdminClient();
-  const b = await loadBooking(admin, bookingId, host.hostId);
-  if ("error" in b) return { ok: false, error: b.error };
-  if (!EDITABLE.has(b.status)) {
-    return {
-      ok: false,
-      error: `Can't move the dates of a ${b.status.replace(/_/g, " ")} booking.`,
-    };
-  }
-  if (await hasConflict(admin, b, checkIn, checkOut)) {
-    return {
-      ok: false,
-      error: "Those dates clash with another booking or a block.",
-    };
-  }
-
-  // Host-controlled total. VAT is inclusive in total_amount (mirrors the
-  // apply_booking_vat trigger which grosses up on INSERT but never on UPDATE).
-  const rate = b.vat_rate ?? 0;
-  const vatAmount =
-    rate > 0 ? Math.round(((total * rate) / (100 + rate)) * 100) / 100 : 0;
-  const baseAmount =
-    Math.round((total - vatAmount - b.cleaning_fee - b.addonsTotal) * 100) /
-    100;
-  const newNights = nightsBetween(checkIn, checkOut);
-
-  // Refresh the price_breakdown snapshot for the NEW dates — the old one described
-  // the old stay (wrong nights / seasonal split). Best-effort: if repricing fails
-  // we null it rather than leave a stale, misleading breakdown. The host may still
-  // override `total` above; the snapshot records how the stay itself prices out.
-  const repriced = await computeStayPricing(
-    admin,
-    {
-      property_id: b.property_id,
-      check_in: checkIn,
-      check_out: checkOut,
-      scope: b.scope === "rooms" ? "rooms" : "whole_listing",
-      guests: b.guests_count,
-      rooms: b.rooms.map((r) => ({
-        room_id: r.room_id,
-        guests: Math.max(
-          1,
-          Math.round(b.guests_count / Math.max(1, b.rooms.length)),
-        ),
-      })),
-    },
-    b.host_id,
-  );
-  const newBreakdown = repriced.ok
-    ? {
-        nights: repriced.data.nights,
-        base_amount: repriced.data.base_amount,
-        cleaning_fee: repriced.data.cleaning_fee,
-        accommodation_total: repriced.data.total,
-        rooms: repriced.data.rooms,
-        repriced_at: new Date().toISOString(),
-        source: "change_dates",
-      }
-    : null;
-
-  const { error: upErr } = await admin
-    .from("bookings")
-    .update({
-      check_in: checkIn,
-      check_out: checkOut,
-      base_amount: baseAmount,
-      total_amount: total,
-      vat_amount: vatAmount,
-      price_breakdown: newBreakdown,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", bookingId);
-  if (upErr) return { ok: false, error: "Couldn't update the booking." };
-
-  // Move the calendar blocks to the new range (confirmed bookings hold blocks;
-  // pending ones don't — the delete is then a harmless no-op).
-  await admin.from("blocked_dates").delete().eq("booking_id", bookingId);
-  if (b.status === "confirmed") {
-    const nightsList: string[] = [];
-    let d = checkIn;
-    let guard = 0;
-    while (d < checkOut && guard < 400) {
-      nightsList.push(d);
-      const nx = new Date(`${d}T00:00:00Z`);
-      nx.setUTCDate(nx.getUTCDate() + 1);
-      d = nx.toISOString().slice(0, 10);
-      guard++;
-    }
-    const roomIds = b.rooms.map((r) => r.room_id);
-    const blocks =
-      b.scope === "rooms" && roomIds.length > 0
-        ? roomIds.flatMap((room_id) =>
-            nightsList.map((date) => ({
-              property_id: b.property_id,
-              room_id: room_id as string | null,
-              date,
-              reason: "booking",
-              booking_id: bookingId,
-            })),
-          )
-        : nightsList.map((date) => ({
-            property_id: b.property_id,
-            room_id: null as string | null,
-            date,
-            reason: "booking",
-            booking_id: bookingId,
-          }));
-    if (blocks.length > 0) await admin.from("blocked_dates").insert(blocks);
-  }
-
-  // Heal balance_due + payment_status from the (unchanged) payment ledger.
-  await recomputeBookingPaymentState(admin, bookingId);
-
-  // Keep an existing invoice's figures — AND its itemised line_items — in step with
-  // the new dates. The invoice PDF renders line_items.{check_in,check_out,nights,
-  // base_amount}, frozen at issue time; without this refresh a moved booking shows
-  // the new totals over the OLD dates. Merge only the date-driven fields (cleaning,
-  // rooms, addons, discounts are unchanged by a date move).
-  const { data: invoice } = await admin
-    .from("invoices")
-    .select("id, line_items")
-    .eq("booking_id", bookingId)
-    .maybeSingle();
-  if (invoice) {
-    const mergedLines = {
-      ...((invoice.line_items as Record<string, unknown> | null) ?? {}),
-      check_in: checkIn,
-      check_out: checkOut,
-      nights: newNights,
-      base_amount: baseAmount,
-    };
-    await admin
-      .from("invoices")
-      .update({
-        subtotal: Math.round((total - vatAmount) * 100) / 100,
-        vat_amount: vatAmount,
-        total_amount: total,
-        line_items: mergedLines,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", invoice.id);
-  }
-
-  // Tell the guest their dates moved (they used to be notified NOTHING). The new
-  // dates ride the now-updated booking; b.check_in/out still hold the OLD ones
-  // (loaded before the UPDATE). Best-effort — dispatchEvent never throws.
-  if (b.guest_id) {
-    await dispatchEvent({
-      kind: "booking_dates_changed_guest",
-      recipientUserId: b.guest_id,
-      guestId: b.guest_id,
-      refs: {
-        booking_id: bookingId,
-        old_check_in: b.check_in ?? undefined,
-        old_check_out: b.check_out ?? undefined,
-        check_in: checkIn,
-        check_out: checkOut,
-      },
-    });
-  }
-
-  revalidatePath(`/dashboard/bookings/${bookingId}`);
-  revalidatePath("/dashboard/bookings");
-  revalidatePath("/dashboard/calendar");
-  return { ok: true };
+  return applyBookingDateChange(admin, {
+    bookingId: parsed.data.bookingId,
+    hostId: host.hostId,
+    checkIn: parsed.data.checkIn,
+    checkOut: parsed.data.checkOut,
+    total: parsed.data.total,
+  });
 }

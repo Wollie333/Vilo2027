@@ -8,6 +8,10 @@ import {
   policyRefundFor,
   type PolicyRefund,
 } from "@/lib/bookings/cancel";
+import {
+  applyBookingDateChange,
+  previewDateChangeCore,
+} from "@/lib/bookings/change-dates-core";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { announceGuestBookingAction } from "@/lib/messaging/guest-request";
@@ -448,6 +452,138 @@ export async function cancelBookingChangeAction(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath(`/portal/trips/${req.booking_id}`);
+  return { ok: true };
+}
+
+// ─── Guest responds to a host counter-offer (suggested alternative dates) ──────
+// The host declined the guest's dates but proposed others (status 'countered',
+// payload.counter). The guest accepts → apply the suggested dates via the shared
+// host-agnostic core (same tested path the host approve uses); or declines. Either
+// way we notify the host (card + push/in-app) via the unified fan-out.
+
+export async function respondToCounterOfferAction(input: {
+  requestId: string;
+  accept: boolean;
+}): Promise<Result> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: req } = await admin
+    .from("booking_requests")
+    .select("id, booking_id, host_id, guest_id, type, status, payload")
+    .eq("id", input.requestId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!req || req.guest_id !== user.id) {
+    return { ok: false, error: "Request not found." };
+  }
+  if (req.status !== "countered") {
+    return { ok: false, error: "This suggestion is no longer open." };
+  }
+  if (req.type !== "date_change") {
+    return { ok: false, error: "Nothing to respond to." };
+  }
+
+  const counter = (req.payload as Record<string, unknown> | null)?.counter as
+    | { check_in?: string; check_out?: string }
+    | undefined;
+  const checkIn = String(counter?.check_in ?? "");
+  const checkOut = String(counter?.check_out ?? "");
+
+  if (input.accept) {
+    if (!checkIn || !checkOut) {
+      return { ok: false, error: "The suggested dates are missing." };
+    }
+    // Re-price + re-check availability, then apply through the shared core.
+    const preview = await previewDateChangeCore(
+      admin,
+      req.booking_id,
+      req.host_id,
+      checkIn,
+      checkOut,
+    );
+    if (!preview.ok) return { ok: false, error: preview.error };
+    if (!preview.available) {
+      return {
+        ok: false,
+        error: "Those dates are no longer free — message your host.",
+      };
+    }
+    const applied = await applyBookingDateChange(admin, {
+      bookingId: req.booking_id,
+      hostId: req.host_id,
+      checkIn,
+      checkOut,
+      total: preview.suggestedTotal ?? 0,
+    });
+    if (!applied.ok) return applied;
+  }
+
+  await admin
+    .from("booking_requests")
+    .update({
+      status: input.accept ? "approved" : "declined",
+      actioned_at: new Date().toISOString(),
+      actioned_by: user.id,
+    })
+    .eq("id", req.id);
+
+  // Tell the host how the guest responded (card in the thread + notification).
+  const { data: booking } = await admin
+    .from("bookings")
+    .select(
+      "id, host_id, guest_id, property_id, quote_id, reference, listing:properties ( name )",
+    )
+    .eq("id", req.booking_id)
+    .maybeSingle();
+  if (booking) {
+    const { data: prof } = await admin
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    const listingName =
+      (
+        (Array.isArray(booking.listing)
+          ? booking.listing[0]
+          : booking.listing) as { name: string } | null
+      )?.name ?? "your booking";
+    const body = input.accept
+      ? `✅ Accepted your suggested dates for ${booking.reference}: ${checkIn} → ${checkOut}.`
+      : `❌ Declined your suggested dates for ${booking.reference}. Message the guest to find another option.`;
+    await announceGuestBookingAction(admin, {
+      booking: {
+        id: booking.id,
+        host_id: booking.host_id,
+        guest_id: booking.guest_id,
+        property_id: booking.property_id,
+        quote_id: booking.quote_id,
+      },
+      card: {
+        systemEvent: input.accept
+          ? "booking_change_approved"
+          : "booking_change_declined",
+        body,
+      },
+      event: {
+        kind: "booking_counter_response_host",
+        refs: {
+          booking_id: booking.id,
+          listing_name: listingName,
+          guest_first_name:
+            prof?.full_name?.trim().split(/\s+/)[0] || undefined,
+          counter_response: input.accept ? "accepted" : "declined",
+        },
+      },
+    });
+  }
+
+  revalidatePath(`/portal/trips/${req.booking_id}`);
+  revalidatePath(`/dashboard/bookings/${req.booking_id}`);
   return { ok: true };
 }
 

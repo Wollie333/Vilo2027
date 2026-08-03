@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-08-03 (pt19b) — Counter-offer: host suggests alternative dates on decline.
+
+Branch `fix/host-launch-hardening`. tsc + lint green. New feature across host + guest.
+
+When a host declines a guest's **date-change** request, they can now **suggest alternative dates**
+instead of a plain decline; the request goes back to the guest, who accepts (applies the new dates)
+or declines. Founder idea from the pt18 backlog.
+
+- **DB** (`20260803020000`, staged) — adds a `countered` status to `booking_requests`
+  (`pending → countered → approved/declined`); counter dates live in `payload.counter = {check_in,
+  check_out, at}`. Guest RLS UPDATE policy for own countered rows (server actions use service-role,
+  so this is a backstop). Seeds two notification_events: `booking_change_countered_guest` +
+  `booking_counter_response_host` (push + in-app only).
+- **Shared core** — extracted the host-authority date-change logic (reprice, move blocks, heal ledger,
+  refresh invoice, notify) into `lib/bookings/change-dates-core.ts` (`applyBookingDateChange` +
+  `previewDateChangeCore`), a server-only module so the admin-client functions are never exposed as
+  client-callable actions. Host approve + guest counter-accept share one tested path.
+- **Host** — `counterBookingChangeAction`; the GuestRequestBanner decline panel gains optional
+  suggested-date inputs ("Suggest these dates" / "Decline without a suggestion"). Availability is
+  checked at suggest time so the guest can't hit a wall.
+- **Guest** — `respondToCounterOfferAction` (accept applies via the shared core + re-checks
+  availability; decline records it); new `CounterOfferCard` on the trip page shows the suggested dates,
+  the original request, and the host note with Accept / Decline (SubmitSuccess on completion). Both
+  responses notify the host (inbox card + `booking_counter_response_host`).
+- **Timelines** — the activity aggregator surfaces "Alternative dates suggested" (host) and attributes
+  the accept/decline to the guest, on both the guest trip + host booking timelines.
+- **NOT live-verified** (guest + host login required — founder spot-check).
+
+---
+
 ## 2026-08-03 (pt19) — Guest portal: SubmitSuccess everywhere + guest-request notification catalog rows.
 
 Branch `fix/host-launch-hardening`. tsc + lint green. Two follow-ups from the pt18 backlog.

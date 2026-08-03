@@ -241,6 +241,21 @@ function requestEvents(
   const { noun, kind } = requestLabel(q.type);
   const base = { bookingId: q.booking_id, bookingRef: refFor(q.booking_id) };
   const ctx = requestContext(q.type, q.payload) ?? q.guest_message ?? undefined;
+
+  // A host counter-offer stores the suggested dates in payload.counter — its
+  // presence means the guest's response (approve/decline) is the guest's, not
+  // the host's, and the applied/rejected dates are the COUNTER dates.
+  const p = (q.payload ?? {}) as Record<string, unknown>;
+  const counter = (p.counter ?? null) as {
+    check_in?: string;
+    check_out?: string;
+    at?: string;
+  } | null;
+  const hasCounter = !!(counter && (counter.check_in || counter.check_out));
+  const counterCtx = hasCounter
+    ? `${fmtDate(counter?.check_in ?? null)} → ${fmtDate(counter?.check_out ?? null)}`
+    : undefined;
+
   const out: BookingActivityEvent[] = [
     {
       id: `br-req-${q.id}`,
@@ -252,14 +267,25 @@ function requestEvents(
       ...base,
     },
   ];
+  if (hasCounter)
+    out.push({
+      id: `br-counter-${q.id}`,
+      at: counter?.at ?? q.actioned_at ?? q.created_at,
+      kind,
+      title: "Alternative dates suggested",
+      context: counterCtx,
+      actorKind: "host",
+      ...base,
+    });
   if (q.actioned_at && q.status === "approved")
     out.push({
       id: `br-ok-${q.id}`,
       at: q.actioned_at,
       kind,
       title: q.type === "date_change" ? "Dates changed" : `${noun} approved`,
-      context: ctx,
-      actorKind: "host",
+      // Accepting a counter applies the COUNTER dates, and the guest is the actor.
+      context: hasCounter ? counterCtx : ctx,
+      actorKind: hasCounter ? "guest" : "host",
       ...base,
     });
   if (q.actioned_at && q.status === "declined")
@@ -267,9 +293,9 @@ function requestEvents(
       id: `br-no-${q.id}`,
       at: q.actioned_at,
       kind,
-      title: `${noun} declined`,
+      title: hasCounter ? "Suggested dates declined" : `${noun} declined`,
       context: q.decline_reason ?? undefined,
-      actorKind: "host",
+      actorKind: hasCounter ? "guest" : "host",
       ...base,
     });
   return out;
