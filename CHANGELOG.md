@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-08-03 (pt21) — Yellow-batch live-verify, refund modal, block-aware calendars. MERGE-READY.
+
+Branch `fix/host-launch-hardening`, HEAD `e9b418d`. tsc + lint green, tree clean. Founder drove login; both
+host + guest sessions live at once (two-origin trick: host=localhost, guest=127.0.0.1). Ready to merge to main.
+
+**"Circles to green" — all 6 login-gated items live-verified:** add-on lead-time cutoff; refund
+SubmitSuccess; review request+submit; policy assignment (coverage-enforced); publish-listing nudge; iCal
+import (founder's own Google feed on Seaview → Sync blocked 5 dates).
+
+**Bugs found during verification + fixed:**
+- **Refund success screen was torn down** — a server action's `revalidatePath` refreshes the current route,
+  flipping `canRequestRefund` false and unmounting the component. Converted RequestRefundButton to a proper
+  **modal** (matches the other submit surfaces) + dropped the mid-submit revalidate + added a top-bar Refund
+  button (`e3bd15d`).
+- **Review page hydration mismatch** — `toLocaleString()` "2 000" (server) vs "2,000" (browser) (`b88fac8`).
+- **Block-aware calendars** (`2bbd7c5`/`e9b418d`) — the guest checkout calendar let you pick an iCal/booked
+  date (only walling you at the later availability check). Both the guest (`CheckoutDateEditor`) and host
+  new-booking (`ManualBookingForm`) calendars now render blocked dates (manual + booking holds + imported
+  iCal/OTA, room_id NULL) **light-yellow + strikethrough**, unselectable, range-span guarded, with a legend.
+
+**Also:** review-invite inbox card → "Write your review" button (was raw URL); Pay-now card → full-width
+banner at top of trip; inbox message spacing.
+
+**Mobile:** guest portal confirmed mobile-first in code (sidebar `lg:flex` only; `PortalMobileNav` bottom
+bar `lg:hidden`; stacking grids; `sm:` banners). Pixel-perfect mobile render not checkable (claude-in-chrome
+fixed viewport) — needs an on-device pass.
+
+---
+
 ## 2026-08-03 (pt20) — Live verification + guest-request UX polish.
 
 Branch `fix/host-launch-hardening`. tsc + lint green. Founder drove login; Claude drove both sides via
