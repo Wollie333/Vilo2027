@@ -8,7 +8,10 @@ import { submitArticleSuggestion } from "../actions";
 export function FeedbackStrip({ supportEmail }: { supportEmail: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <section className="flex flex-wrap items-center gap-4 rounded-card border border-brand-line bg-white p-5">
+    <section
+      id="suggest"
+      className="flex scroll-mt-20 flex-wrap items-center gap-4 rounded-card border border-brand-line bg-white p-5"
+    >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-brand-accent text-brand-secondary">
         <Megaphone className="h-5 w-5" />
       </div>
@@ -33,7 +36,7 @@ export function FeedbackStrip({ supportEmail }: { supportEmail: string }) {
           href={`mailto:${supportEmail}`}
           className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary"
         >
-          <MessageCircle className="h-4 w-4" /> Chat with us
+          <MessageCircle className="h-4 w-4" /> Email us
         </a>
       </div>
 

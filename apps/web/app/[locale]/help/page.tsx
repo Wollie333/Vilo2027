@@ -5,22 +5,19 @@ import {
   fetchHelpCategoriesWithCounts,
   fetchHelpFaqs,
   fetchHelpSettings,
-  fetchHelpStatus,
   fetchHelpVideos,
 } from "@/lib/help/queries";
-import type { HelpAudience, HelpStatusComponentStatus } from "@/lib/help/types";
+import type { HelpAudience } from "@/lib/help/types";
 import { getBrandName } from "@/lib/brand";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
-import { CommunityCard } from "../dashboard/help/_components/CommunityCard";
 import { ContactSupport } from "../dashboard/help/_components/ContactSupport";
 import { FAQAccordion } from "../dashboard/help/_components/FAQAccordion";
 import { FeedbackStrip } from "../dashboard/help/_components/FeedbackStrip";
 import { HelpHero } from "../dashboard/help/_components/HelpHero";
 import { PopularArticles } from "../dashboard/help/_components/PopularArticles";
 import { QuickActions } from "../dashboard/help/_components/QuickActions";
-import { SystemStatusPanel } from "../dashboard/help/_components/SystemStatusPanel";
 import { TopicsGrid } from "../dashboard/help/_components/TopicsGrid";
 import { VideoTutorials } from "../dashboard/help/_components/VideoTutorials";
 
@@ -43,15 +40,6 @@ function resolveAudience(value: string | undefined): HelpAudience {
   return value === "guest" ? "guest" : "host";
 }
 
-function deriveOverallStatus(
-  components: { status: HelpStatusComponentStatus }[],
-): HelpStatusComponentStatus {
-  if (components.some((c) => c.status === "incident")) return "incident";
-  if (components.some((c) => c.status === "degraded")) return "degraded";
-  if (components.some((c) => c.status === "maintenance")) return "maintenance";
-  return "normal";
-}
-
 export default async function PublicHelpPage({
   searchParams,
 }: {
@@ -59,27 +47,17 @@ export default async function PublicHelpPage({
 }) {
   const audience = resolveAudience(searchParams?.as);
 
-  const [
-    categories,
-    popular,
-    newest,
-    updated,
-    videos,
-    faqs,
-    statusComponents,
-    settings,
-  ] = await Promise.all([
-    fetchHelpCategoriesWithCounts(audience),
-    fetchHelpArticles({ audience, sort: "popular", limit: 6 }),
-    fetchHelpArticles({ audience, sort: "newest", limit: 6 }),
-    fetchHelpArticles({ audience, sort: "updated", limit: 6 }),
-    fetchHelpVideos(audience, 4),
-    fetchHelpFaqs(audience, true, 6),
-    fetchHelpStatus(),
-    fetchHelpSettings(),
-  ]);
+  const [categories, popular, newest, updated, videos, faqs, settings] =
+    await Promise.all([
+      fetchHelpCategoriesWithCounts(audience),
+      fetchHelpArticles({ audience, sort: "popular", limit: 6 }),
+      fetchHelpArticles({ audience, sort: "newest", limit: 6 }),
+      fetchHelpArticles({ audience, sort: "updated", limit: 6 }),
+      fetchHelpVideos(audience, 4),
+      fetchHelpFaqs(audience, true, 6),
+      fetchHelpSettings(),
+    ]);
 
-  const overall = deriveOverallStatus(statusComponents);
   const categoryLabel = Object.fromEntries(
     categories.map((c) => [c.id, c.name]),
   );
@@ -97,7 +75,10 @@ export default async function PublicHelpPage({
           searchPath={SEARCH_PATH}
         />
 
-        <QuickActions contact={settings.contact} overallStatus={overall} />
+        <QuickActions
+          basePath={BASE_PATH}
+          supportEmail={settings.contact.support_email}
+        />
 
         {/* Only categories with published articles — reflects real activity. */}
         <TopicsGrid
@@ -105,18 +86,13 @@ export default async function PublicHelpPage({
           basePath={BASE_PATH}
         />
 
-        <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
-          <div className="lg:col-span-2">
-            <PopularArticles
-              basePath={BASE_PATH}
-              popular={popular}
-              newest={newest}
-              updated={updated}
-              categoryLabel={categoryLabel}
-            />
-          </div>
-          <CommunityCard threads={settings.community} />
-        </section>
+        <PopularArticles
+          basePath={BASE_PATH}
+          popular={popular}
+          newest={newest}
+          updated={updated}
+          categoryLabel={categoryLabel}
+        />
 
         <VideoTutorials
           videos={videos}
@@ -124,14 +100,9 @@ export default async function PublicHelpPage({
           categoryLabel={categoryLabel}
         />
 
-        <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
-          <div className="lg:col-span-2">
-            <FAQAccordion faqs={faqs} basePath={BASE_PATH} />
-          </div>
-          <SystemStatusPanel components={statusComponents} overall={overall} />
-        </section>
+        <FAQAccordion faqs={faqs} basePath={BASE_PATH} />
 
-        <ContactSupport contact={settings.contact} />
+        <ContactSupport supportEmail={settings.contact.support_email} />
 
         <FeedbackStrip supportEmail={settings.contact.support_email} />
       </main>

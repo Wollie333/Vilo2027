@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Eye } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
@@ -7,6 +7,7 @@ import { CONTACT_EMAIL } from "@/lib/contact";
 import { resolveHelpIcon } from "@/lib/help/icon-map";
 import {
   fetchHelpArticleBySlug,
+  fetchIsArticleSaved,
   fetchRelatedArticles,
 } from "@/lib/help/queries";
 import { sanitizeHelpHtml } from "@/lib/help/sanitize";
@@ -17,6 +18,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ArticleFeedback } from "../../dashboard/help/_components/ArticleFeedback";
 import { ArticleView } from "../../dashboard/help/_components/ArticleView";
+import { SaveArticleButton } from "../../dashboard/help/_components/SaveArticleButton";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +73,10 @@ export default async function PublicHelpArticlePage({
   if (!article) notFound();
 
   const supabase = createServerClient();
-  const [{ data: category }, related] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [{ data: category }, related, saved] = await Promise.all([
     article.category_id
       ? supabase
           .from("help_categories")
@@ -80,6 +85,7 @@ export default async function PublicHelpArticlePage({
           .maybeSingle()
       : Promise.resolve({ data: null }),
     fetchRelatedArticles(article.id, article.category_id, 4),
+    user ? fetchIsArticleSaved(article.id, user.id) : Promise.resolve(false),
   ]);
 
   const CategoryIcon = resolveHelpIcon(
@@ -131,7 +137,7 @@ export default async function PublicHelpArticlePage({
                 </span>
               ) : null}
               <span className="inline-flex items-center gap-1">
-                <Tag className="h-3 w-3" />{" "}
+                <Eye className="h-3 w-3" />{" "}
                 {article.view_count.toLocaleString("en-ZA")} views
               </span>
             </div>
@@ -152,13 +158,20 @@ export default async function PublicHelpArticlePage({
               }}
             />
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
               <ArticleFeedback
                 articleId={article.id}
                 initial={{
                   helpful: article.helpful_count,
                   not_helpful: article.not_helpful_count,
                 }}
+              />
+              <SaveArticleButton
+                articleId={article.id}
+                initialSaved={saved}
+                initialCount={article.saved_count}
+                isAuthed={Boolean(user)}
+                loginHref={`/login?next=/help/${article.slug}`}
               />
             </div>
           </div>
@@ -192,8 +205,8 @@ export default async function PublicHelpArticlePage({
                 Still stuck?
               </div>
               <p className="mt-2 text-sm text-white/80">
-                Email a human at {CONTACT_EMAIL} or open a chat from the help
-                home.
+                Email a human at {CONTACT_EMAIL} for anything the articles
+                don&rsquo;t cover.
               </p>
               <Link
                 href="/help#contact"

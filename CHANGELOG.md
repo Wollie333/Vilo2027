@@ -230,6 +230,246 @@ campaign-link shape — as-built is `/r/<slug>?c=<campaign>` (capture) / `/partn
 (shareable); `/c/<slug>` is the category taxonomy page.
 
 ---
+## 2026-08-01 — Affiliate pipeline: Won = referred a paying member; drop Nurturing.
+
+Founder: on the affiliate board only affiliates who have **successfully referred a paying member**
+belong in Won; everyone who has merely registered sits in **Joined program**; the **Nurturing** stage is
+redundant. Migration `20260801260000_affiliate_won_paying_referral.sql`.
+- **Rewrote `on_affiliate_activated`:** registering (affiliate account → active) now lands the card in
+  **Joined program** (was Won), creating one if none exists so every registered affiliate is visible.
+  Keeps the Meta CompleteRegistration event.
+- **New `on_affiliate_commission_accrued` trigger:** an `affiliate_commissions` row with
+  `entry_type='accrual'` (a referred member actually paid) moves that affiliate's card to **Won**
+  (create-if-missing). Clawbacks don't count.
+- **Removed the Nurturing stage** (0 cards, no trigger moves anyone there, no email attached — the
+  nurture drip is funnel/enrolment driven, not stage driven). Relabelled Won → "Won (referred a paying
+  member)"; recompacted order to New → Contacted → Joined program → Won → Lost.
+- Backfill demotes any Won affiliate with no accrual back to Joined and promotes any with an accrual to
+  Won (no-op today: 0 Won cards, 0 accruals).
+- Live rollback-verified: affiliate activation → Joined program (created); accrual commission → Won.
+  SCHEMA.md regenerated; no table/column change.
+
+## 2026-08-01 — Pipeline: default signups appear on the Hosts board + board hardening.
+
+**Founder ask:** the default `/signup/host` flow (not just the `/go/hosts` landing page) must surface
+hosts on the pipeline, and the card must reflect **how far they got** — reversing plan §4b ("cold
+direct signup → no card"). Migration `20260801240000_signup_pipeline_stage.sql` +
+`apps/web/lib/pipeline/hostSignupLead.ts`.
+- **New "Signed up" host stage** inserted between New and Contacted. Board order is now
+  **New → Signed up → Contacted → Qualified → Demo booked → Nurturing → Trial → Won → Lost.**
+- **Starts host signup** (auth account created, onboarding unfinished) → card at **New**, written
+  best-effort from `createAccountAction` (host-intent only — a pure `/signup/guest` never lands on the
+  host board). **Completes onboarding** (a `hosts` row inserted, any path) → `on_host_created` trigger
+  advances the card to **Signed up**, or creates it there if the host was made outside the start flow
+  (admin / quote-only / free-product fulfilment). Trialing → Trial and paying → Won stay handled by the
+  existing move-only triggers, which now always have a card to move. `ON CONFLICT (user_id, audience)`
+  means a `/go/hosts` funnel lead who later signs up keeps their card + attribution; affiliate-referred
+  direct signups are badged `affiliate_referral`.
+- **Backfill:** every existing host without a card got one, placed by real state (paid → Won,
+  trialing → Trial, else Signed up). Verified live: 2 hosts → 2 cards (1 signed_up, 1 won).
+- **Hardening — Won is earned, never asserted.** Removed the manual "Mark won" control;
+  `setLeadOutcomeAction` rejects manual won and `moveLeadStageAction` now also refuses to move a *won*
+  card (no silent un-winning). Customer cards (Trial/Won) are non-draggable on the board. A card wins
+  ONLY via real payment (host) or registration (affiliate), keeping the board's value + conversion KPIs
+  honest.
+- Self-verifying migration (RAISEs if the stage is missing). SCHEMA.md regenerated; no table/column
+  change, so `database.types.ts` untouched.
+- **Source recorded distinctly** (migration `20260801250000` + `apps/web/lib/pipeline/leadSource.ts`):
+  a **competition** affiliate link → `source_kind='competition'` (label = campaign name, e.g. "Founding
+  Race", badge 🏆) + `suppress_default_nurture` (they're already in the competition's own comms), with
+  the referring affiliate still recorded (commission intact); a **normal** affiliate link →
+  `affiliate_referral` ("via <slug>"); a plain link → `direct`. The distinction is data-driven —
+  `affiliate_referrals.campaign_id` is set only for a real competition click. Applied at all three entry
+  points (signup start-hook, `on_host_created` create-path, `/go/*` funnel submit) + a fix-up for
+  existing cards. Board card + lead record show the 🏆 competition badge alongside the "via" chip.
+  Live-verified via rollback: competition referral → host card `competition` / "Founding Race" /
+  affiliate kept / suppressed.
+
+## 2026-08-01 — Help-centre accuracy pass: content vs real code.
+
+Audited all 61 help articles + 6 FAQs + 4 videos (pulled live from `help_articles`) against the actual
+code. Migration `20260801230000_help_content_accuracy_pass.sql` fixes the drift, verified in the live DB
+AND on the production render (`/help/*` is `force-dynamic`, so DB edits are immediate).
+**Deleted (soft)** 3 phantom-feature articles — `payout-schedule`, `payment-held-for-review`,
+`smart-pricing-rules` — all describing a payout/escrow model and a "smart pricing" engine that were
+never built (Wielo is 0% commission; guest money settles direct to the host's own gateway).
+**Rewrote** the "3% host fee" and "24h-after-check-in payout" FAQs (both false — 0% / direct settle),
+the co-host/cleaner FAQ (real roles Co-host/Cleaner/Assistant, real seats Basic 1/Pro 3/Business 10,
+Staff hidden for MVP), `property-channels` (2 → 3 channels: adds Booking management), and
+`view-and-accept-your-quotes` (accepting now drops the guest into online pay, not "arranged with the
+host"). **Corrected** stale labels/numbers across ~13 items: Banking&business → Payment processors /
+Businesses, Listings → Properties, Messages → Inbox, quote validity 14 → 3 days, refund timing 5–10 →
+3–10 working days + host-sent (not auto), iCal poll "15 min" → "every few hours" + multi-provider +
+two-way, affiliate cookie 30 → 90 days, credit-note format `CN-NNNN`, custom cancellation policy /
+two-way sync **not** Pro-gated (per pre-MVP open-on-free reality), removed a non-existent "Send a
+reminder" button and a phantom "last-minute discount" video line. Migration is self-verifying — a final
+`DO` block RAISEs (aborting) if any `replace()` silently no-ops. **Website articles NOT touched**
+(sub-branch); their duplicates documented in `docs/help/WEBSITE_HELP_ARTICLE_ISSUES.md`.
+
+## 2026-08-01 — Help admin portal (3/3): videos/status reorder, convert-to-article.
+
+Finishes the CMS enrichment. **Status** components now drag-reorder (audited `reorderHelpStatus`; numeric
+Sort retired). **Videos** get a one-click **publish/unpublish toggle** on each grid card
+(`setHelpVideoStatus`) — the card is now a container so the toggle sits beside Edit (no nested anchor).
+**Suggestions**: a **Draft article** button turns a reader request into a pre-filled new article
+(`/admin/help/articles/new?from=<id>` seeds the title/excerpt/body from the message), plus **message
+search**. **Overview**: an actionable **Open suggestions** list with per-item Draft-article links. Build
++ lint green; every surface still redirects the deny path. Admin UI to be founder-click-tested.
+
+## 2026-08-01 — Help admin portal (2/3): drag-reorder + toggles + rich FAQ.
+
+New local `HelpReorderList` (an @dnd-kit drag-to-reorder list kept out of the sub-branch-owned website
+SortableList). **Categories**: drag to reorder (persists `sort_order`; disabled while searching/editing)
+and a **one-click publish/hide toggle** on each row — no more opening the edit panel to hide a category.
+**FAQs**: the raw-HTML answer `<textarea>` is replaced with the shared **RichTextEditor**, and FAQs
+drag-reorder too (numeric Sort field retired in favour of drag). Backed by audited reorder/toggle
+actions (`reorderHelpCategories/Faqs`, `setHelpCategoryPublished`, `help.manage`-gated). Build + lint
+green; admin pages still redirect logged-out. Remaining for portal part 3: Videos/Status drag-reorder +
+video publish toggles, suggestions convert-to-article, and an actionable overview. Admin UI to be
+founder-click-tested.
+
+## 2026-08-01 — Help admin portal (1/3): tab-nav + articles bulk management.
+
+Turned the Help CMS into a proper portal. New `admin/help/layout.tsx` gives every sub-surface a
+shared horizontal **tab-nav** (Overview · Articles · Categories · FAQs · Videos · Suggestions ·
+Status · Settings; Status marked "not currently shown on public help"). The **articles list** gains an
+**audience** filter, four new sort presets (recently published, most viewed, most helpful, title A–Z),
+**real pagination** (offset + prev/next), and **bulk operations** via a new client `ArticlesTable`:
+select-all + per-row checkboxes and a bulk bar to **Publish / Archive / Move-to-category / Delete**
+(and **Restore** in the Trash view). Backed by audited bulk server actions (`bulkPublish/Archive/
+SoftDelete/Restore/MoveArticles`, `help.manage`-gated, reason-required for archive/delete/restore/
+move-out); one audit row per bulk call with the full id list in payload. Build + lint green; logged-out
+access still redirects (deny path intact). Admin UI to be founder-click-tested.
+
+## 2026-08-01 — Help centre: restored the article library + Wielo rebrand.
+
+Investigated why the public help showed zero articles: `help_articles` was empty (0 rows) on the live
+DB while the same seed migrations' categories/videos/FAQs survived. Root cause — the ~61 seeded
+articles were **hard-deleted post-migration** (a direct DELETE/TRUNCATE; no migration or DB function
+deletes articles), and because the 58 idempotent seed migrations are marked applied, `db push` never
+restored them. Re-ran those idempotent `ON CONFLICT` inserts against the live DB to restore **61
+published articles** (proven safe first in a rolled-back batch). Zeroed the base seed's fabricated
+`helpful_count`s so the restored library starts with honest engagement.
+
+New migration `20260801220000_help_rebrand_vilo_to_wielo.sql` corrects the seed content's old-brand
+voice: a case-sensitive `Vilo`→`Wielo` replace across help articles/FAQs/videos/categories (idempotent;
+makes a from-scratch rebuild brand-correct too). Verified live: `/help` now shows 8 populated topics
+and 61 Wielo-branded articles; 0 "Vilo" mentions remain.
+
+## 2026-08-01 — Help centre: public honesty pass + real article bookmarks.
+
+Two founder asks: (1) make the public `/help` page match the real help system, (2) build real
+bookmarks. Migration `20260801210000_help_saves_and_cleanup.sql` adds `help_article_saves`
+(RLS: users manage own rows) + a **SECURITY DEFINER** `saved_count` sync trigger (same reason the
+feedback-counter trigger is DEFINER — a normal user has no update rights on `help_articles`, so an
+INVOKER trigger would silently match zero rows). **Proven** in a rollback txn impersonating a real
+non-admin guest under RLS: insert took `saved_count` 0→1, delete 1→0.
+
+Public honesty: removed the fabricated **Community forum card** and **"live, updated-minutely" System
+Status panel** (both static seed with no real system), and stripped the fake contact stats
+("live chat Online", "under 4 min", "2,480 hosts", callbacks) from `QuickActions`/`ContactSupport` —
+now honest quick actions + email support only. Seed cleanup fixed the support email to
+`support@wielo.co.za` (was a stale `viloplatform.com`), cleared the fake "degraded 14 Nov" incident and
+the fake community threads. Applied to both `/help` (public) and `/dashboard/help` (host).
+
+Bookmarks UX: `toggleSaveArticle` action; a **Save** button on public + dashboard article pages
+(logged-out → routes to login, verified live); `saved_count` wired into `LIST_COLUMNS`; the mislabeled
+"bookmark = views" affordance fixed (views now show an **eye** icon; **bookmark** now shows real saves);
+a **Saved articles** section on the host help dashboard. Build + lint green; types + `docs/SCHEMA.md`
+regenerated.
+
+**Finding surfaced:** `help_articles` is **empty (0 rows)** on the live/linked DB (categories 14,
+videos 4, FAQs 6 exist) — so the public help page correctly shows videos/FAQs but no articles. The
+article library itself has no content; the admin CMS (Phases 3–5) is where it gets authored/imported.
+
+## 2026-08-01 — Qualified stage fires a Meta QualifiedLead event.
+
+`moveLeadStageAction` now enqueues a Meta **QualifiedLead** conversion when a card is moved into the
+Qualified stage — a higher-intent, server-matched signal distinct from the top-funnel form `Lead`.
+Best-effort + idempotent (`event_id` UNIQUE via upsert ignoreDuplicates); never blocks the move. Build +
+lint green.
+
+## 2026-08-01 — Affiliate registration trigger (CompleteRegistration + Won).
+
+DB trigger `trg_affiliate_activated` on `affiliate_accounts` (migration `20260801200000`): when an
+account reaches `status='active'` (self-serve pending→active, in-portal born-active, or admin
+activation) it enqueues a Meta **CompleteRegistration** event (no value — the affiliate pipeline's "won"
+is a registration) and moves that person's affiliate card to **Won** (move-only). Idempotent:
+reinstatement (suspended→active) won't duplicate the event or re-move a won card. **Proven** via a
+rollback-txn test: activating an affiliate enqueued one CompleteRegistration (user_id + lead_id set) and
+moved the card to the affiliate Won stage.
+
+## 2026-08-01 — Values on pipeline cards + delete hidden on customer cards.
+
+Pipeline board cards now show a ZAR value pill: **realized Wielo revenue** (green, sum of settled
+`platform_ledger` charges for that user) for paying customers, or the **trial's expected price** (amber,
+"R599 trial") for a live trial — computed at read time in `getBoard` (no denormalized column). The delete
+button is hidden on cards in a customer stage (Trial/Won) to match the server-side customer-lock.
+**Verified live** (screenshot + DOM): a paid card in Won showed "R599", a trialing card in Trial showed
+"R599 trial", neither had a delete button; test data seeded + cleaned up.
+
+## 2026-08-01 — Host settle trigger (Subscribe/Purchase + Won) + Won-gate + customer-lock.
+
+DB trigger `trg_platform_ledger_settled` on `platform_ledger` (migration `20260801190000`): when a
+Wielo-revenue charge settles (`status='completed'`, `type='charge'`, `amount>0`) it moves the payer's
+host pipeline card to **Won** (move-only, once) and enqueues a Meta event with the **real ZAR amount** —
+`membership → Subscribe` (fired once on the first membership charge; monthly renewals aren't new
+conversions), `product → Purchase` (every one-off buy), `wielo_credits → skipped`. Maps
+`platform_ledger.user_id = pipeline_leads.user_id`; value = `platform_ledger.amount`. **Proven** via a
+rollback-txn test: a R599 `founder` charge → one Subscribe (R599, ZAR, lead_id set) + card → Won; the
+renewal fired no second Subscribe; a credit top-up fired nothing. Plus two guards in the pipeline
+actions: **Won-gate** (`moveLeadStageAction` rejects manual drags into a customer stage — Trial/Won are
+system-only) and **customer-lock** (`deleteLeadAction` refuses to delete a Trial/Won card). Build green.
+
+## 2026-08-01 — Trial trigger: subscription-trialing → Trial stage + StartTrial.
+
+DB trigger `trg_subscription_trial` on `subscriptions` (migration `20260801180000`): when a subscription
+enters `status='trialing'` it (a) enqueues a Meta `StartTrial` event for the host — always, even with no
+CRM card — and (b) moves that host's open pipeline card into the **Trial** stage (move-only, never
+create; won't downgrade a won/lost card). Maps `subscriptions.host_id → hosts.user_id =
+pipeline_leads.user_id`. StartTrial carries no value (a trial isn't real money). **Proven** via a
+synthetic rollback-txn test: a trialing subscription enqueued one pending `StartTrial` (user_id + lead_id
+set) and moved the card into `trial` (is_customer). No client change — the worker (Phase 1) drains it to
+Meta once CAPI creds + the Vault url are set.
+
+## 2026-08-01 — Host pipeline "Trial" stage + is_customer flag.
+
+Added a **Trial** host pipeline stage (migration `20260801170000`) between Nurturing and Won — for a
+host who signed up and is on a free trial (technically a customer, not yet paying). New
+`pipeline_stages.is_customer` flag (true for Trial + every Won stage) will drive the customer-lock (a
+card in a customer stage can't be deleted). Board renders stages straight from `pipeline_stages`, so
+the column appeared with no component change — **verified live** in the admin board (order: New →
+Contacted → Qualified → Demo booked → Nurturing → Trial → Won → Lost). The subscription-trialing
+trigger that auto-moves a host card into Trial (+ fires StartTrial) is the next step of this phase.
+
+## 2026-08-01 — Meta CAPI outbox + worker (Phase 1 of pipeline conversion events).
+
+Foundation for firing Wielo's own server-side Meta ad-conversion events off real pipeline conversions
+(plan: `docs/features/PIPELINE_META_CAPI_PLAN.md`). Generalised `lib/integrations/meta-capi.ts` with
+`sendCapiEvent()` — hashes em/ph/**fn/ln/external_id**, configurable `action_source`
+(`system_generated` for CRM/settle events), POPIA Limited-Data-Use mode, and a rich result so a queue
+can distinguish "not configured" from "failed"; `sendCapiPurchase()` kept as a thin wrapper (the two
+booking callers are untouched). New `meta_conversion_events` outbox table (migration
+`20260801160000`, `event_id` UNIQUE = Meta dedup + exactly-once latch) drained by a new
+`/api/meta-capi-worker` route (same `EMAIL_WORKER_SECRET` bearer + batch pattern as the nurture
+worker; consent-gated PII; retry/terminal stamps) on a per-minute `drain-meta-capi` pg_cron
+(fail-soft no-op until the Vault `meta_capi_worker_url` secret is set). Additive + inert — nothing
+fires until Meta CAPI creds + the Vault URL exist. Build + lint green; migration applied to the linked
+cloud DB, types regenerated, table + cron verified live. Phases 2–6 (triggers, Trial stage, guards,
+signup gaps) still to come.
+
+## 2026-08-01 — Pipeline metrics page (lead volume, conversion, stage duration).
+
+New **Metrics** button in the pipeline board header (left of "Landing pages") opens
+`/admin/pipeline/metrics` — a per-audience (host / affiliate) sales-metrics page. Shows lead volume
+(total / open / won / lost, new this week + month), conversion (won ÷ all leads) and win rate
+(won ÷ closed), a **stage funnel** (how many leads ever reached each stage) with **average time spent
+in each stage**, average lead score, average age of open leads, average time-to-win, a stale-lead count
+(open, no activity 14d+), and breakdowns by source and by owner. Stage durations are reconstructed from
+the append-only `pipeline_activities` timeline (initial entry at `created_at` + each later stage-change's
+`meta.stage_id`), so no schema change. New `lib/pipeline/metrics.ts` (`getPipelineMetrics`) + gated on
+`pipeline.view`. Live-verified on real data (affiliate: 2 leads, moved one New→Contacted→Joined and the
+stage durations + reached funnel updated correctly) and on the empty host board (all zeros, no crash).
 
 ## 2026-08-01 — Funnel-nurture emails in Comms · Comms card redesign · required funnel fields · notifications restyle.
 

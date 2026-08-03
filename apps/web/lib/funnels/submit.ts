@@ -129,28 +129,23 @@ export async function submitFunnelLead(
   }
 
   // 4. Affiliate attribution (denormalised for the board badge). The binding
-  //    itself already happened inside findOrCreateLeadIdentity; here we just read
-  //    it back to badge the card and, on the host board, flag the source.
-  let affiliateRef: string | null = null;
+  //    itself already happened inside findOrCreateLeadIdentity; here we read it
+  //    back via the shared resolver so a competition affiliate link, a normal
+  //    affiliate link and an organic visit are each recorded distinctly — the
+  //    same way the default signup records them.
+  const { resolveLeadSource } = await import("@/lib/pipeline/leadSource");
+  const src = await resolveLeadSource(admin, identity.guestId);
+  const affiliateRef: string | null = src.affiliateRef;
   let sourceKind: string =
     funnel.audience === "affiliate" ? "affiliate_funnel" : "host_funnel";
   let sourceLabel: string | null = null;
-  try {
-    const { data: ref } = await admin
-      .from("affiliate_referrals")
-      .select("affiliate_accounts(slug)")
-      .eq("referred_user_id", identity.guestId)
-      .maybeSingle();
-    const acct = ref?.affiliate_accounts as { slug?: string } | null;
-    if (acct?.slug) {
-      affiliateRef = acct.slug;
-      if (funnel.audience === "host") {
-        sourceKind = "affiliate_referral";
-        sourceLabel = acct.slug;
-      }
-    }
-  } catch {
-    // best-effort — a missing referral just means an organic lead.
+  let suppressNurture = false;
+  // On the host board, a referral's source (competition / affiliate_referral)
+  // overrides the funnel default; the affiliate funnel keeps its own default.
+  if (funnel.audience === "host" && src.sourceKind) {
+    sourceKind = src.sourceKind;
+    sourceLabel = src.sourceLabel;
+    suppressNurture = src.suppressNurture;
   }
 
   // Simple v1 lead score: a host lead that named an establishment or gave a room
@@ -184,6 +179,7 @@ export async function submitFunnelLead(
       update.source_kind = sourceKind;
       update.source_label = sourceLabel;
     }
+    if (suppressNurture) update.suppress_default_nurture = true; // upgrade only
     await admin.from("pipeline_leads").update(update).eq("id", existing.id);
     leadId = existing.id;
   } else {
@@ -197,6 +193,7 @@ export async function submitFunnelLead(
         source_kind: sourceKind,
         source_label: sourceLabel,
         affiliate_ref: affiliateRef,
+        suppress_default_nurture: suppressNurture,
         score,
         utm: d.utm ?? {},
         ad_source: d.ad_source || null,
@@ -276,7 +273,7 @@ export async function submitFunnelLead(
   //    Phase 4 activates the sequences + builds the drain-nurture worker, this is
   //    a no-op by design (seeded sequences are is_active=false).
   try {
-    if (d.marketing_consent && funnel.sequence_id) {
+    if (d.marketing_consent && !suppressNurture && funnel.sequence_id) {
       const { data: seq } = await admin
         .from("nurture_sequences")
         .select(

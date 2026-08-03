@@ -79,6 +79,7 @@ export type HelpArticleListItem = Pick<
   | "helpful_count"
   | "not_helpful_count"
   | "view_count"
+  | "saved_count"
   | "has_video"
   | "published_at"
   | "updated_at"

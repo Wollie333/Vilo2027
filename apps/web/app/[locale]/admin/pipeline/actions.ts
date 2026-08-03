@@ -23,10 +23,32 @@ export const moveLeadStageAction = withAdminAudit<
     const ctx = await requireAdmin();
     const { data: stage } = await service
       .from("pipeline_stages")
-      .select("label, is_won, is_lost")
+      .select("key, label, is_won, is_lost, is_customer")
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
+    // A won lead is a real, paying/registered customer — never silently un-win
+    // one with a stray drag or dropdown change. It stays Won while they're a
+    // customer (reopening is a system event, not a manual one).
+    const { data: current } = await service
+      .from("pipeline_leads")
+      .select("status")
+      .eq("id", a.leadId)
+      .maybeSingle();
+    if (!current) throw new Error("Lead not found.");
+    if (current.status === "won") {
+      throw new Error(
+        "This lead is a won customer — it stays Won while they're paying and can't be moved by hand.",
+      );
+    }
+    // Customer stages (Trial + Won) are SYSTEM-driven: a card lands there only
+    // when the host actually starts a trial or pays (DB triggers). Block manual
+    // drags in so the board can't claim a customer who isn't one.
+    if (stage.is_customer) {
+      throw new Error(
+        "Trial and Won are set automatically when a lead starts a trial or pays — you can't move a card here manually.",
+      );
+    }
     const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";
     const { data: after, error } = await service
       .from("pipeline_leads")
@@ -46,6 +68,22 @@ export const moveLeadStageAction = withAdminAudit<
       body: `Moved to ${stage.label}.`,
       meta: { stage_id: a.stageId, status },
     });
+    // Reaching the Qualified stage fires a Meta QualifiedLead conversion (a
+    // higher-intent, server-matched signal distinct from the top-funnel form
+    // Lead). Best-effort + idempotent (event_id UNIQUE); never blocks the move.
+    if (stage.key === "qualified") {
+      await service.from("meta_conversion_events").upsert(
+        {
+          event_name: "QualifiedLead",
+          user_id: after.user_id,
+          lead_id: a.leadId,
+          event_id: `lead:${a.leadId}:QualifiedLead`,
+          source_ref: `lead:${a.leadId}`,
+          action_source: "system_generated",
+        },
+        { onConflict: "event_id", ignoreDuplicates: true },
+      );
+    }
     return { result: { ok: true as const }, after };
   },
 );
@@ -62,25 +100,38 @@ export const setLeadOutcomeAction = withAdminAudit<
   },
   async (a, service) => {
     const ctx = await requireAdmin();
+    // "Won" is earned, not asserted: a host card wins when they pay
+    // (on_platform_ledger_settled) and an affiliate card wins when they
+    // register (on_affiliate_activated). Blocking the manual path keeps the
+    // board's Won column — and therefore its value + conversion KPIs — honest.
+    if (a.outcome === "won") {
+      throw new Error(
+        "Won is set automatically when a lead pays (host) or registers (affiliate) — it can't be marked by hand.",
+      );
+    }
     const { data: lead } = await service
       .from("pipeline_leads")
-      .select("audience")
+      .select("audience, status")
       .eq("id", a.leadId)
       .maybeSingle();
     if (!lead) throw new Error("Lead not found.");
-    const flag = a.outcome === "won" ? "is_won" : "is_lost";
+    // Don't let a paying customer be manually marked Lost either.
+    if (lead.status === "won") {
+      throw new Error("This lead is a won customer and can't be marked lost.");
+    }
+    // Only "lost" reaches here — "won" is rejected above (system-driven).
     const { data: stage } = await service
       .from("pipeline_stages")
       .select("id, label")
       .eq("audience", lead.audience)
-      .eq(flag, true)
+      .eq("is_lost", true)
       .maybeSingle();
     if (!stage) throw new Error("No terminal stage configured.");
     const { data: after, error } = await service
       .from("pipeline_leads")
       .update({
         stage_id: stage.id,
-        status: a.outcome,
+        status: "lost",
         last_activity_at: new Date().toISOString(),
       })
       .eq("id", a.leadId)
@@ -90,9 +141,9 @@ export const setLeadOutcomeAction = withAdminAudit<
     await service.from("pipeline_activities").insert({
       lead_id: a.leadId,
       staff_id: ctx.userId,
-      kind: a.outcome === "won" ? "converted" : "note",
-      body: a.outcome === "won" ? "Marked won." : "Marked lost.",
-      meta: { stage_id: stage.id, status: a.outcome },
+      kind: "note",
+      body: "Marked lost.",
+      meta: { stage_id: stage.id, status: "lost" },
     });
     return { result: { ok: true as const }, after };
   },
@@ -273,10 +324,18 @@ export const deleteLeadAction = withAdminAudit<
     // Resolve the lead + its guest identity before the card is gone.
     const { data: lead } = await service
       .from("pipeline_leads")
-      .select("id, user_id")
+      .select("id, user_id, status, pipeline_stages(is_customer)")
       .eq("id", a.leadId)
       .maybeSingle();
     if (!lead) throw new Error("Lead not found.");
+    // Customer-lock: a card in a customer stage (Trial or Won) is a real
+    // customer and can't be deleted.
+    const leadStage = lead.pipeline_stages as { is_customer?: boolean } | null;
+    if (leadStage?.is_customer || lead.status === "won") {
+      throw new Error(
+        "This lead is a customer (Trial or Won) and can't be deleted.",
+      );
+    }
 
     // Storage objects aren't cascaded by the DB — remove them first.
     const { data: fileRows } = await service

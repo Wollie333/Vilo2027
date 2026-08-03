@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Bookmark,
   ClockIcon,
+  Eye,
   ThumbsUp,
   Video,
 } from "lucide-react";
@@ -117,8 +118,13 @@ export default async function PublicAllHelpArticlesPage({
                           </span>
                         ) : a.view_count > 0 ? (
                           <span className="inline-flex items-center gap-1">
-                            <Bookmark className="h-3 w-3" /> {a.view_count}{" "}
-                            views
+                            <Eye className="h-3 w-3" /> {a.view_count} views
+                          </span>
+                        ) : null}
+                        {a.saved_count > 0 ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Bookmark className="h-3 w-3" /> {a.saved_count}{" "}
+                            saved
                           </span>
                         ) : null}
                       </div>

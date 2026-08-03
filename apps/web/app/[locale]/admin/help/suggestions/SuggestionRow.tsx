@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Trash2, Wrench } from "lucide-react";
+import { Check, PenLine, Trash2, Wrench } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
 
 import { updateSuggestionStatus } from "./actions";
@@ -73,6 +74,12 @@ export function SuggestionRow({ row }: { row: Row }) {
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/admin/help/articles/new?from=${row.id}`}
+            className="inline-flex items-center gap-1 rounded border border-brand-primary/40 bg-brand-accent/40 px-2 py-1 text-[11px] font-medium text-brand-secondary hover:bg-brand-accent"
+          >
+            <PenLine className="h-3 w-3" /> Draft article
+          </Link>
           {NEXT_STATUS_BUTTONS.map((b) => {
             const Icon = b.icon;
             return (

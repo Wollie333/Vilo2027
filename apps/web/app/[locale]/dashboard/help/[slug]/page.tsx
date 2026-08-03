@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Tag } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Eye } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 
@@ -7,6 +7,7 @@ import { CONTACT_EMAIL } from "@/lib/contact";
 import { resolveHelpIcon } from "@/lib/help/icon-map";
 import {
   fetchHelpArticleBySlug,
+  fetchIsArticleSaved,
   fetchRelatedArticles,
 } from "@/lib/help/queries";
 import { sanitizeHelpHtml } from "@/lib/help/sanitize";
@@ -15,6 +16,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import "@/app/[locale]/help/help-article.css";
 import { ArticleFeedback } from "../_components/ArticleFeedback";
 import { ArticleView } from "../_components/ArticleView";
+import { SaveArticleButton } from "../_components/SaveArticleButton";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
   const article = await fetchHelpArticleBySlug(params.slug);
   if (!article) notFound();
 
-  const [{ data: category }, related] = await Promise.all([
+  const [{ data: category }, related, saved] = await Promise.all([
     article.category_id
       ? supabase
           .from("help_categories")
@@ -61,6 +63,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
           .maybeSingle()
       : Promise.resolve({ data: null }),
     fetchRelatedArticles(article.id, article.category_id, 4),
+    fetchIsArticleSaved(article.id, user.id),
   ]);
 
   const CategoryIcon = resolveHelpIcon(
@@ -101,7 +104,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1">
-              <Tag className="h-3 w-3" />{" "}
+              <Eye className="h-3 w-3" />{" "}
               {article.view_count.toLocaleString("en-ZA")} views
             </span>
           </div>
@@ -122,13 +125,20 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
             }}
           />
 
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <ArticleFeedback
               articleId={article.id}
               initial={{
                 helpful: article.helpful_count,
                 not_helpful: article.not_helpful_count,
               }}
+            />
+            <SaveArticleButton
+              articleId={article.id}
+              initialSaved={saved}
+              initialCount={article.saved_count}
+              isAuthed
+              loginHref={`/login?next=/dashboard/help/${article.slug}`}
             />
           </div>
         </div>
@@ -165,8 +175,8 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
               Still stuck?
             </div>
             <p className="mt-2 text-sm text-white/80">
-              Email a human at {CONTACT_EMAIL} or jump on live chat from the
-              help home.
+              Email a human at {CONTACT_EMAIL} for anything the articles
+              don&rsquo;t cover.
             </p>
             <Link
               href="/dashboard/help#contact"

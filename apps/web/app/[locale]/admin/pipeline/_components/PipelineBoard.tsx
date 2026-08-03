@@ -175,6 +175,7 @@ function Column({
               key={l.id}
               lead={l}
               stageId={stage.id}
+              locked={stage.isCustomer}
               onDeleted={onDeleted}
             />
           ))
@@ -187,16 +188,20 @@ function Column({
 function LeadCard({
   lead,
   stageId,
+  locked,
   onDeleted,
 }: {
   lead: BoardStage["leads"][number];
   stageId: string;
+  locked: boolean;
   onDeleted: (leadId: string) => void;
 }) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { stageId },
+    // Customer cards (Trial/Won) are system-managed — not draggable.
+    disabled: locked,
   });
   const [bl, bc] = band(lead.score);
   const av = lead.name.trim().slice(0, 2).toUpperCase();
@@ -205,26 +210,29 @@ function LeadCard({
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      {...(locked ? {} : listeners)}
+      {...(locked ? {} : attributes)}
       onClick={() => router.push(`/admin/pipeline/${lead.id}`)}
-      className={`group relative cursor-grab rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
-        isDragging ? "opacity-40" : ""
-      }`}
+      className={`group relative rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
+        locked ? "cursor-pointer" : "cursor-grab"
+      } ${isDragging ? "opacity-40" : ""}`}
     >
-      {/* Delete — kept out of the drag/navigate path via stopPropagation. */}
-      <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          setConfirming(true);
-        }}
-        className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-        title="Delete lead"
-        aria-label="Delete lead"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {/* Delete — kept out of the drag/navigate path via stopPropagation.
+          Hidden on customer cards (Trial/Won): they're locked (server enforces). */}
+      {locked ? null : (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(true);
+          }}
+          className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+          title="Delete lead"
+          aria-label="Delete lead"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {confirming ? (
         <DeleteLeadDialog
@@ -255,12 +263,39 @@ function LeadCard({
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        {lead.valueKind ? (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+              lead.valueKind === "paid"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
+            }`}
+            title={
+              lead.valueKind === "paid"
+                ? "Wielo revenue from this customer"
+                : "Expected value of their live trial"
+            }
+          >
+            R{lead.value.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+            {lead.valueKind === "trial" ? (
+              <span className="font-medium opacity-70">trial</span>
+            ) : null}
+          </span>
+        ) : null}
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${bc}`}
         >
           {bl} · <b className="tabular-nums">{lead.score}</b>
         </span>
-        {lead.sourceKind === "affiliate_referral" && lead.affiliateRef ? (
+        {lead.sourceKind === "competition" ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
+            title={`Competition: ${lead.sourceLabel ?? "—"}`}
+          >
+            🏆 {lead.sourceLabel ?? "Competition"}
+          </span>
+        ) : null}
+        {lead.affiliateRef ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-medium text-[#4F46E5]">
             <Users className="h-3 w-3" />
             via {lead.affiliateRef}

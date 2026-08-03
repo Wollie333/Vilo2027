@@ -23,6 +23,9 @@ export type BoardLead = {
   suppressed: boolean;
   /** Wielo account state behind the card: passwordless lead vs claimed account. */
   isLead: boolean;
+  /** ZAR value on the card: realized Wielo revenue (paid) or the trial's expected price. */
+  value: number;
+  valueKind: "paid" | "trial" | null;
 };
 
 export type BoardStage = {
@@ -31,6 +34,8 @@ export type BoardStage = {
   label: string;
   isWon: boolean;
   isLost: boolean;
+  /** Trial + Won — a customer stage: cards here are locked against deletion. */
+  isCustomer: boolean;
   leads: BoardLead[];
 };
 
@@ -66,13 +71,13 @@ export async function getBoard(audience: Audience): Promise<Board> {
   const [{ data: stageRows }, { data: leadRows }] = await Promise.all([
     admin
       .from("pipeline_stages")
-      .select("id, key, label, sort_order, is_won, is_lost")
+      .select("id, key, label, sort_order, is_won, is_lost, is_customer")
       .eq("audience", audience)
       .order("sort_order"),
     admin
       .from("pipeline_leads")
       .select(
-        "id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, user_profiles(full_name, email, is_lead)",
+        "id, user_id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, user_profiles(full_name, email, is_lead)",
       )
       .eq("audience", audience)
       .order("score", { ascending: false }),
@@ -92,6 +97,42 @@ export async function getBoard(audience: Audience): Promise<Board> {
       .in("id", ownerIds);
     for (const o of owners ?? [])
       ownerInitials.set(o.id, initials(o.full_name));
+  }
+
+  // Per-lead ZAR value for the card: realized Wielo revenue (sum of settled
+  // charges) if they've paid, else the expected price of a live trial.
+  const leadUserIds = [
+    ...new Set(leads.map((l) => l.user_id).filter(Boolean)),
+  ] as string[];
+  const realizedByUser = new Map<string, number>();
+  const trialByUser = new Map<string, number>();
+  if (leadUserIds.length) {
+    const { data: charges } = await admin
+      .from("platform_ledger")
+      .select("user_id, amount")
+      .in("user_id", leadUserIds)
+      .eq("type", "charge")
+      .eq("status", "completed");
+    for (const c of charges ?? []) {
+      if (!c.user_id) continue;
+      realizedByUser.set(
+        c.user_id,
+        (realizedByUser.get(c.user_id) ?? 0) + Number(c.amount ?? 0),
+      );
+    }
+    const { data: trials } = await admin
+      .from("subscriptions")
+      .select("products(price), hosts!inner(user_id)")
+      .eq("status", "trialing")
+      .in("hosts.user_id", leadUserIds);
+    for (const t of trials ?? []) {
+      const uid = (t.hosts as { user_id?: string } | null)?.user_id;
+      const price = Number(
+        (t.products as { price?: number } | null)?.price ?? 0,
+      );
+      if (uid && price > 0 && !trialByUser.has(uid))
+        trialByUser.set(uid, price);
+    }
   }
 
   const byStage = new Map<string, BoardLead[]>();
@@ -117,6 +158,16 @@ export async function getBoard(audience: Audience): Promise<Board> {
       ageDays: daysSince(l.last_activity_at ?? l.created_at),
       suppressed: Boolean(l.suppress_default_nurture),
       isLead: Boolean(prof?.is_lead),
+      value: (() => {
+        const realized = realizedByUser.get(l.user_id) ?? 0;
+        return realized > 0 ? realized : (trialByUser.get(l.user_id) ?? 0);
+      })(),
+      valueKind:
+        (realizedByUser.get(l.user_id) ?? 0) > 0
+          ? "paid"
+          : (trialByUser.get(l.user_id) ?? 0) > 0
+            ? "trial"
+            : null,
     };
     const arr = byStage.get(l.stage_id) ?? [];
     arr.push(lead);
@@ -129,6 +180,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
     label: s.label,
     isWon: s.is_won,
     isLost: s.is_lost,
+    isCustomer: Boolean(s.is_customer),
     leads: byStage.get(s.id) ?? [],
   }));
 

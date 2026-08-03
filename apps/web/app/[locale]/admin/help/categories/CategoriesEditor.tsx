@@ -2,6 +2,8 @@
 
 import {
   AlertCircle,
+  Eye,
+  EyeOff,
   LifeBuoy,
   Pencil,
   Plus,
@@ -10,6 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -17,7 +20,13 @@ import { modal } from "@/components/ui/modal-host";
 import { HELP_ICON_CHOICES, resolveHelpIcon } from "@/lib/help/icon-map";
 import type { HelpAudience, HelpCategoryRow } from "@/lib/help/types";
 
-import { deleteHelpCategory, saveHelpCategory } from "./actions";
+import { HelpReorderList } from "../_components/HelpReorderList";
+import {
+  deleteHelpCategory,
+  reorderHelpCategories,
+  saveHelpCategory,
+  setHelpCategoryPublished,
+} from "./actions";
 
 type Row = Pick<
   HelpCategoryRow,
@@ -153,6 +162,39 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
     });
   }
 
+  function handleReorder(next: Row[]) {
+    setList(next);
+    setError(null);
+    const ids = next.filter((r) => !r.__new).map((r) => r.id);
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const res = await reorderHelpCategories(ids);
+      if (!res.ok) setError(res.error);
+    });
+  }
+
+  function togglePublished(row: Row) {
+    const next = !row.is_published;
+    setList((prev) =>
+      prev.map((r) => (r.id === row.id ? { ...r, is_published: next } : r)),
+    );
+    setError(null);
+    startTransition(async () => {
+      const res = await setHelpCategoryPublished(row.id, next);
+      if (!res.ok) {
+        setError(res.error);
+        setList((prev) =>
+          prev.map((r) =>
+            r.id === row.id ? { ...r, is_published: row.is_published } : r,
+          ),
+        );
+      }
+    });
+  }
+
+  // Drag-reorder only makes sense over the full, unfiltered list.
+  const canReorder = query.trim() === "" && editingId === null;
+
   return (
     <div className="space-y-5">
       {/* Toolbar */}
@@ -205,6 +247,21 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
           <div className="px-5 py-12 text-center text-[13px] text-brand-mute">
             {query ? "No matches." : "No categories yet. Add one to begin."}
           </div>
+        ) : canReorder ? (
+          <div className="divide-y divide-brand-line">
+            <HelpReorderList items={list} onReorder={handleReorder}>
+              {(row, _i, handle) => (
+                <DisplayRow
+                  row={row}
+                  pending={pending}
+                  handle={handle}
+                  onEdit={() => beginEdit(row)}
+                  onDelete={() => removeRow(row)}
+                  onTogglePublished={() => togglePublished(row)}
+                />
+              )}
+            </HelpReorderList>
+          </div>
         ) : (
           <div className="divide-y divide-brand-line">
             {filtered.map((row) =>
@@ -224,6 +281,7 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
                   pending={pending}
                   onEdit={() => beginEdit(row)}
                   onDelete={() => removeRow(row)}
+                  onTogglePublished={() => togglePublished(row)}
                 />
               ),
             )}
@@ -237,17 +295,22 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
 function DisplayRow({
   row,
   pending,
+  handle,
   onEdit,
   onDelete,
+  onTogglePublished,
 }: {
   row: Row;
   pending: boolean;
+  handle?: ReactNode;
   onEdit: () => void;
   onDelete: () => void;
+  onTogglePublished: () => void;
 }) {
   const Icon = resolveHelpIcon(row.icon);
   return (
-    <div className="group flex items-center gap-4 px-5 py-3 transition-colors hover:bg-brand-light/40">
+    <div className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-brand-light/40 sm:px-5">
+      {handle ? <span className="shrink-0">{handle}</span> : null}
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary/15 text-brand-secondary">
         <Icon className="h-[18px] w-[18px]" />
       </span>
@@ -270,15 +333,29 @@ function DisplayRow({
         ) : null}
       </div>
 
-      {row.is_published ? (
-        <span className="hidden items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-status-confirmed sm:inline-flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
-          Published
-        </span>
-      ) : (
-        <span className="hidden items-center rounded-pill bg-brand-line/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute sm:inline-flex">
-          Hidden
-        </span>
+      {row.__new ? null : (
+        <button
+          type="button"
+          onClick={onTogglePublished}
+          disabled={pending}
+          title={
+            row.is_published
+              ? "Published — click to hide from /help"
+              : "Hidden — click to publish"
+          }
+          className={`hidden items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 sm:inline-flex ${
+            row.is_published
+              ? "bg-status-confirmed/10 text-status-confirmed hover:bg-status-confirmed/20"
+              : "bg-brand-line/60 text-brand-mute hover:bg-brand-line"
+          }`}
+        >
+          {row.is_published ? (
+            <Eye className="h-3 w-3" />
+          ) : (
+            <EyeOff className="h-3 w-3" />
+          )}
+          {row.is_published ? "Published" : "Hidden"}
+        </button>
       )}
 
       <div className="flex items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">

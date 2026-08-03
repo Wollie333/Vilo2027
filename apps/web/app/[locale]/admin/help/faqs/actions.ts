@@ -151,3 +151,52 @@ export async function deleteHelpFaq(input: {
     };
   }
 }
+
+// Drag-reorder --------------------------------------------------------------
+
+const reorderSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  reason: z.string().optional(),
+});
+
+export const reorderHelpFaqsAction = withAdminAudit<
+  z.infer<typeof reorderSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "help.manage",
+    actionName: "help.faq.reorder",
+    targetType: "help_faq",
+    getTargetId: (a) => a.ids[0],
+  },
+  async (args, service) => {
+    await Promise.all(
+      args.ids.map((id, i) =>
+        service
+          .from("help_faqs")
+          .update({ sort_order: (i + 1) * 10 })
+          .eq("id", id),
+      ),
+    );
+    revalidatePath("/admin/help/faqs");
+    revalidatePath("/dashboard/help");
+    revalidatePath("/help");
+    return { result: { ok: true }, after: { order: args.ids } };
+  },
+);
+
+export async function reorderHelpFaqs(
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = reorderSchema.safeParse({ ids });
+  if (!parsed.success) return { ok: false, error: "Nothing to reorder." };
+  try {
+    await reorderHelpFaqsAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
