@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-08-03 (pt19) — Guest portal: SubmitSuccess everywhere + guest-request notification catalog rows.
+
+Branch `fix/host-launch-hardening`. tsc + lint green. Two follow-ups from the pt18 backlog.
+
+- **SubmitSuccess on the last three guest submit surfaces** (`a51fdf6`) — `ManageBookingRequests`
+  (date-change + add-a-guest modals), `AddExtraCard` (add-on confirm), and `RequestRefundButton` (inline
+  panel) now show the shared success screen (thread link + Close, no in-flight `router.refresh()`) instead of
+  `toast + router.refresh()`. `close()` resets the form + refreshes on close so the refresh never blocks the
+  success screen. All five guest submit surfaces now share the pattern.
+- **`notification_events` catalog rows** (`20260803010000`, staged for the batch push) — seeds the five
+  guest-request-program events (`booking_change_request_host`, `addon_added_host`, `quote_response_host`,
+  `booking_change_approved_guest`, `booking_change_declined_guest`). Push + in-app only (no email template).
+  Dispatch already fires without these rows (kind/category_id are free text, no FK); this only keeps the admin
+  Communications hub + bell-filter tabs honest. Idempotent `ON CONFLICT DO UPDATE`.
+- **Verified, no change needed:** the host AddonEditor already exposes `lead_time_days` as a "Lead time" pill
+  selector (No notice / 24h / 48h / 72h) in its Availability section, wired end-to-end to the column the
+  guest-side add-on cutoff (`8eb9bb1`) reads.
+
+---
+
 ## 2026-08-01 (pt5) — Host launch-hardening: flow harness stopped leaking undeletable bookings.
 
 **Root-caused a real cleanup leak during live-verify.** `policy_snapshots` is INSERT-only (a BEFORE DELETE
