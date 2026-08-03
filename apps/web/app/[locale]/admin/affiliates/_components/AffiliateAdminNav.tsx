@@ -7,6 +7,7 @@ import {
   Megaphone,
   Settings,
   Trophy,
+  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,11 @@ const TABS: {
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/admin/affiliates/directory",
+    label: "Affiliates",
+    icon: Users,
   },
   {
     href: "/admin/affiliates/metrics",
