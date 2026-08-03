@@ -89,6 +89,14 @@ const SUPABASE_HOST = (() => {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // `next build` type-checks AND lints the whole project in-process, on top of the
+  // webpack compile — that combined phase OOM-killed the Vercel build container
+  // (8 GB) after "Compiled successfully" ("No serverless pages were built"). Both
+  // checks are redundant here: turbo runs `type-check` as an isolated pre-build
+  // step (see turbo.json build.dependsOn) that still fails the build on type errors
+  // but peaks far lower, and `lint` runs in CI (.github/workflows/ci.yml) + pre-commit.
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
