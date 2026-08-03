@@ -29,9 +29,9 @@ const PARTNER_SLUG = "wollie-steenkamp";
 // Self-provisioned test partner (created if missing so the harness is standalone).
 const PARTNER_EMAIL = "affiliate-partner@wielostarter.com";
 const PARTNER_UID = "0c000000-0000-4000-8000-00000000aa01";
-const PLAN_SLUG = "pro"; // the R999 subscription (Starter)
-const PLAN_RATE = 25; // % default-program commission (standard launch rate)
-const PLAN_DURATION = "forever"; // lifetime recurring
+// The real "Starter" subscription (R999). Its DB slug is the legacy "pro" — same
+// product the admin sells; commission comes from ITS live config, never overwritten.
+const PLAN_SLUG = "pro";
 const PASSWORD = "WieloStarter123!";
 const CLEAN_ONLY = process.argv.includes("--clean-only");
 
@@ -178,15 +178,17 @@ async function main() {
     return;
   }
 
-  // ── 3. Configure the default-program commission on the plan ───────────────
-  {
-    const { error } = await admin
-      .from("products")
-      .update({ affiliate_type: "percent", affiliate_value: PLAN_RATE, affiliate_duration: PLAN_DURATION, affiliate_duration_months: null })
-      .eq("id", plan.id);
-    if (error) throw new Error(`set plan commission: ${error.message}`);
+  // ── 3. Use the plan's REAL commission config (never overwrite a real product) ─
+  // Founder rule: tests run against the real products as the admin configured them.
+  const { data: planCfg } = await admin
+    .from("products")
+    .select("name, affiliate_type, affiliate_value, affiliate_duration")
+    .eq("id", plan.id)
+    .single();
+  if (planCfg.affiliate_type === "none" || !(planCfg.affiliate_value > 0)) {
+    throw new Error(`Product '${PLAN_SLUG}' (${planCfg.name}) carries no affiliate commission — set one in Admin → Products first`);
   }
-  console.log(`Set ${PLAN_SLUG} → ${PLAN_RATE}% ${PLAN_DURATION} (default program)`);
+  console.log(`Using REAL config: ${planCfg.name} (${PLAN_SLUG}) → ${planCfg.affiliate_value}${planCfg.affiliate_type === "percent" ? "%" : " flat"} ${planCfg.affiliate_duration}`);
 
   // ── 4. Seed referred hosts (isolated) ─────────────────────────────────────
   for (const h of HOSTS) {
