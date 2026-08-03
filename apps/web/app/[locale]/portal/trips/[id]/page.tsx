@@ -1034,6 +1034,44 @@ export default async function PortalTripDetailPage({
         </div>
       </div>
 
+      {/* ===== PAY NOW (top) — the guest still owes money; a full-width banner at
+              the top so the "confirm your stay" action can't be missed. ===== */}
+      {owesMoney ? (
+        <section className="mt-5 flex flex-col gap-3 rounded-card border border-amber-300 bg-amber-50 p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+              <Lock className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-700">
+                Payment needed
+              </div>
+              <div className="font-display text-[20px] font-extrabold leading-tight text-amber-900">
+                {formatMoney(
+                  balanceDue > 0 ? balanceDue : Number(booking.total_amount),
+                  currency,
+                )}
+                <span className="ml-1.5 text-[12px] font-semibold text-amber-700">
+                  {balanceDue > 0 ? "balance due" : "due"}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12.5px] leading-relaxed text-amber-800">
+                {isEft
+                  ? "Pay by EFT to confirm your stay — you’ll get the host’s bank details and your payment reference."
+                  : "Complete your payment to confirm your stay."}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={payHref}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            <Lock className="h-4 w-4" />
+            {isEft ? "Get bank details & pay" : "Pay now"}
+          </Link>
+        </section>
+      ) : null}
+
       {/* ===== HOST COUNTER-OFFER (suggested alternative dates) — top of page so
               the guest can't miss it; it needs a decision. ===== */}
       {counterOffer ? (
@@ -1881,40 +1919,6 @@ export default async function PortalTripDetailPage({
         {/* RIGHT RAIL */}
         <div className="space-y-6">
           <div className="space-y-6 xl:sticky xl:top-[88px]">
-            {/* PAY NOW — the guest still owes money on this trip */}
-            {owesMoney ? (
-              <section className="overflow-hidden rounded-card border border-amber-300 bg-amber-50 shadow-card">
-                <div className="p-5">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-700">
-                    Payment needed
-                  </div>
-                  <div className="mt-1 font-display text-[22px] font-extrabold text-amber-900">
-                    {formatMoney(
-                      balanceDue > 0
-                        ? balanceDue
-                        : Number(booking.total_amount),
-                      currency,
-                    )}
-                    <span className="ml-1.5 text-[12px] font-semibold text-amber-700">
-                      {balanceDue > 0 ? "balance due" : "due"}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-amber-800">
-                    {isEft
-                      ? "Pay by EFT to confirm your stay — you’ll get the host’s bank details and your payment reference to complete the transfer."
-                      : "Complete your payment to confirm your stay."}
-                  </p>
-                  <Link
-                    href={payHref}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
-                  >
-                    <Lock className="h-4 w-4" />
-                    {isEft ? "Get bank details & pay" : "Pay now"}
-                  </Link>
-                </div>
-              </section>
-            ) : null}
-
             {/* COUNTDOWN / STATUS */}
             {!isCancelled ? (
               <section className="overflow-hidden rounded-card bg-brand-gradient-dark text-white shadow-lg">
