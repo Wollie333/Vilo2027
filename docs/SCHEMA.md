@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-08-02
+> **Last generated:** 2026-08-03
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -16,7 +16,7 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **211** (211 with RLS) |
+| Tables | **212** (212 with RLS) |
 | Functions | **197** (156 SECURITY DEFINER, 75 trigger fns) |
 | Cron jobs | **49** (20 Vault-gated, 0 inactive) |
 | Vault secrets set | **24** |
@@ -186,7 +186,6 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `generate_policy_plain_text` | — | — | trigger |
 | `get_host_inbox_stats` | **yes** | yes | callable |
 | `get_host_refund_stats` | **yes** | yes | callable |
-| `get_listing_availability` | **yes** | yes | callable |
 | `get_listing_policy_summary` | **yes** | yes | callable |
 | `get_min_nights_for_stay` | **yes** | yes | callable |
 | `get_my_host_id` | **yes** | yes | callable |
@@ -238,6 +237,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `product_units_sold` | **yes** | yes | callable |
 | `program_affiliate_funnel` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
+| `purge_test_booking` | **yes** | yes | callable |
 | `reassign_affiliate_referral` | **yes** | yes | callable |
 | `recalculate_listing_ranking` | — | — | callable |
 | `recompute_affiliate_campaign_rates` | **yes** | yes | callable |
@@ -346,6 +346,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `allow_custom_quantity` | boolean | — | `true` |
 | `stock_quantity` | integer | yes | — |
 | `is_refundable` | boolean | — | `true` |
+| `applies_to_all_listings` | boolean | — | `false` |
 
 **Foreign keys:**
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
@@ -1206,6 +1207,50 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
    FROM bookings
   WHERE (bookings.host_id = get_my_host_id_as_staff())))`
 
+### `booking_requests`
+
+| column | type | null | default |
+|---|---|---|---|
+| `id` | uuid | — | `gen_random_uuid()` |
+| `booking_id` | uuid | — | — |
+| `host_id` | uuid | — | — |
+| `guest_id` | uuid | — | — |
+| `type` | text | — | — |
+| `status` | text | — | `'pending'::text` |
+| `payload` | jsonb | — | `'{}'::jsonb` |
+| `guest_message` | text | yes | — |
+| `host_note` | text | yes | — |
+| `decline_reason` | text | yes | — |
+| `actioned_by` | uuid | yes | — |
+| `actioned_at` | timestamp with time zone | yes | — |
+| `deleted_at` | timestamp with time zone | yes | — |
+| `created_at` | timestamp with time zone | — | `now()` |
+| `updated_at` | timestamp with time zone | — | `now()` |
+
+**Foreign keys:**
+- `FOREIGN KEY (actioned_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
+- `FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE`
+- `FOREIGN KEY (guest_id) REFERENCES user_profiles(id) ON DELETE CASCADE`
+- `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE`
+
+**Checks:**
+- `CHECK ((status = ANY (ARRAY['pending'::text, 'countered'::text, 'approved'::text, 'declined'::text, 'cancelled'::text])))`
+- `CHECK ((type = ANY (ARRAY['date_change'::text, 'guest_change'::text, 'addon'::text])))`
+
+**Triggers:**
+- `set_updated_at` → `update_updated_at()`
+
+**RLS policies:**
+- `admin_full_booking_requests` (ALL) — `USING is_super_admin()`
+- `guest_cancel_pending_booking_request` (UPDATE) — `USING ((guest_id = auth.uid()) AND (status = 'pending'::text))`
+- `guest_create_booking_request` (INSERT) — `CHECK (guest_id = auth.uid())`
+- `guest_own_booking_requests` (SELECT) — `USING (guest_id = auth.uid())`
+- `guest_respond_countered_booking_request` (UPDATE) — `USING ((guest_id = auth.uid()) AND (status = 'countered'::text))`
+- `host_action_booking_requests` (UPDATE) — `USING ((host_id = get_my_host_id()) AND (status = 'pending'::text))`
+- `host_view_booking_requests` (SELECT) — `USING (host_id = get_my_host_id())`
+- `staff_action_booking_requests` (UPDATE) — `USING ((host_id = get_my_host_id_as_staff()) AND (status = 'pending'::text))`
+- `staff_view_booking_requests` (SELECT) — `USING (host_id = get_my_host_id_as_staff())`
+
 ### `booking_rooms`
 
 | column | type | null | default |
@@ -1339,7 +1384,6 @@ CASE
 - `trigger_booking_confirmed` → `on_booking_confirmed()` *(SECURITY DEFINER)*
 - `trigger_booking_confirmed_invoice` → `on_booking_confirmed_create_invoice()` *(SECURITY DEFINER)*
 - `trigger_gen_booking_reference` → `gen_booking_reference()` *(SECURITY DEFINER)*
-- `trigger_on_booking_cancelled` → `on_booking_cancelled()` *(SECURITY DEFINER)*
 - `trigger_payment_completed_invoice_paid` → `on_payment_completed_mark_invoice_paid()` *(SECURITY DEFINER)*
 - `trigger_quote_booking_confirmed` → `on_quote_booking_confirmed()` *(SECURITY DEFINER)*
 

@@ -13667,10 +13667,6 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_host_inbox_stats: { Args: { p_host_id: string }; Returns: Json }
       get_host_refund_stats: { Args: { p_host_id: string }; Returns: Json }
-      get_listing_availability: {
-        Args: { p_listing_id: string; p_month: number; p_year: number }
-        Returns: string[]
-      }
       get_listing_policy_summary: {
         Args: { p_listing_id: string; p_room_id?: string }
         Returns: Json
@@ -13822,6 +13818,7 @@ export type Database = {
           referrals: number
         }[]
       }
+      purge_test_booking: { Args: { p_booking_id: string }; Returns: undefined }
       reassign_affiliate_referral: {
         Args: { p_new_affiliate_id: string; p_referral_id: string }
         Returns: {
