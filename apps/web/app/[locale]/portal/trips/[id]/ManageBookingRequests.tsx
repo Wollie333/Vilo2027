@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SubmitSuccess } from "@/components/portal/SubmitSuccess";
 
 import {
   cancelBookingChangeAction,
@@ -84,6 +85,7 @@ export function ManageBookingRequests({
 }) {
   const router = useRouter();
   const [mode, setMode] = React.useState<null | "date" | "guest">(null);
+  const [sent, setSent] = React.useState(false);
   const [busy, start] = React.useTransition();
 
   // Date form
@@ -98,7 +100,21 @@ export function ManageBookingRequests({
   const [gConsent, setGConsent] = React.useState(false);
   const [gMsg, setGMsg] = React.useState("");
 
-  const close = () => setMode(null);
+  // Close the active modal, reset its form + the success screen, then refresh so
+  // any new pending row shows. Refresh runs on close so it never blocks success.
+  function close() {
+    setMode(null);
+    setSent(false);
+    setNewIn(checkIn ?? "");
+    setNewOut(checkOut ?? "");
+    setDateMsg("");
+    setGName("");
+    setGEmail("");
+    setGPhone("");
+    setGConsent(false);
+    setGMsg("");
+    router.refresh();
+  }
 
   function submitDate() {
     start(async () => {
@@ -110,9 +126,7 @@ export function ManageBookingRequests({
         message: dateMsg.trim() || null,
       });
       if (res.ok) {
-        toast.success("Date-change request sent to your host.");
-        close();
-        router.refresh();
+        setSent(true);
       } else {
         toast.error(res.error);
       }
@@ -135,14 +149,7 @@ export function ManageBookingRequests({
         message: gMsg.trim() || null,
       });
       if (res.ok) {
-        toast.success("Request to add a guest sent to your host.");
-        close();
-        setGName("");
-        setGEmail("");
-        setGPhone("");
-        setGConsent(false);
-        setGMsg("");
-        router.refresh();
+        setSent(true);
       } else {
         toast.error(res.error);
       }
@@ -232,156 +239,186 @@ export function ManageBookingRequests({
       {/* Date-change modal */}
       <Dialog open={mode === "date"} onOpenChange={(v) => !v && close()}>
         <DialogContent className="max-w-md gap-0 rounded-card border-brand-line bg-white p-0">
-          <DialogHeader className="border-b border-brand-line px-5 py-4 text-left">
-            <DialogTitle className="flex items-center gap-2 text-brand-ink">
-              <CalendarRange className="h-4 w-4 text-brand-primary" />
-              Request new dates
-            </DialogTitle>
-            <DialogDescription className="text-brand-mute">
+          {sent ? (
+            <SubmitSuccess
+              title={`Date-change request sent to ${hostName}`}
+              primaryHref="/portal/inbox"
+              onClose={close}
+            >
               {hostName} reviews and confirms — your booking only moves once
               they approve.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 px-5 py-4">
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className={labelCls}>Check-in</span>
-                <input
-                  type="date"
-                  value={newIn}
-                  onChange={(e) => setNewIn(e.target.value)}
-                  className={inputCls}
-                />
-              </label>
-              <label className="block">
-                <span className={labelCls}>Check-out</span>
-                <input
-                  type="date"
-                  value={newOut}
-                  onChange={(e) => setNewOut(e.target.value)}
-                  className={inputCls}
-                />
-              </label>
-            </div>
-            <label className="block">
-              <span className={labelCls}>Note to host (optional)</span>
-              <textarea
-                rows={3}
-                value={dateMsg}
-                onChange={(e) => setDateMsg(e.target.value.slice(0, 1000))}
-                placeholder="Anything that helps your host decide."
-                className={inputCls}
-              />
-            </label>
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-brand-line px-5 py-3">
-            <button
-              type="button"
-              onClick={close}
-              disabled={busy}
-              className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={submitDate}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Send request
-            </button>
-          </div>
+            </SubmitSuccess>
+          ) : (
+            <>
+              <DialogHeader className="border-b border-brand-line px-5 py-4 text-left">
+                <DialogTitle className="flex items-center gap-2 text-brand-ink">
+                  <CalendarRange className="h-4 w-4 text-brand-primary" />
+                  Request new dates
+                </DialogTitle>
+                <DialogDescription className="text-brand-mute">
+                  {hostName} reviews and confirms — your booking only moves once
+                  they approve.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 px-5 py-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className={labelCls}>Check-in</span>
+                    <input
+                      type="date"
+                      value={newIn}
+                      onChange={(e) => setNewIn(e.target.value)}
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className={labelCls}>Check-out</span>
+                    <input
+                      type="date"
+                      value={newOut}
+                      onChange={(e) => setNewOut(e.target.value)}
+                      className={inputCls}
+                    />
+                  </label>
+                </div>
+                <label className="block">
+                  <span className={labelCls}>Note to host (optional)</span>
+                  <textarea
+                    rows={3}
+                    value={dateMsg}
+                    onChange={(e) => setDateMsg(e.target.value.slice(0, 1000))}
+                    placeholder="Anything that helps your host decide."
+                    className={inputCls}
+                  />
+                </label>
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-brand-line px-5 py-3">
+                <button
+                  type="button"
+                  onClick={close}
+                  disabled={busy}
+                  className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitDate}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Send request
+                </button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
       {/* Add-a-guest modal */}
       <Dialog open={mode === "guest"} onOpenChange={(v) => !v && close()}>
         <DialogContent className="max-w-md gap-0 rounded-card border-brand-line bg-white p-0">
-          <DialogHeader className="border-b border-brand-line px-5 py-4 text-left">
-            <DialogTitle className="flex items-center gap-2 text-brand-ink">
-              <UserPlus className="h-4 w-4 text-brand-primary" />
-              Add a guest to the trip
-            </DialogTitle>
-            <DialogDescription className="text-brand-mute">
-              We'll create them a guest profile for this booking once {hostName}{" "}
-              approves. All fields are required.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 px-5 py-4">
-            <label className="block">
-              <span className={labelCls}>Full name</span>
-              <input
-                value={gName}
-                onChange={(e) => setGName(e.target.value)}
-                placeholder="Their full name"
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className={labelCls}>Email</span>
-              <input
-                type="email"
-                value={gEmail}
-                onChange={(e) => setGEmail(e.target.value)}
-                placeholder="their@email.com"
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className={labelCls}>Contact number</span>
-              <input
-                type="tel"
-                value={gPhone}
-                onChange={(e) => setGPhone(e.target.value)}
-                placeholder="+27…"
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className={labelCls}>Note to host (optional)</span>
-              <textarea
-                rows={2}
-                value={gMsg}
-                onChange={(e) => setGMsg(e.target.value.slice(0, 1000))}
-                className={inputCls}
-              />
-            </label>
-            <label className="flex items-start gap-2.5 rounded-[10px] bg-brand-light/60 px-3 py-2.5 text-[12px] text-brand-ink">
-              <input
-                type="checkbox"
-                checked={gConsent}
-                onChange={(e) => setGConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-brand-line text-brand-primary focus:ring-brand-primary/30"
-              />
-              <span>
-                I confirm I have this person&apos;s permission to share their
-                details with {hostName}, and for Wielo to create them a guest
-                profile so they can access this booking, per Wielo&apos;s terms
-                and privacy policy.
-              </span>
-            </label>
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-brand-line px-5 py-3">
-            <button
-              type="button"
-              onClick={close}
-              disabled={busy}
-              className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+          {sent ? (
+            <SubmitSuccess
+              title={`Request sent to ${hostName}`}
+              primaryHref="/portal/inbox"
+              onClose={close}
             >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={submitGuest}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Send request
-            </button>
-          </div>
+              We&apos;ll create them a guest profile for this booking once{" "}
+              {hostName} approves.
+            </SubmitSuccess>
+          ) : (
+            <>
+              <DialogHeader className="border-b border-brand-line px-5 py-4 text-left">
+                <DialogTitle className="flex items-center gap-2 text-brand-ink">
+                  <UserPlus className="h-4 w-4 text-brand-primary" />
+                  Add a guest to the trip
+                </DialogTitle>
+                <DialogDescription className="text-brand-mute">
+                  We&apos;ll create them a guest profile for this booking once{" "}
+                  {hostName} approves. All fields are required.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 px-5 py-4">
+                <label className="block">
+                  <span className={labelCls}>Full name</span>
+                  <input
+                    value={gName}
+                    onChange={(e) => setGName(e.target.value)}
+                    placeholder="Their full name"
+                    className={inputCls}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>Email</span>
+                  <input
+                    type="email"
+                    value={gEmail}
+                    onChange={(e) => setGEmail(e.target.value)}
+                    placeholder="their@email.com"
+                    className={inputCls}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>Contact number</span>
+                  <input
+                    type="tel"
+                    value={gPhone}
+                    onChange={(e) => setGPhone(e.target.value)}
+                    placeholder="+27…"
+                    className={inputCls}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>Note to host (optional)</span>
+                  <textarea
+                    rows={2}
+                    value={gMsg}
+                    onChange={(e) => setGMsg(e.target.value.slice(0, 1000))}
+                    className={inputCls}
+                  />
+                </label>
+                <label className="flex items-start gap-2.5 rounded-[10px] bg-brand-light/60 px-3 py-2.5 text-[12px] text-brand-ink">
+                  <input
+                    type="checkbox"
+                    checked={gConsent}
+                    onChange={(e) => setGConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-brand-line text-brand-primary focus:ring-brand-primary/30"
+                  />
+                  <span>
+                    I confirm I have this person&apos;s permission to share
+                    their details with {hostName}, and for Wielo to create them
+                    a guest profile so they can access this booking, per
+                    Wielo&apos;s terms and privacy policy.
+                  </span>
+                </label>
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-brand-line px-5 py-3">
+                <button
+                  type="button"
+                  onClick={close}
+                  disabled={busy}
+                  className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitGuest}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Send request
+                </button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

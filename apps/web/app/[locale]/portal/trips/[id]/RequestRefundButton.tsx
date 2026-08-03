@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { SubmitSuccess } from "@/components/portal/SubmitSuccess";
 import { formatMoney } from "@/lib/format";
 
 import { requestRefundAction } from "./actions";
@@ -29,10 +30,23 @@ export function RequestRefundButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [sent, setSent] = useState(false);
   const [amount, setAmount] = useState<number>(totalAmount);
   const [reason, setReason] = useState<string>(REASONS[0]);
   const [reasonDetail, setReasonDetail] = useState<string>("");
   const [pending, start] = useTransition();
+
+  // Collapse the panel back to the button, reset the form + success screen, then
+  // refresh so the pending refund shows. Refresh runs on close so it never blocks
+  // the success screen.
+  function close() {
+    setOpen(false);
+    setSent(false);
+    setReasonDetail("");
+    setAmount(totalAmount);
+    setReason(REASONS[0]);
+    router.refresh();
+  }
 
   function submit() {
     if (amount <= 0 || amount > totalAmount) {
@@ -53,12 +67,7 @@ export function RequestRefundButton({
         reasonDetail: reasonDetail.trim() || null,
       });
       if (result.ok) {
-        toast.success(
-          "Refund request sent — your host will review within 72 hours.",
-        );
-        setOpen(false);
-        setReasonDetail("");
-        router.refresh();
+        setSent(true);
       } else {
         toast.error(result.error);
       }
@@ -75,6 +84,21 @@ export function RequestRefundButton({
         <RotateCcw className="h-4 w-4 text-brand-primary" />
         Request refund
       </button>
+    );
+  }
+
+  if (sent) {
+    return (
+      <div className="rounded-[12px] border border-brand-line bg-brand-light/40">
+        <SubmitSuccess
+          title="Refund request sent"
+          primaryHref="/portal/inbox"
+          onClose={close}
+        >
+          Your host reviews and issues refunds directly — you&apos;ll hear back
+          within 72 hours.
+        </SubmitSuccess>
+      </div>
     );
   }
 
