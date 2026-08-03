@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-08-03 (pt20) — Live verification + guest-request UX polish.
+
+Branch `fix/host-launch-hardening`. tsc + lint green. Founder drove login; Claude drove both sides via
+claude-in-chrome using a two-origin trick (`localhost` = host, `127.0.0.1` = guest → both sessions live at
+once against one dev server). Migration `20260803020000` applied to the linked DB (raw query).
+
+**Live-verified end-to-end:** counter-offer flow (guest requests 24→27 Sept → host declines + suggests
+25→28 Sept → guest accepts → booking moves to 25→28, request `approved`, host + guest notified, timelines +
+inbox cards on both sides); pt19 SubmitSuccess on the date-change modal + add-extra dialog (refund panel
+correctly gated to fully-paid bookings).
+
+**UX polish (commit `e3a5ca9`, all verified in-browser):**
+- Counter-offer card → **top** of the guest trip page (was buried in the right rail).
+- Host `GuestRequestBanner` → **full-width top** of the booking detail (was in the 320px sidebar).
+- Inbox system cards gain a contextual action link ("Open booking" host / "View trip" guest);
+  `booking_change_countered` now renders as a premium card, not a plain pill; internal action links
+  navigate in the same tab.
+- Activity timeline "Payment received" attributed to **Host**, not "Wielo" (Model 2 — Wielo isn't a party
+  to the money).
+- Review page gains a "Back to your trips" button on every state.
+
+---
+
 ## 2026-08-03 (pt19b) — Counter-offer: host suggests alternative dates on decline.
 
 Branch `fix/host-launch-hardening`. tsc + lint green. New feature across host + guest.
