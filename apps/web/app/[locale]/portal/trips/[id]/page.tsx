@@ -550,61 +550,90 @@ export default async function PortalTripDetailPage({
     const admin = createAdminClient();
     const optNights = Math.max(1, booking.nights ?? 1);
     const optGuests = Math.max(1, booking.guests_count ?? 1);
+
+    // Whole days until check-in — drives the add-on lead-time cutoff (e.g. a
+    // night drive needing 24h notice = lead_time_days 1 disappears once the
+    // guest is inside that window). Undated/session bookings skip the cutoff.
+    const daysUntilCheckIn = booking.check_in
+      ? Math.floor(
+          (new Date(`${booking.check_in}T00:00:00`).getTime() - Date.now()) /
+            86_400_000,
+        )
+      : Number.POSITIVE_INFINITY;
+
+    type AddonRow = {
+      id: string;
+      name: string;
+      unit_price: number;
+      description: string | null;
+      is_active: boolean;
+      pricing_model: PricingModel;
+      min_quantity: number | null;
+      lead_time_days: number | null;
+    };
+    const ADDON_COLS =
+      "id, name, unit_price, description, is_active, pricing_model, min_quantity, lead_time_days";
+
+    const toOption = (
+      a: AddonRow,
+      override: number | null,
+    ): AddExtraOption | null => {
+      if (!a.is_active) return null;
+      // Lead-time cutoff — hide extras that can no longer be arranged in time.
+      const lead = a.lead_time_days ?? 0;
+      if (lead > 0 && daysUntilCheckIn < lead) return null;
+      const unitPrice =
+        override != null ? Number(override) : Number(a.unit_price);
+      const model = a.pricing_model;
+      const minQ = a.min_quantity ?? 1;
+      // Mirror addGuestBookingAddonAction so the shown price is what's billed.
+      const qty = isPerNightModel(model)
+        ? defaultAddonQuantity(model, minQ, optNights)
+        : Math.max(minQ, 1);
+      const effectiveTotal =
+        Math.round(
+          computeAddonSubtotal(model, unitPrice, qty, optGuests) * 100,
+        ) / 100;
+      return {
+        id: a.id,
+        name: a.name,
+        unitPrice,
+        description: a.description ?? null,
+        effectiveTotal,
+        basis: effectiveTotal !== unitPrice ? PRICING_LABEL[model] : null,
+      };
+    };
+
+    const byId = new Map<string, AddExtraOption>();
+
+    // 1) Add-ons explicitly enabled on THIS listing (a price override wins).
     const { data: linkRows } = await admin
       .from("property_addons")
-      .select(
-        "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active, pricing_model, min_quantity )",
-      )
+      .select(`unit_price_override, addon:addons!inner ( ${ADDON_COLS} )`)
       .eq("property_id", listing.id)
       .is("room_id", null);
-    addExtraOptions = (linkRows ?? [])
-      .map((r): AddExtraOption | null => {
-        const a = one(
-          r.addon as
-            | {
-                id: string;
-                name: string;
-                unit_price: number;
-                description: string | null;
-                is_active: boolean;
-                pricing_model: PricingModel;
-                min_quantity: number | null;
-              }
-            | {
-                id: string;
-                name: string;
-                unit_price: number;
-                description: string | null;
-                is_active: boolean;
-                pricing_model: PricingModel;
-                min_quantity: number | null;
-              }[],
-        );
-        if (!a || !a.is_active) return null;
-        const unitPrice =
-          r.unit_price_override != null
-            ? Number(r.unit_price_override)
-            : Number(a.unit_price);
-        const model = a.pricing_model;
-        const minQ = a.min_quantity ?? 1;
-        // Mirror addGuestBookingAddonAction so the shown price is what's billed.
-        const qty = isPerNightModel(model)
-          ? defaultAddonQuantity(model, minQ, optNights)
-          : Math.max(minQ, 1);
-        const effectiveTotal =
-          Math.round(
-            computeAddonSubtotal(model, unitPrice, qty, optGuests) * 100,
-          ) / 100;
-        return {
-          id: a.id,
-          name: a.name,
-          unitPrice,
-          description: a.description ?? null,
-          effectiveTotal,
-          basis: effectiveTotal !== unitPrice ? PRICING_LABEL[model] : null,
-        };
-      })
-      .filter((o): o is AddExtraOption => Boolean(o));
+    for (const r of linkRows ?? []) {
+      const a = one(r.addon as AddonRow | AddonRow[]);
+      if (!a) continue;
+      const opt = toOption(a, r.unit_price_override as number | null);
+      if (opt) byId.set(a.id, opt);
+    }
+
+    // 2) Host-global add-ons (applies_to_all_listings) so EVERY available extra
+    // shows, not only per-listing ones. Explicit listing links above win.
+    const { data: globalRows } = await admin
+      .from("addons")
+      .select(ADDON_COLS)
+      .eq("host_id", booking.host_id)
+      .eq("applies_to_all_listings", true)
+      .eq("is_active", true);
+    for (const a of (globalRows ?? []) as AddonRow[]) {
+      if (byId.has(a.id)) continue;
+      const opt = toOption(a, null);
+      if (opt) byId.set(a.id, opt);
+    }
+
+    addExtraOptions = [...byId.values()];
   }
 
   const addons = (bookingAddons ?? []) as Array<{

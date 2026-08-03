@@ -58,7 +58,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: addon } = await admin
     .from("addons")
     .select(
-      "id, name, unit_price, host_id, is_active, min_quantity, max_quantity, pricing_model",
+      "id, name, unit_price, host_id, is_active, min_quantity, max_quantity, pricing_model, lead_time_days, applies_to_all_listings",
     )
     .eq("id", input.addonId)
     .eq("host_id", booking.host_id)
@@ -67,7 +67,8 @@ export async function addGuestBookingAddonAction(input: {
     return { ok: false, error: "That add-on isn't available." };
   }
 
-  // It must actually be offered on this listing (whole-listing scope).
+  // It must be offered on this listing (whole-listing scope) OR be a host-global
+  // add-on (applies_to_all_listings) — mirrors what the guest sees.
   const { data: link } = await admin
     .from("property_addons")
     .select("unit_price_override")
@@ -75,12 +76,29 @@ export async function addGuestBookingAddonAction(input: {
     .eq("addon_id", addon.id)
     .is("room_id", null)
     .maybeSingle();
-  if (!link) {
+  if (!link && !addon.applies_to_all_listings) {
     return { ok: false, error: "That add-on isn't available for this stay." };
   }
 
+  // Lead-time cutoff — can't be arranged in time (authoritative server check).
+  const lead = Number(addon.lead_time_days ?? 0);
+  if (lead > 0 && booking.check_in) {
+    const daysUntilCheckIn = Math.floor(
+      (new Date(`${booking.check_in}T00:00:00`).getTime() - Date.now()) /
+        86_400_000,
+    );
+    if (daysUntilCheckIn < lead) {
+      return {
+        ok: false,
+        error: `“${addon.name}” must be booked at least ${lead} day${
+          lead === 1 ? "" : "s"
+        } before check-in.`,
+      };
+    }
+  }
+
   const unitPrice =
-    link.unit_price_override != null
+    link?.unit_price_override != null
       ? Number(link.unit_price_override)
       : Number(addon.unit_price);
   const model = addon.pricing_model as PricingModel;
