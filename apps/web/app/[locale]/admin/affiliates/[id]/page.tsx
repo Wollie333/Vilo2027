@@ -2,7 +2,10 @@ import {
   ArrowLeft,
   BadgeCheck,
   Coins,
+  ExternalLink,
+  Link2,
   MousePointerClick,
+  Package,
   UserPlus,
   Wallet,
 } from "lucide-react";
@@ -75,7 +78,7 @@ export default async function AdminAffiliateFunnelPage({
 
   const [
     { data: owner },
-    { count: clickCount },
+    { data: clickRows },
     { data: referrals },
     { data: commissions },
     { data: payouts },
@@ -88,7 +91,7 @@ export default async function AdminAffiliateFunnelPage({
       .maybeSingle(),
     service
       .from("affiliate_clicks")
-      .select("id", { count: "exact", head: true })
+      .select("landing_path, campaign_id")
       .eq("affiliate_id", account.id),
     service
       .from("affiliate_referrals")
@@ -189,7 +192,72 @@ export default async function AdminAffiliateFunnelPage({
     account.currency,
   );
 
-  const clicks = clickCount ?? 0;
+  // Clicks by link (which links worked): group the affiliate's clicks by the
+  // destination they landed on, flagging competition-link clicks.
+  const campaignIds = Array.from(
+    new Set((clickRows ?? []).map((c) => c.campaign_id).filter(Boolean)),
+  ) as string[];
+  const { data: campaignRows } = campaignIds.length
+    ? await service
+        .from("affiliate_campaigns")
+        .select("id, name")
+        .in("id", campaignIds)
+    : { data: [] as { id: string; name: string }[] };
+  const campaignName = new Map((campaignRows ?? []).map((c) => [c.id, c.name]));
+  const clicksByLink = new Map<
+    string,
+    { count: number; campaign: string | null }
+  >();
+  for (const c of clickRows ?? []) {
+    const key = c.campaign_id
+      ? `${campaignName.get(c.campaign_id) ?? "Competition"} · ${c.landing_path ?? "/"}`
+      : (c.landing_path ?? "/");
+    const cur = clicksByLink.get(key) ?? {
+      count: 0,
+      campaign: c.campaign_id
+        ? (campaignName.get(c.campaign_id) ?? "Competition")
+        : null,
+    };
+    cur.count += 1;
+    clicksByLink.set(key, cur);
+  }
+  const linkRows = Array.from(clicksByLink.entries())
+    .map(([link, v]) => ({ link, ...v }))
+    .sort((a, b) => b.count - a.count);
+
+  // Products referred: distinct Wielo products the referred hosts have actually
+  // paid for (completed charges), with how many referred hosts bought each.
+  const { data: charges } = hostIds.length
+    ? await service
+        .from("platform_ledger")
+        .select("host_id, product_id")
+        .in("host_id", hostIds)
+        .eq("type", "charge")
+        .eq("status", "completed")
+        .not("product_id", "is", null)
+    : { data: [] as { host_id: string; product_id: string | null }[] };
+  const productIds = Array.from(
+    new Set((charges ?? []).map((c) => c.product_id).filter(Boolean)),
+  ) as string[];
+  const { data: productRows } = productIds.length
+    ? await service.from("products").select("id, name").in("id", productIds)
+    : { data: [] as { id: string; name: string }[] };
+  const productName = new Map((productRows ?? []).map((p) => [p.id, p.name]));
+  const productHosts = new Map<string, Set<string>>();
+  for (const c of charges ?? []) {
+    if (!c.product_id) continue;
+    const set = productHosts.get(c.product_id) ?? new Set<string>();
+    set.add(c.host_id);
+    productHosts.set(c.product_id, set);
+  }
+  const productsReferred = Array.from(productHosts.entries())
+    .map(([pid, hostsSet]) => ({
+      name: productName.get(pid) ?? "Product",
+      hosts: hostsSet.size,
+    }))
+    .sort((a, b) => b.hosts - a.hosts);
+
+  const clicks = (clickRows ?? []).length;
   const signups = rows.length;
   const paidCount = rows.filter((r) => r.paid).length;
   const isActive = account.status === "active";
@@ -217,6 +285,12 @@ export default async function AdminAffiliateFunnelPage({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/admin/users/${account.user_id}`}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> View user account
+            </Link>
             <VerifyPartnerButton
               affiliateId={account.id}
               verified={isVerified}
@@ -282,6 +356,101 @@ export default async function AdminAffiliateFunnelPage({
             width={pct(paidCount, clicks)}
           />
         </div>
+      </div>
+
+      {/* WHICH LINKS WORKED + PRODUCTS REFERRED */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="am-card overflow-hidden">
+          <div className="border-b border-brand-line px-5 py-3.5">
+            <div className="smallcaps flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5" /> Clicks by link
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="ttable">
+              <thead>
+                <tr>
+                  <th>Destination</th>
+                  <th className="r">Clicks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linkRows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="py-8 text-center text-brand-mute"
+                    >
+                      No clicks recorded yet.
+                    </td>
+                  </tr>
+                ) : (
+                  linkRows.map((l) => (
+                    <tr key={l.link}>
+                      <td>
+                        <span className="mono text-[12px] text-brand-ink">
+                          {l.link}
+                        </span>
+                        {l.campaign ? (
+                          <span className="chip ml-2 bg-brand-accent text-brand-secondary">
+                            competition
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="num r font-semibold text-brand-ink">
+                        {l.count}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="am-card overflow-hidden">
+          <div className="border-b border-brand-line px-5 py-3.5">
+            <div className="smallcaps flex items-center gap-1.5">
+              <Package className="h-3.5 w-3.5" /> Products referred
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-brand-mute">
+              What the referred hosts have actually paid for.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="ttable">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th className="r">Referred buyers</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productsReferred.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="py-8 text-center text-brand-mute"
+                    >
+                      No paid products yet.
+                    </td>
+                  </tr>
+                ) : (
+                  productsReferred.map((p) => (
+                    <tr key={p.name}>
+                      <td className="text-[13px] font-medium text-brand-ink">
+                        {p.name}
+                      </td>
+                      <td className="num r font-semibold text-brand-ink">
+                        {p.hosts}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       {/* REFERRED USERS */}
