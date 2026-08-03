@@ -62,11 +62,15 @@ export function CheckoutDateEditor({
   minDate,
   maxDate,
   maxNights,
+  unavailable,
 }: {
   from: string;
   to: string;
   minNights: number;
   onChange: (from: string, to: string) => void;
+  /** Whole-listing unavailable nights (manual blocks + imported iCal/OTA holds):
+   *  greyed out, unselectable, and a range may not span any of them. */
+  unavailable?: string[];
   /** Earliest selectable check-in (e.g. a deal's window start). Clamped to
    *  today so the past is never bookable. Undefined → today. */
   minDate?: string | null;
@@ -81,6 +85,22 @@ export function CheckoutDateEditor({
   // minDate. The effective ceiling: an explicit maxDate (or none).
   const floor = minDate && minDate > today ? minDate : today;
   const ceiling = maxDate ?? null;
+  const blocked = useMemo(() => new Set(unavailable ?? []), [unavailable]);
+  // Does the half-open range [start, end) cover any blocked night? (a stay of
+  // check-in→check-out occupies the nights start … end-1).
+  const rangeHitsBlocked = (start: string, end: string): boolean => {
+    if (blocked.size === 0) return false;
+    let d = start;
+    let guard = 0;
+    while (d < end && guard < 400) {
+      if (blocked.has(d)) return true;
+      const nx = new Date(`${d}T00:00:00`);
+      nx.setDate(nx.getDate() + 1);
+      d = isoOf(nx);
+      guard += 1;
+    }
+    return false;
+  };
   const thisMonthStart = useMemo(() => monthStartOf(floor), [floor]);
   const [viewMonth, setViewMonth] = useState<Date>(() =>
     monthStartOf(from || floor),
@@ -114,6 +134,8 @@ export function CheckoutDateEditor({
   function pickDay(iso: string) {
     if (iso < floor) return;
     if (ceiling && iso > ceiling) return;
+    // A blocked night can be neither a check-in nor a check-out anchor.
+    if (blocked.has(iso)) return;
     // No anchor yet, or a full range already chosen, or click before start:
     // (re)start the range from this day.
     if (!from || (from && to) || iso <= from) {
@@ -121,8 +143,13 @@ export function CheckoutDateEditor({
       return;
     }
     // Second click after the anchor closes the range — but never longer than the
-    // permitted maximum stay (deals cap max_nights).
+    // permitted maximum stay (deals cap max_nights), and never ACROSS a blocked
+    // night (that would double-book the taken date). Restart from the new day.
     if (maxNights && nightsBetween(from, iso) > maxNights) return;
+    if (rangeHitsBlocked(from, iso)) {
+      onChange(iso, "");
+      return;
+    }
     onChange(from, iso);
   }
 
@@ -197,7 +224,9 @@ export function CheckoutDateEditor({
                 return <div key={`blank-${i}`} className="h-11 w-full" />;
               }
               const dayNum = Number(iso.slice(8, 10));
-              const disabled = iso < floor || (!!ceiling && iso > ceiling);
+              const isBlocked = blocked.has(iso);
+              const disabled =
+                iso < floor || (!!ceiling && iso > ceiling) || isBlocked;
               const isStart = iso === from;
               const isEnd = iso === to;
               const isEdge = isStart || isEnd;
@@ -206,7 +235,12 @@ export function CheckoutDateEditor({
 
               let cls =
                 "h-11 w-full text-sm transition-colors disabled:cursor-not-allowed";
-              if (disabled) {
+              if (isBlocked) {
+                // Taken (manual block or imported iCal/OTA): a light-yellow cell,
+                // struck through + unselectable, distinct from faint past days.
+                cls +=
+                  " rounded bg-amber-100 text-amber-700 line-through decoration-amber-500 decoration-2";
+              } else if (disabled) {
                 cls += " text-brand-line";
               } else if (isEdge) {
                 cls += " rounded bg-brand-primary font-semibold text-white";
@@ -224,6 +258,8 @@ export function CheckoutDateEditor({
                   disabled={disabled}
                   onClick={() => pickDay(iso)}
                   aria-pressed={isEdge}
+                  aria-label={isBlocked ? `${dayNum} — unavailable` : undefined}
+                  title={isBlocked ? "Unavailable" : undefined}
                   className={cls}
                 >
                   {dayNum}
@@ -232,6 +268,14 @@ export function CheckoutDateEditor({
             })}
           </div>
         </div>
+
+        {/* Legend — explain the light-yellow blocked cells. */}
+        {blocked.size > 0 ? (
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-brand-mute">
+            <span className="inline-block h-3.5 w-3.5 shrink-0 rounded bg-amber-100 ring-1 ring-amber-300" />
+            Light-yellow dates are already booked and can&apos;t be selected.
+          </div>
+        ) : null}
 
         {/* Chosen range + validity */}
         <div className="mt-3 text-xs">

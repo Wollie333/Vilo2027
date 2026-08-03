@@ -1138,16 +1138,14 @@ export function ManualBookingForm({
                     Range
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span
-                      className="h-3 w-3 rounded"
-                      style={{
-                        background:
-                          "repeating-linear-gradient(45deg, #F0FDF4, #F0FDF4 2px, #DCEAE0 2px, #DCEAE0 3px)",
-                      }}
-                    />
-                    Unavailable
+                    <span className="h-3 w-3 rounded bg-amber-100 ring-1 ring-amber-300" />
+                    Blocked
                   </span>
                 </div>
+                <p className="mt-1.5 text-[10.5px] text-brand-mute">
+                  Light-yellow dates are already booked or blocked (incl.
+                  imported iCal/OTA calendars) and can&apos;t be selected.
+                </p>
               </SectionCard>
 
               {/* 4 · Guest party */}
@@ -2110,7 +2108,7 @@ function MonthGrid({
           if (past) cls += " cursor-default text-brand-line";
           else if (blocked)
             cls +=
-              " cursor-not-allowed text-brand-mute/60 line-through [background:repeating-linear-gradient(45deg,#F0FDF4,#F0FDF4_4px,#DCEAE0_4px,#DCEAE0_5px)]";
+              " cursor-not-allowed rounded bg-amber-100 text-amber-700 line-through decoration-amber-500 decoration-2";
           else cls += " cursor-pointer hover:bg-brand-line";
           if (isStart || isEnd)
             cls += " !bg-brand-primary font-bold text-white";

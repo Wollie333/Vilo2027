@@ -411,6 +411,20 @@ export default async function BookingPage({
   const listingTypeLabel =
     ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
 
+  // Whole-listing blocked dates (manual blocks, confirmed-booking holds, and
+  // imported iCal/OTA blocks — all stored with room_id NULL) so the checkout
+  // calendar greys them out and stops a guest picking a date that's taken.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const { data: blockedDateRows } = await supabase
+    .from("blocked_dates")
+    .select("date")
+    .eq("property_id", listing.id)
+    .is("room_id", null)
+    .gte("date", todayStr);
+  const unavailableDates = Array.from(
+    new Set((blockedDateRows ?? []).map((b) => b.date as string)),
+  );
+
   // The listing's effective cancellation policy (resolver) — the SSOT shown at
   // checkout and snapshotted onto the booking. Listing-wide here; the snapshot
   // refines to the booked room when a single room is chosen.
@@ -542,6 +556,7 @@ export default async function BookingPage({
           bookingMode={listing.booking_mode}
           checkIn={checkIn}
           checkOut={checkOut}
+          unavailableDates={unavailableDates}
           minNights={listing.min_nights ?? 1}
           wholeGuests={guests}
           maxGuestsWhole={listing.max_guests ?? 50}

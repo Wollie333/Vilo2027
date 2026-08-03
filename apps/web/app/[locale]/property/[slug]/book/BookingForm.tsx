@@ -280,6 +280,7 @@ export function BookingForm({
   bookingMode,
   checkIn,
   checkOut,
+  unavailableDates,
   minNights,
   wholeGuests,
   maxGuestsWhole,
@@ -341,6 +342,9 @@ export function BookingForm({
   bookingMode: string;
   checkIn: string;
   checkOut: string;
+  /** Whole-listing unavailable dates (blocks + iCal/OTA imports) — greyed out
+   *  and unselectable in the checkout calendar. */
+  unavailableDates?: string[];
   minNights: number;
   wholeGuests: number;
   maxGuestsWhole: number;
@@ -1668,6 +1672,7 @@ export function BookingForm({
           to={dates.to}
           minNights={effectiveMinNights}
           onChange={(from, to) => setDates({ from, to })}
+          unavailable={unavailableDates}
         />
         <div className="px-5 pb-5">
           <div className="mb-1.5 block text-sm font-medium text-brand-ink">
@@ -2585,6 +2590,7 @@ export function BookingForm({
               maxDate={deal.isEvergreen ? null : deal.windowEnd}
               maxNights={deal.maxNights}
               onChange={(from, to) => setDates({ from, to })}
+              unavailable={unavailableDates}
             />
             <div className="-mt-2 px-5 pb-4 text-xs text-brand-mute">
               {deal.isEvergreen
