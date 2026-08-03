@@ -1,0 +1,22 @@
+-- Close the anon-execute drift on current_user_has_password().
+--
+-- 20260721240000 created this SECURITY DEFINER function and did:
+--     revoke execute ... from public;
+--     grant  execute ... to authenticated;
+-- intending it to be signed-in-only. But Supabase's ALTER DEFAULT PRIVILEGES
+-- grants EXECUTE to `anon` EXPLICITLY at CREATE time (proacl carries a literal
+-- `anon=X/postgres` entry) — a grant that `REVOKE ... FROM public` does NOT
+-- touch. So the live ACL kept anon-execute, and the schema-doc red-flag detector
+-- (has_function_privilege('anon', oid, 'EXECUTE')) has been reporting it as a
+-- SECURITY DEFINER function reachable by anon at POST /rest/v1/rpc/.
+--
+-- IMPACT WAS BENIGN: the body keys entirely on auth.uid(), which is NULL for an
+-- anon caller, so a signed-out RPC just returns `false` and learns nothing about
+-- anyone. This is hygiene, not an incident — but the function is meant to answer
+-- only for a signed-in user, so match the ACL to that intent and clear the flag.
+--
+-- The trap the original author hit is the SAME one the detector's comment warns
+-- about ("REVOKE ... FROM anon is a NO-OP while PUBLIC still holds it") — except
+-- here the reverse: PUBLIC was already revoked, and the surviving grant is the
+-- EXPLICIT anon one, which requires an explicit REVOKE FROM anon.
+REVOKE EXECUTE ON FUNCTION public.current_user_has_password() FROM anon;
