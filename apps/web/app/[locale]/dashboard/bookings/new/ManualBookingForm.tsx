@@ -1054,7 +1054,7 @@ export function ManualBookingForm({
                   checkIn && checkOut && nights > 0 && !rangeConflict,
                 )}
                 title="Stay dates"
-                subtitle={`${brandName} blocks the calendar across the stay. Hatched cells are already booked.`}
+                subtitle={`${brandName} blocks the calendar across the stay. Light-yellow cells are already booked or blocked.`}
               >
                 <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
                   <ReadField
