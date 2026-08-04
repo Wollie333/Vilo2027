@@ -5,6 +5,7 @@ import { AppHeader } from "@/app/_components/AppHeader";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
+import { NotificationBell } from "@/app/[locale]/dashboard/_components/notifications/NotificationBell";
 import {
   AdminAccessDenied,
   readImpersonationCookie,
@@ -104,6 +105,7 @@ export default async function AdminLayout({
                 <ShieldCheck className="h-3.5 w-3.5 text-brand-primary" />
                 {prettyRole(admin.roleId)} session
               </span>
+              <NotificationBell viewAllHref="/admin/notifications" />
               <AvatarMenu
                 initials={admin.email.slice(0, 2).toUpperCase()}
                 email={admin.email}

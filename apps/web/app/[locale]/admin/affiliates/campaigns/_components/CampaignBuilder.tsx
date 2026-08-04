@@ -3,17 +3,23 @@
 import {
   AlertTriangle,
   Check,
+  Coins,
   Copy,
   ExternalLink,
   Flag,
+  Gift,
   Pause,
   Play,
   Plus,
+  Rocket,
   Save,
+  SlidersHorizontal,
   Trash2,
+  Trophy,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -39,13 +45,19 @@ import {
   setCampaignStatusAction,
   updateCampaignAction,
 } from "../actions";
-import { CAMPAIGN_HELP, FieldHelp, type HelpEntry } from "./FieldHelp";
+import { CAMPAIGN_HELP, type HelpEntry } from "./campaignHelp";
+import { FieldHelp } from "./FieldHelp";
 
-// WS-1i — the campaign builder form. Rates are entered as PERCENT here and
-// stored as fractions; the server re-validates everything with the shared zod
-// schema, so nothing here is trusted.
+// WS-1i — the campaign builder form. Reworked into a GUIDED, sectioned setup: a
+// section rail (Basics · Commission · Scoring · Prizes · Host trial) with a live
+// per-section summary, and one focused card at a time instead of a single
+// overwhelming scroll. Rates are entered as PERCENT here and stored as
+// fractions; the server re-validates everything with the shared zod schema, so
+// nothing here is trusted. (Competition rules are NOT set here — they are bound
+// from the single-source-of-truth Legal docs on the Rules tab.)
 
 type Band = { max: number | null; rate: number };
+type PrizeKind = "placing" | "milestone" | "monthly";
 type Prize = {
   placing?: number;
   cash?: number;
@@ -53,6 +65,13 @@ type Prize = {
   milestone?: string;
   monthly_top_net_change?: number;
 };
+
+/** Which of the three prize shapes a stored prize is — drives the editor. */
+function prizeKind(p: Prize): PrizeKind {
+  if (p.milestone) return "milestone";
+  if (p.monthly_top_net_change != null) return "monthly";
+  return "placing";
+}
 
 const LABEL = "flabel";
 const FIELD = "fld";
@@ -68,6 +87,13 @@ function fromLocalInput(v: string): string | null {
   return v ? new Date(v).toISOString() : null;
 }
 
+const ordinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+};
+const zar = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
+
 type TrialProduct = {
   id: string;
   name: string;
@@ -78,10 +104,11 @@ type TrialProduct = {
   isVisible: boolean;
 };
 
+type SectionKey = "basics" | "commission" | "scoring" | "prizes" | "trial";
+
 export function CampaignBuilder({
   campaignId,
   initial,
-  legalDocs,
   enrolledActive,
   libraryImages,
   products = [],
@@ -89,7 +116,6 @@ export function CampaignBuilder({
 }: {
   campaignId: string;
   initial: CampaignInput;
-  legalDocs: { slug: string; title: string }[];
   /** Places already taken — shown against the cap so it can't be set blind. */
   enrolledActive: number;
   /** Wielo media-library images the hero image can be assigned from. */
@@ -101,6 +127,7 @@ export function CampaignBuilder({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [section, setSection] = useState<SectionKey>("basics");
 
   const [name, setName] = useState(initial.name);
   const [slug, setSlug] = useState(initial.slug);
@@ -113,7 +140,6 @@ export function CampaignBuilder({
   const [eligibleReferrals, setEligibleReferrals] = useState(
     initial.eligible_referrals,
   );
-  const [rulesDoc, setRulesDoc] = useState(initial.rules_doc_slug ?? "");
   const [maxParticipants, setMaxParticipants] = useState<string>(
     initial.max_participants != null ? String(initial.max_participants) : "",
   );
@@ -134,12 +160,6 @@ export function CampaignBuilder({
   );
   const [flatRate, setFlatRate] = useState(cs.flat_rate ?? 0);
   const [flatType, setFlatType] = useState(cs.flat_type ?? "percent");
-  const [bonusMonthly, setBonusMonthly] = useState(
-    cs.conversion_bonus?.monthly ?? 0,
-  );
-  const [bonusAnnual, setBonusAnnual] = useState(
-    cs.conversion_bonus?.annual ?? 0,
-  );
 
   const comp = initial.competition;
   const [scoringMode, setScoringMode] = useState(comp.scoring_mode ?? "total");
@@ -167,6 +187,8 @@ export function CampaignBuilder({
   );
   const [liveProducts, setLiveProducts] = useState<TrialProduct[]>(products);
   const [dupOpen, setDupOpen] = useState(false);
+  // F5 · confirm dialog when a date shift on a live competition is refused.
+  const [dateConfirmOpen, setDateConfirmOpen] = useState(false);
   const [dupSource, setDupSource] = useState(products[0]?.id ?? "");
   const [dupName, setDupName] = useState("");
   const [dupPrice, setDupPrice] = useState("");
@@ -174,6 +196,31 @@ export function CampaignBuilder({
   const [dupPending, startDup] = useTransition();
 
   const isLive = status === "active";
+
+  // Plain-language, one-line summary of what a referral through this campaign
+  // earns — shown on the Commission section and the rail so the money model is
+  // never a guess.
+  const commissionLine = useMemo(() => {
+    if (model === "inherit") return "Standard per-product rates";
+    if (model === "flat") {
+      if (!flatRate) return "Flat rate — not set";
+      return flatType === "amount"
+        ? `Flat ${zar(flatRate)} per subscription`
+        : `Flat ${rateToPct(flatRate)}%`;
+    }
+    const sorted = sortBandsForDisplay(bands);
+    if (!sorted.length) return "Ladder — no rungs";
+    const first = rateToPct(sorted[0]!.rate);
+    const last = rateToPct(sorted[sorted.length - 1]!.rate);
+    return `Ladder ${first}%→${last}% · ${sorted.length} rung${sorted.length === 1 ? "" : "s"}`;
+  }, [model, flatRate, flatType, bands]);
+
+  const durationLine =
+    duration === "lifetime"
+      ? "for life"
+      : duration === "once"
+        ? "on the first payment"
+        : `for ${recurringPeriods} payments`;
 
   // The signup link is meant to be SENT to people, so copy it as an absolute
   // URL — a bare /signup/partner/x is useless once pasted into WhatsApp.
@@ -200,7 +247,9 @@ export function CampaignBuilder({
       ends_at: fromLocalInput(endsAt),
       eligible_partners: eligiblePartners,
       eligible_referrals: eligibleReferrals,
-      rules_doc_slug: rulesDoc || null,
+      // Rules binding is managed on the Rules tab (bound from Legal docs), never
+      // here — preserve whatever is currently bound so a Save can't wipe it.
+      rules_doc_slug: initial.rules_doc_slug ?? null,
       max_participants: maxParticipants.trim()
         ? Math.max(1, Math.round(Number(maxParticipants)))
         : null,
@@ -218,14 +267,6 @@ export function CampaignBuilder({
           ? {
               flat_rate: Number(flatRate),
               flat_type: flatType,
-            }
-          : {}),
-        ...(bonusMonthly || bonusAnnual
-          ? {
-              conversion_bonus: {
-                monthly: Number(bonusMonthly),
-                annual: Number(bonusAnnual),
-              },
             }
           : {}),
       },
@@ -301,18 +342,25 @@ export function CampaignBuilder({
     });
   }
 
-  function save() {
+  function save(opts?: { confirmDateShift?: boolean }) {
     startTransition(async () => {
       const res = await updateCampaignAction({
         campaignId,
         input: buildInput(),
+        ...(opts?.confirmDateShift ? { confirmDateShift: true } : {}),
       });
       if (res.ok) {
         toast.success("Campaign saved.");
+        setDateConfirmOpen(false);
         router.refresh();
-      } else {
-        toast.error(res.error);
+        return;
       }
+      // F5 · the server refused a live-campaign date shift — ask to confirm.
+      if (res.needsConfirm === "date_shift") {
+        setDateConfirmOpen(true);
+        return;
+      }
+      toast.error(res.error);
     });
   }
 
@@ -333,9 +381,57 @@ export function CampaignBuilder({
     });
   }
 
+  const SECTIONS: {
+    key: SectionKey;
+    label: string;
+    icon: LucideIcon;
+    summary: string;
+    warn?: boolean;
+  }[] = [
+    {
+      key: "basics",
+      label: "Basics",
+      icon: SlidersHorizontal,
+      summary: `/${slug || "…"}`,
+      warn: name.trim().length < 2 || slug.trim().length < 2,
+    },
+    {
+      key: "commission",
+      label: "Commission",
+      icon: Coins,
+      summary: commissionLine,
+      warn:
+        model !== "inherit" &&
+        ((model === "flat" && !flatRate) ||
+          (model === "ladder" && !bands.some((b) => b.rate > 0))),
+    },
+    {
+      key: "scoring",
+      label: "Scoring",
+      icon: Trophy,
+      summary: `${scoringMode === "net_change" ? "Net change" : "Total live"} · ${visibility}`,
+    },
+    {
+      key: "prizes",
+      label: "Prizes",
+      icon: Gift,
+      summary: prizes.length
+        ? `${prizes.length} prize${prizes.length === 1 ? "" : "s"}`
+        : "None yet",
+    },
+    {
+      key: "trial",
+      label: "Host trial",
+      icon: Rocket,
+      summary: trialProductId
+        ? (liveProducts.find((p) => p.id === trialProductId)?.name ?? "Set")
+        : "None",
+    },
+  ];
+
   return (
     <div className="space-y-5">
-      {/* ---- Status bar ---- */}
+      {/* ---- Status + primary actions ---- */}
       <div className="am-card flex flex-wrap items-center gap-3 p-4">
         <span className={`tag ${isLive ? "green" : "gray"}`}>
           <span className="d" />
@@ -347,7 +443,7 @@ export function CampaignBuilder({
             : "Nothing is paid at campaign rates while it is not live."}
           <FieldHelp help={CAMPAIGN_HELP.status} />
         </span>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           {status === "active" ? (
             <>
               <button
@@ -412,6 +508,15 @@ export function CampaignBuilder({
               Restore to draft
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => save()}
+            disabled={pending}
+            className="btn-pri h-9"
+          >
+            <Save className="h-4 w-4" />
+            {pending ? "Saving…" : "Save"}
+          </button>
         </div>
       </div>
 
@@ -438,908 +543,1073 @@ export function CampaignBuilder({
         </div>
       ) : null}
 
-      {/* ---- Basics ---- */}
-      <Panel title="Basics">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>
-              Name
-              <FieldHelp help={CAMPAIGN_HELP.name} />
-            </span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={FIELD}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Public link
-              <FieldHelp help={CAMPAIGN_HELP.slug} />
-            </span>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className={`${FIELD} font-mono text-[13px]`}
-            />
-            {/* Open the real public page in a new tab — the founder should be
-                able to see exactly what a visitor sees, not a description of it. */}
-            <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
-              <a
-                href={`/competitions/${slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+      {/* ---- Section rail + focused panel ---- */}
+      <div className="grid gap-5 lg:grid-cols-[232px_minmax(0,1fr)]">
+        {/* Rail — vertical on desktop, horizontal scroll on mobile. */}
+        <nav className="thin-scroll -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+          {SECTIONS.map((s) => {
+            const Icon = s.icon;
+            const on = section === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSection(s.key)}
+                className={`group flex shrink-0 items-center gap-3 rounded-[12px] border px-3.5 py-2.5 text-left transition lg:shrink ${
+                  on
+                    ? "border-brand-primary/40 bg-brand-primary/[0.06]"
+                    : "border-brand-line bg-white hover:border-brand-primary/30 hover:bg-brand-light/50"
+                }`}
               >
-                /competitions/{slug || "…"}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-              {isLive ? (
-                <span>· live now</span>
-              ) : (
-                <span className="text-status-pending">
-                  · visitors get a 404 until you launch
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] ${
+                    on
+                      ? "bg-brand-primary text-white"
+                      : "bg-brand-light text-brand-mute group-hover:text-brand-primary"
+                  }`}
+                >
+                  <Icon className="h-[17px] w-[17px]" />
                 </span>
-              )}
-            </span>
-            {/* The partner signup link for THIS competition — the one you
-                actually send to people you want in the race. Unlike the public
-                page it never 404s: while the campaign is a draft it still
-                renders, just as ordinary partner signup with no race entry. */}
-            <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
-              <a
-                href={`/signup/partner/${slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
-              >
-                /signup/partner/{slug || "…"}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-              <button
-                type="button"
-                onClick={() => copySignupLink(slug)}
-                className="inline-flex items-center gap-1 font-medium text-brand-mute hover:text-brand-primary hover:underline"
-              >
-                {copiedSignup ? (
-                  <>
-                    <Check className="h-3 w-3" /> copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" /> copy
-                  </>
-                )}
-              </button>
-              <span>
-                {isLive
-                  ? "· signup link — enters them in this race"
-                  : "· works, but won't enter anyone until you launch"}
-              </span>
-            </span>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Starts
-              <FieldHelp help={CAMPAIGN_HELP.starts} />
-            </span>
-            <input
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              className={FIELD}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Ends
-              <FieldHelp help={CAMPAIGN_HELP.ends} />
-            </span>
-            <input
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-              className={FIELD}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Who can join
-              <FieldHelp help={CAMPAIGN_HELP.eligiblePartners} />
-            </span>
-            <select
-              value={eligiblePartners}
-              onChange={(e) =>
-                setEligiblePartners(e.target.value as typeof eligiblePartners)
-              }
-              className={FIELD}
-            >
-              {ELIGIBLE_PARTNERS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all"
-                    ? "Every partner"
-                    : v === "tagged"
-                      ? "Tagged partners only"
-                      : "Invite only"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Which referrals count
-              <FieldHelp help={CAMPAIGN_HELP.eligibleReferrals} />
-            </span>
-            <select
-              value={eligibleReferrals}
-              onChange={(e) =>
-                setEligibleReferrals(e.target.value as typeof eligibleReferrals)
-              }
-              className={FIELD}
-            >
-              {ELIGIBLE_REFERRALS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all_time"
-                    ? "All of their referrals, ever"
-                    : v === "referred_in_window"
-                      ? "Referred during the campaign"
-                      : "Went live during the campaign"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Places available
-              <FieldHelp help={CAMPAIGN_HELP.maxParticipants} />
-            </span>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={maxParticipants}
-              placeholder="Unlimited"
-              onChange={(e) => setMaxParticipants(e.target.value)}
-              className={FIELD}
-            />
-            <span className="mt-1 block text-[11px] text-brand-mute">
-              {maxParticipants.trim() ? (
-                <>
-                  {enrolledActive} of {maxParticipants} taken
-                  {Number(maxParticipants) <= enrolledActive ? (
-                    <span className="text-status-pending">
-                      {" "}
-                      · full, no new partners can join
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[13.5px] font-semibold ${on ? "text-brand-ink" : "text-brand-ink"}`}
+                    >
+                      {s.label}
                     </span>
-                  ) : (
-                    <> · {Number(maxParticipants) - enrolledActive} left</>
-                  )}
-                </>
-              ) : (
-                <>Leave blank for unlimited · {enrolledActive} enrolled</>
-              )}
-            </span>
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className={LABEL}>Offer shown to hosts</span>
-            <input
-              type="text"
-              maxLength={60}
-              value={hostOffer}
-              placeholder="e.g. 4 months free"
-              onChange={(e) => setHostOffer(e.target.value)}
-              className={FIELD}
-            />
-            <span className="mt-1 block text-[11px] text-brand-mute">
-              Appears on every partner&rsquo;s landing page
-              (/partners/&lt;their-slug&gt;) as the reason to sign up now. This
-              is a commercial promise published under a partner&rsquo;s name and
-              photo — leave it blank and the page makes no pricing claim at all,
-              rather than inventing one.
-            </span>
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className={LABEL}>Hero image</span>
-            <div className="mt-1">
-              <LibraryImagePicker
-                images={libraryImages}
-                value={heroImage}
-                onChange={setHeroImage}
-              />
-            </div>
-            <span className="mt-1 block text-[11px] text-brand-mute">
-              Assigned from the Wielo media library — shows as the background of
-              the public leaderboard (/competitions/&lt;slug&gt;). Leave empty
-              for the plain dark hero.
-            </span>
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className={LABEL}>
-              Rules document
-              <FieldHelp help={CAMPAIGN_HELP.rulesDoc} />
-            </span>
-            <select
-              value={rulesDoc}
-              onChange={(e) => setRulesDoc(e.target.value)}
-              className={FIELD}
-            >
-              <option value="">No rules page linked</option>
-              {legalDocs.map((d) => (
-                <option key={d.slug} value={d.slug}>
-                  {d.title} (/legal/{d.slug})
-                </option>
-              ))}
-            </select>
-            <span className="mt-1 block text-[11px] text-brand-mute">
-              Competition rules must stay at a fixed URL for the whole campaign
-              — publish them as a legal document and link them here.
-            </span>
-          </label>
-        </div>
-      </Panel>
-
-      {/* ---- Commission ---- */}
-      <Panel
-        title="Commission"
-        sub="What enrolled partners earn while this campaign runs."
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <label className="block">
-            <span className={LABEL}>
-              Model
-              <FieldHelp help={CAMPAIGN_HELP.model} />
-            </span>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value as typeof model)}
-              className={FIELD}
-            >
-              {COMMISSION_MODELS.map((m) => (
-                <option key={m} value={m}>
-                  {m === "ladder"
-                    ? "Ladder (rate rises with their book)"
-                    : m === "flat"
-                      ? "Flat rate"
-                      : "Inherit the standard rates"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Paid for how long
-              <FieldHelp help={CAMPAIGN_HELP.duration} />
-            </span>
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value as typeof duration)}
-              className={FIELD}
-            >
-              {COMMISSION_DURATIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d === "once"
-                    ? "One payment only"
-                    : d === "recurring"
-                      ? "A set number of payments"
-                      : "For as long as the host pays"}
-                </option>
-              ))}
-            </select>
-          </label>
-          {duration === "recurring" ? (
-            <label className="block">
-              <span className={LABEL}>
-                Number of payments
-                <FieldHelp help={CAMPAIGN_HELP.recurringPeriods} />
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={120}
-                value={recurringPeriods}
-                onChange={(e) => setRecurringPeriods(Number(e.target.value))}
-                className={FIELD}
-              />
-            </label>
-          ) : (
-            <label className="block">
-              <span className={LABEL}>
-                Applies to
-                <FieldHelp help={CAMPAIGN_HELP.scope} />
-              </span>
-              <select
-                value={scope}
-                onChange={(e) => setScope(e.target.value)}
-                className={FIELD}
-              >
-                {COMMISSION_SCOPES.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-
-        {model === "ladder" ? (
-          <div className="mt-5">
-            <div className="flex items-center justify-between">
-              <span className={LABEL}>
-                Ladder rungs
-                <FieldHelp help={CAMPAIGN_HELP.bands} />
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setBands((b) => [...b, { max: 10_000, rate: 0.1 }])
-                }
-                className="btn-ghost h-8"
-              >
-                <Plus className="h-3.5 w-3.5" /> Add rung
+                    {s.warn ? (
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    ) : null}
+                  </span>
+                  <span className="mono block max-w-[150px] truncate text-[11px] text-brand-mute">
+                    {s.summary}
+                  </span>
+                </span>
               </button>
-            </div>
-            <p className="mt-1 text-[12px] text-brand-mute">
-              Monthly subscription revenue from their hosts, up to the ceiling,
-              pays that rate on the whole book. Exactly one rung must have no
-              ceiling — that is the top rate.
-            </p>
-            <div className="mt-3 space-y-2">
-              {bands.map((b, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-2">
-                  <span className="w-16 text-[12px] text-brand-mute">
-                    Up to
+            );
+          })}
+        </nav>
+
+        {/* Active section */}
+        <div className="min-w-0">
+          {section === "basics" ? (
+            <Panel
+              title="Basics"
+              sub="Name, link, dates and who can take part."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className={LABEL}>
+                    Name
+                    <FieldHelp help={CAMPAIGN_HELP.name} />
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    step={500}
-                    value={b.max ?? ""}
-                    placeholder="No ceiling (top rung)"
-                    onChange={(e) =>
-                      setBands((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                max: e.target.value
-                                  ? Number(e.target.value)
-                                  : null,
-                              }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="w-44 rounded-[10px] border border-brand-line px-3 py-1.5 text-sm outline-none focus:border-brand-primary"
-                  />
-                  <span className="text-[12px] text-brand-mute">pays</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    value={rateToPct(b.rate)}
-                    onChange={(e) =>
-                      setBands((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? { ...x, rate: pctToRate(Number(e.target.value)) }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="w-24 rounded-[10px] border border-brand-line px-3 py-1.5 text-sm outline-none focus:border-brand-primary"
-                  />
-                  <span className="text-[12px] text-brand-mute">%</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setBands((prev) => prev.filter((_, j) => j !== i))
-                    }
-                    aria-label="Remove rung"
-                    className="rounded-pill p-1.5 text-brand-mute hover:bg-brand-light hover:text-status-cancelled"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {bands.length === 0 ? (
-                <p className="text-[12.5px] text-brand-mute">No rungs yet.</p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {model === "flat" ? (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className={LABEL}>
-                Flat rate
-                <FieldHelp help={CAMPAIGN_HELP.flatRate} />
-              </span>
-              <input
-                type="number"
-                min={0}
-                step={flatType === "amount" ? 10 : 0.5}
-                value={flatType === "amount" ? flatRate : rateToPct(flatRate)}
-                onChange={(e) =>
-                  setFlatRate(
-                    flatType === "amount"
-                      ? Number(e.target.value)
-                      : pctToRate(Number(e.target.value)),
-                  )
-                }
-                className={FIELD}
-              />
-            </label>
-            <label className="block">
-              <span className={LABEL}>Rate type</span>
-              <select
-                value={flatType}
-                onChange={(e) => setFlatType(e.target.value as typeof flatType)}
-                className={FIELD}
-              >
-                <option value="percent">Percent of what the host pays</option>
-                <option value="amount">Fixed rand amount</option>
-              </select>
-            </label>
-          </div>
-        ) : null}
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>
-              Conversion bonus — monthly plan (R)
-              <FieldHelp help={CAMPAIGN_HELP.conversionBonus} />
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={bonusMonthly}
-              onChange={(e) => setBonusMonthly(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>Conversion bonus — annual plan (R)</span>
-            <input
-              type="number"
-              min={0}
-              value={bonusAnnual}
-              onChange={(e) => setBonusAnnual(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-        </div>
-      </Panel>
-
-      {/* ---- Competition ---- */}
-      <Panel
-        title="Competition"
-        sub="How partners are scored and what they win."
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <label className="block">
-            <span className={LABEL}>
-              Scoring
-              <FieldHelp help={CAMPAIGN_HELP.scoring} />
-            </span>
-            <select
-              value={scoringMode}
-              onChange={(e) =>
-                setScoringMode(e.target.value as typeof scoringMode)
-              }
-              className={FIELD}
-            >
-              {SCORING_MODES.map((m) => (
-                <option key={m} value={m}>
-                  {m === "total"
-                    ? "Total live listings"
-                    : "Net change over the period"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Leaderboard
-              <FieldHelp help={CAMPAIGN_HELP.leaderboard} />
-            </span>
-            <select
-              value={visibility}
-              onChange={(e) =>
-                setVisibility(e.target.value as typeof visibility)
-              }
-              className={FIELD}
-            >
-              {LEADERBOARD_VISIBILITY.map((v) => (
-                <option key={v} value={v}>
-                  {v === "public"
-                    ? "Public — anyone can view"
-                    : v === "partners"
-                      ? "Partners only"
-                      : "Hidden"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className={LABEL}>
-              Points per live listing
-              <FieldHelp help={CAMPAIGN_HELP.pointsPerListing} />
-            </span>
-            <input
-              type="number"
-              min={0}
-              value={pointsPerListing}
-              onChange={(e) => setPointsPerListing(Number(e.target.value))}
-              className={FIELD}
-            />
-          </label>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-5">
-          <Toggle
-            checked={countActiveOnly}
-            onChange={setCountActiveOnly}
-            label="Only count hosts who are still live"
-            help={CAMPAIGN_HELP.countActiveOnly}
-          />
-          <Toggle
-            checked={eachListingCounts}
-            onChange={setEachListingCounts}
-            label="Every listing counts, not just every host"
-            help={CAMPAIGN_HELP.eachListingCounts}
-          />
-        </div>
-
-        <label className="mt-4 block sm:max-w-sm">
-          <span className={LABEL}>
-            Tie breaker
-            <FieldHelp help={CAMPAIGN_HELP.tieBreaker} />
-          </span>
-          <select
-            value={tieBreaker}
-            onChange={(e) => setTieBreaker(e.target.value)}
-            className={FIELD}
-          >
-            <option value="">No tie breaker stated</option>
-            {TIE_BREAKERS.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <span className={LABEL}>
-              Prizes
-              <FieldHelp help={CAMPAIGN_HELP.prizes} />
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                setPrizes((p) => [...p, { placing: p.length + 1 }])
-              }
-              className="btn-ghost h-8"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add prize
-            </button>
-          </div>
-          <p className="mt-1 text-[12px] text-brand-mute">
-            A floor permanently locks that partner&apos;s minimum commission
-            rate — it outlives the campaign. Leave the placing blank for a
-            milestone prize.
-          </p>
-          <div className="mt-3 space-y-2">
-            {prizes.map((p, i) => (
-              <div
-                key={i}
-                className="flex flex-wrap items-end gap-2 rounded-[13px] border border-brand-line p-3"
-              >
-                <label className="block">
-                  <span className="text-[10px] text-brand-mute">Place</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={p.placing ?? ""}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                placing: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="mt-0.5 w-20 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={FIELD}
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] text-brand-mute">Cash (R)</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={p.cash ?? ""}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                cash: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="mt-0.5 w-28 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] text-brand-mute">
-                    Rate floor (%)
+                  <span className={LABEL}>
+                    Public link
+                    <FieldHelp help={CAMPAIGN_HELP.slug} />
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    value={p.floor !== undefined ? rateToPct(p.floor) : ""}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                floor: e.target.value
-                                  ? pctToRate(Number(e.target.value))
-                                  : undefined,
-                              }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="mt-0.5 w-28 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className={`${FIELD} font-mono text-[13px]`}
+                  />
+                  {/* Open the real public page in a new tab — the founder should
+                      see exactly what a visitor sees, not a description of it. */}
+                  <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
+                    <a
+                      href={`/competitions/${slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+                    >
+                      /competitions/{slug || "…"}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    {isLive ? (
+                      <span>· live now</span>
+                    ) : (
+                      <span className="text-status-pending">
+                        · visitors get a 404 until you launch
+                      </span>
+                    )}
+                  </span>
+                  {/* The partner signup link for THIS competition. */}
+                  <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-brand-mute">
+                    <a
+                      href={`/signup/partner/${slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-brand-primary hover:underline"
+                    >
+                      /signup/partner/{slug || "…"}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => copySignupLink(slug)}
+                      className="inline-flex items-center gap-1 font-medium text-brand-mute hover:text-brand-primary hover:underline"
+                    >
+                      {copiedSignup ? (
+                        <>
+                          <Check className="h-3 w-3" /> copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" /> copy
+                        </>
+                      )}
+                    </button>
+                    <span>
+                      {isLive
+                        ? "· signup link — enters them in this race"
+                        : "· works, but won't enter anyone until you launch"}
+                    </span>
+                  </span>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>
+                    Starts
+                    <FieldHelp help={CAMPAIGN_HELP.starts} />
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={startsAt}
+                    onChange={(e) => setStartsAt(e.target.value)}
+                    className={FIELD}
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] text-brand-mute">
-                    Monthly top mover (R)
+                  <span className={LABEL}>
+                    Ends
+                    <FieldHelp help={CAMPAIGN_HELP.ends} />
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    value={p.monthly_top_net_change ?? ""}
-                    onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                monthly_top_net_change: e.target.value
-                                  ? Number(e.target.value)
-                                  : undefined,
-                              }
-                            : x,
-                        ),
-                      )
-                    }
-                    className="mt-0.5 w-32 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={(e) => setEndsAt(e.target.value)}
+                    className={FIELD}
                   />
                 </label>
-                <label className="block flex-1">
-                  <span className="text-[10px] text-brand-mute">
-                    Milestone (optional)
+                <label className="block">
+                  <span className={LABEL}>
+                    Who can join
+                    <FieldHelp help={CAMPAIGN_HELP.eligiblePartners} />
                   </span>
                   <select
-                    value={p.milestone ?? ""}
+                    value={eligiblePartners}
                     onChange={(e) =>
-                      setPrizes((prev) =>
-                        prev.map((x, j) =>
-                          j === i
-                            ? { ...x, milestone: e.target.value || undefined }
-                            : x,
-                        ),
+                      setEligiblePartners(
+                        e.target.value as typeof eligiblePartners,
                       )
                     }
-                    className="mt-0.5 w-full min-w-[9rem] rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                    className={FIELD}
                   >
-                    <option value="">Not a milestone prize</option>
-                    {MILESTONES.map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {m.label}
+                    {ELIGIBLE_PARTNERS.map((v) => (
+                      <option key={v} value={v}>
+                        {v === "all"
+                          ? "Every partner"
+                          : v === "tagged"
+                            ? "Tagged partners only"
+                            : "Invite only"}
                       </option>
                     ))}
                   </select>
                 </label>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPrizes((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  aria-label="Remove prize"
-                  className="rounded-pill p-1.5 text-brand-mute hover:bg-brand-light hover:text-status-cancelled"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <label className="block">
+                  <span className={LABEL}>
+                    Which referrals count
+                    <FieldHelp help={CAMPAIGN_HELP.eligibleReferrals} />
+                  </span>
+                  <select
+                    value={eligibleReferrals}
+                    onChange={(e) =>
+                      setEligibleReferrals(
+                        e.target.value as typeof eligibleReferrals,
+                      )
+                    }
+                    className={FIELD}
+                  >
+                    {ELIGIBLE_REFERRALS.map((v) => (
+                      <option key={v} value={v}>
+                        {v === "all_time"
+                          ? "All of their referrals, ever"
+                          : v === "referred_in_window"
+                            ? "Referred during the campaign"
+                            : "Went live during the campaign"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>
+                    Places available
+                    <FieldHelp help={CAMPAIGN_HELP.maxParticipants} />
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={maxParticipants}
+                    placeholder="Unlimited"
+                    onChange={(e) => setMaxParticipants(e.target.value)}
+                    className={FIELD}
+                  />
+                  <span className="mt-1 block text-[11px] text-brand-mute">
+                    {maxParticipants.trim() ? (
+                      <>
+                        {enrolledActive} of {maxParticipants} taken
+                        {Number(maxParticipants) <= enrolledActive ? (
+                          <span className="text-status-pending">
+                            {" "}
+                            · full, no new partners can join
+                          </span>
+                        ) : (
+                          <>
+                            {" "}
+                            · {Number(maxParticipants) - enrolledActive} left
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>Leave blank for unlimited · {enrolledActive} enrolled</>
+                    )}
+                  </span>
+                </label>
+
+                <label className="block sm:col-span-2">
+                  <span className={LABEL}>Offer shown to hosts</span>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    value={hostOffer}
+                    placeholder="e.g. 4 months free"
+                    onChange={(e) => setHostOffer(e.target.value)}
+                    className={FIELD}
+                  />
+                  <span className="mt-1 block text-[11px] text-brand-mute">
+                    Appears on every partner&rsquo;s landing page
+                    (/partners/&lt;their-slug&gt;) as the reason to sign up now.
+                    This is a commercial promise published under a
+                    partner&rsquo;s name and photo — leave it blank and the page
+                    makes no pricing claim at all, rather than inventing one.
+                  </span>
+                </label>
+
+                <label className="block sm:col-span-2">
+                  <span className={LABEL}>Hero image</span>
+                  <div className="mt-1">
+                    <LibraryImagePicker
+                      images={libraryImages}
+                      value={heroImage}
+                      onChange={setHeroImage}
+                    />
+                  </div>
+                  <span className="mt-1 block text-[11px] text-brand-mute">
+                    Assigned from the Wielo media library — shows as the
+                    background of the public leaderboard
+                    (/competitions/&lt;slug&gt;). Leave empty for the plain dark
+                    hero.
+                  </span>
+                </label>
               </div>
-            ))}
-            {prizes.length === 0 ? (
-              <p className="text-[12.5px] text-brand-mute">No prizes yet.</p>
-            ) : null}
-          </div>
-        </div>
-      </Panel>
 
-      {/* ---- Host free trial ---- */}
-      <Panel
-        title="Host free trial"
-        sub="What a referred host gets when they sign up during this competition. Assign a dedicated (hidden) product priced at the competition rate — the public plan is never changed."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={LABEL}>Trial product</span>
-            <select
-              value={trialProductId}
-              onChange={(e) => setTrialProductId(e.target.value)}
-              className={FIELD}
+              <RulesHint />
+            </Panel>
+          ) : null}
+
+          {section === "commission" ? (
+            <Panel
+              title="Commission"
+              sub="What enrolled partners earn while this campaign runs."
             >
-              <option value="">No trial — referred hosts pay as normal</option>
-              {liveProducts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.isVisible ? " (public)" : " (hidden)"} — R
-                  {Math.round(p.price).toLocaleString("en-ZA")}
-                  /mo
-                </option>
-              ))}
-            </select>
-            <span className="mt-1 block text-[12px] text-brand-mute">
-              Referred hosts get full access to this product free until the
-              trial ends, then pay its price. Tip: duplicate your paid plan so
-              the public one stays untouched.
-            </span>
-          </label>
+              <div className="mb-4 rounded-[12px] border border-brand-primary/25 bg-brand-primary/[0.05] px-4 py-3 text-[13px] text-brand-ink">
+                A referral through this campaign earns{" "}
+                <strong>{commissionLine}</strong> {durationLine}.
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block">
+                  <span className={LABEL}>
+                    Model
+                    <FieldHelp help={CAMPAIGN_HELP.model} />
+                  </span>
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value as typeof model)}
+                    className={FIELD}
+                  >
+                    {COMMISSION_MODELS.map((m) => (
+                      <option key={m} value={m}>
+                        {m === "ladder"
+                          ? "Ladder (rate rises with their book)"
+                          : m === "flat"
+                            ? "Flat rate"
+                            : "Inherit the standard rates"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>
+                    Paid for how long
+                    <FieldHelp help={CAMPAIGN_HELP.duration} />
+                  </span>
+                  <select
+                    value={duration}
+                    onChange={(e) =>
+                      setDuration(e.target.value as typeof duration)
+                    }
+                    className={FIELD}
+                  >
+                    {COMMISSION_DURATIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {d === "once"
+                          ? "One payment only"
+                          : d === "recurring"
+                            ? "A set number of payments"
+                            : "For as long as the host pays"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {duration === "recurring" ? (
+                  <label className="block">
+                    <span className={LABEL}>
+                      Number of payments
+                      <FieldHelp help={CAMPAIGN_HELP.recurringPeriods} />
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={recurringPeriods}
+                      onChange={(e) =>
+                        setRecurringPeriods(Number(e.target.value))
+                      }
+                      className={FIELD}
+                    />
+                  </label>
+                ) : (
+                  <label className="block">
+                    <span className={LABEL}>
+                      Applies to
+                      <FieldHelp help={CAMPAIGN_HELP.scope} />
+                    </span>
+                    <select
+                      value={scope}
+                      onChange={(e) => setScope(e.target.value)}
+                      className={FIELD}
+                    >
+                      {COMMISSION_SCOPES.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
 
-          <div className="block">
-            <span className={LABEL}>Or make one</span>
-            {dupOpen ? (
-              <div className="rounded-card border border-brand-line p-3">
+              {model === "ladder" ? (
+                <div className="mt-5">
+                  <div className="flex items-center justify-between">
+                    <span className={LABEL}>
+                      Ladder rungs
+                      <FieldHelp help={CAMPAIGN_HELP.bands} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBands((b) => [...b, { max: 10_000, rate: 0.1 }])
+                      }
+                      className="btn-ghost h-8"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add rung
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[12px] text-brand-mute">
+                    Monthly subscription revenue from their hosts, up to the
+                    ceiling, pays that rate on the whole book. Exactly one rung
+                    must have no ceiling — that is the top rate.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {bands.map((b, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <span className="w-16 text-[12px] text-brand-mute">
+                          Up to
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={500}
+                          value={b.max ?? ""}
+                          placeholder="No ceiling (top rung)"
+                          onChange={(e) =>
+                            setBands((prev) =>
+                              prev.map((x, j) =>
+                                j === i
+                                  ? {
+                                      ...x,
+                                      max: e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                          className="w-44 rounded-[10px] border border-brand-line px-3 py-1.5 text-sm outline-none focus:border-brand-primary"
+                        />
+                        <span className="text-[12px] text-brand-mute">
+                          pays
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={rateToPct(b.rate)}
+                          onChange={(e) =>
+                            setBands((prev) =>
+                              prev.map((x, j) =>
+                                j === i
+                                  ? {
+                                      ...x,
+                                      rate: pctToRate(Number(e.target.value)),
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                          className="w-24 rounded-[10px] border border-brand-line px-3 py-1.5 text-sm outline-none focus:border-brand-primary"
+                        />
+                        <span className="text-[12px] text-brand-mute">%</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBands((prev) => prev.filter((_, j) => j !== i))
+                          }
+                          aria-label="Remove rung"
+                          className="rounded-pill p-1.5 text-brand-mute hover:bg-brand-light hover:text-status-cancelled"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {bands.length === 0 ? (
+                      <p className="text-[12.5px] text-brand-mute">
+                        No rungs yet.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {model === "flat" ? (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className={LABEL}>
+                      Flat rate
+                      <FieldHelp help={CAMPAIGN_HELP.flatRate} />
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={flatType === "amount" ? 10 : 0.5}
+                      value={
+                        flatType === "amount" ? flatRate : rateToPct(flatRate)
+                      }
+                      onChange={(e) =>
+                        setFlatRate(
+                          flatType === "amount"
+                            ? Number(e.target.value)
+                            : pctToRate(Number(e.target.value)),
+                        )
+                      }
+                      className={FIELD}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className={LABEL}>Rate type</span>
+                    <select
+                      value={flatType}
+                      onChange={(e) =>
+                        setFlatType(e.target.value as typeof flatType)
+                      }
+                      className={FIELD}
+                    >
+                      <option value="percent">
+                        Percent of what the host pays
+                      </option>
+                      <option value="amount">Fixed rand amount</option>
+                    </select>
+                  </label>
+                </div>
+              ) : null}
+
+              {model === "inherit" ? (
+                <p className="mt-5 rounded-[10px] bg-brand-light/60 p-3 text-[12.5px] text-brand-mute">
+                  Partners earn the standard per-product commission from their
+                  normal link — this campaign adds the competition and
+                  leaderboard, but no special rate.
+                </p>
+              ) : null}
+            </Panel>
+          ) : null}
+
+          {section === "scoring" ? (
+            <Panel
+              title="Scoring"
+              sub="How partners are ranked on the leaderboard."
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block">
+                  <span className={LABEL}>
+                    Scoring
+                    <FieldHelp help={CAMPAIGN_HELP.scoring} />
+                  </span>
+                  <select
+                    value={scoringMode}
+                    onChange={(e) =>
+                      setScoringMode(e.target.value as typeof scoringMode)
+                    }
+                    className={FIELD}
+                  >
+                    {SCORING_MODES.map((m) => (
+                      <option key={m} value={m}>
+                        {m === "total"
+                          ? "Total live listings"
+                          : "Net change over the period"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>
+                    Leaderboard
+                    <FieldHelp help={CAMPAIGN_HELP.leaderboard} />
+                  </span>
+                  <select
+                    value={visibility}
+                    onChange={(e) =>
+                      setVisibility(e.target.value as typeof visibility)
+                    }
+                    className={FIELD}
+                  >
+                    {LEADERBOARD_VISIBILITY.map((v) => (
+                      <option key={v} value={v}>
+                        {v === "public"
+                          ? "Public — anyone can view"
+                          : v === "partners"
+                            ? "Partners only"
+                            : "Hidden"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>
+                    Points per live listing
+                    <FieldHelp help={CAMPAIGN_HELP.pointsPerListing} />
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={pointsPerListing}
+                    onChange={(e) =>
+                      setPointsPerListing(Number(e.target.value))
+                    }
+                    className={FIELD}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-5">
+                <Toggle
+                  checked={countActiveOnly}
+                  onChange={setCountActiveOnly}
+                  label="Only count hosts who are still live"
+                  help={CAMPAIGN_HELP.countActiveOnly}
+                />
+                <Toggle
+                  checked={eachListingCounts}
+                  onChange={setEachListingCounts}
+                  label="Every listing counts, not just every host"
+                  help={CAMPAIGN_HELP.eachListingCounts}
+                />
+              </div>
+
+              <label className="mt-4 block sm:max-w-sm">
+                <span className={LABEL}>
+                  Tie breaker
+                  <FieldHelp help={CAMPAIGN_HELP.tieBreaker} />
+                </span>
                 <select
-                  value={dupSource}
-                  onChange={(e) => setDupSource(e.target.value)}
+                  value={tieBreaker}
+                  onChange={(e) => setTieBreaker(e.target.value)}
                   className={FIELD}
                 >
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      Duplicate: {p.name}
+                  <option value="">No tie breaker stated</option>
+                  {TIE_BREAKERS.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  value={dupName}
-                  onChange={(e) => setDupName(e.target.value)}
-                  placeholder="New product name (e.g. Founder)"
-                  className={`${FIELD} mt-2`}
-                />
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    value={dupPrice}
-                    onChange={(e) => setDupPrice(e.target.value)}
-                    placeholder="Monthly R"
-                    className={FIELD}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={dupAnnual}
-                    onChange={(e) => setDupAnnual(e.target.value)}
-                    placeholder="Annual R (optional)"
-                    className={FIELD}
-                  />
-                </div>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={runDuplicate}
-                    disabled={dupPending}
-                    className="btn-pri h-9"
-                  >
-                    <Copy className="h-4 w-4" />
-                    {dupPending ? "Creating…" : "Create & assign"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDupOpen(false)}
-                    className="btn-ghost h-9"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <span className="mt-2 block text-[12px] text-brand-mute">
-                  Creates a hidden copy (all features + rules carried over) at
-                  the price you set. Edit it later under Admin → Products.
+              </label>
+            </Panel>
+          ) : null}
+
+          {section === "prizes" ? (
+            <Panel
+              title="Prizes"
+              sub="Cash prizes, awarded on the Results tab when the race is judged."
+            >
+              <div className="flex items-center justify-between">
+                <span className={LABEL}>
+                  Prize list
+                  <FieldHelp help={CAMPAIGN_HELP.prizes} />
                 </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPrizes((p) => [
+                      ...p,
+                      {
+                        placing:
+                          p.filter((x) => prizeKind(x) === "placing").length +
+                          1,
+                      },
+                    ])
+                  }
+                  className="btn-ghost h-8"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add prize
+                </button>
               </div>
-            ) : (
+              <p className="mt-1 text-[12px] text-brand-mute">
+                Pick what each prize is for. Prizes are cash and are paid from
+                the Results tab once you publish the winners.
+              </p>
+              <div className="mt-3 space-y-2.5">
+                {prizes.map((p, i) => {
+                  const kind = prizeKind(p);
+                  const setPrize = (patch: Partial<Prize>) =>
+                    setPrizes((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, ...patch } : x)),
+                    );
+                  const changeKind = (k: PrizeKind) =>
+                    setPrizes((prev) =>
+                      prev.map((x, j) => {
+                        if (j !== i) return x;
+                        // Reset to a clean shape for the chosen kind, keeping cash.
+                        const cash = x.cash;
+                        if (k === "placing")
+                          return { placing: (x.placing ?? 1) || 1, cash };
+                        if (k === "milestone")
+                          return { milestone: x.milestone ?? "", cash };
+                        return {
+                          monthly_top_net_change: x.monthly_top_net_change ?? 0,
+                        };
+                      }),
+                    );
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-[13px] border border-brand-line p-3"
+                    >
+                      <div className="flex flex-wrap items-end gap-2.5">
+                        <label className="block">
+                          <span className="text-[10px] text-brand-mute">
+                            Prize for
+                          </span>
+                          <select
+                            value={kind}
+                            onChange={(e) =>
+                              changeKind(e.target.value as PrizeKind)
+                            }
+                            className="mt-0.5 w-40 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                          >
+                            <option value="placing">A finishing place</option>
+                            <option value="milestone">A milestone</option>
+                            <option value="monthly">Monthly top mover</option>
+                          </select>
+                        </label>
+
+                        {kind === "placing" ? (
+                          <label className="block">
+                            <span className="text-[10px] text-brand-mute">
+                              Place
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={p.placing ?? ""}
+                              onChange={(e) =>
+                                setPrize({
+                                  placing: e.target.value
+                                    ? Number(e.target.value)
+                                    : undefined,
+                                })
+                              }
+                              className="mt-0.5 w-20 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                            />
+                          </label>
+                        ) : null}
+
+                        {kind === "milestone" ? (
+                          <label className="block flex-1">
+                            <span className="text-[10px] text-brand-mute">
+                              Milestone
+                            </span>
+                            <select
+                              value={p.milestone ?? ""}
+                              onChange={(e) =>
+                                setPrize({
+                                  milestone: e.target.value || undefined,
+                                })
+                              }
+                              className="mt-0.5 w-full min-w-[10rem] rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                            >
+                              <option value="">Choose a milestone…</option>
+                              {MILESTONES.map((m) => (
+                                <option key={m.key} value={m.key}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
+
+                        <label className="block">
+                          <span className="text-[10px] text-brand-mute">
+                            Cash (R)
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={
+                              kind === "monthly"
+                                ? (p.monthly_top_net_change ?? "")
+                                : (p.cash ?? "")
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value
+                                ? Number(e.target.value)
+                                : undefined;
+                              setPrize(
+                                kind === "monthly"
+                                  ? { monthly_top_net_change: v }
+                                  : { cash: v },
+                              );
+                            }}
+                            className="mt-0.5 w-28 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                          />
+                        </label>
+
+                        {/* Rate floor is a LADDER-only mechanic (locks a minimum
+                            rate for life). Hidden on flat/inherit campaigns so the
+                            common case stays clean. */}
+                        {kind === "placing" && model === "ladder" ? (
+                          <label className="block">
+                            <span className="text-[10px] text-brand-mute">
+                              Rate floor (%)
+                            </span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              value={
+                                p.floor !== undefined ? rateToPct(p.floor) : ""
+                              }
+                              onChange={(e) =>
+                                setPrize({
+                                  floor: e.target.value
+                                    ? pctToRate(Number(e.target.value))
+                                    : undefined,
+                                })
+                              }
+                              className="mt-0.5 w-24 rounded-[10px] border border-brand-line px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                            />
+                          </label>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPrizes((prev) => prev.filter((_, j) => j !== i))
+                          }
+                          aria-label="Remove prize"
+                          className="ml-auto rounded-pill p-1.5 text-brand-mute hover:bg-brand-light hover:text-status-cancelled"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="mt-2 text-[11.5px] text-brand-mute">
+                        {describePrize(p, kind)}
+                      </p>
+                    </div>
+                  );
+                })}
+                {prizes.length === 0 ? (
+                  <p className="text-[12.5px] text-brand-mute">
+                    No prizes yet.
+                  </p>
+                ) : null}
+              </div>
+            </Panel>
+          ) : null}
+
+          {section === "trial" ? (
+            <Panel
+              title="Host free trial"
+              sub="What a referred host gets when they sign up during this competition. Assign a dedicated (hidden) product priced at the competition rate — the public plan is never changed."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className={LABEL}>Trial product</span>
+                  <select
+                    value={trialProductId}
+                    onChange={(e) => setTrialProductId(e.target.value)}
+                    className={FIELD}
+                  >
+                    <option value="">
+                      No trial — referred hosts pay as normal
+                    </option>
+                    {liveProducts.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                        {p.isVisible ? " (public)" : " (hidden)"} — R
+                        {Math.round(p.price).toLocaleString("en-ZA")}
+                        /mo
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-[12px] text-brand-mute">
+                    Referred hosts get full access to this product free until
+                    the trial ends, then pay its price. Tip: duplicate your paid
+                    plan so the public one stays untouched.
+                  </span>
+                </label>
+
+                <div className="block">
+                  <span className={LABEL}>Or make one</span>
+                  {dupOpen ? (
+                    <div className="rounded-card border border-brand-line p-3">
+                      <select
+                        value={dupSource}
+                        onChange={(e) => setDupSource(e.target.value)}
+                        className={FIELD}
+                      >
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            Duplicate: {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={dupName}
+                        onChange={(e) => setDupName(e.target.value)}
+                        placeholder="New product name (e.g. Founder)"
+                        className={`${FIELD} mt-2`}
+                      />
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          value={dupPrice}
+                          onChange={(e) => setDupPrice(e.target.value)}
+                          placeholder="Monthly R"
+                          className={FIELD}
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          value={dupAnnual}
+                          onChange={(e) => setDupAnnual(e.target.value)}
+                          placeholder="Annual R (optional)"
+                          className={FIELD}
+                        />
+                      </div>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={runDuplicate}
+                          disabled={dupPending}
+                          className="btn-pri h-9"
+                        >
+                          <Copy className="h-4 w-4" />
+                          {dupPending ? "Creating…" : "Create & assign"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDupOpen(false)}
+                          className="btn-ghost h-9"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <span className="mt-2 block text-[12px] text-brand-mute">
+                        Creates a hidden copy (all features + rules carried
+                        over) at the price you set. Edit it later under Admin →
+                        Products.
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDupSource(products[0]?.id ?? "");
+                        setDupOpen(true);
+                      }}
+                      className="btn-ghost h-10"
+                      disabled={products.length === 0}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Duplicate a product for this competition
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {trialProductId ? (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className={LABEL}>
+                      Free access ends (cohort date)
+                    </span>
+                    <input
+                      type="date"
+                      value={trialCohortEnd}
+                      onChange={(e) => setTrialCohortEnd(e.target.value)}
+                      className={FIELD}
+                    />
+                    <span className="mt-1 block text-[12px] text-brand-mute">
+                      Every host in the cohort loses free access on this date,
+                      whenever they joined.
+                    </span>
+                  </label>
+                  <label className="block">
+                    <span className={LABEL}>
+                      Minimum free days (rolling floor)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={trialFloorDays}
+                      onChange={(e) => setTrialFloorDays(e.target.value)}
+                      placeholder="e.g. 30"
+                      className={FIELD}
+                    />
+                    <span className="mt-1 block text-[12px] text-brand-mute">
+                      Late joiners still get at least this many days. Trial ends
+                      at the later of the two — max(cohort date, join + floor
+                      days).
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+            </Panel>
+          ) : null}
+        </div>
+      </div>
+
+      {/* F5 · confirm moving the scoring window on a live competition. */}
+      {dateConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setDateConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-card border border-brand-line bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 border-b border-brand-line px-5 py-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <div>
+                <div className="font-display text-[15px] font-bold text-brand-ink">
+                  Shift the scoring window?
+                </div>
+                <p className="mt-1 text-[12.5px] text-brand-mute">
+                  This competition is live. Changing the start or end date moves
+                  the scoring window and can change who wins. Partners&rsquo;
+                  already-earned commission rates are unaffected, but standings
+                  and prizes may change.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3">
               <button
                 type="button"
-                onClick={() => {
-                  setDupSource(products[0]?.id ?? "");
-                  setDupOpen(true);
-                }}
-                className="btn-ghost h-10"
-                disabled={products.length === 0}
+                onClick={() => setDateConfirmOpen(false)}
+                className="btn-ghost h-9"
               >
-                <Copy className="h-4 w-4" />
-                Duplicate a product for this competition
+                Cancel
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => save({ confirmDateShift: true })}
+                disabled={pending}
+                className="btn-pri h-9"
+              >
+                {pending ? "Saving…" : "Save anyway"}
+              </button>
+            </div>
           </div>
         </div>
-
-        {trialProductId ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className={LABEL}>Free access ends (cohort date)</span>
-              <input
-                type="date"
-                value={trialCohortEnd}
-                onChange={(e) => setTrialCohortEnd(e.target.value)}
-                className={FIELD}
-              />
-              <span className="mt-1 block text-[12px] text-brand-mute">
-                Every host in the cohort loses free access on this date,
-                whenever they joined.
-              </span>
-            </label>
-            <label className="block">
-              <span className={LABEL}>Minimum free days (rolling floor)</span>
-              <input
-                type="number"
-                min={0}
-                value={trialFloorDays}
-                onChange={(e) => setTrialFloorDays(e.target.value)}
-                placeholder="e.g. 30"
-                className={FIELD}
-              />
-              <span className="mt-1 block text-[12px] text-brand-mute">
-                Late joiners still get at least this many days. Trial ends at
-                the later of the two — max(cohort date, join + floor days).
-              </span>
-            </label>
-          </div>
-        ) : null}
-      </Panel>
-
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="btn-pri h-10"
-        >
-          <Save className="h-4 w-4" />
-          {pending ? "Saving…" : "Save campaign"}
-        </button>
-      </div>
+      ) : null}
     </div>
+  );
+}
+
+/** One plain-language line describing a prize, for the editor. */
+function describePrize(p: Prize, kind: PrizeKind): string {
+  if (kind === "monthly") {
+    const c = p.monthly_top_net_change;
+    return c
+      ? `${zar(c)} each month to the biggest net gainer that month.`
+      : "Monthly cash to the biggest net gainer — set the amount.";
+  }
+  if (kind === "milestone") {
+    const label =
+      MILESTONES.find((m) => m.key === p.milestone)?.label ?? "a milestone";
+    const c = p.cash ? zar(p.cash) : "cash";
+    return p.milestone
+      ? `${c} to the partner who hits: ${label}.`
+      : "Choose a milestone and set the cash.";
+  }
+  // placing
+  const place = p.placing ? ordinal(p.placing) : "a";
+  const c = p.cash ? zar(p.cash) : "cash";
+  const floor =
+    p.floor !== undefined
+      ? ` plus a permanent ${rateToPct(p.floor)}% rate floor`
+      : "";
+  return `${c} to the ${place} place finisher${floor}.`;
+}
+
+/** Small pointer telling the founder rules live on the Rules tab (SSOT), not
+ *  here — closes the "where do I set the rules?" gap the old dropdown created. */
+function RulesHint() {
+  return (
+    <p className="mt-5 flex items-start gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 p-3 text-[12px] text-brand-mute">
+      <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+      <span>
+        Competition rules are managed on the <strong>Rules</strong> tab — bound
+        from the single source of truth in Legal docs, so they stay at one fixed
+        public URL for the whole campaign.
+      </span>
+    </p>
   );
 }
 

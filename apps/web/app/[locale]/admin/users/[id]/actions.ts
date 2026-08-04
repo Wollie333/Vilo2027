@@ -24,6 +24,13 @@ import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
+import {
+  assembleBookingLegal,
+  type BookingLegalGroup,
+  type BookingLegalInput,
+  type LegalDoc,
+} from "@/lib/legal/bookingLegal";
+import { getPlacedDocument } from "@/lib/legalDocuments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   daysRemaining,
@@ -2951,4 +2958,257 @@ export async function purgeUser(input: { userId: string; reason: string }) {
       error: e instanceof Error ? e.message : "Failed.",
     };
   }
+}
+
+// ── Legal snapshots (read-only) ──────────────────────────────────────────────
+// The PLATFORM's legal record of this user, in two parts:
+//   • account/platform consents between Wielo and the user — the Terms + Privacy
+//     accepted at registration, the affiliate agreement, each competition's rules
+//     (EXACT text stored at acceptance), and
+//   • the user's OWN bookings (as guest), each with the Terms/Privacy + host
+//     policies frozen onto it.
+// The host↔guest side — a host's record of what THEIR guests agreed to — lives on
+// the host guest record, not here. Powers the user record's "Legal" tab (view +
+// print/save-as-PDF). Read-only; permission-gated to staff who can view users.
+type LegalAcceptanceDTO = LegalDoc;
+
+/** Parse the signup consent version "t<n>-p<m>" (lib/auth/consent) into the two
+ *  version numbers accepted at registration. */
+function parseConsentVersion(v: string | null): {
+  terms: number | null;
+  privacy: number | null;
+} {
+  if (!v) return { terms: null, privacy: null };
+  const m = /^t(\d+)-p(\d+)$/.exec(v.trim());
+  if (!m) return { terms: null, privacy: null };
+  return { terms: Number(m[1]), privacy: Number(m[2]) };
+}
+
+/** An account-level platform consent the user accepted when registering. */
+function registrationDoc(
+  title: string,
+  version: number,
+  doc: { bodyHtml: string | null } | null,
+  acceptedAt: string,
+  idKey: string,
+): LegalDoc {
+  return {
+    id: `registration-${idKey}`,
+    kind: "Platform consent",
+    title,
+    version: `v${version}`,
+    acceptedAt,
+    ip: null,
+    signatory: null,
+    sha256: null,
+    bodyHtml:
+      doc?.bodyHtml ??
+      `<p><em>Accepted at registration. The published text for this version is not on file — publish the ${title} in Legal docs to display it here.</em></p>`,
+    context: "Accepted at registration",
+  };
+}
+
+type LegalDataDTO = {
+  /** Account/platform consents not tied to a booking (registration + programme). */
+  account: LegalAcceptanceDTO[];
+  /** The user's own (as-guest) bookings, each with its frozen legal docs. */
+  bookings: BookingLegalGroup[];
+};
+
+type BkJoin = {
+  id: string;
+  reference: string;
+  created_at: string;
+  accepted_terms_version: number | null;
+  accepted_privacy_version: number | null;
+  host?: { display_name: string | null } | null;
+  listing?: { name: string | null } | null;
+  guest?: { full_name: string | null } | null;
+};
+
+export async function getUserLegalAcceptancesAction(
+  userId: string,
+): Promise<{ ok: true; data: LegalDataDTO } | { ok: false; error: string }> {
+  await requirePermission("users.view");
+  if (!z.string().uuid().safeParse(userId).success) {
+    return { ok: false, error: "Invalid user." };
+  }
+  const admin = createAdminClient();
+
+  const [
+    { data: profile },
+    { data: agreements },
+    { data: ruleRows },
+    { data: hostRow },
+    { data: guestBkRaw },
+    placedTerms,
+    placedPrivacy,
+  ] = await Promise.all([
+    admin
+      .from("user_profiles")
+      .select("terms_version, terms_accepted_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    admin
+      .from("affiliate_agreement_acceptances")
+      .select(
+        "id, version, body_snapshot, body_sha256, accepted_at, ip, signatory_email, signatory_name",
+      )
+      .eq("user_id", userId)
+      .order("accepted_at", { ascending: false }),
+    admin
+      .from("affiliate_campaign_rule_acceptances")
+      .select(
+        "id, campaign_id, doc_slug, doc_version, body_snapshot, body_sha256, accepted_at, ip, signatory_email, signatory_name",
+      )
+      .eq("user_id", userId)
+      .order("accepted_at", { ascending: false }),
+    admin.from("hosts").select("id").eq("user_id", userId).maybeSingle(),
+    admin
+      .from("bookings")
+      .select(
+        "id, reference, created_at, accepted_terms_version, accepted_privacy_version, host:hosts(display_name), listing:properties(name)",
+      )
+      .eq("guest_id", userId)
+      .order("created_at", { ascending: false }),
+    getPlacedDocument("terms"),
+    getPlacedDocument("privacy"),
+  ]);
+
+  // Bookings AT this user's own listings (they're a host too) — loaded after we
+  // know their host id, so the admin sees the full record: signatures as guest
+  // AND as host.
+  const hostId = (hostRow?.id as string | null) ?? null;
+  const { data: hostBkRaw } = hostId
+    ? await admin
+        .from("bookings")
+        .select(
+          "id, reference, created_at, accepted_terms_version, accepted_privacy_version, listing:properties(name), guest:user_profiles!bookings_guest_id_fkey(full_name)",
+        )
+        .eq("host_id", hostId)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  // ── Account / platform consents (not booking-scoped) ───────────────────
+  const account: LegalAcceptanceDTO[] = [];
+
+  // Registration: the Terms + Privacy this user accepted when the account was
+  // created. Foundational, so it leads the section.
+  const reg = parseConsentVersion(
+    (profile?.terms_version as string | null) ?? null,
+  );
+  const regAt = (profile?.terms_accepted_at as string | null) ?? "";
+  if (reg.terms != null)
+    account.push(
+      registrationDoc(
+        "Terms of Service",
+        reg.terms,
+        placedTerms,
+        regAt,
+        "terms",
+      ),
+    );
+  if (reg.privacy != null)
+    account.push(
+      registrationDoc(
+        "Privacy Policy",
+        reg.privacy,
+        placedPrivacy,
+        regAt,
+        "privacy",
+      ),
+    );
+
+  // Programme consents — the affiliate agreement + each competition's rules,
+  // newest first, listed after the registration docs.
+  const campaignIds = Array.from(
+    new Set(
+      (ruleRows ?? [])
+        .map((r) => r.campaign_id as string | null)
+        .filter((v): v is string => Boolean(v)),
+    ),
+  );
+  const campaignName = new Map<string, string>();
+  if (campaignIds.length) {
+    const { data: camps } = await admin
+      .from("affiliate_campaigns")
+      .select("id, name")
+      .in("id", campaignIds);
+    for (const c of camps ?? [])
+      campaignName.set(c.id as string, c.name as string);
+  }
+
+  const programme: LegalAcceptanceDTO[] = [];
+  for (const a of agreements ?? []) {
+    programme.push({
+      id: a.id as string,
+      kind: "Affiliate agreement",
+      title: "Affiliate Program Terms",
+      version: (a.version as string) ?? "—",
+      acceptedAt: a.accepted_at as string,
+      ip: (a.ip as string | null) ?? null,
+      signatory:
+        (a.signatory_name as string | null) ||
+        (a.signatory_email as string | null) ||
+        null,
+      sha256: (a.body_sha256 as string | null) ?? null,
+      bodyHtml: (a.body_snapshot as string) ?? "",
+      context: null,
+    });
+  }
+  for (const r of ruleRows ?? []) {
+    const camp = r.campaign_id
+      ? (campaignName.get(r.campaign_id as string) ?? null)
+      : null;
+    programme.push({
+      id: r.id as string,
+      kind: "Competition rules",
+      title: camp ? `${camp} — Competition Rules` : (r.doc_slug as string),
+      version: `v${r.doc_version}`,
+      acceptedAt: r.accepted_at as string,
+      ip: (r.ip as string | null) ?? null,
+      signatory:
+        (r.signatory_name as string | null) ||
+        (r.signatory_email as string | null) ||
+        null,
+      sha256: (r.body_sha256 as string | null) ?? null,
+      bodyHtml: (r.body_snapshot as string) ?? "",
+      context: camp,
+    });
+  }
+  programme.sort((a, b) => b.acceptedAt.localeCompare(a.acceptedAt));
+  account.push(...programme);
+
+  // ── The user's bookings — full transparency: as guest AND as host ──────
+  // Each carries the Wielo Terms/Privacy accepted at checkout + the host
+  // policies frozen onto it — assembled via the shared SSOT the host guest
+  // record also uses, so the two surfaces never drift. Deduped by booking id
+  // with the guest role winning on a self-booking.
+  const bkInputs = new Map<string, BookingLegalInput>();
+  for (const raw of (guestBkRaw ?? []) as unknown as BkJoin[]) {
+    bkInputs.set(raw.id, {
+      id: raw.id,
+      reference: raw.reference,
+      date: raw.created_at,
+      role: "guest",
+      counterparty: raw.host?.display_name || raw.listing?.name || null,
+      termsVersion: raw.accepted_terms_version,
+      privacyVersion: raw.accepted_privacy_version,
+    });
+  }
+  for (const raw of (hostBkRaw ?? []) as unknown as BkJoin[]) {
+    if (bkInputs.has(raw.id)) continue; // guest role wins on a self-booking
+    bkInputs.set(raw.id, {
+      id: raw.id,
+      reference: raw.reference,
+      date: raw.created_at,
+      role: "host",
+      counterparty: raw.guest?.full_name || null,
+      termsVersion: raw.accepted_terms_version,
+      privacyVersion: raw.accepted_privacy_version,
+    });
+  }
+  const bookings = await assembleBookingLegal(admin, [...bkInputs.values()]);
+
+  return { ok: true, data: { account, bookings } };
 }

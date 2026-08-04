@@ -11,7 +11,7 @@ import { saveCampaignEmailScheduleAction } from "../actions";
 import {
   EditDrawer,
   EmailPreviewModal,
-  MessageRow,
+  MessageCard,
   useMessageToggles,
 } from "../../../communications/_components/messageManagement";
 
@@ -59,11 +59,11 @@ export function CampaignEmailPanel({
   const editingMsg = editing ? byKind[editing] : null;
   const previewMsg = previewing ? byKind[previewing] : null;
 
-  function renderRow(kind: string) {
+  function renderCard(kind: string) {
     const m = byKind[kind];
     if (!m) return null;
     return (
-      <MessageRow
+      <MessageCard
         key={m.kind}
         m={m}
         onToggleMaster={() => toggleMaster(m.kind)}
@@ -102,7 +102,9 @@ export function CampaignEmailPanel({
         {events.length === 0 ? (
           <EmptyRow />
         ) : (
-          <div className="card overflow-hidden">{events.map(renderRow)}</div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {events.map(renderCard)}
+          </div>
         )}
       </section>
 
@@ -118,7 +120,9 @@ export function CampaignEmailPanel({
         {scheduled.length === 0 ? (
           <EmptyRow />
         ) : (
-          <div className="card overflow-hidden">{scheduled.map(renderRow)}</div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {scheduled.map(renderCard)}
+          </div>
         )}
         <ScheduleControls campaignId={campaignId} initial={schedule} />
       </section>

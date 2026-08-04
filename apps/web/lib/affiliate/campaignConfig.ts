@@ -53,19 +53,18 @@ export const TIE_BREAKERS = [
   { key: "judges_decision", label: "Decided by Wielo" },
 ] as const;
 
+// The SoT milestone set (WIELO_FOUNDING_PROGRAMME §5.5): first host live, first
+// to 10, first to 25, and the non-competitive Fast Start (5 live in 30 days).
+// The earlier first_to_5 / any_reaching_10_in_30d were never in the SoT and were
+// removed — do not restore them without a matching prize in the programme doc.
 export const MILESTONES = [
-  { key: "first_to_5", label: "First partner to 5 live listings" },
+  { key: "first_host_live", label: "First host live in the competition" },
   { key: "first_to_10", label: "First partner to 10 live listings" },
   { key: "first_to_25", label: "First partner to 25 live listings" },
   {
     key: "any_reaching_5_in_30d",
-    label: "Any partner reaching 5 live listings in 30 days",
+    label: "Fast Start — 5 live listings in their first 30 days",
   },
-  {
-    key: "any_reaching_10_in_30d",
-    label: "Any partner reaching 10 live listings in 30 days",
-  },
-  { key: "first_host_live", label: "First host live in the competition" },
 ] as const;
 
 /** What a campaign's commission structure applies to. */
@@ -112,12 +111,6 @@ export const commissionStructureSchema = z
     bands: z.array(ladderBandSchema).max(12).optional(),
     flat_rate: z.number().min(0).optional(),
     flat_type: z.enum(["percent", "amount"]).optional(),
-    conversion_bonus: z
-      .object({
-        monthly: z.number().min(0).max(100_000).optional(),
-        annual: z.number().min(0).max(100_000).optional(),
-      })
-      .optional(),
   })
   .superRefine((cs, ctx) => {
     if (cs.model === "ladder") {
@@ -286,11 +279,19 @@ export function describeCompetition(comp: Competition | null): string {
   return `${mode} scoring · ${prizes} prize${prizes === 1 ? "" : "s"} · ${vis} leaderboard`;
 }
 
-/** Plain-language ladder summary, e.g. "10% → 25% across 4 rungs". */
+/** Plain-language commission summary, e.g. "10% → 25% across 4 rungs",
+ *  "Flat 60%", "Flat R500" or "Standard rates". Used on the campaign list and
+ *  the admin Overview so the money model reads at a glance without opening Setup. */
 export function describeLadder(cs: CommissionStructure | null): string {
   if (!cs) return "—";
-  if (cs.model !== "ladder")
-    return cs.model === "flat" ? "Flat rate" : "Inherit";
+  if (cs.model === "flat") {
+    const rate = cs.flat_rate ?? 0;
+    if (!rate) return "Flat rate";
+    return cs.flat_type === "amount"
+      ? `Flat R${Math.round(rate).toLocaleString("en-ZA")}`
+      : `Flat ${rateToPct(rate)}%`;
+  }
+  if (cs.model !== "ladder") return "Standard rates";
   const bands = sortBandsForDisplay(cs.bands ?? []);
   if (!bands.length) return "Ladder (no rungs)";
   const first = rateToPct(bands[0]!.rate);

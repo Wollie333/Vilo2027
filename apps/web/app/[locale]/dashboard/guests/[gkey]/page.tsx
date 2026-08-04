@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
 import { hostCanRateGuest } from "@/lib/guests/can-rate";
 import { gkeyFor } from "@/lib/guests/gkey";
+import { assembleBookingLegal } from "@/lib/legal/bookingLegal";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { resolveGuestNextAction } from "@/lib/guests/next-action";
 import {
@@ -69,6 +70,8 @@ type RawBooking = {
   special_requests: string | null;
   pay_token: string | null;
   payment_status: string | null;
+  accepted_terms_version: number | null;
+  accepted_privacy_version: number | null;
   listing: RawListing | null;
 };
 
@@ -108,7 +111,7 @@ export default async function GuestRecordPage({
   let bookingQuery = supabase
     .from("bookings")
     .select(
-      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:properties ( name, business_id, property_photos ( url, sort_order ) )",
+      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, accepted_terms_version, accepted_privacy_version, listing:properties ( name, business_id, property_photos ( url, sort_order ) )",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -226,6 +229,23 @@ export default async function GuestRecordPage({
       payUrl: payable && origin ? `${origin}/pay/${b.pay_token}` : null,
     };
   });
+
+  // Legal & consent — the immutable documents this guest agreed to on their
+  // bookings WITH THIS HOST: the host's policies frozen onto each booking plus
+  // the Wielo Terms/Privacy accepted at checkout. Built via the shared SSOT the
+  // admin user record also uses. Host↔guest scope only — always the guest side.
+  const legalBookings = await assembleBookingLegal(
+    admin,
+    bookingsRaw.map((b) => ({
+      id: b.id,
+      reference: b.reference,
+      date: b.created_at,
+      role: "guest" as const,
+      counterparty: b.listing?.name ?? null,
+      termsVersion: b.accepted_terms_version,
+      privacyVersion: b.accepted_privacy_version,
+    })),
+  );
 
   // Host's add-on catalog (active first) for the Finances "Add add-on" modal —
   // same source the booking record's AddonManager uses.
@@ -739,6 +759,7 @@ export default async function GuestRecordPage({
       record={record}
       activity={activity}
       bookings={bookings}
+      legalBookings={legalBookings}
       reviews={reviews}
       reputation={reputation}
       requestableReviews={requestableReviews}

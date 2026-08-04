@@ -459,22 +459,17 @@ export default async function CompetitionLeaderboardPage({
 }
 
 const MILESTONE_TITLES: Record<string, string> = {
-  first_to_5: "First to 5",
   first_to_10: "First to 10",
   first_to_25: "First to 25",
   any_reaching_5_in_30d: "Fast start",
-  any_reaching_10_in_30d: "Fast start",
   first_host_live: "First host live",
 };
 
 const MILESTONE_BODY: Record<string, string> = {
-  first_to_5: "once, to the first partner to reach five points.",
   first_to_10: "once, to the first partner to reach ten points.",
   first_to_25: "once, to the first partner to reach twenty-five points.",
   any_reaching_5_in_30d:
     "to any partner reaching five points in their first 30 days. Not a race — everyone who gets there gets it.",
-  any_reaching_10_in_30d:
-    "to any partner reaching ten points in their first 30 days. Not a race — everyone who gets there gets it.",
   first_host_live: "to the first partner to get a host live.",
 };
 

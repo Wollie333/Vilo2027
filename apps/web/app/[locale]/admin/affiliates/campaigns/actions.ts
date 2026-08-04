@@ -212,9 +212,32 @@ export const duplicateProductForCompetitionAction = withAdminAudit<
 );
 
 /** Save the whole campaign config. Validated server-side by the shared schema. */
+// updateCampaign can ask the caller to confirm a fairness-sensitive change
+// (moving the scoring window on a LIVE competition) before it commits (F5).
+type UpdateCampaignResult =
+  | { ok: true }
+  | { ok: false; error: string; needsConfirm?: "date_shift" };
+
+// Two timestamps refer to the same instant (tolerant of formatting differences
+// between the stored timestamptz and the form's ISO string); null === null.
+function sameInstant(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const ax = a ? Date.parse(a) : null;
+  const bx = b ? Date.parse(b) : null;
+  return ax === bx;
+}
+
 export const updateCampaignAction = withAdminAudit<
-  { campaignId: string; input: CampaignInput; reason?: string },
-  ActionResult
+  {
+    campaignId: string;
+    input: CampaignInput;
+    /** Set true to proceed past the live-campaign date-shift guard (F5). */
+    confirmDateShift?: boolean;
+    reason?: string;
+  },
+  UpdateCampaignResult
 >(
   {
     permissionKey: PERMISSION,
@@ -253,6 +276,33 @@ export const updateCampaignAction = withAdminAudit<
       return { result: { ok: false, error: "That link is already taken." } };
     }
 
+    // F5 · date-shift guard. Moving the start/end date on a LIVE competition
+    // changes the scoring window and can change who wins — a fairness risk with
+    // no money risk. Refuse a silent shift; the caller must re-submit with
+    // confirmDateShift once the admin has confirmed. (Draft/ended campaigns edit
+    // freely: a draft hasn't scored yet, and an ended one is reviewed on Results.)
+    if (!args.confirmDateShift) {
+      const { data: cur } = await service
+        .from("affiliate_campaigns")
+        .select("status, starts_at, ends_at")
+        .eq("id", args.campaignId)
+        .maybeSingle();
+      if (
+        cur?.status === "active" &&
+        (!sameInstant(cur.starts_at, c.starts_at) ||
+          !sameInstant(cur.ends_at, c.ends_at))
+      ) {
+        return {
+          result: {
+            ok: false,
+            needsConfirm: "date_shift",
+            error:
+              "This competition is live. Changing the start or end date shifts the scoring window and can change who wins. Save anyway?",
+          },
+        };
+      }
+    }
+
     const { error } = await service
       .from("affiliate_campaigns")
       .update({
@@ -283,6 +333,69 @@ export const updateCampaignAction = withAdminAudit<
     revalidatePath(`/competitions/${c.slug}`);
     revalidatePath("/portal/affiliates/competitions");
     return { result: { ok: true }, after: c };
+  },
+);
+
+/** Bind (or clear) which Legal-docs document serves as this campaign's
+ *  competition rules. Rules TEXT is authored only in the single source of truth
+ *  (Admin → Legal docs); this just points the campaign at one of those documents
+ *  by slug. A lightweight, audited partial update — it never touches money config,
+ *  so it does not require the whole campaign to re-validate. */
+export const setCampaignRulesDocAction = withAdminAudit<
+  { campaignId: string; docSlug: string | null; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.campaign_rules_bind",
+    targetType: "affiliate_campaign",
+    getTargetId: (a) => a.campaignId,
+    captureBefore: async (service, a) => {
+      const { data } = await service
+        .from("affiliate_campaigns")
+        .select("rules_doc_slug")
+        .eq("id", a.campaignId)
+        .maybeSingle();
+      return data;
+    },
+  },
+  async (args, service) => {
+    const slug = args.docSlug?.trim() || null;
+
+    if (slug) {
+      // Only bind to a document that actually exists in the SSOT — a dangling
+      // slug would mean partners "accept" rules that render as a 404.
+      const { data: doc } = await service
+        .from("legal_documents")
+        .select("slug, is_published")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (!doc) {
+        return {
+          result: {
+            ok: false,
+            error:
+              "That document no longer exists in Legal docs — pick another or create it there first.",
+          },
+        };
+      }
+    }
+
+    const { data: camp, error } = await service
+      .from("affiliate_campaigns")
+      .update({ rules_doc_slug: slug, updated_at: new Date().toISOString() })
+      .eq("id", args.campaignId)
+      .select("slug")
+      .single();
+    if (error) return { result: { ok: false, error: error.message } };
+
+    revalidatePath(`/admin/affiliates/campaigns/${args.campaignId}`);
+    if (camp?.slug) {
+      revalidatePath(`/competitions/${camp.slug}`);
+      revalidatePath(`/portal/affiliates/race/${camp.slug}`);
+    }
+    revalidatePath("/portal/affiliates/competitions");
+    return { result: { ok: true }, after: { rules_doc_slug: slug } };
   },
 );
 
@@ -744,10 +857,13 @@ export const closeCampaignNowAction = withAdminAudit<
 
     // Competition close → sweep out every eligible balance regardless of the
     // R1,000 threshold (SoT §4.2), mirroring the finalize-ended-campaigns cron.
-    // Best-effort: a sweep failure must not roll back a completed close. The
-    // sweep is idempotent (only claims cleared, unattached commission).
+    // Scoped to THIS campaign's participants (F3) so closing one competition
+    // never sweeps another live competition's entrants early. Best-effort: a
+    // sweep failure must not roll back a completed close. The sweep is idempotent
+    // (only claims cleared, unattached commission).
     const { error: sweepErr } = await service.rpc("sweep_affiliate_payouts", {
       p_affiliate_id: null,
+      p_campaign_id: args.campaignId,
     });
     if (sweepErr) {
       console.error("[campaign_close] payout sweep failed", sweepErr.message);

@@ -370,7 +370,10 @@ export default async function AffiliateOverviewPage() {
 
   const perHostPrice = Number(planProduct?.price ?? 599);
   const planLabel = (planProduct?.name as string | null) ?? "Growth";
-  const calcRatePct = race?.ratePct || 20;
+  // Always quote the SET commission: the partner's competition rate if they're
+  // in a race, otherwise the live configured default (the plan product's
+  // affiliate_value) — never a hardcoded number that can drift from config.
+  const calcRatePct = race?.ratePct || standardRatePct;
   const tierBonus = tier.current?.bonusPercent ?? 0;
 
   return (

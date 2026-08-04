@@ -82,10 +82,21 @@ each entrant accepted — the wording below fills that structure.
 
 ## PART B — Master Campaign Competition-Rules Template
 
-> Paste this into the **Campaign Rules editor** when creating a new affiliate
-> Campaign and fill every `[…]`. Every field maps to a **CPA §36 / Reg 11**
-> requirement, so a Campaign published from this template is compliant by design.
-> `[COUNSEL: approve this template once; admins then only fill the brackets.]`
+> **All legal documents — including every competition's rules — are authored in
+> ONE place: Admin → Legal docs (the single source of truth).** To create a
+> competition's rules, open Legal docs, click **New legal document**, tick
+> **"Start from the CPA competition-rules template"** (this template, pre-loaded
+> as HTML), fill every `[…]`, and **Publish** — it goes live at
+> `/legal/<slug>`. Then open the competition and, on its **Rules** tab, **bind**
+> the published document. The campaign only ever *points at* the document; its
+> text is never edited from the competition screen. Every field below maps to a
+> **CPA §36 / Reg 11** requirement, so a competition published from this template
+> is compliant by design. `[COUNSEL: approve this template once; admins then
+> only fill the brackets.]`
+>
+> The template HTML lives in code at
+> `apps/web/lib/legal/competitionRulesTemplate.ts` (keep it in sync with the
+> wording below if either changes).
 
 **Promoter:** Wielo Platform (Pty) Ltd, [registration no.], [address],
 legal@wielo.co.za

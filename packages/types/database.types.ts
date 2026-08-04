@@ -14534,7 +14534,7 @@ export type Database = {
         Returns: unknown
       }
       sweep_affiliate_payouts: {
-        Args: { p_affiliate_id?: string }
+        Args: { p_affiliate_id?: string; p_campaign_id?: string }
         Returns: Json
       }
       unlockrows: { Args: { "": string }; Returns: number }

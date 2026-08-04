@@ -62,6 +62,8 @@ import {
   type FinanceRequest,
 } from "./GuestFinanceModals";
 import { WhatToDoBanner } from "./WhatToDoBanner";
+import { GuestLegalPanel } from "./GuestLegalPanel";
+import { type BookingGroup } from "@/components/legal/LegalSnapshotViewer";
 import {
   GuestMessagesPanel,
   type MessageItem,
@@ -268,6 +270,7 @@ const TABS = [
   { key: "reviews", label: "Reviews" },
   { key: "reputation", label: "Reputation" },
   { key: "relationships", label: "Relationships" },
+  { key: "legal", label: "Legal" },
   { key: "notes", label: "Notes" },
 ] as const;
 
@@ -349,6 +352,7 @@ export function GuestRecord({
   record,
   activity,
   bookings,
+  legalBookings,
   reviews,
   requestableReviews,
   reputation,
@@ -372,6 +376,7 @@ export function GuestRecord({
   record: GuestRecordData;
   activity: ActivityEvent[];
   bookings: BookingItem[];
+  legalBookings: BookingGroup[];
   reviews: ReviewItem[];
   requestableReviews: RequestableReview[];
   reputation: ReputationData;
@@ -577,6 +582,11 @@ export function GuestRecord({
               <RelationshipsPanel
                 relationships={relationships}
                 guestName={r.name ?? "This guest"}
+              />
+            ) : tab === "legal" ? (
+              <GuestLegalPanel
+                bookings={legalBookings}
+                guestName={r.name ?? "Guest"}
               />
             ) : tab === "reviews" ? (
               <ReviewsPanel

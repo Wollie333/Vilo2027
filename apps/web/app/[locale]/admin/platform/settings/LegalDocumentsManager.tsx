@@ -13,6 +13,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { COMPETITION_RULES_TEMPLATE_HTML } from "@/lib/legal/competitionRulesTemplate";
 import type { LegalDocumentVersion } from "@/lib/legalDocuments";
 
 import {
@@ -59,6 +60,7 @@ function NewDocumentCard({ existingSlugs }: { existingSlugs: string[] }) {
   const router = useRouter();
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
+  const [useTemplate, setUseTemplate] = useState(false);
   const [pending, start] = useTransition();
 
   const normalisedSlug = slug
@@ -77,12 +79,17 @@ function NewDocumentCard({ existingSlugs }: { existingSlugs: string[] }) {
         await saveLegalDocumentAction({
           slug: normalisedSlug,
           title: title.trim(),
-          html: "",
+          html: useTemplate ? COMPETITION_RULES_TEMPLATE_HTML : "",
           is_published: false,
         });
-        toast.success("Document created — add its text below.");
+        toast.success(
+          useTemplate
+            ? "Document created from the CPA template — fill the [brackets] below, then publish."
+            : "Document created — add its text below.",
+        );
         setSlug("");
         setTitle("");
+        setUseTemplate(false);
         router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not create.");
@@ -134,6 +141,22 @@ function NewDocumentCard({ existingSlugs }: { existingSlugs: string[] }) {
           ) : null}
         </div>
       </div>
+      <label className="mt-3 flex cursor-pointer items-start gap-2 text-[13px] text-brand-ink">
+        <input
+          type="checkbox"
+          checked={useTemplate}
+          onChange={(e) => setUseTemplate(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-brand-primary"
+        />
+        <span>
+          Start from the <strong>CPA competition-rules template</strong>
+          <span className="block text-[11.5px] text-brand-mute">
+            Pre-fills a Consumer Protection Act §36–compliant rules skeleton to
+            fill in — for a competition&apos;s rules that you then bind on the
+            campaign&apos;s Rules tab.
+          </span>
+        </span>
+      </label>
       <button
         type="button"
         onClick={create}

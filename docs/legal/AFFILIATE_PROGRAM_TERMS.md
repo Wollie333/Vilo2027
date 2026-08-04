@@ -69,8 +69,8 @@ may offset clawed-back amounts against your future or current balance.
 
 ## 7. Campaigns, prizes, and competitions
 
-Wielo may run time-bound **Campaigns** with leaderboards, ladders, conversion
-bonuses, and **prize pots**. Each such Campaign is a promotional competition
+Wielo may run time-bound **Campaigns** with leaderboards, commission structures,
+and cash **prize pots**. Each such Campaign is a promotional competition
 governed by its own **Competition Rules**, published at a fixed URL, which you
 must accept to enter. In case of conflict, the Campaign's Competition Rules govern
 for that Campaign. See the [Competition Rules](/legal).

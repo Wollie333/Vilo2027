@@ -43,7 +43,7 @@ import { CampaignEmailPanel } from "../_components/CampaignEmailPanel";
 import { CampaignMetricsPanel } from "../_components/CampaignMetricsPanel";
 import { CampaignResultsPanel } from "../_components/CampaignResultsPanel";
 import { FloorAwardManager } from "../_components/FloorAwardManager";
-import { CampaignRulesPanel } from "../_components/CampaignRulesPanel";
+import { CampaignRulesBinder } from "../_components/CampaignRulesBinder";
 import { EnrollmentPauseButton } from "../_components/EnrollmentPauseButton";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +79,8 @@ function fmtDateTime(iso: string): string {
     minute: "2-digit",
   });
 }
+
+const zar = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
 
 export default async function AdminCampaignPage({
   params,
@@ -144,6 +146,7 @@ export default async function AdminCampaignPage({
     { data: floors },
     { data: ruleAcceptances },
     { data: productRows },
+    { data: prizeAwards },
   ] = await Promise.all([
     service
       .from("legal_documents")
@@ -172,7 +175,29 @@ export default async function AdminCampaignPage({
       .eq("is_active", true)
       .order("is_visible", { ascending: false })
       .order("price"),
+    service
+      .from("affiliate_prize_awards")
+      .select("affiliate_id, amount, currency, status")
+      .eq("campaign_id", campaign.id),
   ]);
+
+  // Prize money per entrant (owed vs settled) for the entries roster.
+  const prizeByAffiliate = new Map<
+    string,
+    { owed: number; paid: number; currency: string }
+  >();
+  for (const p of prizeAwards ?? []) {
+    const id = p.affiliate_id as string;
+    const cur = prizeByAffiliate.get(id) ?? {
+      owed: 0,
+      paid: 0,
+      currency: (p.currency as string) ?? "ZAR",
+    };
+    const amt = Number(p.amount ?? 0);
+    if (p.status === "paid") cur.paid += amt;
+    else if (p.status === "owed") cur.owed += amt;
+    prizeByAffiliate.set(id, cur);
+  }
 
   const membershipProducts = (productRows ?? []).map((p) => ({
     id: p.id as string,
@@ -309,6 +334,55 @@ export default async function AdminCampaignPage({
   // Finalization state: computed/published winners for the Results tab.
   const results = await loadCampaignResults(campaign.id);
 
+  // ── ENTRIES roster ────────────────────────────────────────────────────────
+  // Every participant + their competition-scoped numbers. metrics.partners
+  // already computes per-entrant referrals / live listings / net commission
+  // earned UNDER THIS CAMPAIGN; overlay enrolment, prizes and rule acceptance so
+  // the Partners tab reads as a full entry record, each row linking to a
+  // competition-scoped detail. Union so a partner who enrolled or signed the
+  // rules but hasn't scored yet still shows.
+  const metricById = new Map(metrics.partners.map((p) => [p.affiliateId, p]));
+  const enrollmentById = new Map(
+    (enrollments ?? []).map((e) => [
+      e.affiliate_id as string,
+      {
+        enrolledAt: (e.enrolled_at as string | null) ?? null,
+        pausedReason: (e.paused_reason as string | null) ?? null,
+      },
+    ]),
+  );
+  const ruleAcceptedIds = new Set(
+    (ruleAcceptances ?? []).map((a) => a.affiliate_id as string),
+  );
+  const entryRows = Array.from(
+    new Set<string>([...metricById.keys(), ...nameById.keys()]),
+  )
+    .map((id) => {
+      const m = metricById.get(id);
+      const prize = prizeByAffiliate.get(id) ?? null;
+      return {
+        id,
+        name: m?.name ?? nameById.get(id)?.name ?? "—",
+        slug: m?.slug ?? nameById.get(id)?.slug ?? "",
+        liveListings: m?.liveListings ?? 0,
+        referrals: m?.referrals ?? 0,
+        earned: m?.earned ?? 0,
+        currency: m?.currency ?? metrics.balance.currency,
+        status: enrollmentStatusById.get(id) ?? "active",
+        pausedReason: enrollmentById.get(id)?.pausedReason ?? null,
+        prizeOwed: prize?.owed ?? 0,
+        prizePaid: prize?.paid ?? 0,
+        ruleAccepted: ruleAcceptedIds.has(id),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.liveListings - a.liveListings ||
+        b.earned - a.earned ||
+        b.referrals - a.referrals,
+    );
+  const rulesBound = Boolean(campaign.rules_doc_slug);
+
   // Email tab: the competition-scoped lens over the global override store. Load
   // the message configs (each merged with its override + 24h health) and keep
   // just this campaign's messages — the comp kinds + the two partner-money mails
@@ -328,7 +402,50 @@ export default async function AdminCampaignPage({
   }
   const emailSchedule = parseEmailSchedule(campaign.email_schedule);
 
-  // ── OVERVIEW panel ──────────────────────────────────────────────
+  // Setup summary + warnings for the Overview dashboard.
+  const prizeCount = Array.isArray(
+    (campaign.competition as { prizes?: unknown[] } | null)?.prizes,
+  )
+    ? (campaign.competition as { prizes: unknown[] }).prizes.length
+    : 0;
+  const trialProductId =
+    (campaign.competition as { host_trial?: { product_id?: string } } | null)
+      ?.host_trial?.product_id ?? null;
+  const trialName = trialProductId
+    ? (membershipProducts.find((p) => p.id === trialProductId)?.name ?? "Set")
+    : null;
+  const commissionModel =
+    (campaign.commission_structure as { model?: string } | null)?.model ??
+    "inherit";
+
+  // Warnings the founder should see before launching — each links to where it
+  // is fixed.
+  const warnings: { text: string; href: string }[] = [];
+  if (!campaign.rules_doc_slug) {
+    warnings.push({
+      text: "No competition rules are bound — required for a compliant public competition.",
+      href: "#rules",
+    });
+  } else if (rulesDoc && !rulesDoc.is_published) {
+    warnings.push({
+      text: "The bound rules document is a draft — publish it in Legal docs so entrants can read it.",
+      href: "#rules",
+    });
+  }
+  if (commissionModel !== "inherit" && ladderText === "Ladder (no rungs)") {
+    warnings.push({
+      text: "Commission has no rungs set — partners would earn nothing.",
+      href: "#setup",
+    });
+  }
+  if (campaign.status === "draft") {
+    warnings.push({
+      text: "Campaign is a draft — launch it from Setup when the configuration is ready.",
+      href: "#setup",
+    });
+  }
+
+  // ── OVERVIEW dashboard ──────────────────────────────────────────
   const overview = (
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-4">
@@ -341,7 +458,7 @@ export default async function AdminCampaignPage({
           </div>
           <div className="mt-1.5 text-[11px] text-brand-accent">
             {campaign.status === "active"
-              ? "Paying its ladder now"
+              ? "Paying its rates now"
               : "Not paying yet"}
           </div>
         </div>
@@ -362,36 +479,94 @@ export default async function AdminCampaignPage({
         <BandCell label="Scoring" value={competitionText} sub={ladderText} />
       </section>
 
-      <CampaignBuilder
-        campaignId={campaign.id}
-        initial={{
-          name: campaign.name,
-          slug: campaign.slug,
-          status: campaign.status as never,
-          starts_at: campaign.starts_at as string | null,
-          ends_at: campaign.ends_at as string | null,
-          eligible_partners: campaign.eligible_partners as never,
-          eligible_referrals: campaign.eligible_referrals as never,
-          rules_doc_slug: (campaign.rules_doc_slug as string | null) ?? null,
-          max_participants:
-            (campaign.max_participants as number | null) ?? null,
-          host_offer: (campaign.host_offer as string | null) ?? null,
-          hero_image_url: (campaign.hero_image_url as string | null) ?? null,
-          commission_structure: (campaign.commission_structure ?? {
-            model: "inherit",
-          }) as never,
-          competition: (campaign.competition ?? {}) as never,
-        }}
-        legalDocs={(legalDocs ?? []).map((d) => ({
-          slug: d.slug as string,
-          title: d.title as string,
-        }))}
-        enrolledActive={activeEnrolled}
-        libraryImages={libraryImages}
-        products={membershipProducts}
-        resultsPublished={Boolean(results?.publishedAt)}
-      />
+      {warnings.length > 0 ? (
+        <section className="rounded-[16px] border border-amber-200 bg-amber-50 p-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+            Before you launch
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {warnings.map((w, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2 text-[13px] text-amber-900"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                <a href={w.href} className="hover:underline">
+                  {w.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="am-card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-line px-5 py-3.5">
+          <div className="smallcaps">Setup at a glance</div>
+          <a
+            href="#setup"
+            className="btn-pri inline-flex h-8 items-center gap-1.5"
+          >
+            Open setup
+          </a>
+        </div>
+        <dl className="divide-y divide-brand-line">
+          <SummaryRow label="Commission" value={ladderText} href="#setup" />
+          <SummaryRow label="Scoring" value={competitionText} href="#setup" />
+          <SummaryRow
+            label="Prizes"
+            value={
+              prizeCount
+                ? `${prizeCount} prize${prizeCount === 1 ? "" : "s"}`
+                : "None yet"
+            }
+            href="#setup"
+          />
+          <SummaryRow
+            label="Rules"
+            value={
+              rulesDoc
+                ? `${rulesDoc.title}${rulesDoc.is_published ? "" : " (draft)"}`
+                : "Not bound"
+            }
+            href="#rules"
+          />
+          <SummaryRow
+            label="Host trial"
+            value={trialName ?? "None"}
+            href="#setup"
+          />
+        </dl>
+      </section>
     </div>
+  );
+
+  // ── SETUP panel (the guided builder) ────────────────────────────
+  const setupPanel = (
+    <CampaignBuilder
+      campaignId={campaign.id}
+      initial={{
+        name: campaign.name,
+        slug: campaign.slug,
+        status: campaign.status as never,
+        starts_at: campaign.starts_at as string | null,
+        ends_at: campaign.ends_at as string | null,
+        eligible_partners: campaign.eligible_partners as never,
+        eligible_referrals: campaign.eligible_referrals as never,
+        rules_doc_slug: (campaign.rules_doc_slug as string | null) ?? null,
+        max_participants: (campaign.max_participants as number | null) ?? null,
+        host_offer: (campaign.host_offer as string | null) ?? null,
+        hero_image_url: (campaign.hero_image_url as string | null) ?? null,
+        commission_structure: (campaign.commission_structure ?? {
+          model: "inherit",
+        }) as never,
+        competition: (campaign.competition ?? {}) as never,
+      }}
+      enrolledActive={activeEnrolled}
+      libraryImages={libraryImages}
+      products={membershipProducts}
+      resultsPublished={Boolean(results?.publishedAt)}
+    />
   );
 
   // ── STANDINGS panel ─────────────────────────────────────────────
@@ -468,64 +643,108 @@ export default async function AdminCampaignPage({
     <div className="space-y-6">
       <section className="am-card overflow-hidden">
         <div className="border-b border-brand-line px-5 py-3.5">
-          <div className="smallcaps">Enrolled partners</div>
+          <div className="smallcaps">Entries</div>
+          <p className="mt-0.5 text-[11.5px] text-brand-mute">
+            Everyone taking part and their numbers for this competition. Click a
+            partner to open their full record for the race.
+          </p>
         </div>
         <div className="overflow-x-auto">
           <table className="ttable">
             <thead>
               <tr>
                 <th>Partner</th>
+                <th className="r">Live</th>
+                <th className="r">Referrals</th>
+                <th className="r">Earned</th>
+                <th className="r">Prizes</th>
                 <th>Status</th>
-                <th>Joined</th>
+                <th className="r" />
                 <th className="r" />
               </tr>
             </thead>
             <tbody>
-              {enrolledRows.length === 0 ? (
+              {entryRows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-brand-mute">
-                    Nobody has joined this campaign yet.
+                  <td colSpan={8} className="py-8 text-center text-brand-mute">
+                    No entries yet.
                   </td>
                 </tr>
               ) : (
-                enrolledRows.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <div className="min-w-0">
-                        <div className="truncate text-[13.5px] font-semibold text-brand-ink">
-                          {r.name}
-                        </div>
-                        <div className="mono truncate text-[11px] text-brand-mute">
-                          /r/{r.slug}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`tag ${r.status === "paused" ? "amber" : "gray"}`}
-                      >
-                        <span className="d" />
-                        <span className="capitalize">{r.status}</span>
-                      </span>
-                      {r.paused_reason ? (
-                        <div className="mt-1 max-w-[22rem] text-[11px] leading-snug text-brand-mute">
-                          {r.paused_reason}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="num text-brand-mute">
-                      {fmtDate(r.enrolled_at)}
-                    </td>
-                    <td className="r">
-                      <EnrollmentPauseButton
-                        campaignId={campaign.id}
-                        affiliateId={r.id}
-                        name={r.name}
-                        status={r.status}
-                      />
-                    </td>
-                  </tr>
-                ))
+                entryRows.map((r) => {
+                  const href = `/admin/affiliates/campaigns/${campaign.id}/entries/${r.id}`;
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <Link href={href} className="group block min-w-0">
+                          <div className="truncate text-[13.5px] font-semibold text-brand-ink group-hover:text-brand-primary group-hover:underline">
+                            {r.name}
+                          </div>
+                          <div className="mono truncate text-[11px] text-brand-mute">
+                            /r/{r.slug}
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="num r font-semibold text-brand-ink">
+                        {r.liveListings}
+                      </td>
+                      <td className="num r text-brand-mute">{r.referrals}</td>
+                      <td className="num r font-medium text-brand-ink">
+                        {r.earned ? zar(r.earned) : "—"}
+                      </td>
+                      <td className="num r text-brand-mute">
+                        {r.prizePaid || r.prizeOwed ? (
+                          <span>
+                            {r.prizePaid ? `${zar(r.prizePaid)} paid` : null}
+                            {r.prizePaid && r.prizeOwed ? " · " : null}
+                            {r.prizeOwed ? (
+                              <span className="text-status-pending">
+                                {zar(r.prizeOwed)} owed
+                              </span>
+                            ) : null}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`tag ${r.status === "paused" ? "amber" : "gray"}`}
+                        >
+                          <span className="d" />
+                          <span className="capitalize">{r.status}</span>
+                        </span>
+                        {rulesBound && !r.ruleAccepted ? (
+                          <div className="mt-1 text-[10.5px] font-medium text-status-pending">
+                            rules not signed
+                          </div>
+                        ) : null}
+                        {r.pausedReason ? (
+                          <div className="mt-1 max-w-[18rem] text-[11px] leading-snug text-brand-mute">
+                            {r.pausedReason}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="r">
+                        <EnrollmentPauseButton
+                          campaignId={campaign.id}
+                          affiliateId={r.id}
+                          name={r.name}
+                          status={r.status}
+                        />
+                      </td>
+                      <td className="r">
+                        <Link
+                          href={href}
+                          className="inline-flex items-center gap-0.5 text-[12px] font-medium text-brand-primary hover:underline"
+                        >
+                          View
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -565,17 +784,23 @@ export default async function AdminCampaignPage({
   );
 
   // ── RULES & PRIZES panel ────────────────────────────────────────
+  const staleAcceptances = acceptanceRows.filter((a) => a.stale).length;
+  const rulesDocOptions = (legalDocs ?? []).map((d) => ({
+    slug: d.slug as string,
+    title: d.title as string,
+    version: (d.version as number) ?? 1,
+    isPublished: Boolean(d.is_published),
+    bodyHtml: (d.body_html as string | null) ?? null,
+  }));
+
   const rulesPanel = (
     <div className="space-y-6">
-      <CampaignRulesPanel
-        initial={{
-          slug: (campaign.rules_doc_slug as string | null) ?? null,
-          title: (rulesDoc?.title as string | undefined) ?? null,
-          html: (rulesDoc?.body_html as string | null | undefined) ?? null,
-          version: (rulesDoc?.version as number | undefined) ?? null,
-          isPublished: Boolean(rulesDoc?.is_published),
-          acceptedCount: acceptanceRows.length,
-        }}
+      <CampaignRulesBinder
+        campaignId={campaign.id}
+        docs={rulesDocOptions}
+        boundSlug={(campaign.rules_doc_slug as string | null) ?? null}
+        acceptedCount={acceptanceRows.length}
+        staleCount={staleAcceptances}
       />
 
       <section className="am-card overflow-hidden">
@@ -703,6 +928,7 @@ export default async function AdminCampaignPage({
       <CampaignAdminTabs
         panels={{
           overview,
+          setup: setupPanel,
           metrics: <CampaignMetricsPanel metrics={metrics} />,
           standings: standingsPanel,
           results: (
@@ -751,5 +977,27 @@ function BandCell({
       </div>
       <div className="mt-1 text-[11px] text-brand-mute">{sub}</div>
     </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="flex items-center justify-between gap-3 px-5 py-3 transition hover:bg-brand-light/50"
+    >
+      <dt className="text-[12.5px] font-medium text-brand-mute">{label}</dt>
+      <dd className="truncate text-right text-[13px] font-semibold text-brand-ink">
+        {value}
+      </dd>
+    </a>
   );
 }

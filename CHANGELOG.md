@@ -5,6 +5,122 @@
 
 ---
 
+## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
+
+Branch `feature/affiliate-program`. tsc + `pnpm lint` (zero warnings) + full `pnpm build` GREEN.
+Migrations applied to the linked cloud (`db push` → up to date) + types regenerated. Live-verified via
+claude-in-chrome in the founder's admin + host sessions.
+
+- **Legal records reshaped into two clean buckets** (founder correction). Extracted a server-only SSOT
+  `lib/legal/bookingLegal.ts` (`renderPolicySnapshot` + `assembleBookingLegal`) used by BOTH surfaces so they
+  can't drift. **Admin user Legal tab** = platform↔user, FULL transparency: an "Account & platform" section
+  now includes the **Terms + Privacy accepted at registration** (from `user_profiles.terms_version` `t<n>-p<m>`)
+  plus the affiliate agreement + competition rules, and a Bookings section showing the user's bookings **as
+  guest AND as host**. **New host guest-record Legal tab** (`GuestLegalPanel` + `LegalSnapshotViewer showRole`)
+  = host↔guest only: the host policies the guest agreed to + the Wielo Terms/Privacy frozen onto each booking,
+  no role badge. Both open the exact immutable snapshot → Print / Save as PDF. Live-verified on Sipho/Pieter/Thandi.
+- **F5 · live date-shift guard** (TS). `updateCampaignAction` refuses a start/end-date change on a LIVE
+  competition unless re-submitted with `confirmDateShift` (`needsConfirm:"date_shift"`); `CampaignBuilder`
+  shows a "Shift the scoring window?" confirm. Earned rates unaffected — fairness guard only. Live-verified
+  (dialog fired; Cancel left the Founding Race's dates untouched — DB confirmed).
+- **F3 · sweep scope** (`20260804000000`). `sweep_affiliate_payouts` gains `p_campaign_id`, scoping the
+  competition-close sweep to that campaign's participants (enrolled OR referral/commission bound) so closing
+  one competition no longer force-sweeps other live competitions' entrants. `finalize_ended_campaigns` +
+  `closeCampaignNowAction` updated.
+- **F4 · ladder recompute honors the snapshot** (`20260804020000`). `recompute_affiliate_campaign_rates` now
+  re-rates each pending ladder row using ITS OWN referral `commission_snapshot` bands (fallback live), matching
+  accrual — a live-band edit can no longer override the locked-at-referral rate. Flat/Founding Race unaffected.
+- **F6 · audit swept payouts** (`20260804010000`). `create_affiliate_payout` writes an `admin_audit_log` row
+  per payout created under threshold-bypass (every sweep): `affiliate.payout_swept`, system-initiated.
+- **Data:** normalised the one legacy-format `terms_version` (founder's own account: date → `t1-p1`).
+
+## 2026-08-04 (pt25) — Launch hardening: admin/staff notifications, legal-consent records, scenario tests.
+
+Branch `feature/affiliate-program`. tsc + lint green throughout. **NOT committed.** Founder-driven
+browser testing (they log into seeded accounts; Claude drives via claude-in-chrome). New logins seeded.
+Living plan: `docs/AFFILIATE_LAUNCH_READINESS.md` (flows + scenario matrix + findings).
+
+- **Grounding sweeps.** Three read-only Explore agents mapped: the notification system, the competition
+  money+scoring pipeline (rate snapshotted at click; no edit re-rates cleared/paid money; risks: ladder
+  live-edit recompute F4, platform-wide close-sweep F3, live date-edit F5), and security/ledger (no
+  cross-partner vector; server-recalculated amounts; audit gaps F6/F7). All in the launch doc §0/§5.
+- **Admin/staff in-app notifications** (parity with host/guest). Mounted the shared `<NotificationBell />`
+  in `admin/layout.tsx` + new `/admin/notifications` page; new `lib/notifications/notifyStaff.ts` (fans an
+  in-app row to active `platform_staff`, optional permission filter); wired **payout requested** → staff
+  with `subscriptions.edit`. Live-verified: ping lands in the admin bell under Payments. Same table
+  (`in_app_notifications`), same component — zero new plumbing.
+- **2nd staff account seeded** for role tests: `finance@wielodemo.com` / `WieloDemo123!` (role finance).
+  `scripts/seed-staff-finance.mjs`.
+- **Legal / consent records** — new **Legal tab** on the user record (`LegalPanel` + reusable
+  `components/legal/LegalSnapshotViewer` + `getUserLegalAcceptancesAction`). Every document a user
+  consented to — affiliate agreement, competition rules, platform Terms/Privacy, host `policy_snapshots` —
+  **batched by booking number** (guest side AND host side; records are minted per booking), with an
+  account/programme section for non-booking consents. Each opens the exact immutable snapshot → **Print /
+  Save as PDF**. `renderPolicySnapshot` turns policy jsonb into readable HTML. Published Terms/Privacy docs
+  (placeholder text — swap real copy later). Live-verified on guest + host records.
+- **Calculator fix**: partner earnings calc used a hardcoded `|| 20`; now `|| standardRatePct` (the
+  configured product `affiliate_value`). Coded; **partner-portal re-verify still owed**.
+- **Scenarios passed** (partner session): terms re-gate (v2), S1 per-referral rates (no blended headline),
+  S3 60% competition stamp (R599.40), S12 partner blocked from admin money routes.
+- **Findings.** Checkout consent capture is **NOT broken** — both paths (`createBooking.ts:851`,
+  `siteCheckout.ts:708`) stamp `accepted_terms_version`/`_privacy_version`; the "0 bookings" was seed data,
+  now backfilled (15). `policy_snapshots` are immutable (good). Terms/Privacy docs were drafts → published.
+
+## 2026-08-04 (pt24) — Competition Entries: per-entrant metrics + drill-down; email cards; SoT terms.
+
+Branch `feature/affiliate-program`. tsc + lint + tests green. **Live-verified** in the founder's admin
+(Founding Race). Not committed.
+
+- **Entries roster (Partners tab).** The Partners tab is now a full entries roster: each row shows the
+  entrant's competition numbers inline — Live listings · Referrals (bound to this campaign) · Earned (net
+  commission under this campaign, from `metrics.partners`) · Prizes (owed/paid) · Status, plus a
+  "rules not signed" flag. Rows are clickable.
+- **Competition-scoped entry detail** (new route `campaigns/[id]/entries/[affiliateId]`): mirrors the
+  default-program record but scoped to ONE competition — stat band, commission breakdown
+  (`summariseCommissions` on campaign+affiliate rows), campaign rate + floor, enrolment + rule acceptance,
+  and the referrals bound under this competition. Links out to the partner's full lifetime record.
+  (Decided against a competition-scoped Payout tab — payouts are blended/lifetime, not per-competition;
+  the only competition money, cash prizes, already settles on Results.)
+- **Email tab now matches Communications.** Swapped the campaign Email tab from `MessageRow` (stacked list)
+  to the Communications hub's `MessageCard` grid — identical card design, same component.
+- **SoT terms fix.** Affiliate Program Terms no longer promise a "conversion bonus" (SoT has none) — live
+  doc bumped v1→v2 via `scripts/fix-affiliate-terms-conversion-bonus.mjs` (mirrors saveLegalDocumentAction's
+  versioning; partners re-accept). `describeLadder` now shows the real flat rate ("Flat 60%").
+
+## 2026-08-04 (pt23) — Competition admin control reworked: guided setup + rules bound from SSOT.
+
+Branch `feature/affiliate-program`. tsc + lint + affiliate tests green. **Live-verified** in the
+founder's logged-in admin (`wollie@manamarketing.co.za`) against the live Founding Race
+(`752ec2d6-…`): every surface below rendered correctly with **zero console errors**.
+
+**Fixed a live crash first.** The campaign page threw
+`Could not find the module …FieldHelp.tsx#CAMPAIGN_HELP#rulesEditor in the React Client Manifest`
+— a server component (`CampaignRulesPanel`) read the `CAMPAIGN_HELP` data object out of a
+`"use client"` module, which the RSC bundler turns into a client *reference*. Extracted the copy
+into a plain non-client module `campaignHelp.ts`; only the `<FieldHelp>` component stays client.
+No server component imports `CAMPAIGN_HELP` anymore, so it cannot recur.
+
+**Competition admin control room, reworked (founder ask: cleaner, simpler, easier to set up):**
+- **Guided setup.** The old single-scroll builder is now a **Setup** tab with a section rail
+  (Basics · Commission · Scoring · Prizes · Host trial), one focused card at a time, each with a
+  live plain-language summary in the rail ("Commission — Flat 60%") and a preview banner
+  ("A referral through this campaign earns **Flat 60%** for life.").
+- **Overview is now a dashboard** — status band, "Setup at a glance" rows, and pre-launch warnings
+  (unbound/draft rules, unset commission, still-draft) that deep-link (hash-synced tabs `#setup`/`#rules`).
+- **Rules bound from the SSOT.** New **Rules** tab (`CampaignRulesBinder` + `setCampaignRulesDocAction`):
+  pick which **published Legal-docs** document is this competition's rules (writes `rules_doc_slug`
+  only — text is NEVER edited here), live preview, published/version/accepted status, a
+  stale-acceptance warning, and Create/Edit deep-links into `/admin/legal`. Removed the buried
+  Rules-document dropdown from the builder. All legal text stays in the single source of truth.
+- **CPA template in the SSOT.** Legal-docs "New legal document" now has **"Start from the CPA
+  competition-rules template"**, pre-filling the CPA §36-compliant skeleton
+  (`lib/legal/competitionRulesTemplate.ts`) to fill in and bind.
+- **SoT cleanup.** Removed the dead **conversion-bonus** builder+schema fields and the non-SoT
+  milestones (`first_to_5`, `any_reaching_10_in_30d`); simplified the prize editor into typed kinds
+  (placing / milestone / monthly top mover). Floor machinery kept (ladder stays a supported option).
+- Fixed `docs/legal/COMPETITION_RULES.md` Part B: rules are authored in `/admin/legal`, not a
+  "Campaign Rules editor". Default-program terms already pull from the SSOT (`resolveAffiliateTerms`).
+
 ## 2026-08-03 (pt22) — SAVE POINT: affiliate program done+tested; competition next.
 
 Branch `feature/affiliate-program`, HEAD `d003ece` (pushed to origin). tsc + lint green, tree clean.

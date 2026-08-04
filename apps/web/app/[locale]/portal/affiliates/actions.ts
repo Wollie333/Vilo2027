@@ -19,6 +19,7 @@ import { renderAgreementBody } from "@/lib/affiliate/agreement.shared";
 import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { getBrandName } from "@/lib/brand";
 import { encryptAccountNumber } from "@/lib/crypto/banking";
+import { notifyStaff } from "@/lib/notifications/notifyStaff";
 import { clientIpFromHeaders } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -332,6 +333,19 @@ export async function requestAffiliatePayoutAction(
         "Could not request the payout.",
     };
   }
+
+  // Ping the staff who settle payouts — a partner is now waiting for money.
+  // Best-effort: notifyStaff never throws, so it can't fail the request.
+  const net = res.net ?? 0;
+  await notifyStaff(admin, {
+    kind: "affiliate_payout_requested",
+    title: "Affiliate payout requested",
+    body: `${acct.slug} requested a payout of R${Math.round(net).toLocaleString("en-ZA")}. Review it in the payouts queue.`,
+    link: "/admin/affiliates/payouts",
+    permission: "subscriptions.edit",
+    severity: "high",
+    payload: { payout_id: res.payout_id, affiliate_id: acct.id, net },
+  });
 
   revalidatePath("/portal/affiliates/payouts");
   return { ok: true, data: { payoutId: res.payout_id!, net: res.net ?? 0 } };

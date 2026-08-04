@@ -2,7 +2,85 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-02 pt16) — **GUEST-PORTAL hardening + unified guest-request PROGRAM** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-04 pt25) — **AFFILIATE LAUNCH HARDENING (notifications + legal + testing)** ⬅ START HERE
+
+**Branch `feature/affiliate-program`. tsc + lint + affiliate tests GREEN. NOTHING committed this session**
+(working tree ~20 modified + ~10 new). Living anchors: memory **`affiliate-program-build` pt25** +
+**`docs/AFFILIATE_LAUNCH_READINESS.md`** (flows, 14-scenario matrix, prioritized findings F1–F7). Goal:
+**default affiliate program + multiple concurrent competitions; Founding Race 100% live-ready. Launch Fri.**
+
+**Testing model:** founder logs into seeded accounts in THEIR Chrome; Claude drives via claude-in-chrome.
+Dev server: `preview_start name:web-dev` (port 3000). Cache-bust with `?rev=N` if a stale Next error chunk sticks.
+
+**SEEDED LOGINS** (full table in the launch doc §1): admin = founder `wollie@manamarketing.co.za`;
+**finance staff** `finance@wielodemo.com`/`WieloDemo123!` (NEW, role finance — for role tests); **partner**
+`affiliate-partner@wielostarter.com`/`WieloStarter123!` (slug wollie-steenkamp, user_id
+`d081aa9a-d561-47e4-89e5-65aae39bdfbd`); **host** `host@wielodemo.com`/`WieloDemo123!` (Thandi, user_id
+`880900aa-8164-49fc-b753-1fd14a44fc79`); **guest** `guest@wielodemo.com`/`WieloDemo123!` (Sipho, user_id
+`71e59e50-964e-42c5-9424-1aa83d445114`). Live Founding Race id `752ec2d6-2e8f-4672-80f4-70d2bc3b5fba` (flat 60%, active).
+
+**✅ DONE this session (all tsc+lint green, mostly live-verified):**
+1. **Competition admin control reworked** (pt23): guided **Setup** tab (section rail Basics·Commission·
+   Scoring·Prizes·Host-trial), **Overview** dashboard, **Rules** bind-from-SSOT (`CampaignRulesBinder` +
+   `setCampaignRulesDocAction`), CPA template in Legal-docs New-doc, SoT cleanup (removed conversion_bonus +
+   non-SoT milestones), typed prize kinds. Fixed a live RSC crash (extracted `campaignHelp.ts`).
+2. **Entries tab** (pt24): per-entrant competition metrics inline + drill-down `campaigns/[id]/entries/[affiliateId]`.
+3. **Email tab** → Communications `MessageCard` grid.
+4. **SoT terms**: affiliate terms v2 (no "conversion bonus", `scripts/fix-affiliate-terms-conversion-bonus.mjs`);
+   `describeLadder` shows real flat rate ("Flat 60%").
+5. **Admin/staff notification bell**: `<NotificationBell/>` in admin chrome + `/admin/notifications` +
+   `lib/notifications/notifyStaff.ts` + payout-requested event. Verified in admin bell.
+6. **Legal/consent records**: user-record **Legal** tab — every consent **batched by booking** (guest+host
+   mirror) + account/programme section; view + **Print/Save-as-PDF**. `LegalSnapshotViewer`,
+   `getUserLegalAcceptancesAction`, `renderPolicySnapshot`. Published Terms/Privacy (placeholder). Verified both records.
+7. **Calculator fix** (20% → configured rate) — coded; **partner-portal re-verify OWED**.
+8. **Scenarios passed:** terms re-gate · S1 per-referral rates · S3 60% stamp · S12 data isolation.
+
+**🔴 NEXT (resume here):**
+- **Re-verify calculator** on partner portal (needs partner login) — should now show 25% not 20%.
+- **Part B scenarios** (launch doc §4): **S6** admin edits live Founding Race → prove cleared/paid money
+  untouched · **S7** close→publish→settle prize · **S13** finance-staff bell end-to-end · S2/S4/S5/S8/S9/S11/S14.
+- **Money-behavior fixes (need founder sign-off, DB migrations):** **F3** scope payout sweep to the closing
+  campaign (multi-competition) · **F4** ladder recompute reads live bands not snapshot · **F5** live date-edit
+  guard · **F6/F7** audit swept payouts. (Founding Race = flat, so F4 doesn't bite it.)
+- **N2 follow-up staff events**: competition auto-closed / results-ready (daily worker), refund→clawback.
+- **Founder ops:** set `BANKING_CIPHER_KEY` in prod (F2); swap placeholder Terms/Privacy text.
+- Then: `pnpm build` + `pnpm lint` green → commit (founder drives) → merge decision.
+
+**FINDINGS corrected:** checkout consent capture is NOT a bug (both paths stamp terms/privacy versions);
+demo was seed data → backfilled 15 bookings. `policy_snapshots` immutable (good).
+
+---
+
+## 🟢 SAVE POINT (2026-08-04 pt23) — **COMPETITION ADMIN CONTROL reworked + rules bound from SSOT**
+
+**Branch `feature/affiliate-program`. tsc + lint + affiliate tests GREEN. NOT committed** (founder
+hasn't asked). Living anchor = memory **`affiliate-program-build` pt23**. **LIVE-VERIFIED** in the
+founder's logged-in admin against the live Founding Race (`752ec2d6-…`) — zero console errors.
+
+**Founder pivoted to the ADMIN competition-management UX** ("cleaner, simpler, easier to set up";
+"manage competition rules from admin"; "all legal docs SSOT = `/admin/legal`, competition + default
+program PULL from there"). Delivered:
+- **Fixed a live RSC crash** on the campaign page (`…FieldHelp.tsx#CAMPAIGN_HELP#rulesEditor` not in
+  the Client Manifest) — extracted the help copy to a plain module `campaignHelp.ts`; deleted the old
+  read-only `CampaignRulesPanel`.
+- **Guided Setup:** builder rebuilt into a **Setup** tab with a section rail (Basics·Commission·Scoring·
+  Prizes·Host trial), one focused card at a time + live plain-language summaries. **Overview** = a
+  dashboard (status band, "Setup at a glance", pre-launch warnings). Tabs hash-synced (`#setup`/`#rules`).
+- **Rules bound from SSOT:** new **Rules** tab (`CampaignRulesBinder` + `setCampaignRulesDocAction`) —
+  bind a PUBLISHED Legal-docs document (`rules_doc_slug` only, text NEVER edited here), preview,
+  published/version/accepted status, stale-acceptance warning, Create/Edit deep-links to `/admin/legal`.
+- **CPA template in SSOT:** Legal-docs "New legal document" → "Start from the CPA competition-rules
+  template" (`lib/legal/competitionRulesTemplate.ts`). Fixed `docs/legal/COMPETITION_RULES.md` Part B.
+- **SoT cleanup:** removed dead `conversion_bonus` + non-SoT milestones; prize editor now typed kinds.
+
+**▶️ NEXT:** commit when the founder asks. Then the still-open **competition testing** from the original
+plan (below): leaderboard scoring → prize compute → admin publish → settle → sweep → enrollment/rule-accept.
+Minor polish: Overview "Commission" row shows "Flat rate" (via `describeLadder`) not "Flat 60%".
+
+---
+
+## 🟢 SAVE POINT (2026-08-02 pt16) — **GUEST-PORTAL hardening + unified guest-request PROGRAM**
 
 **Branch `fix/host-launch-hardening`. Tree clean. NOT pushed.** Living resume anchor (FULL detail, all
 requirements) = memory **`launch-prep-host-then-affiliate` pt16** — read it first. Founder pivoted host→GUEST

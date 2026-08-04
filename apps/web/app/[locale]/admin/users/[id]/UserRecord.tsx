@@ -46,6 +46,7 @@ import { Link } from "@/i18n/navigation";
 import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
 import { HostAccessControls } from "./HostAccessControls";
 import { EmailConfirmButton } from "./EmailConfirmButton";
+import { LegalPanel } from "./LegalPanel";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import {
   AdminTable,
@@ -752,6 +753,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
       label: "Reviews & guests",
       count: data.relationships.length || undefined,
     },
+    { key: "legal", label: "Legal" },
     { key: "history", label: "History" },
     {
       key: "notes",
@@ -885,6 +887,11 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                 </GroupSection>
               </div>
             ) : null}
+
+            {/* Legal — every document this user consented to (affiliate
+                agreement, competition rules), viewable + printable as the exact
+                signed snapshot. Lazy-loads its own data. */}
+            {tab === "legal" ? <LegalPanel userId={user.id} /> : null}
 
             {/* History — the full human-friendly timeline of everything that
                 happened on this record (user + admin actions, with who/when). */}

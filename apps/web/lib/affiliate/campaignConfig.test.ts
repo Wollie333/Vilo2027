@@ -24,7 +24,6 @@ const FOUNDING_LADDER = {
     { max: 50_000, rate: 0.2 },
     { max: null, rate: 0.25 },
   ],
-  conversion_bonus: { monthly: 250, annual: 400 },
 };
 
 const BASE_CAMPAIGN = {
@@ -215,7 +214,12 @@ describe("sortBandsForDisplay + the resolver agree", () => {
 describe("describeLadder", () => {
   it("summarises the rungs for the list view", () => {
     expect(describeLadder(FOUNDING_LADDER)).toBe("10% → 25% across 4 rungs");
-    expect(describeLadder({ model: "flat", flat_rate: 0.2 })).toBe("Flat rate");
+    expect(describeLadder({ model: "flat", flat_rate: 0.6 })).toBe("Flat 60%");
+    expect(
+      describeLadder({ model: "flat", flat_rate: 500, flat_type: "amount" }),
+    ).toBe("Flat R500");
+    expect(describeLadder({ model: "flat" })).toBe("Flat rate");
+    expect(describeLadder({ model: "inherit" })).toBe("Standard rates");
     expect(describeLadder(null)).toBe("—");
   });
 });
