@@ -409,6 +409,14 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     expiresAt: "7 days",
   },
 
+  platform_staff_invite: {
+    recipient_email: "teammate@example.com",
+    brand_name: "Wielo",
+    role: "finance",
+    inviteUrl: "https://wielo.co.za/staff-invite?token=preview-token-only",
+    expiresLabel: "72 hours",
+  },
+
   // Previews the PAUSED variant — the one worth eyeballing, since it has to
   // reassure the partner their commission is untouched. Flip `paused` to
   // "false" in the previewer to see the resumed version.

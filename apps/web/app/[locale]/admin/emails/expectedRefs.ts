@@ -92,6 +92,12 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
     optional: ["expiresAt"],
     note: "No DB resolver — enqueue must supply every prop. Recipient type is custom (reads payload.recipient_email).",
   },
+
+  platform_staff_invite: {
+    required: ["recipient_email", "role", "inviteUrl"],
+    optional: ["expiresLabel"],
+    note: "Admin-team invite. No DB resolver — enqueue supplies every prop. brand_name is injected by the drain. Recipient type is custom (reads payload.recipient_email).",
+  },
 };
 
 export function getRefSpec(type: string): RefSpec | null {

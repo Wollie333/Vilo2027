@@ -46,6 +46,7 @@ import {
   ReviewRequestGuest,
   StayDetailsGuest,
   StaffInvite,
+  PlatformStaffInvite,
   SubscriptionExpiring,
   SubscriptionFailed,
   SubscriptionRestricted,
@@ -451,6 +452,15 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "custom",
     subject: (p) =>
       `${str(p.hostName, "A host")} invited you to manage ${str(p.propertyName, "their property")} on ${str(p.brand_name, "Wielo")}`,
+  },
+
+  // Platform admin-team invite (super admin invites a teammate with an admin
+  // role). Recipient usually has no account yet → recipient_email in payload.
+  platform_staff_invite: {
+    Template: PlatformStaffInvite as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `You've been invited to the ${str(p.brand_name, "Wielo")} admin team`,
   },
 
   // Broadcast fan-out worker pre-fills payload.recipient_email per user

@@ -5,8 +5,6 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requireAdmin, withAdminAudit } from "@/lib/admin";
-import { getBrandName } from "@/lib/brand";
-import { sendTransactionalEmail } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -92,17 +90,32 @@ export const inviteStaffAction = withAdminAudit<
       .single();
     if (error || !invite) throw new Error(error?.message ?? "Invite failed.");
 
-    // Best-effort email with the accept link (never throws).
-    const brand = await getBrandName();
+    // Queue the branded invite email through the notification queue (drained by
+    // the drain-email-queue cron) — the same proven send path every other
+    // platform email uses. The previous direct Resend call was best-effort and
+    // its result was ignored, so a misconfigured sender failed silently and the
+    // invitee never got the mail. The invitee has no account yet, so
+    // recipient_email carries the address; brand_name is injected by the drain.
     const link = `${appOrigin()}/staff-invite?token=${invite.token}`;
-    await sendTransactionalEmail({
-      to: email,
-      subject: `You've been invited to the ${brand} admin team`,
-      html: `<p>You've been invited to join the ${brand} admin team as <strong>${roleId}</strong>.</p>
-<p>Sign in (or create an account) with this email, then accept your invite:</p>
-<p><a href="${link}">${link}</a></p>
-<p>This invite expires in 72 hours.</p>`,
-    });
+    const { error: queueErr } = await service
+      .from("notification_queue")
+      .insert({
+        type: "platform_staff_invite",
+        payload: {
+          recipient_email: email,
+          role: roleId,
+          inviteUrl: link,
+          expiresLabel: "72 hours",
+        },
+        dedupe_key: `platform_staff_invite:${invite.token}`,
+      });
+    if (queueErr) {
+      // Surface, don't swallow — a failed enqueue means no invite email.
+      console.error("[inviteStaff] failed to queue invite email", {
+        email,
+        error: queueErr.message,
+      });
+    }
 
     revalidatePath("/admin/platform/staff");
     return { result: { ok: true }, after: { id: invite.id, email, roleId } };

@@ -41,6 +41,7 @@ export { default as LookingForRequestExpiringGuest } from "./templates/LookingFo
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
 export { default as StayDetailsGuest } from "./templates/StayDetailsGuest";
 export { default as StaffInvite } from "./templates/StaffInvite";
+export { default as PlatformStaffInvite } from "./templates/PlatformStaffInvite";
 export { default as SubscriptionExpiring } from "./templates/SubscriptionExpiring";
 export { default as SubscriptionFailed } from "./templates/SubscriptionFailed";
 export { default as SubscriptionRestricted } from "./templates/SubscriptionRestricted";
