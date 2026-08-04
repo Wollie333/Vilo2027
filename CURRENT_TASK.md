@@ -2,7 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-04 pt30) — **AFFILIATE PROGRAM: DONE, MERGED TO MAIN, DEPLOYED LIVE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt31) — **DB CLEANUP + ADMIN QA + CLEAN-SLATE WIPE + STAFF-INVITE EMAIL** ⬅ START HERE
+
+**`main` == `origin/main` == `7225b32`. All work committed + pushed to main (Vercel deploying).** tsc + email
+render test (58/58) GREEN. Two commits this session: `766b749` (admin QA fixes + clean onboarding + cron purge)
++ `7225b32` (staff-invite email via the queue). **Read memory first:** [[clean-slate-launch-wipe]],
+[[email-sends-go-through-the-queue]], [[supabase-db-size-cron-log-bloat]], [[affiliate-program-build]].
+
+### What this session did (all done + verified)
+1. **DB size emergency FIXED** — Supabase flagged "DB Size Exceeded" (1504 MB). Root cause: `cron.job_run_details`
+   = 1450 MB / 96% (510k rows, pg_cron never prunes). Truncated → **56 MB**; added daily purge cron (job 67,
+   migration `20260804030000_purge_cron_run_history.sql`, 7-day retention). See [[supabase-db-size-cron-log-bloat]].
+   (The `spatial_ref_sys` RLS lint = benign PostGIS, owned by supabase_admin, un-fixable by us → dismiss it.)
+2. **ADMIN PANEL QA — all 30 tabs / 7 sections** — render pass + code-level action-wiring audit (every button/form
+   traced to a real persisting server action). Panel is CLEAN. 3 fixes: broadcast send now revalidates
+   `/admin/communications`; listing name links to the (was-unreachable) `/admin/properties/[id]`; deleted 2 orphaned
+   dead editors (Plan `subscriptions/plans/[key]` + Service `services/[id]` — editing lives in the Products hub).
+3. **HOST ONBOARDING draft-listing REMOVED** — `finalizeOnboardingAction` no longer inserts a draft `properties`
+   row ("Cape Botique" junk). New hosts start with 0 listings + make their own; business still named from the wizard.
+4. **CLEAN-SLATE DATA WIPE (founder-run SQL)** — wiped ALL user data; kept ONLY super admin `wollie@manamarketing.co.za`
+   (`66fe4644-…`) + platform config/catalog + **Founding Race campaign** (founder kept it; participants wiped).
+   Verified: 1 user, 0 hosts/listings/bookings, config intact, app loads clean. **All demo accounts GONE**
+   (wielodemo/wielostarter/etc). Script: `scratchpad/wipe_user_data.sql` (session-out-of-repo). See [[clean-slate-launch-wipe]].
+5. **PLATFORM STAFF-INVITE EMAIL FIXED + LIVE-VERIFIED** — invites used a silent one-off `sendTransactionalEmail`
+   (result ignored). Now enqueue `platform_staff_invite` → drain → Resend, with a NEW branded template
+   `emails/templates/PlatformStaffInvite.tsx` registered in the coms (EMAIL_REGISTRY). **Verified end-to-end:**
+   queue row → claimed ~6s → `sent_at`, no error → founder RECEIVED the email. See [[email-sends-go-through-the-queue]].
+
+### State / notes for next session
+- **DB is clean-slate.** Older memories referencing demo data (BK-0085, Seaview, host@wielodemo, etc.) are historical.
+- Super admin's `user_profiles.role` still says `host` (cosmetic leftover, no host record) — offered to clear, founder hasn't asked.
+- Dev server `web-dev` on :3000 (one cloud DB; crons run against it). Founder logged into admin as super admin in Browser 1.
+- Deferred/optional: none pending. Next priorities are founder's call (real beta onboarding now that the app is clean).
+
+---
+
+## 🟢 SAVE POINT (2026-08-04 pt30) — **AFFILIATE PROGRAM: DONE, MERGED TO MAIN, DEPLOYED LIVE**
 
 **Branch `feature/affiliate-program` == `main` == `origin/main` == `e8b639e`. MERGED + PUSHED + DEPLOYED:
 Vercel production deploy for `e8b639e` is `READY` — the whole affiliate arc is LIVE on wielo.co.za.** Full
