@@ -2,7 +2,54 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-04 pt25) — **AFFILIATE LAUNCH HARDENING (notifications + legal + testing)** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-04 pt30) — **AFFILIATE PROGRAM: DONE, MERGED TO MAIN, DEPLOYED LIVE** ⬅ START HERE
+
+**Branch `feature/affiliate-program` == `main` == `origin/main` == `e8b639e`. MERGED + PUSHED + DEPLOYED:
+Vercel production deploy for `e8b639e` is `READY` — the whole affiliate arc is LIVE on wielo.co.za.** Full
+`pnpm build` + tsc + lint all GREEN. F3/F4/F6 migrations already applied to the linked cloud DB (one DB; no
+schema step pending). Two commits this arc: `fa416c7` (launch hardening: legal records, F3/F4/F5/F6, staff
+notifications) + `e8b639e` (resources tab + marketing/landing polish).
+
+**Living anchors (read these first next session):** memory **`affiliate-program-build`** (pt29 + merge note —
+most detailed) + **`docs/AFFILIATE_LAUNCH_READINESS.md`** (flows, S1–S14 matrix, findings F1–F7, mostly ✅).
+
+**What shipped (all live-verified):** default affiliate program + multi-competition (Founding Race flat 60%,
+live). Legal records (admin user tab platform↔user + host guest-record tab host↔guest, one SSOT
+`lib/legal/bookingLegal.ts`). Admin/staff notification bell. F3 sweep-scope, F4 ladder-recompute-honors-snapshot,
+F6 swept-payout audit, F5 live date-shift guard. **Resources** tab (competition race view + default portal
+`/portal/affiliates/resources`) = the partner's own co-branded link + attributed capture-funnel links
+(`funnelResourceLink` → `/r/<slug>?next=/go/<funnel>[&c=<camp>]`; binds at capture time so it survives the
+device hop). Competition **Marketing** tab now SCOPED to that campaign's assets (no default-library redirect),
+banners square 1080×1080; sample banner+social seeded for the Founding Race. Enhanced prize card (grouped by
+when it pays). Landing-page picture + public /partners invitation card square 1080×1080 + rounded hero corners.
+`/r/` `next` open-redirect hardened.
+
+**Test logins / IDs (same as pt25 block below):** admin/host = founder `wollie@manamarketing.co.za` (is BOTH
+super_admin AND host "Wollie Steenkamp" + affiliate slug `wollie-steenkamp-udpl0`); host `host@wielodemo.com`
+/`WieloDemo123!` (Thandi, user `880900aa-…fc79`, 16 bookings); guest `guest@wielodemo.com` (Sipho,
+`71e59e50-…`); Founding Race id `752ec2d6-…`. Starter product = slug `pro` name "Starter" R999.
+
+**claude-in-chrome gotchas:** the MCP-controlled Chrome is a SEPARATE instance — the founder must log INTO it
+(cookies are NOT auto-shared). `RaceTabs`/`CampaignBuilder` inner tabs sometimes need a 2nd click (stale render).
+Affiliate share links use `appUrl` = wielo.co.za (production) by design. Dev server: `preview_start name:web-dev`
+(port 3000); a full `pnpm build` clobbers `.next` → stop the dev server first, then restart it after.
+
+**▶ NEXT SESSION — founder is SMOKE-TESTING and has a batch of issues to work through (unspecified; they'll
+bring them). Also OPEN/DEFERRED:**
+- **Host-signup draft-listing** (founder-reported, DEFERRED): "under beta a draft listing appears." VERIFIED
+  **NOT a data breach** (dashboard `.eq(host_id, host.id)` under RLS; the draft is the host's own, from
+  `finalizeOnboardingAction` step 3 in `signup/host/actions.ts`). Fix pending founder pick: (A) stop inserting
+  the draft `properties` row but keep collecting the address for the host's business (recommended); vs (B)
+  remove the whole listing step from the wizard.
+- **Admin per-competition resource curation** (fast-follow): Resources auto-lists ALL active host funnels now;
+  add a per-campaign pick/order later (store on campaign config).
+- **Pipeline email-CTA-through-/r/**: when the nurture worker (Phase 4, currently inactive) ships, build its
+  email CTAs through the bound affiliate's `/r/` link. Capture-time binding already covers correctness.
+- **N2-follow-up staff notifs**: competition auto-closed / results-ready + refund→clawback landed.
+
+---
+
+## 🟡 SAVE POINT (2026-08-04 pt25) — **AFFILIATE LAUNCH HARDENING (notifications + legal + testing)** (historical)
 
 **Branch `feature/affiliate-program`. tsc + lint + affiliate tests GREEN. NOTHING committed this session**
 (working tree ~20 modified + ~10 new). Living anchors: memory **`affiliate-program-build` pt25** +
