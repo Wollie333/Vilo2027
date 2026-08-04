@@ -132,6 +132,10 @@ async function runCreateBroadcast(
   }
 
   revalidatePath("/admin/broadcasts");
+  // The Communications hub renders the same broadcast history from a
+  // server-loaded prop, so revalidate it too or its "Recent sends" list
+  // stays stale after a send from that tab.
+  revalidatePath("/admin/communications");
   return { ok: true, id: data.id as string };
 }
 

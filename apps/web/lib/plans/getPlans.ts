@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Single source of truth for the plan catalog (names, prices, trials, bullets).
 // Reads the DB `plans` + `plan_prices` tables. Uses the service-role admin
 // client (no request cookies) so it is safe to wrap in unstable_cache. Pricing
-// is admin-editable in /admin/subscriptions/plans — call revalidateTag("plans")
+// is admin-editable in the Products hub (/admin/products/[id]) — call revalidateTag("plans")
 // after any edit.
 
 export const PLANS_CACHE_TAG = "plans";

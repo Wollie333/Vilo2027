@@ -172,7 +172,12 @@ export default async function AdminListingsPage({
       header: "Listing",
       cell: (l) => (
         <div className="min-w-0">
-          <div className="truncate font-medium text-brand-ink">{l.name}</div>
+          <Link
+            href={`/admin/properties/${l.id}`}
+            className="block truncate font-medium text-brand-ink hover:text-brand-primary hover:underline"
+          >
+            {l.name}
+          </Link>
           <div className="truncate text-[11px] uppercase tracking-wider text-brand-mute">
             {l.property_type}
             {l.city ? ` · ${l.city}` : ""}

@@ -4,7 +4,7 @@
 // (`plans` + `plan_prices`) and is read via `@/lib/plans/getPlans`. This file
 // only holds the shared shape + pure utils so both server and client code can
 // agree on the type. Pricing is no longer hardcoded here — the super admin
-// edits it in /admin/subscriptions/plans with no redeploy.
+// edits it in the Products hub (/admin/products/[id]) with no redeploy.
 
 // A plan key is now an open string (the admin can create custom plan keys), not
 // a fixed union. The four seeded keys are free/basic/pro/business.

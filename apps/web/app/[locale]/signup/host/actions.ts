@@ -452,12 +452,7 @@ export async function finalizeOnboardingAction(
     };
   }
 
-  // 3. First DRAFT listing — full address collected, capacity/pricing/
-  //    photos stay NULL until the host opens the listing editor.
-  //    If this fails we KEEP the host row (the user is still a host, they
-  //    can create a listing from the dashboard) — avoids the stuck state
-  //    where the cleanup deletes the host and leaves the user homeless.
-  // Enrich the auto-created default business (made by the
+  // 3. Enrich the auto-created default business (made by the
   // on_host_created_default_business trigger when the host row was inserted)
   // with the captured business name + this listing's address, so the host's
   // first business — and every document for this listing — is properly named.
@@ -485,28 +480,11 @@ export async function finalizeOnboardingAction(
     .eq("host_id", host.id)
     .eq("is_default", true);
 
-  const { error: listingErr } = await admin.from("properties").insert({
-    host_id: host.id,
-    property_type: "accommodation",
-    category_id: d.category_id ?? null,
-    accommodation_type: d.accommodation_type ?? null,
-    name: d.listing_name,
-    address_line1: d.address_line1,
-    address_line2:
-      d.address_line2 && d.address_line2.length > 0 ? d.address_line2 : null,
-    city: d.city,
-    province: d.region,
-    postal_code: d.postal_code,
-    latitude: d.latitude ?? null,
-    longitude: d.longitude ?? null,
-    // country defaults to 'ZA'; business_id is filled by the
-    // set_listing_default_business trigger (the host's default business).
-  });
-  if (listingErr) {
-    // Non-blocking — host can create their first listing from the editor.
-    // Surface it as a soft warning rather than failing the whole onboard.
-    console.error("[host-onboarding] listings insert failed", listingErr);
-  }
+  // NOTE: we deliberately do NOT auto-create a draft listing here. Every host
+  // creates their own listing from the dashboard ("Create your first listing"),
+  // so nobody lands with placeholder/draft content they didn't make. The wizard
+  // still collects the address above purely to name + locate the default
+  // business. (Founder directive — clean onboarding.)
 
   // 3b. If they paid for a product before signing up, link that paid order to
   //     the new account so the purchase shows in their billing / the Wielo
