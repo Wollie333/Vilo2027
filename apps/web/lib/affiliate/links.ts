@@ -36,3 +36,23 @@ export function campaignPartnerLink(
 ): string {
   return `${baseUrl}/partners/${partnerSlug}?c=${encodeURIComponent(campaignSlug)}`;
 }
+
+/**
+ * An affiliate-attributed link to a pipeline capture funnel (/go/<funnel>). Routes
+ * through /r/<slug> so it drops the referral cookie — and, when a campaign is
+ * given, tags the competition + rate-locks it server-side — BEFORE landing on the
+ * lead-capture page. A submitted capture then binds the referral to the lead's
+ * account permanently (findOrCreateLeadIdentity), so attribution survives even a
+ * later signup on a different device. Used by the Resources lists in the
+ * competition race view and the default affiliate portal (campaignSlug omitted).
+ */
+export function funnelResourceLink(
+  baseUrl: string,
+  partnerSlug: string,
+  funnelSlug: string,
+  campaignSlug?: string | null,
+): string {
+  const params = new URLSearchParams({ next: `/go/${funnelSlug}` });
+  if (campaignSlug) params.set("c", campaignSlug);
+  return `${baseUrl}/r/${partnerSlug}?${params.toString()}`;
+}

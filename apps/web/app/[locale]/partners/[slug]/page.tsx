@@ -526,7 +526,7 @@ export default async function PartnerLandingPage({
               </div>
             </div>
 
-            <div className="relative min-h-[420px] self-stretch lg:min-h-0">
+            <div className="relative min-h-[420px] self-stretch overflow-hidden rounded-t-[28px] lg:min-h-0">
               {heroPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -600,8 +600,8 @@ export default async function PartnerLandingPage({
         {/* The partner's personal invitation */}
         <section className="border-b border-brand-line">
           <div className="mx-auto max-w-[1200px] px-5 py-12 lg:px-10 lg:py-16">
-            <div className="grid overflow-hidden rounded-card border border-brand-line bg-white shadow-card md:grid-cols-[300px_1fr]">
-              <div className="relative min-h-[240px] md:min-h-0">
+            <div className="grid overflow-hidden rounded-card border border-brand-line bg-white shadow-card md:grid-cols-[420px_1fr] md:items-center">
+              <div className="relative aspect-square w-full overflow-hidden">
                 {photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -610,21 +610,21 @@ export default async function PartnerLandingPage({
                     className="absolute inset-0 h-full w-full bg-[#0A3D2C] object-cover"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-brand-secondary font-display text-[64px] font-extrabold text-white/80">
+                  <div className="absolute inset-0 flex items-center justify-center bg-brand-secondary font-display text-[88px] font-extrabold text-white/80">
                     {(name.trim()[0] ?? "?").toUpperCase()}
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-secondary/70 to-transparent" />
-                <div className="absolute bottom-4 left-5 text-white">
-                  <div className="font-display text-[17px] font-bold">
+                <div className="absolute bottom-5 left-6 text-white">
+                  <div className="font-display text-[20px] font-bold">
                     {name}
                   </div>
                   {roleLine ? (
-                    <div className="text-[12px] opacity-90">{roleLine}</div>
+                    <div className="text-[13px] opacity-90">{roleLine}</div>
                   ) : null}
                 </div>
               </div>
-              <div className="flex flex-col justify-center p-7 lg:p-9">
+              <div className="flex flex-col justify-center p-8 lg:p-12">
                 <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand-primary">
                   A personal invitation
                 </span>

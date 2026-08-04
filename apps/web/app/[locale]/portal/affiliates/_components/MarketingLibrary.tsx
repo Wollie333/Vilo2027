@@ -183,7 +183,7 @@ function BannerCard({
 
   return (
     <article className="flex flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="flex aspect-[16/9] items-center justify-center overflow-hidden bg-brand-light">
+      <div className="flex aspect-square items-center justify-center overflow-hidden bg-brand-light">
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

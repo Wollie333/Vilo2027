@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import {
-  ArrowRight,
-  ChevronRight,
-  Flag,
-  Megaphone,
-  Trophy,
-} from "lucide-react";
+import { ChevronRight, Flag, Gift, Megaphone, Trophy } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { LiveStandings } from "@/components/affiliate/race/LiveStandings";
@@ -14,10 +8,16 @@ import {
   describeCommissionStructure,
   type LadderBand,
 } from "@/lib/affiliate/campaigns";
-import { campaignPartnerLink, displayLink } from "@/lib/affiliate/links";
+import {
+  campaignPartnerLink,
+  displayLink,
+  funnelResourceLink,
+} from "@/lib/affiliate/links";
+import { listShareableFunnels } from "@/lib/affiliate/resources";
 import {
   loadCampaignLeaderboard,
   loadMyRaceStats,
+  type CampaignPrize,
 } from "@/lib/affiliate/leaderboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -37,6 +37,112 @@ export const dynamic = "force-dynamic";
 
 function zar(n: number): string {
   return "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+}
+
+// ── Prize explainer (partner-facing) ────────────────────────────────────────
+// Turn a raw CampaignPrize into a plain-language card: WHAT it is, HOW MUCH, and
+// crucially WHEN it pays — grouped by timing so a partner reads it at a glance.
+function ordinal(n: number): string {
+  const v = n % 100;
+  const suffix =
+    v >= 11 && v <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th";
+  return `${n}${suffix}`;
+}
+
+// Partner-voiced copy for each SoT milestone (see campaignConfig MILESTONES).
+const MILESTONE_COPY: Record<string, { title: string; detail: string }> = {
+  first_host_live: {
+    title: "First referred host goes live",
+    detail:
+      "The first time a host you referred publishes a live listing in the race.",
+  },
+  first_to_10: {
+    title: "First to 10 live listings",
+    detail:
+      "Be the first partner in the race to reach 10 live listings across your referred hosts.",
+  },
+  first_to_25: {
+    title: "First to 25 live listings",
+    detail:
+      "Be the first partner in the race to reach 25 live listings across your referred hosts.",
+  },
+  any_reaching_5_in_30d: {
+    title: "Fast Start",
+    detail:
+      "Get 5 of your referred hosts live within your first 30 days in the race.",
+  },
+};
+
+type PrizeBucket = "standings" | "milestone" | "monthly" | "other";
+type DescribedPrize = {
+  bucket: PrizeBucket;
+  sort: number;
+  title: string;
+  amount: string;
+  detail: string;
+  floorLine: string | null;
+};
+
+function describePartnerPrize(
+  p: CampaignPrize,
+  endsLabel: string | null,
+): DescribedPrize | null {
+  const floorPct = p.floor ? Math.round(p.floor * 100) : 0;
+  const floorLine = floorPct ? `+${floorPct}% permanent rate floor` : null;
+  const cash = p.cash ? zar(p.cash) : null;
+
+  if (p.placing) {
+    return {
+      bucket: "standings",
+      sort: p.placing,
+      title: `${ordinal(p.placing)} place`,
+      amount: cash ?? floorLine ?? "—",
+      detail: `Paid when the race ends${
+        endsLabel ? ` on ${endsLabel}` : ""
+      } to the ${ordinal(p.placing)}-place partner on the final leaderboard.`,
+      floorLine: cash ? floorLine : null,
+    };
+  }
+  if (p.milestone) {
+    const c = MILESTONE_COPY[p.milestone] ?? {
+      title: p.milestone.replace(/_/g, " "),
+      detail: "Paid the first time you reach it, once verified.",
+    };
+    return {
+      bucket: "milestone",
+      sort: p.cash ?? 0,
+      title: c.title,
+      amount: cash ?? floorLine ?? "—",
+      detail: c.detail,
+      floorLine: cash ? floorLine : null,
+    };
+  }
+  if (p.monthly_top_net_change) {
+    return {
+      bucket: "monthly",
+      sort: 0,
+      title: "Monthly top mover",
+      amount: `${zar(p.monthly_top_net_change)} / month`,
+      detail:
+        "Paid each month of the race to the partner who adds the most net live listings that month.",
+      floorLine,
+    };
+  }
+  // Fallback — a prize with only a floor, or cash with no trigger set. Never
+  // render a bare "Prize" with no amount.
+  if (cash || floorPct) {
+    return {
+      bucket: "other",
+      sort: 0,
+      title: floorPct && !cash ? "Rate floor" : "Race prize",
+      amount: cash ?? floorLine ?? "—",
+      detail: floorPct
+        ? "A permanent rate floor locked to your account — your commission rate never drops below it."
+        : "Awarded during the race.",
+      floorLine: cash ? floorLine : null,
+    };
+  }
+  return null;
 }
 
 export default async function PartnerRacePage({
@@ -71,6 +177,15 @@ export default async function PartnerRacePage({
     "https://wielo.co.za";
   const raceLink = campaignPartnerLink(appUrl, me.slug, campaign.slug);
   const raceLinkShort = displayLink(raceLink);
+
+  // Shareable pipeline capture pages, each wrapped in this partner's attributed,
+  // race-tagged link (Resources tab). Auto-lists active host funnels for now;
+  // admin per-competition curation is a fast-follow.
+  const shareableFunnels = await listShareableFunnels();
+  const resourceItems = shareableFunnels.map((f) => {
+    const url = funnelResourceLink(appUrl, me.slug, f.slug, campaign.slug);
+    return { ...f, url, urlShort: displayLink(url) };
+  });
 
   const endsLabel = campaign.endsAt
     ? new Date(campaign.endsAt).toLocaleDateString("en-ZA", {
@@ -450,6 +565,93 @@ export default async function PartnerRacePage({
     </div>
   );
 
+  // ── RESOURCES panel ─────────────────────────────────────────────
+  // Everything a partner can share for this race: their OWN co-branded page link,
+  // plus the ready-made capture pages. Every link is wrapped in this partner's
+  // attributed, race-tagged /r/ or /partners/ URL — anyone who signs up through
+  // it is bound to the partner + competition at capture time, so it survives a
+  // later signup on another device.
+  const resources = (
+    <div className="space-y-6">
+      <p className="max-w-2xl text-[13px] leading-relaxed text-brand-mute">
+        Everything you can share for this race — your own page and ready-made
+        capture pages. Every link is tied to you and counts toward the race,
+        even if a host finishes signing up later on another device.
+      </p>
+
+      {/* The partner's own co-branded race page. */}
+      <div>
+        <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-ink">
+          Your page
+        </div>
+        <section className="am-card overflow-hidden">
+          <div className="flex items-start gap-3 border-b border-brand-line px-5 py-3.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-primary">
+              <Flag className="h-[18px] w-[18px]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-[14px] font-bold text-brand-ink">
+                Your co-branded race page
+              </div>
+              <div className="mt-0.5 text-[12px] leading-snug text-brand-mute">
+                Hosts land on your own page — a familiar face, not a cold ad.
+                Every button on it attributes to you.
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="copyfield">
+              <Flag className="h-4 w-4 shrink-0 text-brand-mute" />
+              <span className="mono flex-1 truncate text-[12.5px] text-brand-ink">
+                {raceLinkShort}
+              </span>
+              <CopyLinkButton value={raceLink} />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Ready-made capture pages (pipeline funnels). */}
+      {resourceItems.length > 0 ? (
+        <div>
+          <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-brand-ink">
+            Capture pages
+          </div>
+          <div className="space-y-4">
+            {resourceItems.map((r) => (
+              <section key={r.slug} className="am-card overflow-hidden">
+                <div className="flex items-start gap-3 border-b border-brand-line px-5 py-3.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent text-brand-primary">
+                    <Gift className="h-[18px] w-[18px]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-[14px] font-bold text-brand-ink">
+                      {r.name}
+                    </div>
+                    {r.headline ? (
+                      <div className="mt-0.5 text-[12px] leading-snug text-brand-mute">
+                        {r.headline}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="copyfield">
+                    <Gift className="h-4 w-4 shrink-0 text-brand-mute" />
+                    <span className="mono flex-1 truncate text-[12.5px] text-brand-ink">
+                      {r.urlShort}
+                    </span>
+                    <CopyLinkButton value={r.url} />
+                  </div>
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
   // ── LEADERBOARD panel ───────────────────────────────────────────
   const leaderboard = (
     <section className="am-card overflow-hidden">
@@ -473,45 +675,29 @@ export default async function PartnerRacePage({
   );
 
   // ── MARKETING panel ─────────────────────────────────────────────
-  // This campaign's own assets (with the race link baked in). If it has none,
-  // fall back to a link to the general marketing library.
+  // This competition's OWN ad creatives — the posts, banners and captions the
+  // Wielo team uploads for THIS race (marketing_assets.campaign_id). Scoped only:
+  // it never links out to the default-programme library (Resources holds the
+  // shareable links; this tab is the competition's ad material).
   const marketing =
     campaignAssets && campaignAssets.length > 0 ? (
-      <div className="space-y-6">
-        <MarketingLibrary
-          assets={campaignAssets as LibraryAsset[]}
-          referralLink={raceLink}
-        />
-        <AffiliateBaseLink suffix="/marketing" className="brow">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
-            <Megaphone className="h-[18px] w-[18px]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-semibold text-brand-ink">
-              General marketing library
-            </div>
-            <div className="text-[12.5px] text-brand-mute">
-              The programme-wide posts, banners and captions.
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
-        </AffiliateBaseLink>
-      </div>
+      <MarketingLibrary
+        assets={campaignAssets as LibraryAsset[]}
+        referralLink={raceLink}
+      />
     ) : (
-      <AffiliateBaseLink suffix="/marketing" className="brow">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
-          <Megaphone className="h-[18px] w-[18px]" />
+      <div className="am-card flex flex-col items-center gap-2 p-10 text-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-brand-accent text-brand-secondary">
+          <Megaphone className="h-5 w-5" />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-semibold text-brand-ink">
-            Marketing library
-          </div>
-          <div className="text-[12.5px] text-brand-mute">
-            Ready-to-share posts, banners and captions for the race.
-          </div>
+        <div className="font-display text-[15px] font-bold text-brand-ink">
+          No marketing material for this race yet
         </div>
-        <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
-      </AffiliateBaseLink>
+        <p className="max-w-sm text-[12.5px] leading-relaxed text-brand-mute">
+          Ready-to-share posts, banners and captions made for this competition
+          will appear here as the Wielo team adds them — check back soon.
+        </p>
+      </div>
     );
 
   // ── RULES & PRIZES panel ────────────────────────────────────────
@@ -542,6 +728,38 @@ export default async function PartnerRacePage({
         ? `for each host's first ${campaign.structure.recurring_periods} payments`
         : "on each referred subscription";
 
+  // Group prizes by WHEN they pay so the card reads at a glance.
+  const describedPrizes = prizes
+    .map((p) => describePartnerPrize(p, endsLabel))
+    .filter((d): d is DescribedPrize => d !== null);
+  const prizeGroups = (
+    [
+      {
+        key: "standings",
+        header: "Final standings",
+        when: `Paid when the race ends${endsLabel ? ` (${endsLabel})` : ""}, by your final position on the leaderboard.`,
+      },
+      {
+        key: "milestone",
+        header: "Milestones",
+        when: "One-off rewards — paid the first time you hit each, once verified.",
+      },
+      {
+        key: "monthly",
+        header: "Every month",
+        when: "Paid every month of the race, not just at the end.",
+      },
+      { key: "other", header: "Other rewards", when: "" },
+    ] as const
+  )
+    .map((g) => ({
+      ...g,
+      items: describedPrizes
+        .filter((d) => d.bucket === g.key)
+        .sort((a, b) => a.sort - b.sort),
+    }))
+    .filter((g) => g.items.length > 0);
+
   const rules = (
     <div className="space-y-6">
       {/* How the race works */}
@@ -564,52 +782,60 @@ export default async function PartnerRacePage({
         </div>
       </section>
 
-      {/* Prizes */}
+      {/* Prizes — grouped by WHEN they pay, each explained: what, how much, when. */}
       <section className="am-card overflow-hidden">
         <div className="smallcaps border-b border-brand-line px-5 py-3.5">
           Prizes
         </div>
-        <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
-          {prizes.length === 0 ? (
-            <div className="text-[12.5px] text-brand-mute">
-              No cash prizes on this campaign — the ladder rate is the reward.
-            </div>
-          ) : (
-            prizes.map((p, i) => (
-              <div key={i} className="rung">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFFBEB] text-[#B45309]">
-                  <Trophy className="h-[18px] w-[18px]" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-[13px] font-semibold text-brand-ink">
-                    {p.placing
-                      ? `Placing #${p.placing}`
-                      : p.milestone
-                        ? p.milestone.replace(/_/g, " ")
-                        : p.monthly_top_net_change
-                          ? "Monthly top mover"
-                          : "Prize"}
+        {prizeGroups.length === 0 ? (
+          <div className="p-5 text-[12.5px] text-brand-mute">
+            No cash prizes on this campaign — the ladder rate is the reward.
+          </div>
+        ) : (
+          <div className="space-y-5 p-5">
+            {prizeGroups.map((g) => (
+              <div key={g.key}>
+                <div className="mb-2.5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-brand-ink">
+                    {g.header}
                   </div>
-                  <div className="num text-[11.5px] text-brand-mute">
-                    {p.cash ? zar(p.cash) : ""}
-                    {p.monthly_top_net_change
-                      ? zar(p.monthly_top_net_change)
-                      : ""}
-                    {p.floor
-                      ? ` · ${Math.round(p.floor * 100)}% rate floor`
-                      : ""}
-                  </div>
-                  {p.floor ? (
-                    <div className="mt-0.5 text-[10.5px] leading-snug text-brand-mute">
-                      A rate floor is locked to your account for life — your
-                      commission rate never drops below it.
+                  {g.when ? (
+                    <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
+                      {g.when}
                     </div>
                   ) : null}
                 </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {g.items.map((d, i) => (
+                    <div key={i} className="rung">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFFBEB] text-[#B45309]">
+                        <Trophy className="h-[18px] w-[18px]" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="text-[13px] font-semibold text-brand-ink">
+                            {d.title}
+                          </div>
+                          <div className="num shrink-0 whitespace-nowrap text-[12.5px] font-bold text-brand-primary">
+                            {d.amount}
+                          </div>
+                        </div>
+                        <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
+                          {d.detail}
+                        </div>
+                        {d.floorLine ? (
+                          <div className="mt-1.5 inline-flex rounded-pill bg-[#FFFBEB] px-2 py-0.5 text-[10.5px] font-semibold text-[#B45309]">
+                            {d.floorLine}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Commission & bonuses */}
@@ -759,7 +985,9 @@ export default async function PartnerRacePage({
         </div>
       </div>
 
-      <RaceTabs panels={{ overview, links, leaderboard, marketing, rules }} />
+      <RaceTabs
+        panels={{ overview, links, resources, leaderboard, marketing, rules }}
+      />
     </div>
   );
 }

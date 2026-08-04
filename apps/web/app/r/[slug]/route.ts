@@ -30,7 +30,16 @@ export async function GET(
 ) {
   const url = new URL(req.url);
   const nextParam = url.searchParams.get("next");
-  const dest = nextParam && nextParam.startsWith("/") ? nextParam : "/";
+  // Same-origin internal paths only. Must start with a single "/" — reject
+  // "//host" / "/\host" (protocol-relative → external redirect) and anything not
+  // path-shaped, so ?next= can never bounce a visitor off-site.
+  const dest =
+    nextParam &&
+    nextParam.startsWith("/") &&
+    nextParam[1] !== "/" &&
+    nextParam[1] !== "\\"
+      ? nextParam
+      : "/";
   const base = process.env.NEXT_PUBLIC_APP_URL || url.origin;
   const res = NextResponse.redirect(new URL(dest, base));
 

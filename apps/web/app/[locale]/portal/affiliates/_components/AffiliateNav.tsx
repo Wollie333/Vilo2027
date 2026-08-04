@@ -2,6 +2,7 @@
 
 import {
   Flag,
+  Gift,
   LayoutDashboard,
   Link as LinkIcon,
   Wallet,
@@ -24,6 +25,7 @@ const TAB_DEFS: {
 }[] = [
   { suffix: "", label: "Overview", icon: LayoutDashboard, exact: true },
   { suffix: "/products", label: "Links & products", icon: LinkIcon },
+  { suffix: "/resources", label: "Resources", icon: Gift },
   { suffix: "/competitions", label: "Campaigns", icon: Flag, countable: true },
   { suffix: "/payouts", label: "Payouts", icon: Wallet },
 ];

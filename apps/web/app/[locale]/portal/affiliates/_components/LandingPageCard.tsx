@@ -108,10 +108,10 @@ export function LandingPageCard({
               <img
                 src={photo}
                 alt="Your landing page picture"
-                className="aspect-[3/4] w-full object-cover"
+                className="aspect-square w-full object-cover"
               />
             ) : (
-              <div className="flex aspect-[3/4] w-full items-center justify-center text-[12px] text-brand-mute">
+              <div className="flex aspect-square w-full items-center justify-center text-[12px] text-brand-mute">
                 No picture yet
               </div>
             )}
@@ -140,13 +140,12 @@ export function LandingPageCard({
             </div>
             <ul className="mt-1.5 space-y-1 text-[11.5px] leading-relaxed text-brand-mute">
               <li>
-                <strong>900 × 1200px</strong> or larger (portrait, 3:4).
+                <strong>1080 × 1080px</strong> or larger (square, 1:1).
               </li>
               <li>JPG, PNG or WebP · under 5MB.</li>
               <li>
-                It is cropped to a <strong>tall panel</strong> — keep your face
-                in the upper middle and leave room at the bottom, where your
-                name sits.
+                It is shown as a <strong>square</strong> — keep your face
+                centered so it never gets cropped out.
               </li>
               <li>
                 A clear, well-lit photo of <strong>you</strong> works better

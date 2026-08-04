@@ -2,6 +2,7 @@
 
 import {
   Flag,
+  Gift,
   LayoutDashboard,
   Link as LinkIcon,
   Megaphone,
@@ -17,6 +18,7 @@ import { useState } from "react";
 const TABS: { key: string; label: string; icon: LucideIcon }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "links", label: "Links & page", icon: LinkIcon },
+  { key: "resources", label: "Resources", icon: Gift },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy },
   { key: "marketing", label: "Marketing", icon: Megaphone },
   { key: "rules", label: "Rules & prizes", icon: ScrollText },
