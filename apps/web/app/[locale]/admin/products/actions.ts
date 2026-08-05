@@ -5,9 +5,17 @@ import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { createProductOrder } from "@/lib/billing/product-checkout";
+import { CANONICAL_PRODUCT_FEATURES } from "@/lib/products/features";
 import { PRODUCTS_CACHE_TAG } from "@/lib/products/getProducts";
 
 const PRODUCT_TARGET = "00000000-0000-0000-0000-0000000900d5";
+
+// The only feature keys a product may grant. Pinning to the canonical catalog
+// stops a typo'd key silently writing a dead `product_features` row that the
+// gate can never match (check_feature_permission only reads real keys).
+const PRODUCT_FEATURE_KEYS = new Set(
+  CANONICAL_PRODUCT_FEATURES.map((feat) => feat.key),
+);
 
 const upsertSchema = z.object({
   id: z.string().uuid().optional().nullable(),
@@ -72,6 +80,23 @@ const upsertSchema = z.object({
   isVisible: z.boolean().default(true),
   // Hard cap on total units ever sold (null = unlimited).
   maxQuantity: z.number().int().min(0).max(10_000_000).nullable().default(null),
+  // Optional batch of feature grants applied in the SAME action as the product
+  // create — lets a brand-new product carry its permissions from the start.
+  // Previously features could only be set AFTER the product existed (each toggle
+  // needed the product id), so a freshly-created product granted nothing until
+  // the admin returned to it. `wielo_credits_per_month` is owned by
+  // creditsPerMonth and ignored here to avoid two copies disagreeing.
+  features: z
+    .array(
+      z.object({
+        featureKey: z
+          .string()
+          .refine((k) => PRODUCT_FEATURE_KEYS.has(k), "Unknown feature key."),
+        isEnabled: z.boolean(),
+        limitValue: z.number().int().min(0).nullable(),
+      }),
+    )
+    .optional(),
   reason: z.string().optional(),
 });
 
@@ -215,6 +240,28 @@ export const upsertProductAction = withAdminAudit<
       }
     }
 
+    // Batch feature grants provided at create-time. The permissions step buffers
+    // toggles for an unsaved product, then sends them here so they land in the
+    // same operation as the product itself. An existing product's features are
+    // still saved live per-toggle (upsertProductFeatureAction), so this is only
+    // sent on create; wielo_credits_per_month stays owned by the block above.
+    if (d.features && d.features.length > 0) {
+      const rows = d.features
+        .filter((feat) => feat.featureKey !== "wielo_credits_per_month")
+        .map((feat) => ({
+          product_id: id,
+          feature_key: feat.featureKey,
+          is_enabled: feat.isEnabled,
+          limit_value: feat.limitValue,
+        }));
+      if (rows.length > 0) {
+        const { error: featErr } = await service
+          .from("product_features")
+          .upsert(rows, { onConflict: "product_id,feature_key" });
+        if (featErr) throw new Error(featErr.message);
+      }
+    }
+
     revalidatePath("/admin/products");
     revalidateTag(PRODUCTS_CACHE_TAG);
     return { result: { ok: true, id }, after: { id } };
@@ -272,7 +319,11 @@ export const deleteProductAction = withAdminAudit<
 // Set a feature permission on a product.
 const featureSchema = z.object({
   productId: z.string().uuid(),
-  featureKey: z.string().min(1).max(80),
+  featureKey: z
+    .string()
+    .min(1)
+    .max(80)
+    .refine((k) => PRODUCT_FEATURE_KEYS.has(k), "Unknown feature key."),
   isEnabled: z.boolean(),
   limitValue: z.number().int().min(0).nullable(),
   reason: z.string().optional(),

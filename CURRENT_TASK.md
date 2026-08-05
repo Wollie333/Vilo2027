@@ -2,7 +2,40 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt32) — **SMART STAFF-INVITE ACCEPT + ⭐ NEXT: SUBSCRIPTION→PRODUCT ONBOARDING** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt33) — **SUBSCRIPTION→PRODUCT ONBOARDING: PLAN + PHASE 1 DONE** ⬅ START HERE
+
+**Not yet committed** (founder to approve the commit). tsc + lint (changed files) GREEN. Continues pt32.
+**Living doc:** `docs/features/SUBSCRIPTION_PRODUCT_ONBOARDING_PLAN.md` (full map + 4 confirmed decisions + phases).
+
+### What this stretch did
+1. **Investigated the whole signup→subscription→ledger→permission chain** (4 parallel audits). Headline:
+   most of the founder's ask is ALREADY BUILT. Product-checkout rails upgrade the account; feature perms
+   resolve from `product_features` via `subscription.product_id`; admin can upgrade a user to any product
+   (`setUserProductAction`). The genuine gaps are captured as Phases 2–5.
+2. **Confirmed 4 approach decisions** (all recommended): native-rail = return-page fallback; price override =
+   arbitrary recurring price first; comp accounting = post a comp ledger row; build order = features first.
+3. **PHASE 1 DONE + LIVE-VERIFIED** — product editor now persists assigned features at CREATE time
+   (`upsertProductAction.features[]` batch + buffer/flush in `ProductEditor`), feature keys pinned to
+   `CANONICAL_PRODUCT_FEATURES` (no free-text), rail hint fixed. Verified in founder's admin session:
+   new product with 2 grants persisted at create, `limit_value` round-trips. Test product deleted after.
+
+### ⭐ NEXT (locked order): Phase 2 → native-subscription-rail return-page activation fallback
+The dashboard plan-picker (`startPlanCheckoutAction` → `startSubscriptionCheckout`) upgrades the account
+ONLY if the Paystack webhook fires (`processSubscriptionEvent`) — no return-page fallback, and that webhook
+has historically failed. Add a verify+compare-and-set+activate on `subscription/billing/return/page.tsx`
+mirroring the product rail's `confirmProductOrderByReference`, so the webhook becomes a backstop.
+Then Phase 3 (per-user price override), Phase 4 (comp-ledger + reconciliation), Phase 5 (invite→account
+provisioning: adding a team member mints the account; accept → staff account + auto free guest account).
+
+### Env / state
+- Dev server `web-dev` RUNNING on :3000. Founder logged into `/admin` as super admin in their Chrome
+  (claude-in-chrome tab 1733408164 shares the cookie jar). DB clean-slate (see [[clean-slate-launch-wipe]]).
+- Uncommitted changes: `admin/products/actions.ts`, `admin/products/ProductEditor.tsx`, this file, CHANGELOG,
+  the plan doc. NO migration, NO schema change.
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt32) — **SMART STAFF-INVITE ACCEPT + ⭐ NEXT: SUBSCRIPTION→PRODUCT ONBOARDING**
 
 **`main` == `origin/main` == `c32b508` (pushed, Vercel deploying).** tsc GREEN. This continues pt31 (below) —
 same session. Read pt31 for the DB wipe / admin QA / cron-purge / staff-invite-email context + its memory pointers.

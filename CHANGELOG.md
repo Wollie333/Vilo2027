@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-08-05 (pt33) — Subscription→product onboarding: investigation + PLAN + Phase 1 (product feature grants).
+
+tsc + `pnpm lint` (changed files) GREEN. No migration. Live-verified via claude-in-chrome in the founder's
+admin session. Plan: `docs/features/SUBSCRIPTION_PRODUCT_ONBOARDING_PLAN.md`.
+
+- **End-to-end investigation** of the signup→subscription→ledger→permission chain (4 parallel audits).
+  Finding: most of the founder's ask is already built — product-checkout rails upgrade the account
+  (`activateMappedPlan`), `check_feature_permission` reads `product_features` off `subscription.product_id`
+  as its authoritative source, and admin can already upgrade a user to any product (`setUserProductAction`).
+  Real gaps captured as Phases 2–5 (native-rail webhook fallback, per-user price override, comp-ledger
+  reconciliation, invite→account provisioning). 4 approach decisions confirmed with the founder.
+- **Phase 1 (product feature grants) — DONE + LIVE-VERIFIED.** The product editor already persisted assigned
+  features to `product_features`; hardened two gaps: (1) `upsertProductAction` now accepts an optional
+  `features[]` batch so a brand-new product carries its grants from creation (the permissions step buffers
+  toggles for an unsaved product and flushes them on create — previously blocked with "save first"); (2)
+  `featureKey` is now pinned to `CANONICAL_PRODUCT_FEATURES` via `refine` in both the per-toggle and batch
+  paths (no free-text key path — admin only selects from the fixed toggle list). Stale rail hint fixed.
+  Verified: created a product with 2 buffered grants → both persisted at create, `limit_value` round-trips;
+  test product deleted, catalog clean. Files: `admin/products/actions.ts`, `admin/products/ProductEditor.tsx`.
+
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 
 Branch `feature/affiliate-program`. tsc + `pnpm lint` (zero warnings) + full `pnpm build` GREEN.

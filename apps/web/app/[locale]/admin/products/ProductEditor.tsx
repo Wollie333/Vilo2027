@@ -187,6 +187,21 @@ export function ProductEditor({
         trialDays: f.trialDays,
         isVisible: f.isVisible,
         maxQuantity: f.maxQuantity,
+        // On CREATE, flush the buffered permission toggles so a new product
+        // carries its grants from the start. An existing product's features are
+        // saved live per-toggle, so we don't resend them here. Credits are
+        // owned by creditsPerMonth (the block above), excluded to avoid a clash.
+        features: isNew
+          ? Object.entries(features)
+              .filter(
+                ([k, st]) => k !== "wielo_credits_per_month" && st.isEnabled,
+              )
+              .map(([k, st]) => ({
+                featureKey: k,
+                isEnabled: true,
+                limitValue: st.limitValue ?? null,
+              }))
+          : undefined,
       });
       if (r.ok) {
         toast.success(isNew ? "Product created." : "Product saved.");
@@ -214,7 +229,12 @@ export function ProductEditor({
   }
 
   function saveFeature(key: string, next: FeatureState) {
-    if (!f.id) return;
+    // A brand-new product has no id yet — buffer the toggle in local state and
+    // flush it into product_features when the product is created (see save()).
+    if (!f.id) {
+      setFeatures((s) => ({ ...s, [key]: next }));
+      return;
+    }
     const prev = features[key];
     setFeatures((s) => ({ ...s, [key]: next }));
     setSavingFeat(key);
@@ -325,7 +345,15 @@ export function ProductEditor({
       id: "permissions",
       label: "Feature permissions",
       icon: ShieldCheck,
-      hint: f.id ? `${enabledFeatureCount} enabled` : "Save the product first",
+      // Grants can now be chosen before the product is saved (they flush on
+      // create), so reflect the buffered selection rather than telling the admin
+      // to save first.
+      hint:
+        enabledFeatureCount > 0
+          ? `${enabledFeatureCount} ${f.id ? "enabled" : "selected"}`
+          : f.id
+            ? "None enabled"
+            : "Choose what it unlocks",
       done: !!f.id,
     },
     ...(f.id || f.slug
@@ -991,14 +1019,20 @@ export function ProductEditor({
           {step === "permissions" ? (
             <Panel
               title="Feature permissions"
-              hint="What this product unlocks. Saves as you toggle."
+              hint={
+                f.id
+                  ? "What this product unlocks. Saves as you toggle."
+                  : "What this product unlocks. Saved when you create the product."
+              }
               icon={ShieldCheck}
             >
               {!f.id ? (
-                <p className="text-[13px] text-brand-mute">
-                  Save the product first, then assign which features it unlocks.
+                <p className="mb-3 text-[13px] text-brand-mute">
+                  Choose what this product unlocks — these grants are saved the
+                  moment you create the product.
                 </p>
-              ) : (
+              ) : null}
+              {
                 <div className="overflow-hidden rounded-card border border-brand-line bg-white">
                   <ul className="divide-y divide-brand-line">
                     {featureCatalog
@@ -1090,7 +1124,7 @@ export function ProductEditor({
                       })}
                   </ul>
                 </div>
-              )}
+              }
             </Panel>
           ) : null}
 
