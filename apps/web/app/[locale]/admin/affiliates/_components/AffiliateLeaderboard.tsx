@@ -11,6 +11,7 @@ export type LeaderboardRow = {
   id: string;
   userId: string;
   slug: string;
+  partnerNumber: string;
   name: string;
   email: string | null;
   status: "pending" | "active" | "suspended";
@@ -48,7 +49,8 @@ export function AffiliateLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
           (r) =>
             r.name.toLowerCase().includes(needle) ||
             (r.email ?? "").toLowerCase().includes(needle) ||
-            r.slug.toLowerCase().includes(needle),
+            r.slug.toLowerCase().includes(needle) ||
+            r.partnerNumber.includes(needle),
         )
       : rows;
     const sorted = [...filtered].sort((a, b) => {
@@ -186,14 +188,14 @@ export function AffiliateLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
                     </td>
                     <td>
                       <div className="inline-flex items-center gap-1.5">
-                        <span className="mono text-[12.5px] font-semibold text-brand-ink">
-                          {r.slug}
+                        <span className="mono text-[13px] font-bold tracking-wide text-brand-ink">
+                          {r.partnerNumber}
                         </span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(r.slug).then(
+                            navigator.clipboard.writeText(r.partnerNumber).then(
                               () => toast.success("Partner code copied"),
                               () => toast.error("Couldn't copy."),
                             );

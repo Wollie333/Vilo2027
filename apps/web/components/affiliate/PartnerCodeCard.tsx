@@ -4,26 +4,30 @@ import { Check, Copy, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// A compact, self-contained card showing an affiliate's bare PARTNER CODE (their
-// slug) with one-tap copy. Reused wherever the code should always be to hand:
-// the admin affiliate record (top-right), and — via the affiliate shell — every
-// page of the partner's own portal. The code is what a referred host types into
-// signup's "Referred by" field.
+// A compact, self-contained card showing an affiliate's shareable identifiers:
+// the 5-digit PARTNER CODE (number) and their username/handle (slug). A referred
+// host can be attributed by EITHER — both are copyable. Reused on the admin
+// affiliate record (top-right) and, via the affiliate shell, every page of the
+// partner's own portal.
 export function PartnerCodeCard({
+  partnerNumber,
   slug,
   className = "",
 }: {
+  partnerNumber: string;
   slug: string;
   className?: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"code" | "handle" | null>(null);
 
-  async function copy() {
+  async function copy(value: string, which: "code" | "handle") {
     try {
-      await navigator.clipboard.writeText(slug);
-      setCopied(true);
-      toast.success("Partner code copied");
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(value);
+      setCopied(which);
+      toast.success(
+        which === "code" ? "Partner code copied" : "Username copied",
+      );
+      setTimeout(() => setCopied(null), 1500);
     } catch {
       toast.error("Couldn't copy — copy it manually.");
     }
@@ -40,22 +44,37 @@ export function PartnerCodeCard({
         <div className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-brand-mute">
           Partner code
         </div>
-        <div className="truncate font-mono text-[13.5px] font-semibold text-brand-ink">
-          {slug}
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[15px] font-bold tracking-wide text-brand-ink">
+            {partnerNumber}
+          </span>
+          <button
+            type="button"
+            onClick={() => copy(partnerNumber, "code")}
+            aria-label="Copy partner code"
+            className="shrink-0 rounded border border-brand-line bg-white p-1 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+          >
+            {copied === "code" ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </button>
         </div>
+        <button
+          type="button"
+          onClick={() => copy(slug, "handle")}
+          title="Copy username"
+          className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-brand-mute transition hover:text-brand-ink"
+        >
+          <span className="truncate">@{slug}</span>
+          {copied === "handle" ? (
+            <Check className="h-2.5 w-2.5" />
+          ) : (
+            <Copy className="h-2.5 w-2.5" />
+          )}
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={copy}
-        aria-label="Copy partner code"
-        className="shrink-0 rounded-md border border-brand-line bg-white p-1.5 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-      >
-        {copied ? (
-          <Check className="h-3.5 w-3.5" />
-        ) : (
-          <Copy className="h-3.5 w-3.5" />
-        )}
-      </button>
     </div>
   );
 }

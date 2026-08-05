@@ -147,7 +147,10 @@ export async function AffiliateShell({
     return (
       <div>
         <div className="mb-3 flex justify-end">
-          <PartnerCodeCard slug={account.slug} />
+          <PartnerCodeCard
+            partnerNumber={account.partner_number}
+            slug={account.slug}
+          />
         </div>
         {header}
         <div className="pt-6">
@@ -165,7 +168,12 @@ export async function AffiliateShell({
   return (
     <AffiliateChrome
       basePath={basePath}
-      persistent={<PartnerCodeCard slug={account.slug} />}
+      persistent={
+        <PartnerCodeCard
+          partnerNumber={account.partner_number}
+          slug={account.slug}
+        />
+      }
       chrome={
         <>
           {header}

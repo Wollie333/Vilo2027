@@ -24,7 +24,7 @@ export default async function AdminAffiliateDirectoryPage() {
   ] = await Promise.all([
     service
       .from("affiliate_accounts")
-      .select("id, user_id, slug, status, currency")
+      .select("id, user_id, slug, partner_number, status, currency")
       .order("created_at", { ascending: false }),
     service.from("affiliate_referrals").select("affiliate_id, campaign_id"),
     service
@@ -88,6 +88,7 @@ export default async function AdminAffiliateDirectoryPage() {
       id: a.id,
       userId: a.user_id,
       slug: a.slug,
+      partnerNumber: a.partner_number,
       name: profile?.full_name || "Unnamed",
       email: profile?.email ?? null,
       status: a.status as "pending" | "active" | "suspended",

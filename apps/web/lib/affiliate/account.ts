@@ -11,6 +11,7 @@ export type AffiliateAccount = {
   id: string;
   user_id: string;
   slug: string;
+  partner_number: string;
   status: "pending" | "active" | "suspended";
   terms_version: string;
   accepted_at: string;
@@ -20,7 +21,7 @@ export type AffiliateAccount = {
 };
 
 const ACCOUNT_COLS =
-  "id, user_id, slug, status, terms_version, accepted_at, payout_threshold, currency, default_payout_method";
+  "id, user_id, slug, partner_number, status, terms_version, accepted_at, payout_threshold, currency, default_payout_method";
 
 export async function getAffiliateForUser(
   admin: Db,

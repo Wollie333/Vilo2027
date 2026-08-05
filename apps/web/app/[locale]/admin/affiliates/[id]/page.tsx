@@ -72,7 +72,9 @@ export default async function AdminAffiliateFunnelPage({
 
   const { data: account } = await service
     .from("affiliate_accounts")
-    .select("id, user_id, slug, status, currency, created_at, verified_at")
+    .select(
+      "id, user_id, slug, partner_number, status, currency, created_at, verified_at",
+    )
     .eq("id", params.id)
     .maybeSingle();
   if (!account) notFound();
@@ -286,7 +288,10 @@ export default async function AdminAffiliateFunnelPage({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <PartnerCodeCard slug={account.slug} />
+            <PartnerCodeCard
+              partnerNumber={account.partner_number}
+              slug={account.slug}
+            />
             <Link
               href={`/admin/users/${account.user_id}`}
               className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light"

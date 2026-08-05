@@ -23,6 +23,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const REF_COOKIE = "vilo_ref";
 
+// A partner can be referenced by EITHER their 5-digit partner_number OR their
+// slug/username. A 4–6 digit all-numeric string is treated as the number;
+// anything else is a handle. (Slugs are kebab handles, never bare digits.)
+const NUMERIC_CODE = /^\d{4,6}$/;
+
 type RefPayload = {
   aff?: string;
   slug?: string;
@@ -61,11 +66,12 @@ async function resolveManualCode(
 ): Promise<string | null> {
   const trimmed = code.trim();
   if (!trimmed) return null;
-  const { data } = await admin
-    .from("affiliate_accounts")
-    .select("id")
-    .ilike("slug", trimmed)
-    .maybeSingle();
+  const base = admin.from("affiliate_accounts").select("id");
+  const { data } = await (
+    NUMERIC_CODE.test(trimmed)
+      ? base.eq("partner_number", trimmed)
+      : base.ilike("slug", trimmed)
+  ).maybeSingle();
   return data?.id ?? null;
 }
 
@@ -115,18 +121,22 @@ export async function resolveReferralPartner(
     const trimmed = (code ?? "").trim();
     if (!trimmed) return null;
     const admin = createAdminClient();
-    const { data } = await admin
+    const base = admin
       .from("affiliate_accounts")
       // Deliberately NO contact columns (public_phone etc.) — name + avatar only.
       .select(
         "slug, photo_url, user:user_profiles!user_id ( full_name, avatar_url )",
       )
-      .ilike("slug", trimmed)
       // A suspended partner still shows in the "Referred by" field and still
       // captures the referral (they just earn nothing while suspended). Only
       // closed/pending partners stop resolving — their referrals default to Wielo.
-      .in("status", ["active", "suspended"])
-      .maybeSingle();
+      .in("status", ["active", "suspended"]);
+    // Resolve by the 5-digit partner_number OR the slug/username — either works.
+    const { data } = await (
+      NUMERIC_CODE.test(trimmed)
+        ? base.eq("partner_number", trimmed)
+        : base.ilike("slug", trimmed)
+    ).maybeSingle();
     if (!data) return null;
     const u = Array.isArray(data.user) ? data.user[0] : data.user;
     const name =
