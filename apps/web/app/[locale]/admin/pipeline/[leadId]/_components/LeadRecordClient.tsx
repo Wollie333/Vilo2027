@@ -346,7 +346,7 @@ export function LeadRecordClient({
               </button>
               {/* No manual "Mark won": a card wins only when the host pays or
                   the affiliate registers (DB triggers). Keeps Won — and the
-                  board's value/conversion KPIs — honest. */}
+                  board's conversion KPIs — honest. */}
               <button
                 disabled={
                   pending || lead.status === "lost" || lead.status === "won"

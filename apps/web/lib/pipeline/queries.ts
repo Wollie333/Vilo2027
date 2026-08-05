@@ -48,9 +48,6 @@ export type BoardLead = {
   atRisk: boolean;
   /** Wielo account state behind the card: passwordless lead vs claimed account. */
   isLead: boolean;
-  /** ZAR value on the card: realized Wielo revenue (paid) or the trial's expected price. */
-  value: number;
-  valueKind: "paid" | "trial" | null;
   /** Cumulative realized Wielo revenue from this person (lifetime value, ZAR). */
   ltv: number;
   /** Recurring subscription price (ZAR for the cycle) — null if no priced sub. */
@@ -167,7 +164,6 @@ export async function getBoard(audience: Audience): Promise<Board> {
     missed: number;
   };
   const subByUser = new Map<string, SubSnap>();
-  const trialByUser = new Map<string, number>();
   // Affiliate accounts feed BOTH boards: "referred qty" on host cards, full
   // partner productivity on affiliate cards, plus a photo fallback.
   const affCtxByUser = new Map<string, BoardAffiliateContext>();
@@ -337,8 +333,6 @@ export async function getBoard(audience: Audience): Promise<Board> {
             missed: Number(s.failed_payment_count ?? 0),
           });
         }
-        if (s.status === "trialing" && amount && !trialByUser.has(uid))
-          trialByUser.set(uid, amount);
       }
     }
   }
@@ -400,16 +394,6 @@ export async function getBoard(audience: Audience): Promise<Board> {
       suppressed: Boolean(l.suppress_default_nurture),
       atRisk: Boolean(l.at_risk),
       isLead: Boolean(prof?.is_lead),
-      value: (() => {
-        const realized = realizedByUser.get(l.user_id) ?? 0;
-        return realized > 0 ? realized : (trialByUser.get(l.user_id) ?? 0);
-      })(),
-      valueKind:
-        (realizedByUser.get(l.user_id) ?? 0) > 0
-          ? "paid"
-          : (trialByUser.get(l.user_id) ?? 0) > 0
-            ? "trial"
-            : null,
       ltv: realizedByUser.get(l.user_id) ?? 0,
       subscriptionAmount: sub?.amount ?? null,
       subscriptionInterval: sub?.cycle ?? null,

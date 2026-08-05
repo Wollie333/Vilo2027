@@ -103,7 +103,7 @@ export const setLeadOutcomeAction = withAdminAudit<
     // "Won" is earned, not asserted: a host card wins when they pay
     // (on_platform_ledger_settled) and an affiliate card wins when they
     // register (on_affiliate_activated). Blocking the manual path keeps the
-    // board's Won column — and therefore its value + conversion KPIs — honest.
+    // board's Won column — and therefore its conversion KPIs — honest.
     if (a.outcome === "won") {
       throw new Error(
         "Won is set automatically when a lead pays (host) or registers (affiliate) — it can't be marked by hand.",

@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-08-05 — Pipeline cleanup: prune dead board `value`/`valueKind` fields; verify lead-delete deny gate.
+
+On `main` (continues the pipeline-cards save point at `eb3d6e66`). No migrations — pure app-layer. `tsc` +
+`pnpm lint` green; pipeline board live-verified rendering identically (KPIs compute, cards/pills/links intact,
+no console errors from the change). See memory `project-savepoint-aug5-pipeline-cards.md`.
+
+- **Pruned superseded board fields** (`lib/pipeline/queries.ts`): removed the write-only `value` + `valueKind`
+  fields from `BoardCard` (superseded by the `ltv`/`subscriptionAmount` pills — nothing rendered them; KPIs are
+  counted from raw leads, not `.value`). Also dropped the now-dead `trialByUser` map (only fed `value`/`valueKind`;
+  `realizedByUser` stays — it feeds `ltv`). Updated two stale prose comments that referenced the removed "value".
+- **Verified the super-admin-only lead-delete deny gate** (code-level): `deleteLeadAction` throws before any
+  deletion when `requireAdmin().roleId !== 'super_admin'`; `roleId` is sourced from the real `platform_staff.role_id`
+  column (non-null string) — a `throw`, not a swallowed return, so no silent no-op. Fails safe for null/other/non-staff.
+  ⚠️ Deny path still NOT live-exercised — only the super_admin staff account exists (environmental blocker, unchanged).
+
 ## 2026-08-05 — Admin broadcast banners, Comms/Build-Board polish, confirm-modal sweep, responsive pipeline lifecycle + affiliate nurture.
 
 Branch `feature/admin-broadcast-banners` (sub-branch off main, isolates from a parallel agent). Head `f7d2ba4c`,
