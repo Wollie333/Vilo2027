@@ -2,7 +2,54 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt37) — **REPORTING SINGLE SOURCE: DOMAIN 1 DONE; DOMAIN 2/3 NEXT** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt38) — **REPORTING SINGLE SOURCE: DOMAIN 2 + 3 UNIFIED (code); LIVE-VERIFY PENDING** ⬅ START HERE
+
+Continues pt37 (same session group). Founder confirmed the two open definitions via the
+question card, then I unified both remaining money domains. **Living doc:**
+`docs/features/REPORTING_SINGLE_SOURCE_PLAN.md` (DECISIONS 3 & 4 now CONFIRMED + PROGRESS updated).
+
+### Founder decisions (confirmed pt38)
+- **DECISION 3 (host "Collected") = GROSS CASH.** Canonical everywhere = `txnFlows.collected`
+  (deposit/balance/addon/payment), refunds a SEPARATE line, applied store credit NOT counted.
+- **DECISION 4 (affiliate "Paid out to date") = NET PAID** (`affiliate_payouts.net_amount`),
+  gross as a sub-line; one "lifetime earned" (`balance.lifetime`); "this month" from `summariseCommissions`.
+
+### ✅ DOMAIN 2 (host) — unified in code
+- `dashboard/payments/page.tsx`: the Payments board KPI strip now derives **Collected** +
+  **Refunds** from the ONE aggregator (`fetchHostTransactions` → `txnFlows`/`txnStats`), the
+  exact source the **Ledger** (`txnStats.collected`) and **Reports** (`periodFlows.collected`)
+  already use → the three windows agree by construction. `sumPaidFromRows` is now ONLY
+  per-booking settlement (verified no other reporting total re-derives cash). Sub-count counts
+  cash-in entries so it matches the money figure.
+- ⚠️ **Live-verify BLOCKED:** founder's session is a guest/affiliate persona → `/dashboard/payments`
+  **404s** (`getMyHostId`→null). Needs a **HOST** login with payment data. NOT yet SEEN live.
+
+### ✅ DOMAIN 3 (affiliate) — unified in code + render-verified
+- `portal/affiliates/payouts/page.tsx` (D3a): "Paid out to date" = Σ `net_amount` over paid
+  payouts (gross sub-line only when it differs). `portal/affiliates/page.tsx` (D3c): "this
+  month earned" = `summariseCommissions(monthSlice).lifetime` (net, not positive-only). Tier
+  card relabelled "cleared · counts to tier" (D3b) so it isn't misread as total.
+- ✅ **Live render-verified** on founder's affiliate account (partner 24198): payouts R0 · 0
+  payouts; overview Lifetime earned R0 · "across all time"; **no console errors**. But this
+  affiliate has ZERO commission/payout data → the net-vs-gross difference can't be shown with
+  real numbers. Needs a **funded affiliate** (a paid payout with a fee) to prove the divergence gone.
+
+### ⚠️ Checks / state
+- tsc (full) + lint (3 changed files) + full vitest **490 passed** GREEN. **Full `pnpm build`
+  NOT re-run** — run `pnpm build:local` next (auto-sizes V8 heap ≤ RAM; NEVER exceed ~8 GB physical).
+- Dev server `web-dev` on :3000. Founder logged into `/admin` as super admin in Chrome
+  (claude-in-chrome shared jar) — restored to `/admin/pipeline` after verifying.
+- **Committed** the 3 code files + docs (main, not pushed — founder controls prod deploys).
+
+### ▶ Next
+1. **Founder drives two logins so I can finish live-verify:** (a) a HOST account with booking
+   payments → confirm Payments board "Collected" == Ledger == Reports; (b) a funded affiliate
+   (or seed a paid payout+fee) → confirm "Paid out to date" shows NET and reconciles with history.
+2. Then Domain-1/2/3 reporting single-source is fully SEEN-live done; resume PAUSED #4 video / #5 steps.
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt37) — **REPORTING SINGLE SOURCE: DOMAIN 1 DONE; DOMAIN 2/3 NEXT**
 
 Continues pt36 (same session). Founder pivoted mid-session to a NEW priority: **one
 source of truth for all money reporting**, every window a mirror, correct for admins +

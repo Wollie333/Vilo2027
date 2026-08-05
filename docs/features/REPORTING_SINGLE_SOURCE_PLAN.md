@@ -85,9 +85,35 @@ so the R50's `subscription_id=NULL` does NOT break commission (verified).
 - `55123f7` — D1c: the admin user-record "Paid to Wielo" now uses ONE charge-only
   definition in both the detail panel and the Overview headline.
 
-**⏳ Domain 2 (host) & Domain 3 (affiliate) — NOT STARTED.** See the DECISIONS below —
-these are different-meaning numbers, not just bugs, so confirm the canonical definition
-before unifying, then live-verify with a host + affiliate session.
+**✅ Domain 2 (host "Collected") — UNIFIED (code) — session pt38.** Founder confirmed
+GROSS CASH (DECISION 3). The host Payments board KPI strip (`dashboard/payments/page.tsx`)
+now derives **Collected** + **Refunds** from the ONE canonical aggregator
+(`fetchHostTransactions` → `txnFlows`/`txnStats`) — the exact source the Ledger
+(`txnStats.collected`) and Reports (`periodFlows.collected`) already use — so the number is
+identical across all three host money windows by construction. `sumPaidFromRows` is now used
+ONLY for per-booking settlement (balance_due / payment_status); confirmed no other reporting
+total re-derives cash. The "settled payments" sub-count now counts cash-in entries so it
+matches the money above it.
+- **Live-verify: BLOCKED (not a host session).** The founder's browser session is a
+  guest/affiliate persona — `/dashboard/payments` 404s (`getMyHostId` → null). Needs the
+  founder to log into a HOST account with payment data to see it live. Correct-by-construction
+  (same aggregator as Ledger/Reports) + tsc/lint/490-tests green, but NOT yet SEEN live.
+
+**✅ Domain 3 (affiliate) — UNIFIED (code) — session pt38.** Founder confirmed NET PAID
+(DECISION 4).
+- **D3a** `payouts/page.tsx`: "Paid out to date" headline = Σ `affiliate_payouts.net_amount`
+  over paid payouts (what actually left), reconciling with the history table's Paid column;
+  gross rides as a sub-line only when it differs from net.
+- **D3c** `affiliates/page.tsx`: "this month earned" now = `summariseCommissions(monthSlice).lifetime`
+  (true net, clawbacks subtract) instead of the old positive-only sum.
+- **D3b** tier card relabelled "…cleared · counts to tier" so it isn't misread as total
+  lifetime (which stays `balance.lifetime`).
+- **Live-verify: RENDER-verified, DATA-not-demonstrable.** Both surfaces render cleanly on the
+  founder's affiliate account (partner 24198, @wollie-steenkamp): payouts "Paid out to date"
+  R0 · 0 payouts; overview Lifetime earned R0 · "across all time"; no console errors. This
+  affiliate has ZERO commissions/payouts, so the net-vs-gross difference + a nonzero this-month
+  can't be shown with real numbers — needs a funded affiliate (paid payout with a fee) to prove
+  the numeric divergence is gone.
 
 ## Proposed design
 
@@ -126,7 +152,22 @@ record; host ledger/payments/reports/billing; affiliate overview/payouts) with D
 2. **Domains:** ✅ **Keep the 3 domains separate**, one canonical aggregator each; every
    window mirrors its aggregator.
 
-## DECISIONS NEEDED — Domain 2 & 3 (next session)
+## DECISIONS — CONFIRMED (2026-08-05, session pt38) — Domain 2 & 3
+
+**DECISION 3 — host "Collected" → ✅ GROSS CASH (`txnFlows`).** Canonical "Collected"
+everywhere (Payments board headline, Ledger, Reports) = real cash received
+(`CASH_KINDS` = deposit/balance/addon/payment), refunds shown as a SEPARATE line,
+applied store credit NOT counted as collected. The Payments board headline changes to
+mirror `txnStats`/`txnFlows`; `sumPaidFromRows` stays ONLY for per-booking settlement
+(balance_due / payment_status). 
+
+**DECISION 4 — affiliate "Paid out to date" → ✅ NET PAID.** Canonical headline =
+`affiliate_payouts.net_amount` (what actually left after fees), reconciling with the
+payout-history rows; gross cleared commission shown as a smaller sub-line. One
+"lifetime earned" source (`balance.lifetime`); "this month earned" derived from
+`summariseCommissions`, not the ad-hoc positive-only aggregate.
+
+<details><summary>Original decision text (superseded by the above)</summary>
 
 **DECISION 3 — host "Collected" (D2a).** The Payments board and the Ledger/Reports
 show different "Collected" numbers because they mean different things:
@@ -151,6 +192,8 @@ show different "Collected" numbers because they mean different things:
 - "This month earned" derive from `summariseCommissions`, not the ad-hoc positive-only
   aggregate (D3c). Monthly statement definition reconciled with status-split (D3d).
   → Confirm the labels, then unify + live-verify in the affiliate portal.
+
+</details>
 
 ## DECISIONS NEEDED (original)
 

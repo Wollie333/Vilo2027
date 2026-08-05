@@ -159,7 +159,17 @@ export default async function AffiliatePayoutsPage() {
         ? "PayPal"
         : "Paystack";
 
-  const paidCount = (payouts ?? []).filter((p) => p.status === "paid").length;
+  // "Paid out to date" reconciles straight from affiliate_payouts (the same rows
+  // in the history table below): NET is what actually left the platform (after
+  // fees), so it — not gross cleared commission (balance.paid) — is the headline;
+  // gross rides as a sub-line (REPORTING_SINGLE_SOURCE_PLAN.md DECISION 4 / D3a).
+  const paidPayouts = (payouts ?? []).filter((p) => p.status === "paid");
+  const paidCount = paidPayouts.length;
+  const paidOutNet = paidPayouts.reduce((s, p) => s + Number(p.net_amount), 0);
+  const paidOutGross = paidPayouts.reduce(
+    (s, p) => s + Number(p.gross_amount),
+    0,
+  );
 
   // Monthly commission statements.
   const monthTotals = new Map<string, { total: number; count: number }>();
@@ -220,10 +230,13 @@ export default async function AffiliatePayoutsPage() {
           <div className="bg-[#FAFCFB] p-4">
             <div className="smallcaps">Paid out to date</div>
             <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
-              {zar0(balance.paid)}
+              {zar0(paidOutNet)}
             </div>
             <div className="mt-1 text-[11px] text-brand-mute">
               {paidCount} payout{paidCount === 1 ? "" : "s"}
+              {paidOutGross > paidOutNet + 0.5
+                ? ` · ${zar0(paidOutGross)} gross`
+                : ""}
             </div>
           </div>
         </section>

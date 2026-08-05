@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import {
+  fetchHostTransactions,
+  txnFlows,
+  txnStats,
+} from "@/lib/finance/transactions";
 import { getMyHostId } from "@/lib/host/current";
-import { sumPaidFromRows } from "@/lib/payments/ledger";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -102,35 +107,33 @@ export default async function PaymentsPage() {
   });
 
   // ── KPIs ──
-  const completed = rows.filter((r) => r.status === "completed");
-  // Collected = the canonical paid-sum (completed + non-voided + inbound kinds),
-  // not a raw sum of every completed row — so voided / non-inbound payments
-  // never inflate it, matching the ledger everywhere else.
-  const collected = sumPaidFromRows(
-    raw.map((p) => ({
-      amount: Number(p.amount),
-      kind: p.kind,
-      status: p.status,
-      voided_at: p.voided_at,
-      refunded_amount: Number(p.refunded_amount ?? 0),
-    })),
-  );
-  // Total refunds = sum of payments.refunded_amount (trigger-maintained as
-  // refunds complete), counting how many payments had any refund.
-  const refundedTotal = raw.reduce(
-    (acc, p) => acc + Number(p.refunded_amount ?? 0),
-    0,
-  );
-  const refundedCount = raw.filter(
-    (p) => Number(p.refunded_amount ?? 0) > 0,
+  // Money totals come from the ONE canonical aggregator (fetchHostTransactions →
+  // txnFlows/txnStats) — the same source the Ledger and Reports use — so
+  // "Collected" and "Refunds" read identically across every host money window
+  // (REPORTING_SINGLE_SOURCE_PLAN.md DECISION 3, AGENT_RULES §4.7). "Collected"
+  // is therefore GROSS CASH (deposit/balance/addon/payment), refunds a SEPARATE
+  // line, and applied store credit is NOT counted as cash. sumPaidFromRows stays
+  // the per-booking settlement rule only (balance_due / payment_status), never a
+  // reporting total.
+  const admin = createAdminClient();
+  const ledger = await fetchHostTransactions(admin, { hostId: myHostId });
+  const flows = txnFlows(ledger);
+  const stats = txnStats(ledger);
+  // Count of settled cash-in entries behind the collected total (excludes applied
+  // credit and refunds), so the sub-line matches the money figure above it.
+  const cashInCount = ledger.filter(
+    (e) => !e.voided && !e.pending && e.cashEffect > 0,
+  ).length;
+  const refundedCount = ledger.filter(
+    (e) => e.type === "refund" && !e.voided && !e.pending,
   ).length;
 
   const kpis: PaymentKpis = {
-    collected,
-    completedCount: completed.length,
+    collected: flows.collected,
+    completedCount: cashInCount,
     pendingCount: rows.filter((r) => r.status === "pending").length,
     failedCount: rows.filter((r) => r.status === "failed").length,
-    refundedTotal,
+    refundedTotal: stats.refunded,
     refundedCount,
   };
 

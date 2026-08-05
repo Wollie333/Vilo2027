@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-08-05 (pt38) — Reporting single source of truth: Domain 2 (host) + Domain 3 (affiliate).
+
+tsc (full) + lint (changed files) + full vitest (490) GREEN. No migration. Founder confirmed
+the two open definitions (DECISION 3 = gross cash; DECISION 4 = net paid) via the question
+card. Plan: `docs/features/REPORTING_SINGLE_SOURCE_PLAN.md`. Full `pnpm build` not re-run —
+use `pnpm build:local` next.
+
+Domain 2 (host "Collected") — unified in code:
+- The host **Payments board** KPI strip (`apps/web/app/[locale]/dashboard/payments/page.tsx`)
+  now derives **Collected** + **Refunds** from the ONE canonical aggregator
+  (`fetchHostTransactions` → `txnFlows`/`txnStats`) — the exact source the **Ledger**
+  (`txnStats.collected`) and **Reports** (`periodFlows.collected`) already use. "Collected" is
+  therefore gross cash (deposit/balance/addon/payment), refunds a separate line, applied store
+  credit excluded — identical across all three host windows by construction (was `sumPaidFromRows`,
+  which counted credit and netted refunds → a different number under the same label). The
+  "settled payments" sub-count now counts cash-in entries so it matches the money above it.
+  `sumPaidFromRows` stays the per-booking settlement rule only (balance_due / payment_status);
+  verified no other reporting total re-derives cash. (AGENT_RULES §4.7.)
+- Live-verify BLOCKED: the founder's browser session is a guest/affiliate persona, so
+  `/dashboard/payments` 404s (`getMyHostId`→null). Correct-by-construction + green, but needs a
+  real HOST login to be SEEN live.
+
+Domain 3 (affiliate) — unified in code + render-verified:
+- `portal/affiliates/payouts/page.tsx` (D3a): "Paid out to date" = Σ `affiliate_payouts.net_amount`
+  over paid payouts (what actually left, reconciling with the history table's Paid column);
+  gross shown as a sub-line only when it differs from net (was gross `balance.paid`).
+- `portal/affiliates/page.tsx` (D3c): "this month earned" = `summariseCommissions(monthSlice).lifetime`
+  (true net — clawbacks subtract) instead of the old positive-only sum.
+- Tier card relabelled "…cleared · counts to tier" (D3b) so it isn't misread as total lifetime.
+- Live render-verified on the founder's affiliate account (partner 24198): both surfaces render,
+  no console errors; but the account has zero commission/payout data so the net-vs-gross difference
+  can't be shown with real numbers — needs a funded affiliate to prove the numeric divergence gone.
+
 ## 2026-08-05 (pt37) — Reporting single source of truth: Domain 1 (platform revenue).
 
 tsc (full) + lint + full vitest (490) GREEN. No migration (one data backfill on the linked

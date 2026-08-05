@@ -17,10 +17,13 @@ import {
   type CommissionStructure,
   type LadderBand,
 } from "@/lib/affiliate/campaigns";
-import { getAffiliateBalance } from "@/lib/affiliate/balance";
+import {
+  getAffiliateBalance,
+  summariseCommissions,
+  type CommissionRowLike,
+} from "@/lib/affiliate/balance";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import { getAffiliateTier } from "@/lib/affiliate/tiers";
-import { round2 } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -198,19 +201,24 @@ export default async function AffiliateOverviewPage() {
   const clicks = clickCount ?? 0;
   const signups = refs.length;
 
-  // This-month earned (positive accruals only).
+  // This-month earned — the SAME canonical aggregator (summariseCommissions) that
+  // defines "Lifetime earned", just scoped to this month, so it's a true net
+  // figure (clawbacks/offsets subtract) rather than the old positive-only sum
+  // (REPORTING_SINGLE_SOURCE_PLAN.md DECISION 4 / D3c). Voided rows are dropped by
+  // the aggregator itself.
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const thisMonthEarned = round2(
+  const thisMonthEarned = summariseCommissions(
     (commissions ?? [])
-      .filter(
-        (c) =>
-          c.status !== "voided" &&
-          Number(c.commission_amount) > 0 &&
-          new Date(c.created_at).getTime() >= monthStart,
-      )
-      .reduce((s, c) => s + Number(c.commission_amount), 0),
-  );
+      .filter((c) => new Date(c.created_at).getTime() >= monthStart)
+      .map<CommissionRowLike>((c) => ({
+        status: c.status,
+        entry_type: c.entry_type,
+        payout_id: null,
+        commission_amount: Number(c.commission_amount),
+        currency: null,
+      })),
+  ).lifetime;
 
   // Recent commission activity (latest 5 rows).
   const kindLabel = (kind: string | null): string => {
@@ -735,7 +743,9 @@ export default async function AffiliateOverviewPage() {
                         />
                       </div>
                       <div className="num mt-2 flex justify-between text-[11px] text-brand-mute">
-                        <span>{zar(tier.earnings)} lifetime cleared</span>
+                        <span>
+                          {zar(tier.earnings)} cleared · counts to tier
+                        </span>
                         <span>
                           {tier.next.name} at {zar(tier.next.minEarnings)}
                         </span>
