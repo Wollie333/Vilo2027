@@ -96,6 +96,48 @@ export async function getReferredByPrefill(): Promise<{
   }
 }
 
+export type ResolvedReferralPartner = {
+  name: string;
+  avatarUrl: string | null;
+};
+
+/**
+ * Resolve a typed partner code (the affiliate's slug) to the ACTIVE partner
+ * behind it, for the signup "Referred by" field. Returns ONLY the partner's
+ * public name + avatar — NEVER a contact detail (no email, no phone) — or null
+ * when the code matches no ACTIVE affiliate. Admin client: affiliate_accounts
+ * RLS blocks cross-user reads and this deliberately resolves someone else's code.
+ */
+export async function resolveReferralPartner(
+  code: string,
+): Promise<ResolvedReferralPartner | null> {
+  try {
+    const trimmed = (code ?? "").trim();
+    if (!trimmed) return null;
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("affiliate_accounts")
+      // Deliberately NO contact columns (public_phone etc.) — name + avatar only.
+      .select(
+        "slug, photo_url, user:user_profiles!user_id ( full_name, avatar_url )",
+      )
+      .ilike("slug", trimmed)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!data) return null;
+    const u = Array.isArray(data.user) ? data.user[0] : data.user;
+    const name =
+      (u?.full_name as string | null)?.trim() || (data.slug as string);
+    const avatarUrl =
+      (data.photo_url as string | null) ??
+      (u?.avatar_url as string | null) ??
+      null;
+    return { name, avatarUrl };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Bind a freshly-created user to the affiliate in their `vilo_ref` cookie, or —
  * when there is no cookie — to a partner code typed into the "Referred by" field

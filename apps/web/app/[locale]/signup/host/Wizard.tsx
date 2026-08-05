@@ -9,10 +9,12 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  Loader2,
   PartyPopper,
   ShieldCheck,
   Star,
   Upload,
+  X,
 } from "lucide-react";
 import { VLogo } from "@/app/_components/home/VLogo";
 import { Link } from "@/i18n/navigation";
@@ -69,6 +71,7 @@ import type { CatalogProduct } from "@/lib/products/getProducts";
 import {
   createAccountAction,
   finalizeOnboardingAction,
+  resolveReferralCodeAction,
   startSignupCheckoutAction,
   uploadHostAvatarAction,
   type FinalizeOnboardingData,
@@ -1043,6 +1046,60 @@ function Stepper({
 
 // ─── Step 1: Account ──────────────────────────────────────────────
 
+// A resolved "Referred by" partner — avatar (or initials) + name, with an
+// optional clear button. Deliberately shows NO contact details (email/phone).
+function ReferralPartnerChip({
+  name,
+  avatarUrl,
+  onClear,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  onClear?: () => void;
+}) {
+  const initials =
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("") || "?";
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-brand-line bg-brand-light/40 px-3 py-2.5">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-8 w-8 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-[11px] font-bold text-brand-secondary">
+          {initials}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-brand-ink">
+          {name}
+        </div>
+        <div className="flex items-center gap-1 text-[11px] font-medium text-brand-primary">
+          <Check className="h-3 w-3" /> Referred by this partner
+        </div>
+      </div>
+      {onClear ? (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Clear partner code"
+          className="shrink-0 rounded-full p-1 text-brand-mute transition hover:bg-brand-line/60 hover:text-brand-ink"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function StepAccount({
   data,
   patch,
@@ -1067,6 +1124,56 @@ function StepAccount({
   prefilledReferredBy?: { slug: string; name: string } | null;
 }) {
   const brandName = useBrandName();
+
+  // "Referred by" resolution — turn a typed (or cookie) partner code into the
+  // ACTIVE partner behind it (name + avatar only, no contact). A cookie partner
+  // (prefilled) is authoritative; a manually-typed code is debounce-resolved.
+  // Blank = no referral. An unknown/inactive code shows an inline error.
+  const locked = Boolean(prefilledReferredBy);
+  const refCode = (
+    locked ? (prefilledReferredBy?.slug ?? "") : data.referredBy
+  ).trim();
+  const [refPartner, setRefPartner] = useState<{
+    name: string;
+    avatarUrl: string | null;
+  } | null>(
+    prefilledReferredBy
+      ? { name: prefilledReferredBy.name, avatarUrl: null }
+      : null,
+  );
+  const [refChecking, setRefChecking] = useState(false);
+  const [refNotFound, setRefNotFound] = useState(false);
+  useEffect(() => {
+    setRefNotFound(false);
+    if (!refCode) {
+      setRefPartner(null);
+      setRefChecking(false);
+      return;
+    }
+    let alive = true;
+    setRefChecking(true);
+    const t = setTimeout(
+      async () => {
+        const res = await resolveReferralCodeAction(refCode);
+        if (!alive) return;
+        setRefChecking(false);
+        if (res.valid) {
+          setRefPartner({ name: res.name, avatarUrl: res.avatarUrl });
+          setRefNotFound(false);
+        } else {
+          setRefPartner(null);
+          // A cookie code should always resolve; only flag a MANUAL miss.
+          setRefNotFound(!locked);
+        }
+      },
+      locked ? 0 : 450,
+    );
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [refCode, locked]);
+
   return (
     <div className="wielo-step-enter">
       <StepHeading
@@ -1164,31 +1271,56 @@ function StepAccount({
           />
         </FormField>
 
-        {prefilledReferredBy ? (
+        {refPartner ? (
+          // Resolved to an active partner → show who, not a raw code (name +
+          // avatar only, never contact details). A cookie referral can't be
+          // changed here; a manually-entered one can be cleared.
           <FormField
             label="Referred by"
-            hint="You were referred by this partner."
+            hint={locked ? "You were referred by this partner." : undefined}
           >
-            <TextInput
-              type="text"
-              value={prefilledReferredBy.name}
-              onChange={() => {}}
-              disabled
-              readOnly
+            <ReferralPartnerChip
+              name={refPartner.name}
+              avatarUrl={refPartner.avatarUrl}
+              onClear={
+                locked
+                  ? undefined
+                  : () => {
+                      patch({ referredBy: "" });
+                      setRefPartner(null);
+                      setRefNotFound(false);
+                    }
+              }
             />
           </FormField>
         ) : (
           <FormField
             label="Referred by"
-            hint="Optional — enter a partner code if someone referred you."
+            hint={
+              locked
+                ? "You were referred by this partner."
+                : "Optional — enter a partner code if someone referred you."
+            }
+            error={
+              refNotFound
+                ? "No active partner found for that code — check it or leave blank."
+                : undefined
+            }
           >
-            <TextInput
-              type="text"
-              value={data.referredBy}
-              onChange={(e) => patch({ referredBy: e.target.value })}
-              placeholder="Partner code"
-              disabled={pending}
-            />
+            <div className="relative">
+              <TextInput
+                type="text"
+                value={
+                  locked ? (prefilledReferredBy?.name ?? "") : data.referredBy
+                }
+                onChange={(e) => patch({ referredBy: e.target.value })}
+                placeholder="Partner code"
+                disabled={pending || locked}
+              />
+              {refChecking ? (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-brand-mute" />
+              ) : null}
+            </div>
           </FormField>
         )}
 

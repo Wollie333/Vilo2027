@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  FileText,
   Home,
   Luggage,
   ShieldCheck,
@@ -57,13 +56,10 @@ export default async function SignupChoicePage() {
               title="I want to host my property"
               desc="List a guesthouse, B&B, lodge or cottage. Take direct bookings on a flat monthly fee."
             />
-            <ChoiceCard
-              href="/signup/quotes"
-              icon={<FileText className="h-6 w-6" />}
-              eyebrow="For operators & planners"
-              title="I want to send quotes"
-              desc="Respond to what travellers are looking for and send quotes — no property listing needed."
-            />
+            {/* Operators/planners (quote-only) signup is intentionally hidden
+                from the public chooser — only Guest + Host are offered here. The
+                /signup/quotes route still works for partner links that reach it
+                directly. */}
           </div>
 
           <div className="wielo-fade-up wielo-delay-2 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">

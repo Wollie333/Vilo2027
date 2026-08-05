@@ -30,6 +30,7 @@ export function ReferralLinkCard({
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(slug);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const link = `${baseUrl}/r/${slug}`;
@@ -46,6 +47,17 @@ export function ReferralLinkCard({
       setCopied(true);
       toast.success("Link copied");
       setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Couldn't copy — copy it manually.");
+    }
+  }
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(slug);
+      setCodeCopied(true);
+      toast.success("Partner code copied");
+      setTimeout(() => setCodeCopied(false), 1500);
     } catch {
       toast.error("Couldn't copy — copy it manually.");
     }
@@ -155,6 +167,32 @@ export function ReferralLinkCard({
                   <Mail className="h-3.5 w-3.5" /> Email
                 </a>
               </div>
+
+              {/* The bare partner code — new hosts type this into the signup
+                  "Referred by" field, which resolves it to your name. */}
+              <div className="mt-3 flex items-center gap-2 rounded-[9px] border border-dashed border-brand-accent bg-brand-light/50 px-3 py-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                  Partner code
+                </span>
+                <span className="min-w-0 flex-1 truncate font-mono text-[14px] font-semibold text-brand-ink">
+                  {slug}
+                </span>
+                <button
+                  onClick={copyCode}
+                  className="inline-flex h-7 items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 text-[11px] font-semibold text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                >
+                  {codeCopied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  {codeCopied ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-brand-mute">
+                Prefer to share just the code? New hosts enter it under
+                &ldquo;Referred by&rdquo; when they sign up.
+              </p>
             </>
           )}
         </div>

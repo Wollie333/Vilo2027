@@ -2,7 +2,10 @@
 
 import { headers } from "next/headers";
 
-import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
+import {
+  bindAffiliateReferral,
+  resolveReferralPartner,
+} from "@/lib/affiliate/attribution";
 import {
   resolveTrialOfferForCampaign,
   type CompetitionTrialOffer,
@@ -37,6 +40,23 @@ import {
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
+
+// Resolve a typed "Referred by" partner code (an affiliate slug) to the ACTIVE
+// partner behind it, so the signup field can confirm who the user will be
+// referred by — name + avatar only, never a contact detail. Returns
+// { valid:false } for an unknown/inactive code (the field then shows an error and
+// does not attribute). Blank code is handled client-side (no call). The
+// authoritative active-check + attribution still happens in bindAffiliateReferral.
+export type ResolveReferralResult =
+  | { valid: true; name: string; avatarUrl: string | null }
+  | { valid: false };
+
+export async function resolveReferralCodeAction(
+  code: string,
+): Promise<ResolveReferralResult> {
+  const partner = await resolveReferralPartner(code ?? "");
+  return partner ? { valid: true, ...partner } : { valid: false };
+}
 
 // ─── Step 1: create the auth user + sign them in ─────────────────
 //
