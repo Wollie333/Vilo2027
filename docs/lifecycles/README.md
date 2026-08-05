@@ -50,6 +50,7 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | 🟢 written 2026-07-16 — ✅ Vault secret set, delay now 60 min, moderation bypass closed (`20260716250000`), `auto-publish-reviews` retired (`20260716260000`). ⚠️ end-to-end unproven: 0 bookings exist |
 | Access details (card + email + trip-page unlock) | `access-details.md` | 🟢 written 2026-07-16 — card + email work; ✅ reminder Vault secret set; ✅ room-access save fixed. ⚠️ end-to-end unproven: 0 bookings exist. Open: unlock gates on status but NOT payment |
 | Calendar sync (iCal import/export, block conflicts) | `calendar-sync.md` | 🟡 written 2026-07-16 — cron green + Vault set, but **0 feeds exist so it has never imported**; real OTA round-trip ⚠️ unproven |
+| Pipeline (host/affiliate lead journey: New → Signed up → … → Trial → Won → Churned/Lost, + at-risk + win-back + nurture drip) | `pipeline.md` | 🟢 written 2026-08-05 — forward + downward trigger paths verified via rolled-back txns; stage order/columns read live. ⚠️ full paying-then-cancelling churn E2E unproven (0 real paying hosts pre-MVP) |
 
 Add a row when you start a new feature's flow. Every feature now has one.
 

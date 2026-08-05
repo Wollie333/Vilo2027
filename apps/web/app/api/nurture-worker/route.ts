@@ -33,10 +33,6 @@ function authorised(req: Request): boolean {
   return timingSafeEqual(header.slice(prefix.length), expected);
 }
 
-// Inline step bodies keyed by nurture_steps.email_type. Deliberately simple
-// transactional HTML (same Resend path as the funnel resource email) — polished
-// React Email templates are a later refinement. Subject comes from the step's
-// subject_override.
 // CTA path per step. The href is built at send time and routed through the
 // referring partner's /r link when the lead was referred (affiliate_ref), so
 // every CTA credits the affiliate who brought them in — otherwise the plain link.
@@ -45,6 +41,10 @@ const STEP_CTA: Record<string, string> = {
   nurture_affiliate_offer: "/signup/partner",
 };
 
+// Inline step bodies keyed by nurture_steps.email_type. Deliberately simple
+// transactional HTML (same Resend path as the funnel resource email) — polished
+// React Email templates are a later refinement. Subject comes from the step's
+// subject_override.
 const STEP_BODIES: Record<string, (firstName: string, cta: string) => string> =
   {
     nurture_host_welcome: (n) =>

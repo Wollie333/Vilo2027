@@ -30,6 +30,10 @@ via rolled-back transactions. See memory `project-savepoint-aug5-pipeline-lifecy
   churn cancels the drip.
 - ⚠️ Shared-DB migration hazard: the parallel agent applied migrations `20260805130000`/`140000` without
   committing them; ours renamed to `20260805150000` and applied via temp placeholders (not committed).
+- **Pipeline lifecycle follow-ups** (resume-here items): wrote `docs/lifecycles/pipeline.md` (full state
+  machine + triggers + nurture interplay) + index row; lead record now surfaces **Churned** (rose tag +
+  callout) and **⚠ At risk** (red badge + callout, "Open · at risk" in Details) — verified live by toggling a
+  test lead through both states then reverting; tidied a misplaced comment above `STEP_CTA` in the nurture worker.
 
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 
