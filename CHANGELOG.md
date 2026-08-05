@@ -34,6 +34,16 @@ via rolled-back transactions. See memory `project-savepoint-aug5-pipeline-lifecy
   machine + triggers + nurture interplay) + index row; lead record now surfaces **Churned** (rose tag +
   callout) and **⚠ At risk** (red badge + callout, "Open · at risk" in Details) — verified live by toggling a
   test lead through both states then reverting; tidied a misplaced comment above `STEP_CTA` in the nurture worker.
+- **Merged to `main`** (`--no-ff`, `7eaff601`) + **migration hazard fixed**: reconstructed the parallel
+  session's uncommitted `20260805130000`/`140000` verbatim from `schema_migrations.statements` → `db push`
+  fully in sync.
+- **Verified the whole pipeline stage machine live** (rolled-back txns against the real triggers): host
+  created→Signed up, trial→Trial, paid→Won, paid-cancel→Churned, trial-lapse→Lost, past_due→at_risk,
+  recovery→clear, and churned+new-trial→Trial (win-back). All 8 land on the correct stage.
+- **Enriched pipeline board cards with audience context** (`0b35f68a`): host cards show the property
+  (establishment + rooms) + phone; affiliate cards show partner number, region, phone, referral count
+  (+ converted-to-host count) and commission earned. `getBoard` batches the extra reads per audience.
+  Verified live on both boards (real affiliate data; host context via a reverted test lead).
 
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 
