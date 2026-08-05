@@ -1,6 +1,7 @@
 import "server-only";
 
 import { resolvePlatformEnvironment } from "@/lib/billing/environment";
+import { lockedMonthlyMrr } from "@/lib/billing/mrr";
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { WIELO_SUPPORT_EMAIL } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -217,7 +218,7 @@ export async function buildPlatformReport(
     service
       .from("subscriptions")
       .select(
-        "product_id, plan, billing_cycle, status, created_at, cancelled_at",
+        "product_id, plan, billing_cycle, status, created_at, cancelled_at, locked_base_amount",
       ),
     // Revenue rows for the selected environment. Default "live" — test-key
     // transactions are excluded from the real business view, but the founder can
@@ -295,8 +296,15 @@ export async function buildPlatformReport(
     const key = (s.product_id as string) ?? "none";
     prodCount[key] = (prodCount[key] ?? 0) + 1;
 
-    if (status === "active" && price > 0) {
-      const m = prod?.billing_cycle === "annual" ? price / 12 : price;
+    // A per-user locked price (admin override / Founding lock) is billed instead
+    // of the list price — count THAT so MRR matches the real invoice.
+    const lockedM = lockedMonthlyMrr(
+      s.locked_base_amount as number | string | null,
+      s.billing_cycle as string | null,
+    );
+    if (status === "active" && (lockedM != null || price > 0)) {
+      const m =
+        lockedM ?? (prod?.billing_cycle === "annual" ? price / 12 : price);
       mrr += m;
       prodMrr[key] = (prodMrr[key] ?? 0) + m;
       payingHosts += 1;
@@ -629,7 +637,11 @@ export async function buildPlatformReport(
     const acc = cohortMap.get(cAbs) ?? { abs: cAbs, label, subs: [] };
     acc.subs.push({
       cancelledAbs: s.cancelled_at ? absOf(s.cancelled_at as string) : null,
-      mrr: mrrOfSub((s.product_id as string) ?? null),
+      mrr:
+        lockedMonthlyMrr(
+          s.locked_base_amount as number | string | null,
+          s.billing_cycle as string | null,
+        ) ?? mrrOfSub((s.product_id as string) ?? null),
     });
     cohortMap.set(cAbs, acc);
   }

@@ -1,5 +1,6 @@
 import { requirePermission } from "@/lib/admin";
 import { resolvePlatformEnvironment } from "@/lib/billing/environment";
+import { lockedMonthlyMrr } from "@/lib/billing/mrr";
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import {
@@ -87,7 +88,7 @@ export default async function AdminRevenuePage({
     getSubscriptionProducts(),
     service
       .from("subscriptions")
-      .select("plan, billing_cycle, status, product_id"),
+      .select("plan, billing_cycle, status, product_id, locked_base_amount"),
   ]);
 
   const stats = wieloLedgerStats(rows);
@@ -117,14 +118,21 @@ export default async function AdminRevenuePage({
   let payingHosts = 0;
   for (const s of subs ?? []) {
     if (s.status !== "active") continue;
-    let monthly: number | null = null;
-    const prod = s.product_id ? productPrice.get(s.product_id) : undefined;
-    if (prod && !prod.isFree) {
-      monthly = prod.billingCycle === "annual" ? prod.price / 12 : prod.price;
-    } else if (!s.product_id) {
-      const pd = planPrice.get(s.plan as string);
-      if (pd && !pd.isFree) {
-        monthly = s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
+    // A per-user locked price (admin override / Founding lock) is what's actually
+    // billed — count THAT, not the list price, so MRR matches the real invoice.
+    let monthly: number | null = lockedMonthlyMrr(
+      s.locked_base_amount,
+      s.billing_cycle,
+    );
+    if (monthly == null) {
+      const prod = s.product_id ? productPrice.get(s.product_id) : undefined;
+      if (prod && !prod.isFree) {
+        monthly = prod.billingCycle === "annual" ? prod.price / 12 : prod.price;
+      } else if (!s.product_id) {
+        const pd = planPrice.get(s.plan as string);
+        if (pd && !pd.isFree) {
+          monthly = s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
+        }
       }
     }
     if (monthly == null) continue;
