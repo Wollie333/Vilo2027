@@ -888,14 +888,6 @@ export function Wizard({
                   <ArrowLeft className="h-4 w-4" /> Back
                 </button>
                 <div className="flex items-center gap-2">
-                  {currentIndex > 0 && currentIndex < STEPS.length - 1 ? (
-                    <Link
-                      href="/dashboard"
-                      className="rounded border border-brand-line bg-white px-4 py-2 text-sm text-brand-ink transition hover:bg-white/90"
-                    >
-                      Save &amp; finish later
-                    </Link>
-                  ) : null}
                   <button
                     type="button"
                     onClick={onNext}

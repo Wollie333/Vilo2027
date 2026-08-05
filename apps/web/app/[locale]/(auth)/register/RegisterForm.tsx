@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "@/i18n/navigation";
+import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -162,19 +163,17 @@ export function RegisterForm() {
                   <div className="space-y-1 leading-tight">
                     <FormLabel className="text-sm font-normal text-brand-ink">
                       I agree to the{" "}
-                      <Link
-                        href="/terms"
+                      <LegalDocModalLink
+                        docKey="terms"
+                        label="Terms of Service"
                         className="font-medium text-brand-primary hover:underline"
-                      >
-                        Terms of Service
-                      </Link>{" "}
+                      />{" "}
                       and{" "}
-                      <Link
-                        href="/privacy"
+                      <LegalDocModalLink
+                        docKey="privacy"
+                        label="Privacy Policy"
                         className="font-medium text-brand-primary hover:underline"
-                      >
-                        Privacy Policy
-                      </Link>
+                      />
                       .
                     </FormLabel>
                     <FormMessage />

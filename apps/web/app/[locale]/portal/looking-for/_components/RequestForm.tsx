@@ -29,6 +29,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
 import { trackFunnel } from "@/components/funnel/FunnelTracker";
 import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
@@ -1577,23 +1578,17 @@ export function RequestForm({
                       />
                       <span>
                         I agree to Wielo&apos;s{" "}
-                        <a
-                          href="/terms"
-                          target="_blank"
-                          rel="noreferrer"
+                        <LegalDocModalLink
+                          docKey="terms"
+                          label="Terms"
                           className="text-brand-secondary underline"
-                        >
-                          Terms
-                        </a>{" "}
+                        />{" "}
                         and{" "}
-                        <a
-                          href="/privacy"
-                          target="_blank"
-                          rel="noreferrer"
+                        <LegalDocModalLink
+                          docKey="privacy"
+                          label="Privacy Policy"
                           className="text-brand-secondary underline"
-                        >
-                          Privacy Policy
-                        </a>
+                        />
                         , and consent to hosts contacting me about this request.
                       </span>
                     </label>
