@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-08-05 (pt34) — Affiliate referral resolution + suspension lifecycle + 5-digit partner number.
+
+tsc + `pnpm lint` + full vitest (490) GREEN. Migrations applied to the linked cloud + types regenerated.
+Live-verified via claude-in-chrome (founder admin) + the in-app browser (public signup).
+
+- **Signup "Referred by" resolves the partner.** Typing/pasting a partner code now resolves to the ACTIVE
+  (or suspended) partner and shows a name+avatar chip — no contact details; unknown/closed code → inline
+  error; blank → no referral; a referral-link visitor lands pre-populated. `resolveReferralPartner` +
+  `resolveReferralCodeAction`. Operators/quotes card removed from the public `/signup` chooser.
+- **Affiliate suspension lifecycle.** Suspended partners STILL capture referrals + still resolve in the
+  field (they earn nothing — the accrual RPC already gives 100% to Wielo for non-active); closed/pending
+  stop resolving (referrals default to Wielo). Widened the three capture gates (/r route, bind, resolver).
+  New cron `close-long-suspended-affiliates` (migration 20260805130000) auto-closes suspended >60 days.
+- **5-digit partner number.** Each affiliate gets a unique `partner_number` (migration 20260805140000:
+  column + generator + auto-assign trigger + backfill). "Referred by" resolves the number OR the username.
+  Surfaced everywhere via `PartnerCodeCard` (number + @handle, copyable): admin directory column, admin
+  affiliate record (top-right), and persistently across the affiliate portal.
+- **Migration drift reconciled.** Identified the remote-only `20260805120000` as `broadcast_banner_controls`
+  (a parallel session's banner feature) and reconstructed its SQL into the repo so history is honest.
+
 ## 2026-08-05 (pt33) — Subscription→product onboarding: investigation + PLAN + Phase 1 (product feature grants).
 
 tsc + `pnpm lint` (changed files) GREEN. No migration. Live-verified via claude-in-chrome in the founder's

@@ -2,7 +2,48 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt33) — **SUBSCRIPTION→PRODUCT ONBOARDING: PLAN + PHASE 1 DONE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt34) — **AFFILIATE: REFERRAL RESOLUTION + SUSPENSION LIFECYCLE + 5-DIGIT CODE** ⬅ START HERE
+
+All committed to `main` (not pushed). Migrations APPLIED to the linked cloud + types regenerated.
+tsc + lint + full vitest (490) GREEN. Continues pt33 (same session) — subscription→product onboarding is
+Phase 1 done + Phase 2 (native-rail fallback) committed & harness-verified; see pt33 below.
+
+### Done this stretch (all live-verified)
+1. **Signup "Referred by" resolves the partner** — type/paste a partner code (username OR 5-digit number)
+   → active/suspended partner chip (name+avatar, NO contact); unknown/closed → error; blank → no referral.
+   `resolveReferralPartner`/`resolveReferralCodeAction` in `lib/affiliate/attribution.ts` + `signup/host/actions.ts`.
+   Operators/quotes card removed from `/signup` chooser (route still works).
+2. **Affiliate suspension lifecycle** — suspended STILL captures + resolves (earns nothing; accrual RPC
+   already gives 100% to Wielo for non-active); closed/pending stop resolving (→ Wielo). Gates widened in
+   `/r/[slug]/route.ts` + `attribution.ts`. Cron `close-long-suspended-affiliates` auto-closes suspended
+   >60 days (migration `20260805130000`, APPLIED + verified on remote).
+3. **5-digit partner number** — unique `affiliate_accounts.partner_number` (migration `20260805140000`:
+   generator + auto-assign trigger + backfill; range 10000-99999). Resolves number OR username. Surfaced
+   via `components/affiliate/PartnerCodeCard.tsx` (number + @handle, copyable) in the admin directory
+   column, admin affiliate record (top-right), and PERSISTENTLY across the affiliate portal (via
+   `AffiliateChrome` persistent slot). Super admin's affiliate = slug `wollie-steenkamp`, number `24198`.
+4. **Migration drift RESOLVED** — remote-only `20260805120000` identified (via `supabase db query` on
+   schema_migrations) as `broadcast_banner_controls` (a parallel session's banner feature); reconstructed
+   into the repo. `supabase db query --linked --file <sql>` is the way to introspect the remote (no Docker).
+
+### Test fixtures created this session (throwaway/demo)
+- Super admin (`66fe4644-…`) now HAS an affiliate account (created via script to enable verification +
+  the founder's "visible code" ask): slug `wollie-steenkamp`, number `24198`, status active. Its
+  `terms_version` used the affiliate_settings fallback (not the placed `legal-v2`), so the PORTAL shows the
+  agreement gate until signed — accept it to see the persistent portal card (a consent action, founder-only).
+
+### ⚠️ Open threads (founder's call)
+- **NEXT founder request (NOT started):** partner code as a 4/5-digit number was DONE; founder may extend.
+- **Phase 2 smoke test** — real test-mode Paystack subscription payment with the webhook suppressed; needs a
+  fresh host account. Platform Paystack IS configured (test mode, `pk_test_f1fbe…`). Founder was signing up a host.
+- **super_admin→host self-conversion guard** — `/signup/host` converts any logged-in non-host (incl. super
+  admin) to a host; founder flagged, not decided (block admins, or leave).
+- **Dead code:** `portal/affiliates/_components/ReferralLinkCard.tsx` is defined but rendered NOWHERE
+  (the earlier partner-code block added to it is moot — the persistent shell card covers the portal).
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt33) — **SUBSCRIPTION→PRODUCT ONBOARDING: PLAN + PHASE 1 DONE**
 
 **Not yet committed** (founder to approve the commit). tsc + lint (changed files) GREEN. Continues pt32.
 **Living doc:** `docs/features/SUBSCRIPTION_PRODUCT_ONBOARDING_PLAN.md` (full map + 4 confirmed decisions + phases).
