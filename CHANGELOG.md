@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-08-05 (pt36) — Phase 3: admin manual upgrade — reason + price override + trial.
+
+tsc + lint + full vitest (490) GREEN. No migration (columns already existed). **Live-verified end-to-end**
+in the founder's super-admin session with DB proof.
+
+- **`setUserProductAction`** (`admin/users/[id]/actions.ts`) gained `priceOverride`, `trialValue`,
+  `trialUnit` on `setProductSchema`. An `effPrice = priceOverride ?? product.price` now drives BOTH the
+  immediate charge and the persisted recurring lock (`subscriptions.locked_base_amount` — the billing
+  engine already reads it via `resolveMembershipAmount`). A trial sets `status='trialing'`,
+  `trial_ends_at = current_period_end = now + (value×unit)` via a new `addTrialIso` helper, and forces the
+  charge off (`effCharge='none'`) so no money is collected now. `reason` already flowed to History via the
+  audit wrapper.
+- **Set-product dialog** (`UserRecord.tsx`) now always opens (even for free/zero products) and carries a
+  "Manual override" block: reason textarea, recurring price override (ZAR), trial value + unit, a live
+  "immediate charge with this override" line, and a footer that collapses to a single **Start trial**
+  action when a trial is set.
+- **Verified live:** trial on host1@ → `trialing`, `locked_base_amount=123`, `trial_ends_at=+14d` (DB +
+  card + History reason). Paid override on guest@ → ledger charge posted **R50** (not list R999),
+  `locked_base_amount=50`, `status=active`. (Both are throwaway `*@wielostarter.com` test accounts; the
+  R50 completed charge is test data on a fixture to be wiped pre-launch.)
+
 ## 2026-08-05 (pt35) — Signup / auth / admin UX batch.
 
 tsc + lint + full vitest (490) GREEN. No migration. Several items need a real non-staff/unverified session

@@ -2,7 +2,46 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt35) — **SIGNUP/AUTH/ADMIN UX BATCH + 5 OPEN TASKS** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt36) — **#3 PHASE 3 DONE + LIVE-VERIFIED; #4/#5 NEXT** ⬅ START HERE
+
+Continues pt35 (same session). Founder asked to work #3 → #4 → #5 one at a time, testing each to "land
+fully working." tsc + lint + full vitest (490) GREEN throughout. No migration (trial/lock columns existed).
+
+### ✅ #3 DONE + LIVE-VERIFIED (admin manual upgrade: reason + price override + trial)
+- `setProductSchema` + `setUserProductAction` (`admin/users/[id]/actions.ts`): `priceOverride`, `trialValue`,
+  `trialUnit`. `effPrice = priceOverride ?? product.price` drives the immediate charge AND
+  `subscriptions.locked_base_amount`. Trial → `status='trialing'`, `trial_ends_at = current_period_end =
+  now + trial` (new `addTrialIso`), charge forced `none`. `reason` → History (audit wrapper, unchanged).
+- `UserRecord.tsx` set-product dialog: always opens now; "Manual override" block (reason / price / trial),
+  live "immediate charge with override" line, footer collapses to **Start trial** when a trial is set.
+- **Live proof (super-admin session):** trial on `host1@wielostarter.com` → DB `trialing`,
+  `locked_base_amount=123`, `trial_ends_at=2026-08-19` (+14d), History shows the reason. Paid override on
+  `guest@wielostarter.com` → `platform_ledger` charge **R50** (not list 999), sub `active`,
+  `locked_base_amount=50`. Screenshots + `supabase db query` rows captured.
+- ⚠️ Test fixtures now dirty: host1@ = Starter trialing (R123 lock); guest@ = Starter active (R50 lock) +
+  a completed R50 ledger charge/invoice. Throwaway `*@wielostarter.com` accounts — wipe before launch.
+  (Ledger is INSERT-only; do NOT delete the R50 row — AGENT_RULES §2.)
+
+### ⭐ NEXT: #4 then #5 (both on `OnboardingDashboard`, verifiable from a HOST session)
+- **#4 welcome VIDEO:** the square hero (right panel of `OnboardingDashboard.tsx`, the progress ring + "Up
+  next", lines ~113–154) renders an admin-set YouTube URL when present; else the current ring. Needs an
+  admin CMS field for the URL. Do NOT remove the progress card (it's the fallback).
+- **#5 steps mismatch:** overview shows 6 (`setupSteps.ts`: email/profile/first_listing/banking/policies/
+  publish) but the real wizard (`setup/SetupWizard.tsx` `SECTIONS`) has 8: profile, business, banking,
+  listing, rooms, seasonal(optional), policies, review. Overview omits business/rooms/seasonal + reorders.
+  `GettingStartedState` (`lib/help/queries.ts`) lacks business/rooms/seasonal done-flags (but
+  `businessNameSet`/`seasonalRules` are already computed in the wizard) — add detection. **Confirm shape
+  with founder** (keep email step? count optional seasonal?) before implementing.
+- NOT committed yet at time of writing: #3 code + these docs (waiting on `pnpm build` to go green).
+
+### Uncommitted / state
+- Dev server `web-dev` running on :3000. Founder logged into `/admin` as **super admin** in their Chrome
+  (claude-in-chrome tab shares the cookie jar). Changed files: `admin/users/[id]/actions.ts`,
+  `admin/users/[id]/UserRecord.tsx`, CHANGELOG, this file.
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt35) — **SIGNUP/AUTH/ADMIN UX BATCH + 5 OPEN TASKS**
 
 **All committed to `main` (== `origin/main`? NOT pushed — founder controls prod deploys). Clean tree.**
 tsc + lint + full vitest (490) GREEN throughout. Migrations applied to the linked cloud + types regenerated

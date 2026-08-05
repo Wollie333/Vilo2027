@@ -859,6 +859,30 @@ function addMonthsIso(n: number): string {
   return d.toISOString();
 }
 
+// Trial end = now + (value × unit). Used by the admin manual-upgrade trial:
+// days/weeks add to the date, months/years to the calendar field.
+function addTrialIso(
+  value: number,
+  unit: "days" | "weeks" | "months" | "years",
+): string {
+  const d = new Date();
+  switch (unit) {
+    case "days":
+      d.setDate(d.getDate() + value);
+      break;
+    case "weeks":
+      d.setDate(d.getDate() + value * 7);
+      break;
+    case "months":
+      d.setMonth(d.getMonth() + value);
+      break;
+    case "years":
+      d.setFullYear(d.getFullYear() + value);
+      break;
+  }
+  return d.toISOString();
+}
+
 // The public base for a pay-link SHARED with a user — never a localhost/dev
 // origin. Prefer the configured app URL; ignore a localhost value and fall back
 // to the brand domain so a link generated locally still resolves for the buyer.
@@ -1298,6 +1322,18 @@ const setProductSchema = z.object({
   // posts; the email is the admin's choice per offer. Defaults on.
   sendEmail: z.boolean().optional().default(true),
   reason: z.string().optional(),
+  // Per-user PRICE OVERRIDE (ZAR): an arbitrary recurring amount the admin sets
+  // for this user. Persisted as subscriptions.locked_base_amount (the billing
+  // engine reads it via resolveMembershipAmount) AND drives the immediate charge
+  // (effPrice = priceOverride ?? product.price). null/omitted = list price.
+  // Must be > 0 to lock — a R0 "comp" is Phase 4, not this.
+  priceOverride: z.number().min(0).max(10_000_000).nullable().optional(),
+  // TRIAL duration: number + unit. When set, the sub is activated as `trialing`
+  // with trial_ends_at = current_period_end = now + trial, and NO money is
+  // collected now (charge is forced to "none"). The expire-trials cron flips it
+  // to `restricted` when the trial lapses.
+  trialValue: z.number().int().min(1).max(3650).nullable().optional(),
+  trialUnit: z.enum(["days", "weeks", "months", "years"]).nullable().optional(),
 });
 
 export const setUserProductAction = withAdminAudit<
@@ -1316,6 +1352,17 @@ export const setUserProductAction = withAdminAudit<
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
     const { productId, charge } = parsed.data;
+
+    // ── Per-user price override + trial (admin manual upgrade, Phase 3) ──────
+    const priceOverride = parsed.data.priceOverride ?? null;
+    const hasOverride = priceOverride != null && priceOverride > 0;
+    const trialValue = parsed.data.trialValue ?? null;
+    const trialUnit = parsed.data.trialUnit ?? null;
+    const hasTrial = trialValue != null && trialValue > 0 && trialUnit != null;
+    const trialEndIso = hasTrial ? addTrialIso(trialValue, trialUnit) : null;
+    // A trial collects no money now — force the charge off regardless of the mode
+    // the button passed. Every downstream branch below reads effCharge.
+    const effCharge = hasTrial ? "none" : charge;
 
     // Resolve the host — provisioning one from the user (guest → host) if needed
     // so a guest account can be sold a subscription/product.
@@ -1340,6 +1387,10 @@ export const setUserProductAction = withAdminAudit<
     }
     const isMembership = product.product_type === "membership";
     const newPrice = Number(product.price ?? 0);
+    // The effective price the admin is applying — the override when set, else the
+    // product's list price. Drives BOTH the locked recurring amount and the
+    // immediate charge (a trial forces the charge off separately).
+    const effPrice = hasOverride ? round2(priceOverride) : newPrice;
     const currency = product.currency ?? "ZAR";
 
     // Find THIS product's subscription (renew it) rather than assuming one row.
@@ -1460,18 +1511,31 @@ export const setUserProductAction = withAdminAudit<
       product_id: product.id,
       plan,
       billing_cycle: cycle,
-      status: "active" as const,
-      current_period_start: carryStart ?? renewStart ?? now,
-      current_period_end:
-        carryEnd ?? renewEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1),
+      status: (hasTrial ? "trialing" : "active") as "trialing" | "active",
+      // A trial ignores any carried/renew window — it runs now → the trial end.
+      current_period_start: hasTrial ? now : (carryStart ?? renewStart ?? now),
+      current_period_end: hasTrial
+        ? (trialEndIso as string)
+        : (carryEnd ?? renewEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1)),
       updated_at: now,
+      // Trial end drives the expire-trials cron; clear it on a non-trial
+      // activation so converting a trial → active doesn't leave a stale expiry.
+      trial_ends_at: hasTrial ? (trialEndIso as string) : null,
+      // Per-user recurring price lock — the billing engine bills THIS, not list.
+      ...(hasOverride
+        ? {
+            locked_base_amount: effPrice,
+            locked_currency: currency,
+            price_locked_at: now,
+          }
+        : {}),
     };
 
     // "paylink" DEFERS activation: the tier only becomes active once the buyer
     // pays the link (the settle path activates it), so we skip the subscription
     // write here and just create the order + inbox card below. Every other mode
-    // activates immediately.
-    if (charge !== "paylink") {
+    // activates immediately. A trial always activates now (effCharge is "none").
+    if (effCharge !== "paylink") {
       // Activating a membership must respect the one-per-host rule whether we're
       // renewing/reactivating an existing (possibly cancelled) row OR inserting a
       // new one — retire any OTHER active membership first, else the DB trigger
@@ -1512,10 +1576,10 @@ export const setUserProductAction = withAdminAudit<
     // custom-amount order that ACTIVATES the plan on payment + drops an upgrade
     // card into the buyer's Wielo inbox with a Pay button.
     let payUrl: string | undefined;
-    if ((charge === "paid" || charge === "paylink") && newPrice > 0) {
+    if ((effCharge === "paid" || effCharge === "paylink") && effPrice > 0) {
       const chargeAmount = switchingMembership
-        ? membershipSwitchAmount(newPrice, oldPrice, carryStart, carryEnd)
-        : round2(newPrice);
+        ? membershipSwitchAmount(effPrice, oldPrice, carryStart, carryEnd)
+        : round2(effPrice);
       if (chargeAmount > 0) {
         const label = switchingMembership
           ? `Pro-rated upgrade to ${product.name}`
@@ -1527,7 +1591,7 @@ export const setUserProductAction = withAdminAudit<
           .maybeSingle();
         const admin = await requirePermission("subscriptions.edit");
 
-        if (charge === "paid") {
+        if (effCharge === "paid") {
           const { data: led, error: ledErr } = await service
             .from("platform_ledger")
             .insert({
@@ -2528,6 +2592,10 @@ export async function setUserProduct(input: {
   timing?: "now" | "end_of_cycle";
   creditOverride?: number | null;
   sendEmail?: boolean;
+  reason?: string;
+  priceOverride?: number | null;
+  trialValue?: number | null;
+  trialUnit?: "days" | "weeks" | "months" | "years";
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
     const r = await setUserProductAction({
