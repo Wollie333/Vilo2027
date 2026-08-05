@@ -6,6 +6,7 @@ import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { PublishListingReminder } from "./_components/PublishListingReminder";
 import { TwoFactorNudge } from "@/components/auth/TwoFactorNudge";
+import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import {
   getHostTrialWidget,
@@ -82,19 +83,18 @@ export default async function DashboardLayout({
     redirect("/suspended");
   }
 
-  // Hard email-verification wall. Every signed-in non-staff user must confirm
-  // their inbox before using the app (founder directive — a verified email is
-  // required to operate: it's where booking, payment and notification mail go,
-  // and it's the identity the affiliate programme is built on). Mirrors the
-  // /suspended wall; host Server Actions are blocked independently in
-  // requireHost/assertFullHost so a crafted call can't skip this.
-  if (
+  // Email-verification GATE. Every signed-in non-staff user must confirm their
+  // inbox before operating (founder directive — it's where booking/payment/
+  // notification mail goes and the identity the affiliate programme is built on).
+  // Rather than redirect away, we land them on the dashboard behind a BLOCKING
+  // modal (EmailVerifyGate, rendered below): the app stays visible/blurred and
+  // the modal auto-dismisses the moment they confirm. Host Server Actions are
+  // blocked independently in requireHost/assertFullHost, so this UI half can't
+  // be skipped to actually DO anything before verifying.
+  const emailUnverified =
     !isPlatformStaff &&
     !(profileRow as { email_verified_at?: string | null } | null)
-      ?.email_verified_at
-  ) {
-    redirect("/verify-email-required");
-  }
+      ?.email_verified_at;
 
   // Quote-only accounts (or any host an admin bounced off the platform) get a
   // scoped shell — only the quote surfaces, everything else gated off.
@@ -293,6 +293,7 @@ export default async function DashboardLayout({
         <QuotesOnlyGate active={quotesOnly}>{children}</QuotesOnlyGate>
       </ClassicShellFrame>
       <DashboardTour />
+      {emailUnverified ? <EmailVerifyGate email={user.email ?? null} /> : null}
     </QuickNavProvider>
   );
 }

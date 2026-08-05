@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
+import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
 import { NotificationBell } from "@/app/[locale]/dashboard/_components/notifications/NotificationBell";
@@ -68,17 +69,15 @@ export default async function PortalLayout({
     redirect("/suspended");
   }
 
-  // Hard email-verification wall (see dashboard/layout.tsx for the rationale).
-  // Every signed-in non-staff user must confirm their inbox before using the
-  // app. A guest can still COMPLETE a booking (that flow creates the account and
-  // sends this very email); this only walls the persistent portal surfaces.
-  if (
+  // Email-verification GATE (see dashboard/layout.tsx). Instead of redirecting
+  // away, land on the portal behind a blocking modal (EmailVerifyGate below) that
+  // auto-dismisses on confirm. A guest can still COMPLETE a booking (that flow
+  // creates the account and sends this very email); this only gates the
+  // persistent portal surfaces.
+  const emailUnverified =
     staff?.is_active !== true &&
     !(profile as { email_verified_at?: string | null } | null)
-      ?.email_verified_at
-  ) {
-    redirect("/verify-email-required");
-  }
+      ?.email_verified_at;
 
   const displayName = profile?.full_name ?? user.email ?? "Guest";
   // canHost = hosts row OR user_profiles.role='host'. Lets the switcher
@@ -105,7 +104,7 @@ export default async function PortalLayout({
 
   // Full-bleed decision is reactive to the route inside ClassicShellFrame (a
   // server layout can't recompute it on client navigation).
-  return (
+  const shell = (
     <ClassicShellFrame
       header={
         <AppHeader
@@ -161,5 +160,12 @@ export default async function PortalLayout({
     >
       {children}
     </ClassicShellFrame>
+  );
+
+  return (
+    <>
+      {shell}
+      {emailUnverified ? <EmailVerifyGate email={user.email ?? null} /> : null}
+    </>
   );
 }

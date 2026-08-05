@@ -295,6 +295,26 @@ export async function resendVerificationEmailAction(): Promise<AuthActionResult>
   return { ok: true };
 }
 
+// Poll target for the in-dashboard email-verify modal: re-reads the app-level
+// verification flag so the modal can auto-dismiss the moment the user clicks the
+// confirmation link (in this or another tab/device) — no manual "I've confirmed"
+// button needed.
+export async function checkEmailVerifiedAction(): Promise<{
+  verified: boolean;
+}> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { verified: false };
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("email_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  return { verified: Boolean(profile?.email_verified_at) };
+}
+
 function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login")) return "Email or password is incorrect.";
