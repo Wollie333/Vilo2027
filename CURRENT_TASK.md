@@ -2,7 +2,56 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt31) — **DB CLEANUP + ADMIN QA + CLEAN-SLATE WIPE + STAFF-INVITE EMAIL** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt32) — **SMART STAFF-INVITE ACCEPT + ⭐ NEXT: SUBSCRIPTION→PRODUCT ONBOARDING** ⬅ START HERE
+
+**`main` == `origin/main` == `c32b508` (pushed, Vercel deploying).** tsc GREEN. This continues pt31 (below) —
+same session. Read pt31 for the DB wipe / admin QA / cron-purge / staff-invite-email context + its memory pointers.
+
+### ✅ Done this stretch — smart staff-invite accept (commit `c32b508`)
+Founder pain: clicking an emailed invite while signed in as a DIFFERENT account dead-ended on a red
+"This invite is for X. Sign in with that email." error. Fixed for BOTH invite types:
+- **Platform team** (`staff-invite/{page,AcceptInvite}.tsx`) + **host staff** (`staff/accept/[token]/{page,AcceptButton}.tsx`).
+- Signed in as the invited email → invite **ACTIVATES automatically** (auto-accept on mount, no click).
+- Signed in as the WRONG account → **"Continue as <invited email>"** button signs out (`createClient().auth.signOut()`)
+  → `/login?email=<invited>&next=<accept-url>` → sign in as the right account → invite auto-accepts on return.
+- Not signed in → login/register pre-filled with the invited email. `(auth)/login/{page,LoginForm}.tsx` now
+  read a `?email=` param to prefill.
+- **Staff-invite EMAIL itself** was fixed in pt31 (commit `7225b32`) — now goes through the notification queue
+  + branded `PlatformStaffInvite` template; **live-verified delivered** to wollie333@gmail.com. See [[email-sends-go-through-the-queue]].
+- ⚠️ **Invite follow-up not done:** a BRAND-NEW platform-staff invitee (no account yet) — login prefill helps,
+  but the only account-creation path is host signup; a pure "register as staff" path may be needed. Host invites
+  already redirect to `/register` prefilled. Not blocking; flag if founder hits it.
+- **NOT live-verified in-browser** (dev server was stopped for the wrap; the account-switch loop needs the founder
+  to drive login as the invited account). Re-test: restart `web-dev` (:3000), reload the invite link.
+
+### ⭐ NEXT PRIORITY (founder request, NOT started) — subscription → product onboarding + admin overrides
+Founder: "signup mints a FREE user (correct). Then the user selects a subscription → after a SUCCESSFUL
+subscription (free OR paid), UPGRADE that user to that product AND show it in the admin user record. I also
+want to MANUALLY upgrade a user to any account as super admin, and OVERRIDE price rules — full management of
+that user. Get the onboarding sequence correct so the data/reports/LEDGER/finances work, and PERMISSIONS are
+automatically set via the product's assigned feature-permissions + pricing."
+**Requirements to build:**
+1. Post-checkout (Paystack/PayPal/EFT/free-activate), the user's account is upgraded to the purchased PRODUCT
+   → subscription row + the product's plan reflected on the user; visible in the admin user record.
+2. Feature PERMISSIONS auto-resolve from the product's assigned features (products carry
+   `affiliate_*` + feature grants; gate via `check_feature_permission` RPC — see CLAUDE.md "Feature Permissions").
+3. **Super-admin manual controls** in the admin user record: upgrade/downgrade a user to ANY product/plan; override
+   price rules per user; full account management. (Admin user record is `admin/users/[id]` + its Products/Finance tabs —
+   already rich; extend, don't rebuild.)
+4. LEDGER/finances/reports must reflect the upgrade (platform_ledger + wielo_invoices + subscriptions all agree).
+**Investigation starting points (already mapped this session):** `signup/host/actions.ts` (onboarding + the
+paid-order linking at "3b" — resolves plan from a purchased order; free defaults to `free`); product catalog =
+`products`/`product_features`/`plans`; ledger = `platform_ledger`/`wielo_invoices`; feature gate = `check_feature_permission`.
+**Approach:** investigate the current signup→subscription→ledger→permission chain end-to-end, produce a PLAN, confirm
+with founder BEFORE building (money + access-control — get it right). This is the main task for the next session.
+
+### Env / state
+- DB is clean-slate (only super admin — see [[clean-slate-launch-wipe]]). Dev server `web-dev` STOPPED at wrap
+  (restart via preview_start name web-dev). Founder logged into admin as super admin in Browser 1 (claude-in-chrome).
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt31) — **DB CLEANUP + ADMIN QA + CLEAN-SLATE WIPE + STAFF-INVITE EMAIL**
 
 **`main` == `origin/main` == `7225b32`. All work committed + pushed to main (Vercel deploying).** tsc + email
 render test (58/58) GREEN. Two commits this session: `766b749` (admin QA fixes + clean onboarding + cron purge)
