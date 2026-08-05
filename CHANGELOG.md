@@ -44,6 +44,17 @@ via rolled-back transactions. See memory `project-savepoint-aug5-pipeline-lifecy
   (establishment + rooms) + phone; affiliate cards show partner number, region, phone, referral count
   (+ converted-to-host count) and commission earned. `getBoard` batches the extra reads per audience.
   Verified live on both boards (real affiliate data; host context via a reverted test lead).
+- **Detailed cards + rich referrer + super-admin-only delete** (`16c8866a`): board cards gained a profile
+  picture and a full pill set — **recurring subscription price computed via the billing SSOT**
+  (`resolveMembershipAmount`: base + per-listing, cycle-aware, founding-lock beats live price; /mo vs /yr),
+  LTV (cumulative settled charges), trial (Nd left), months active, payments missed, referred-by/qty.
+  Recurring price verified against real DB rows (R123/mo trial, R50/mo won, product-less free sub → no pill).
+  Cards are now **drag-only** — opening the record is an explicit **eye button** (top-right), so the body no
+  longer navigates and the email/phone links (`mailto:`/`tel:`) are clickable; roomier spacing. The lead
+  record's **"Referred by"** resolves the slug to the partner's photo + name, linking to
+  `/admin/affiliates/<id>`. **Lead deletion is now super-admin-only** — buttons hidden for other staff and
+  `deleteLeadAction` fails closed server-side (`role_id = 'super_admin'`). All verified live in the admin
+  session; build + tsc + lint green.
 
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 
