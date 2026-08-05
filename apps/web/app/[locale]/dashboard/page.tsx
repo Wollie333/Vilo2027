@@ -14,7 +14,6 @@ import {
 } from "./_components/MainDashboard";
 import { OnboardingDashboard } from "./_components/OnboardingDashboard";
 import { OnboardingFreshness } from "./_components/OnboardingFreshness";
-import { FirstListingTeaser } from "./_components/FirstListingTeaser";
 import { buildSetupSteps } from "./_components/setupSteps";
 import { WelcomeToast } from "./WelcomeToast";
 
@@ -142,13 +141,6 @@ export default async function DashboardPage({
 
   // ── Setup not 100% → onboarding view only (dashboard unlocks at 100%). ──
   if (!setupComplete) {
-    const { data: anyListing } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("host_id", host.id)
-      .is("deleted_at", null)
-      .limit(1);
-    const hasFirstListing = (anyListing ?? []).length > 0;
     return (
       <div className="space-y-6">
         <OnboardingFreshness />
@@ -159,11 +151,6 @@ export default async function DashboardPage({
           handle={host.handle}
           steps={setupSteps}
         />
-        {!hasFirstListing ? (
-          <div className="mx-auto max-w-[1080px]">
-            <FirstListingTeaser />
-          </div>
-        ) : null}
       </div>
     );
   }
