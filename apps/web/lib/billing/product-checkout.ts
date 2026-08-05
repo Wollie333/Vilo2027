@@ -1558,6 +1558,11 @@ export type ConfirmSubscriptionResult =
 // no-ops once the row is completed.
 export async function confirmSubscriptionByReference(
   reference: string,
+  // `verifyPaid` is injectable ONLY for the test harness, so the flip+activate
+  // path can be exercised without a live Paystack call. Production passes nothing
+  // and uses the real server-side verify (getPlatformPaystackSecret +
+  // verifyTransaction). Never pass this from application code.
+  deps?: { verifyPaid?: (reference: string) => Promise<boolean> },
 ): Promise<ConfirmSubscriptionResult> {
   const admin = createAdminClient();
 
@@ -1575,16 +1580,25 @@ export async function confirmSubscriptionByReference(
   // Already settled (a prior return-page hit or the webhook) → nothing to do.
   if (row.status === "completed") return { ok: true, activated: true };
 
-  const secret = await getPlatformPaystackSecret();
-  if (!secret) return { ok: false, error: "Billing is not configured." };
-
-  const verified = await verifyTransaction(reference, secret);
-  if (!verified || verified.status !== "success") {
+  // Confirm the money is real before activating anything.
+  let paid: boolean;
+  let environment: "live" | "test";
+  if (deps?.verifyPaid) {
+    paid = await deps.verifyPaid(reference);
+    environment = (row.environment as "live" | "test" | null) ?? "test";
+  } else {
+    const secret = await getPlatformPaystackSecret();
+    if (!secret) return { ok: false, error: "Billing is not configured." };
+    const verified = await verifyTransaction(reference, secret);
+    paid = !!verified && verified.status === "success";
+    environment =
+      (row.environment as "live" | "test" | null) ?? envFromSecret(secret);
+  }
+  if (!paid) {
     // Not paid yet — leave the pending row for the webhook / a later return.
     return { ok: true, activated: false };
   }
 
-  const environment = row.environment ?? envFromSecret(secret);
   const now = new Date();
   const nowIso = now.toISOString();
   const cycle = row.billing_cycle === "annual" ? "annual" : "monthly";

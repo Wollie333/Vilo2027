@@ -124,14 +124,29 @@ shared `activateMappedPlan` primitive (retires the baseline membership, sets pro
 credits, welcome email). Wired into `subscription/billing/return/page.tsx` on verified success. Mirrors the
 webhook's `processSubscriptionEvent` charge.success exactly; idempotent with it. tsc + lint green.
 
-**NOT live-verified** — this is a payment settle path and needs a real test-mode proof:
-- **DoD:** with platform Paystack configured (test mode) and the webhook disabled/suppressed, complete a
-  subscription purchase via the dashboard plan picker → the return page alone upgrades the account
-  (`subscriptions.product_id` + status active, `platform_ledger` completed, feature gate opens).
-- **Blockers today:** clean-slate DB has no host account; platform Paystack may not be configured in this
-  env (if unconfigured, `startPlanCheckoutAction` uses state-only `switchPlan` and this rail isn't hit).
-- **Verification options:** (a) founder-driven test-mode payment once a host + test keys exist; (b) a
-  scripted harness that seeds a pending ledger row + a real test reference. Pending founder call.
+**Verification (founder plan: harness first, then smoke test):**
+- ✅ **Harness DONE** — `lib/billing/confirm-subscription.test.ts` (vitest) drives the REAL function with an
+  in-memory DB + the injectable `verifyPaid` seam. Proves all 5 cases: unknown-ref no-op; idempotent on a
+  completed row (no re-verify); never activates an unverified payment; yields to the webhook on a lost
+  compare-and-set (no double-activation); and on a won flip, ledger→completed + subscription upgraded to the
+  product (product_id/plan/status active), baseline membership retired, commission+credits+welcome fire
+  once. Full suite green (490 passed). The `verifyPaid` param on `confirmSubscriptionByReference` exists
+  ONLY for this harness (production passes nothing → real Paystack verify).
+- ⏳ **Founder smoke test STILL PENDING** — the real end-to-end proof. **DoD:** with platform Paystack in
+  test mode and the webhook disabled/suppressed, complete a subscription purchase via the dashboard plan
+  picker → the return page alone upgrades the account. **Blockers:** needs a host account + platform Paystack
+  test config (if unconfigured, `startPlanCheckoutAction` uses state-only `switchPlan` and this rail isn't hit).
+
+**Rail coverage — do EFT/PayPal need the same fix? NO (verified in code, 2026-08-05):**
+- **Paystack (native subscription):** was the ONLY gap (webhook was sole activator). Fixed by this phase.
+- **PayPal (subscription):** already activates on the return page via `activatePayPalSubscription`
+  (`paypal-subscription.ts:473`) — sets product_id/plan/status, retires baseline — PLUS the ACTIVATED
+  webhook PLUS `reconcilePayPalSubscriptions` cron. Never webhook-only. No gap.
+- **PayPal (product/once-off):** `capturePayPalProductOrder` activates on return + webhook. No gap.
+- **EFT:** not a webhook rail. Manual bank transfer → admin marks funds received
+  (`markProductOrderEftReceived`) → `activateMappedPlan` runs synchronously. Admin-gated BY DESIGN (can't
+  auto-confirm before the money lands). No "charged-but-not-upgraded" hole.
+So the "successful subscription → account upgraded" guarantee now holds uniformly across all three rails.
 
 ### Phase 3 — Super-admin per-user price override (requirement #3b)
 Extend `adminUpdateSubscriptionAction` (+ the managesub dialog) to set an explicit `locked_base_amount`
