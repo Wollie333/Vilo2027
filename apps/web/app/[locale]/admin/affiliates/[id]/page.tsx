@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { PartnerCodeCard } from "@/components/affiliate/PartnerCodeCard";
 import { VerifiedBadge } from "@/components/affiliate/VerifiedBadge";
 import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
@@ -285,6 +286,7 @@ export default async function AdminAffiliateFunnelPage({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <PartnerCodeCard slug={account.slug} />
             <Link
               href={`/admin/users/${account.user_id}`}
               className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light"

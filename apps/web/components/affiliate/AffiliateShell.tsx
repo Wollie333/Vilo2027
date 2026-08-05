@@ -14,6 +14,7 @@ import {
 import { hasSignedVersion } from "@/lib/affiliate/agreement";
 import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
 import { AffiliateActivationChecklist } from "@/components/affiliate/AffiliateActivationChecklist";
+import { PartnerCodeCard } from "@/components/affiliate/PartnerCodeCard";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -145,6 +146,9 @@ export async function AffiliateShell({
   if (isPending) {
     return (
       <div>
+        <div className="mb-3 flex justify-end">
+          <PartnerCodeCard slug={account.slug} />
+        </div>
         {header}
         <div className="pt-6">
           <AffiliateActivationChecklist
@@ -161,6 +165,7 @@ export async function AffiliateShell({
   return (
     <AffiliateChrome
       basePath={basePath}
+      persistent={<PartnerCodeCard slug={account.slug} />}
       chrome={
         <>
           {header}

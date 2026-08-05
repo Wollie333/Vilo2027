@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Medal, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Medal, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
@@ -119,6 +120,7 @@ export function AffiliateLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
               <tr>
                 <th className="w-10">#</th>
                 <th>Affiliate</th>
+                <th>Partner code</th>
                 {COLUMNS.map((c) => (
                   <th key={c.key} className="r">
                     <button
@@ -145,7 +147,7 @@ export function AffiliateLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
             <tbody>
               {ranked.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-brand-mute">
+                  <td colSpan={8} className="py-8 text-center text-brand-mute">
                     No affiliates found.
                   </td>
                 </tr>
@@ -180,6 +182,27 @@ export function AffiliateLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
                           /r/{r.slug}
                           {r.email ? ` · ${r.email}` : ""}
                         </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="inline-flex items-center gap-1.5">
+                        <span className="mono text-[12.5px] font-semibold text-brand-ink">
+                          {r.slug}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(r.slug).then(
+                              () => toast.success("Partner code copied"),
+                              () => toast.error("Couldn't copy."),
+                            );
+                          }}
+                          aria-label="Copy partner code"
+                          className="rounded border border-brand-line bg-white p-1 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
                       </div>
                     </td>
                     <td className="num r text-brand-ink">{r.clicks}</td>
