@@ -23,7 +23,7 @@ export const moveLeadStageAction = withAdminAudit<
     const ctx = await requireAdmin();
     const { data: stage } = await service
       .from("pipeline_stages")
-      .select("key, label, is_won, is_lost, is_customer")
+      .select("key, label, is_won, is_lost, is_customer, system_managed")
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
@@ -41,12 +41,12 @@ export const moveLeadStageAction = withAdminAudit<
         "This lead is a won customer — it stays Won while they're paying and can't be moved by hand.",
       );
     }
-    // Customer stages (Trial + Won) are SYSTEM-driven: a card lands there only
-    // when the host actually starts a trial or pays (DB triggers). Block manual
-    // drags in so the board can't claim a customer who isn't one.
-    if (stage.is_customer) {
+    // Trial / Won / Churned are SYSTEM-driven: a card lands there only when the
+    // host actually starts a trial, pays, or churns (DB lifecycle triggers).
+    // Block manual drags in so the board can't claim (or churn) a customer by hand.
+    if (stage.system_managed) {
       throw new Error(
-        "Trial and Won are set automatically when a lead starts a trial or pays — you can't move a card here manually.",
+        "Trial, Won and Churned are set automatically from the customer's subscription — you can't move a card here manually.",
       );
     }
     const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";

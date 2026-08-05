@@ -26,6 +26,21 @@ export function partnerDefaultLink(
 }
 
 /**
+ * A same-origin CTA that routes through the partner's referral link so the click
+ * is ATTRIBUTED to them before landing on `nextPath` (drops the /r cookie). Used
+ * by the automated nurture emails: a referred lead's CTAs credit the affiliate
+ * who brought them in; a non-referred lead (no slug) gets the plain Wielo link.
+ */
+export function referralNextLink(
+  baseUrl: string,
+  partnerSlug: string | null | undefined,
+  nextPath: string,
+): string {
+  if (!partnerSlug) return `${baseUrl}${nextPath}`;
+  return `${baseUrl}/r/${partnerSlug}?next=${encodeURIComponent(nextPath)}`;
+}
+
+/**
  * The partner's ONE competition link — their co-branded landing page, tagged to
  * the campaign. This is the single link to show and share for a competition.
  */

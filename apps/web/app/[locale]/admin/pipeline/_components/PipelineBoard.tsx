@@ -124,14 +124,18 @@ function Column({
         <div className="flex items-center gap-2">
           {stage.isWon ? (
             <span className="h-[7px] w-[7px] rounded-full bg-brand-primary" />
+          ) : stage.isChurned ? (
+            <span className="h-[7px] w-[7px] rounded-full bg-rose-400" />
           ) : null}
           <h3
             className={`font-display text-[13px] font-bold ${
               stage.isWon
                 ? "text-brand-secondary"
-                : stage.isLost
-                  ? "text-brand-mute"
-                  : ""
+                : stage.isChurned
+                  ? "text-rose-600"
+                  : stage.isLost
+                    ? "text-brand-mute"
+                    : ""
             }`}
           >
             {stage.label}
@@ -145,7 +149,13 @@ function Column({
         </div>
         <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-[#EEF4F0]">
           <div
-            className={`h-full rounded-full ${stage.isWon ? "bg-brand-primary" : "bg-[#A7E8CB]"}`}
+            className={`h-full rounded-full ${
+              stage.isWon
+                ? "bg-brand-primary"
+                : stage.isChurned
+                  ? "bg-rose-300"
+                  : "bg-[#A7E8CB]"
+            }`}
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -287,6 +297,14 @@ function LeadCard({
         >
           {bl} · <b className="tabular-nums">{lead.score}</b>
         </span>
+        {lead.atRisk ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700"
+            title="Payment is faltering — reach out before they churn"
+          >
+            ⚠ At risk
+          </span>
+        ) : null}
         {lead.sourceKind === "competition" ? (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"

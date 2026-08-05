@@ -528,6 +528,7 @@ export type Database = {
           default_payout_method: string | null
           display_headline: string | null
           id: string
+          partner_number: string
           payout_threshold: number | null
           photo_url: string | null
           public_phone: string | null
@@ -559,6 +560,7 @@ export type Database = {
           default_payout_method?: string | null
           display_headline?: string | null
           id?: string
+          partner_number: string
           payout_threshold?: number | null
           photo_url?: string | null
           public_phone?: string | null
@@ -590,6 +592,7 @@ export type Database = {
           default_payout_method?: string | null
           display_headline?: string | null
           id?: string
+          partner_number?: string
           payout_threshold?: number | null
           photo_url?: string | null
           public_phone?: string | null
@@ -7273,6 +7276,7 @@ export type Database = {
         Row: {
           ad_source: string | null
           affiliate_ref: string | null
+          at_risk: boolean
           audience: string
           created_at: string
           funnel_id: string | null
@@ -7293,6 +7297,7 @@ export type Database = {
         Insert: {
           ad_source?: string | null
           affiliate_ref?: string | null
+          at_risk?: boolean
           audience: string
           created_at?: string
           funnel_id?: string | null
@@ -7313,6 +7318,7 @@ export type Database = {
         Update: {
           ad_source?: string | null
           affiliate_ref?: string | null
+          at_risk?: boolean
           audience?: string
           created_at?: string
           funnel_id?: string | null
@@ -7372,6 +7378,7 @@ export type Database = {
           key: string
           label: string
           sort_order: number
+          system_managed: boolean
           updated_at: string
         }
         Insert: {
@@ -7384,6 +7391,7 @@ export type Database = {
           key: string
           label: string
           sort_order?: number
+          system_managed?: boolean
           updated_at?: string
         }
         Update: {
@@ -7396,6 +7404,7 @@ export type Database = {
           key?: string
           label?: string
           sort_order?: number
+          system_managed?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -13331,6 +13340,7 @@ export type Database = {
         Args: { p_admin: string; p_affiliate_id: string; p_reason?: string }
         Returns: Json
       }
+      close_long_suspended_affiliates: { Args: never; Returns: number }
       compute_addon_subtotal: {
         Args: {
           p_guests: number
@@ -13578,6 +13588,7 @@ export type Database = {
         Returns: Json
       }
       finalize_ended_campaigns: { Args: never; Returns: number }
+      gen_affiliate_partner_number: { Args: never; Returns: string }
       gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
@@ -13777,6 +13788,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      pipeline_user_has_paid: { Args: { p_user_id: string }; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
