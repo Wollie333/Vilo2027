@@ -268,10 +268,24 @@ export function LeadRecordClient({
                     className={
                       lead.status === "won"
                         ? "border-brand-line bg-brand-light text-brand-secondary"
-                        : "border-brand-line bg-[#F7F8F8] text-brand-mute"
+                        : lead.status === "churned"
+                          ? "border-rose-200 bg-rose-50 text-rose-600"
+                          : "border-brand-line bg-[#F7F8F8] text-brand-mute"
                     }
                   >
-                    {lead.status === "won" ? "Won" : "Lost"}
+                    {lead.status === "won"
+                      ? "Won"
+                      : lead.status === "churned"
+                        ? "Churned"
+                        : "Lost"}
+                  </Tag>
+                ) : null}
+                {lead.atRisk ? (
+                  <Tag
+                    className="border-red-200 bg-red-50 text-red-700"
+                    title="Payment is faltering — reach out before they churn"
+                  >
+                    ⚠ At risk
                   </Tag>
                 ) : null}
               </div>
@@ -412,6 +426,32 @@ export function LeadRecordClient({
         </div>
       </div>
 
+      {/* Lifecycle callout: at-risk (about to churn) or churned (has left).
+          Churned wins — an at-risk card that tips over becomes churned. */}
+      {lead.status === "churned" || lead.atRisk ? (
+        <div className="mx-auto max-w-[1440px] px-4 pt-5 lg:px-8">
+          {lead.status === "churned" ? (
+            <div className="flex items-start gap-3 rounded-card border border-rose-200 bg-rose-50 px-4 py-3">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+              <div className="text-[13px] text-rose-700">
+                <span className="font-semibold">Churned.</span> This customer
+                cancelled or lapsed after paying. They can still be re-engaged —
+                move the card back into the pipeline to start a win-back.
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3 rounded-card border border-red-200 bg-red-50 px-4 py-3">
+              <PhoneCall className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <div className="text-[13px] text-red-700">
+                <span className="font-semibold">At risk.</span> Payment is
+                faltering (past due or paused). Reach out now — a quick call
+                often saves the subscription before it churns.
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {/* Body */}
       <div className="mx-auto grid max-w-[1440px] items-start gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_312px] lg:px-8">
         <div className="min-w-0">
@@ -539,7 +579,11 @@ export function LeadRecordClient({
                       ? "Won"
                       : lead.status === "lost"
                         ? "Lost"
-                        : "Open"
+                        : lead.status === "churned"
+                          ? "Churned"
+                          : lead.atRisk
+                            ? "Open · at risk"
+                            : "Open"
                   }
                 />
               </DetailCard>
@@ -921,12 +965,15 @@ export function LeadRecordClient({
 function Tag({
   children,
   className = "",
+  title,
 }: {
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold ${className}`}
     >
       {children}

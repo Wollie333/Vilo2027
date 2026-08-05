@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
+
 import { markProductEftReceived } from "./actions";
 
 // Settle a pending product-order EFT once the admin has seen the funds land.
@@ -21,14 +23,13 @@ export function MarkEftReceivedButton({
   const router = useRouter();
   const [pending, start] = useTransition();
 
-  function settle() {
-    if (
-      !confirm(
-        `Mark this EFT as received?\n\n${label}\n\nThis activates the purchase — only do it once the money is in the bank.`,
-      )
-    ) {
-      return;
-    }
+  async function settle() {
+    const ok = await modal.confirm({
+      title: "Mark this EFT as received?",
+      description: `${label} — this activates the purchase. Only do it once the money is in the bank.`,
+      confirmLabel: "Mark received",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await markProductEftReceived({ providerReference });
       if (r.ok) {

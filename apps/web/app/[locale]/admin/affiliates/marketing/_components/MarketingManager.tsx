@@ -33,6 +33,7 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { modal } from "@/components/ui/modal-host";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -613,12 +614,17 @@ function WieloMediaLibrary({
     );
   }
 
-  function remove(img: LibraryImage) {
+  async function remove(img: LibraryImage) {
     if (img.inUse) {
       toast.error("This image backs a marketing asset — remove that first.");
       return;
     }
-    if (!confirm("Delete this image? This can't be undone.")) return;
+    const ok = await modal.destructive({
+      title: "Delete image?",
+      description: "This image will be removed. This can't be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await deleteLibraryImage({ path: img.path });
       if (r.ok) {

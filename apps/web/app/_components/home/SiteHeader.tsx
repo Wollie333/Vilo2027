@@ -21,6 +21,8 @@ import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
 import { CountrySelector } from "@/components/geo/CountrySelector";
 import { createClient } from "@/lib/supabase/client";
 
+import { PublicBroadcastBar } from "../PublicBroadcastBar";
+
 import { UtilityBar } from "./UtilityBar";
 import { VLogo } from "./VLogo";
 
@@ -278,6 +280,8 @@ export function SiteHeader() {
           </div>
         ) : null}
       </header>
+      {/* Public announcement bar — rendered BELOW the header, never above it. */}
+      <PublicBroadcastBar />
     </>
   );
 }

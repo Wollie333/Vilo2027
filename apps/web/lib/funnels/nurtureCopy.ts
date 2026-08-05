@@ -66,12 +66,19 @@ export const NURTURE_COPY: Record<string, NurtureCopy> = {
   },
 };
 
+import { referralNextLink } from "@/lib/affiliate/links";
+
 export const NURTURE_EMAIL_TYPES = Object.keys(NURTURE_COPY);
 
 /** Build the props the FunnelNurture template renders, for a given email_type. */
 export function nurtureEmailProps(
   emailType: string,
-  opts: { firstName?: string; subjectOverride?: string | null } = {},
+  opts: {
+    firstName?: string;
+    subjectOverride?: string | null;
+    /** Referring partner slug — CTAs route through /r/<slug> to credit them. */
+    affiliateRef?: string | null;
+  } = {},
 ): Record<string, unknown> {
   const copy = NURTURE_COPY[emailType];
   if (!copy) {
@@ -89,7 +96,10 @@ export function nurtureEmailProps(
     heading: copy.heading,
     paragraphs: copy.paragraphs,
     ...(copy.ctaLabel && copy.ctaPath
-      ? { ctaLabel: copy.ctaLabel, ctaHref: `${base}${copy.ctaPath}` }
+      ? {
+          ctaLabel: copy.ctaLabel,
+          ctaHref: referralNextLink(base, opts.affiliateRef, copy.ctaPath),
+        }
       : {}),
     unsubscribeHref: `${base}/unsubscribe`,
   };

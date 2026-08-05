@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
 import { Link } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
 
@@ -78,8 +79,13 @@ export function PromoCodesManager({ rows }: { rows: PromoRow[] }) {
     });
   }
 
-  function remove(r: PromoRow) {
-    if (!confirm(`Delete ${r.code}? This can't be undone.`)) return;
+  async function remove(r: PromoRow) {
+    const ok = await modal.destructive({
+      title: "Delete promo code?",
+      description: `${r.code} will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       const res = await deletePromo({ id: r.id });
       if (res.ok) {

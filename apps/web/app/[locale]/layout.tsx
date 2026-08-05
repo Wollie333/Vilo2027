@@ -83,6 +83,8 @@ export default async function RootLayout({
   // host-website booking would cross-fire onto Wielo's pixel. The Wielo pixel is
   // for the marketplace/app surfaces only (directory listing bookings etc.).
   const isHostSite = !!headers().get("x-wielo-site-host");
+  // The public announcement bar lives INSIDE SiteHeader (below the header) so it
+  // never sits above it; app surfaces carry their own in-content BroadcastBanner.
   return (
     <html
       lang={locale}

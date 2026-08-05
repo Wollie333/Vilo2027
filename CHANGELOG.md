@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-08-05 — Admin broadcast banners, Comms/Build-Board polish, confirm-modal sweep, responsive pipeline lifecycle + affiliate nurture.
+
+Branch `feature/admin-broadcast-banners` (sub-branch off main, isolates from a parallel agent). Head `f7d2ba4c`,
+pushed, NOT merged. tsc + `pnpm lint` green each commit; live-verified in the admin session; DB triggers verified
+via rolled-back transactions. See memory `project-savepoint-aug5-pipeline-lifecycle.md` for the full resume map.
+
+- **Broadcast banner controls** (mig `20260805120000`): `show_banner`/`banner_surfaces`/`banner_dismiss_mode`/
+  `updated_at` + anon RLS. Banner decoupled from severity; mounted in the guest portal; public bar rendered
+  INSIDE `SiteHeader` (below the header, never above). Edit-a-sent-broadcast + stats. Fixed an `isExternalUrl`
+  imported from a "use client" module (non-callable server reference).
+- **Communications Send tab → list-first**: Broadcasts table + "New broadcast" (compose) + per-row View/Edit/
+  Delete (audited hard-delete via the app modal).
+- **Shared `components/dashboard/fields.tsx`** (Field/TextField/TextArea/SelectField/SegRow/ToggleField); Comms
+  imports it; admin + public **Build Board** rebuilt on it + app-modal confirms + icon row-actions.
+- **Admin `window.confirm()` sweep** — 9 files → `modal.destructive`/`modal.confirm` (auto-dismissed natively
+  in-app; now consistent + verifiable).
+- **Responsive pipeline lifecycle** (mig `20260805150000`): new **Churned** terminal stage; `on_subscription_
+  churned` trigger (paid→cancel/expire = Churned, trial-lapse = Lost, past_due/paused = at_risk, recovery
+  clears); `on_subscription_trialing` reopens lost/churned (win-back); `on_host_created` → Trial when a trial is
+  active. Board shows Churned + "At risk"; manual drops into Trial/Won/Churned blocked (`system_managed`).
+- **Nurture emails wired to the lifecycle**: CTAs route through the referring partner's `/r/<slug>?next=…` when
+  `affiliate_ref` is set (credit the affiliate), else the plain Wielo link (new `referralNextLink`); conversion/
+  churn cancels the drip.
+- ⚠️ Shared-DB migration hazard: the parallel agent applied migrations `20260805130000`/`140000` without
+  committing them; ours renamed to `20260805150000` and applied via temp placeholders (not committed).
+- **Pipeline lifecycle follow-ups** (resume-here items): wrote `docs/lifecycles/pipeline.md` (full state
+  machine + triggers + nurture interplay) + index row; lead record now surfaces **Churned** (rose tag +
+  callout) and **⚠ At risk** (red badge + callout, "Open · at risk" in Details) — verified live by toggling a
+  test lead through both states then reverting; tidied a misplaced comment above `STEP_CTA` in the nurture worker.
+
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 
 Branch `feature/affiliate-program`. tsc + `pnpm lint` (zero warnings) + full `pnpm build` GREEN.

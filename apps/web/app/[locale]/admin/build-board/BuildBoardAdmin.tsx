@@ -5,6 +5,13 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  SelectField,
+  TextArea,
+  TextField,
+  ToggleField,
+} from "@/components/dashboard/fields";
+import { modal } from "@/components/ui/modal-host";
+import {
   BOARD_STATUSES,
   STATUS_META,
   type AdminFeatureRequest,
@@ -110,6 +117,37 @@ function Meta({ r }: { r: AdminFeatureRequest }) {
   );
 }
 
+// Compact icon action — shared by the row action clusters.
+function IconAction({
+  onClick,
+  disabled,
+  title,
+  danger,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  title: string;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-brand-line bg-white text-brand-mute transition disabled:opacity-50 ${
+        danger
+          ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          : "hover:bg-brand-light hover:text-brand-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 // Title + body block that flips into an edit form. Shared by both row types.
 function EditableTitleBody({ r }: { r: AdminFeatureRequest }) {
   const [editing, setEditing] = useState(false);
@@ -145,22 +183,22 @@ function EditableTitleBody({ r }: { r: AdminFeatureRequest }) {
 
   if (editing) {
     return (
-      <div className="space-y-2">
-        <input
+      <div className="space-y-3">
+        <TextField
+          label="Title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           maxLength={140}
           disabled={pending}
-          className="w-full rounded-md border border-brand-line bg-white px-2 py-1.5 text-sm font-semibold text-brand-ink outline-none focus:border-brand-primary"
         />
-        <textarea
+        <TextArea
+          label="Description"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={setBody}
           maxLength={2000}
           rows={2}
-          disabled={pending}
           placeholder="Description (optional)"
-          className="w-full resize-none rounded-md border border-brand-line bg-white px-2 py-1.5 text-sm text-brand-mute outline-none focus:border-brand-primary"
+          disabled={pending}
         />
         <div className="flex gap-1.5">
           <button
@@ -248,57 +286,51 @@ function NewItemCard() {
   }
 
   return (
-    <div className="rounded-card border border-dashed border-brand-line bg-brand-light/40 p-5">
+    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
       <div className="flex items-center gap-2">
         <Plus className="h-4 w-4 text-brand-primary" />
         <h3 className="font-display text-sm font-bold text-brand-ink">
           New board item
         </h3>
       </div>
-      <div className="mt-4 space-y-3">
-        <input
+      <div className="mt-4 space-y-4">
+        <TextField
+          label="Title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           maxLength={140}
-          placeholder="Title — e.g. WhatsApp booking notifications"
+          placeholder="e.g. WhatsApp booking notifications"
           disabled={pending}
-          className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
         />
-        <textarea
+        <TextArea
+          label="Description"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={setBody}
           maxLength={2000}
           rows={2}
           placeholder="Description (optional)"
           disabled={pending}
-          className="w-full resize-none rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-mute outline-none focus:border-brand-primary"
+          hint="Optional"
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as BoardStatus)}
-            disabled={pending}
-            className="rounded-[10px] border border-brand-line bg-white px-2 py-2 text-sm text-brand-ink"
-          >
-            {BOARD_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_META[s].label}
-              </option>
-            ))}
-          </select>
-          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-brand-ink">
-            <input
-              type="checkbox"
-              checked={publishNow}
-              onChange={(e) => setPublishNow(e.target.checked)}
-              disabled={pending}
-              className="h-4 w-4 accent-brand-primary"
-            />
-            Publish to the board now
-          </label>
-        </div>
+        <SelectField
+          label="Status"
+          value={status}
+          options={BOARD_STATUSES.map((s) => ({
+            value: s,
+            label: STATUS_META[s].label,
+          }))}
+          onChange={(v) => setStatus(v)}
+          disabled={pending}
+        />
+        <ToggleField
+          label="Publish to the board now"
+          hint="Off = save as a pending submission for later review."
+          checked={publishNow}
+          onChange={setPublishNow}
+          disabled={pending}
+        />
       </div>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-5 flex gap-2 border-t border-brand-line pt-4">
         <button
           type="button"
           onClick={create}
@@ -333,8 +365,13 @@ function PendingRow({ r }: { r: AdminFeatureRequest }) {
       }
     });
   }
-  function remove() {
-    if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
+  async function remove() {
+    const ok = await modal.destructive({
+      title: "Delete submission?",
+      description: `"${r.title}" will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       try {
         await deleteRequestAction({ id: r.id });
@@ -352,7 +389,7 @@ function PendingRow({ r }: { r: AdminFeatureRequest }) {
           <EditableTitleBody r={r} />
           <Meta r={r} />
         </div>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={approve}
@@ -361,14 +398,9 @@ function PendingRow({ r }: { r: AdminFeatureRequest }) {
           >
             <Check className="h-3.5 w-3.5" /> Approve
           </button>
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending}
-            className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-3 py-1.5 text-xs font-semibold text-brand-mute hover:text-rose-600 disabled:opacity-60"
-          >
+          <IconAction onClick={remove} disabled={pending} title="Delete" danger>
             <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </IconAction>
         </div>
       </div>
     </li>
@@ -406,8 +438,13 @@ function PublishedRow({
       }
     });
   }
-  function remove() {
-    if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
+  async function remove() {
+    const ok = await modal.destructive({
+      title: "Delete board item?",
+      description: `"${r.title}" will be removed for everyone. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       try {
         await deleteRequestAction({ id: r.id });
@@ -417,10 +454,15 @@ function PublishedRow({
       }
     });
   }
-  function doMerge() {
+  async function doMerge() {
     if (!mergeTarget) return;
     const target = others.find((o) => o.id === mergeTarget);
-    if (!confirm(`Merge "${r.title}" into "${target?.title}"?`)) return;
+    const ok = await modal.confirm({
+      title: "Merge duplicate?",
+      description: `"${r.title}" will be merged into "${target?.title}" — its votes move across.`,
+      confirmLabel: "Merge",
+    });
+    if (!ok) return;
     start(async () => {
       try {
         await mergeRequestsAction({ sourceId: r.id, targetId: mergeTarget });
@@ -452,7 +494,7 @@ function PublishedRow({
             value={r.status}
             onChange={(e) => changeStatus(e.target.value)}
             disabled={pending}
-            className="rounded-md border border-brand-line bg-white px-2 py-1 text-xs text-brand-ink disabled:opacity-60"
+            className="rounded-[8px] border border-brand-line bg-white px-2 py-1.5 text-xs text-brand-ink outline-none transition focus:border-brand-primary disabled:opacity-60"
           >
             {BOARD_STATUSES.map((s: BoardStatus) => (
               <option key={s} value={s}>
@@ -461,33 +503,28 @@ function PublishedRow({
             ))}
           </select>
           <div className="flex gap-1.5">
-            <button
-              type="button"
+            <IconAction
               onClick={() => setMerging((v) => !v)}
               disabled={pending}
               title="Merge a duplicate into this"
-              className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-2.5 py-1 text-xs font-semibold text-brand-mute hover:text-brand-ink disabled:opacity-60"
             >
               <GitMerge className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
+            </IconAction>
+            <IconAction
               onClick={unpublish}
               disabled={pending}
               title="Remove from board"
-              className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-2.5 py-1 text-xs font-semibold text-brand-mute hover:text-brand-ink disabled:opacity-60"
             >
               <X className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
+            </IconAction>
+            <IconAction
               onClick={remove}
               disabled={pending}
               title="Delete"
-              className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-2.5 py-1 text-xs font-semibold text-brand-mute hover:text-rose-600 disabled:opacity-60"
+              danger
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            </IconAction>
           </div>
         </div>
       </div>
@@ -498,7 +535,7 @@ function PublishedRow({
           <select
             value={mergeTarget}
             onChange={(e) => setMergeTarget(e.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-brand-line bg-white px-2 py-1 text-xs text-brand-ink"
+            className="min-w-0 flex-1 rounded-[8px] border border-brand-line bg-white px-2 py-1.5 text-xs text-brand-ink outline-none transition focus:border-brand-primary"
           >
             <option value="">Choose a target…</option>
             {others
@@ -513,7 +550,7 @@ function PublishedRow({
             type="button"
             onClick={doMerge}
             disabled={pending || !mergeTarget}
-            className="rounded-pill bg-brand-primary px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+            className="rounded-pill bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
             Merge
           </button>

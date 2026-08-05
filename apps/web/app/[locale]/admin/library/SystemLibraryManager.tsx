@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
 import { createClient } from "@/lib/supabase/client";
 
 import { createLibraryUploadUrlAction, deleteLibraryImage } from "./actions";
@@ -88,12 +89,17 @@ export function SystemLibraryManager({ images }: { images: LibraryImage[] }) {
     );
   }
 
-  function remove(img: LibraryImage) {
+  async function remove(img: LibraryImage) {
     if (img.inUse) {
       toast.error("This image backs an affiliate asset — remove that first.");
       return;
     }
-    if (!confirm("Delete this image? This can't be undone.")) return;
+    const ok = await modal.destructive({
+      title: "Delete image?",
+      description: "This image will be removed. This can't be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await deleteLibraryImage({ path: img.path });
       if (r.ok) {

@@ -14,6 +14,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
+
 import { setListingFeatured, setListingPublished } from "./actions";
 
 export function ListingActions({
@@ -142,13 +144,14 @@ export function ListingActions({
                 <MenuItem
                   tone="danger"
                   icon={<EyeOff className="h-4 w-4" />}
-                  onClick={() => {
-                    if (
-                      !window.confirm(
-                        `Take "${name}" offline? It will be removed from public search and its page until re-published.`,
-                      )
-                    )
-                      return;
+                  onClick={async () => {
+                    const ok = await modal.confirm({
+                      title: `Take "${name}" offline?`,
+                      description:
+                        "It will be removed from public search and its page until re-published.",
+                      confirmLabel: "Take offline",
+                    });
+                    if (!ok) return;
                     run(
                       () =>
                         setListingPublished({ listingId, isPublished: false }),

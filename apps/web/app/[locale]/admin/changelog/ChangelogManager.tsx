@@ -13,6 +13,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { modal } from "@/components/ui/modal-host";
 
 import {
   deleteChangelogEntryAction,
@@ -199,8 +200,13 @@ function EntryCard({
     });
   }
 
-  function remove() {
-    if (!confirm(`Delete "${entry.title}"? This cannot be undone.`)) return;
+  async function remove() {
+    const ok = await modal.destructive({
+      title: "Delete changelog entry?",
+      description: `"${entry.title}" will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       try {
         await deleteChangelogEntryAction({ id: entry.id });

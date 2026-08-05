@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { computeCommission } from "@/lib/affiliate/commission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 
 import {
   deleteProduct,
@@ -200,9 +201,14 @@ export function ProductEditor({
     });
   }
 
-  function remove() {
+  async function remove() {
     if (!f.id) return;
-    if (!window.confirm(`Delete "${f.name}"?`)) return;
+    const ok = await modal.destructive({
+      title: "Delete product?",
+      description: `"${f.name}" will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     startDelete(async () => {
       const r = await deleteProduct({ id: f.id! });
       if (r.ok) {

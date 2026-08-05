@@ -21,6 +21,8 @@ export type BoardLead = {
   ownerInitials: string | null;
   ageDays: number;
   suppressed: boolean;
+  /** Payment is faltering (past_due / paused / dunning) — a save-the-customer flag. */
+  atRisk: boolean;
   /** Wielo account state behind the card: passwordless lead vs claimed account. */
   isLead: boolean;
   /** ZAR value on the card: realized Wielo revenue (paid) or the trial's expected price. */
@@ -36,6 +38,10 @@ export type BoardStage = {
   isLost: boolean;
   /** Trial + Won — a customer stage: cards here are locked against deletion. */
   isCustomer: boolean;
+  /** Paid-then-left. A distinct terminal from Lost (never converted). */
+  isChurned: boolean;
+  /** Trial / Won / Churned — set by lifecycle triggers, never a manual drop. */
+  systemManaged: boolean;
   leads: BoardLead[];
 };
 
@@ -71,13 +77,15 @@ export async function getBoard(audience: Audience): Promise<Board> {
   const [{ data: stageRows }, { data: leadRows }] = await Promise.all([
     admin
       .from("pipeline_stages")
-      .select("id, key, label, sort_order, is_won, is_lost, is_customer")
+      .select(
+        "id, key, label, sort_order, is_won, is_lost, is_customer, system_managed",
+      )
       .eq("audience", audience)
       .order("sort_order"),
     admin
       .from("pipeline_leads")
       .select(
-        "id, user_id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, user_profiles(full_name, email, is_lead)",
+        "id, user_id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, at_risk, user_profiles(full_name, email, is_lead)",
       )
       .eq("audience", audience)
       .order("score", { ascending: false }),
@@ -157,6 +165,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
         : null,
       ageDays: daysSince(l.last_activity_at ?? l.created_at),
       suppressed: Boolean(l.suppress_default_nurture),
+      atRisk: Boolean(l.at_risk),
       isLead: Boolean(prof?.is_lead),
       value: (() => {
         const realized = realizedByUser.get(l.user_id) ?? 0;
@@ -181,6 +190,8 @@ export async function getBoard(audience: Audience): Promise<Board> {
     isWon: s.is_won,
     isLost: s.is_lost,
     isCustomer: Boolean(s.is_customer),
+    isChurned: s.key === "churned",
+    systemManaged: Boolean(s.system_managed),
     leads: byStage.get(s.id) ?? [],
   }));
 
@@ -378,6 +389,7 @@ export type LeadRecord = {
   sourceKind: string;
   sourceLabel: string | null;
   affiliateRef: string | null;
+  atRisk: boolean;
   marketingConsent: boolean;
   ownerStaffId: string | null;
   ownerName: string | null;
@@ -405,7 +417,7 @@ export async function getLead(leadId: string): Promise<LeadRecord | null> {
   const { data: lead } = await admin
     .from("pipeline_leads")
     .select(
-      "id, audience, stage_id, score, status, source_kind, source_label, affiliate_ref, marketing_consent, owner_staff_id, ad_source, utm, created_at, last_activity_at, funnel_id, funnels(name, slug), user_profiles(full_name, email, phone, is_lead)",
+      "id, audience, stage_id, score, status, source_kind, source_label, affiliate_ref, at_risk, marketing_consent, owner_staff_id, ad_source, utm, created_at, last_activity_at, funnel_id, funnels(name, slug), user_profiles(full_name, email, phone, is_lead)",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -469,6 +481,7 @@ export async function getLead(leadId: string): Promise<LeadRecord | null> {
     sourceKind: lead.source_kind,
     sourceLabel: lead.source_label,
     affiliateRef: lead.affiliate_ref,
+    atRisk: Boolean(lead.at_risk),
     marketingConsent: lead.marketing_consent,
     ownerStaffId: lead.owner_staff_id,
     ownerName:
