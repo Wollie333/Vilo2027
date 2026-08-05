@@ -133,7 +133,7 @@ export default async function PipelinePage({
       </div>
 
       {/* Board */}
-      <PipelineBoard stages={board.stages} />
+      <PipelineBoard stages={board.stages} audience={board.audience} />
     </div>
   );
 }

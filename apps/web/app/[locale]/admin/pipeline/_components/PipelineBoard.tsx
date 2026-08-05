@@ -9,11 +9,19 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Inbox, Trash2, Users } from "lucide-react";
+import {
+  BedDouble,
+  Inbox,
+  MapPin,
+  Phone,
+  Trash2,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import type { BoardStage } from "@/lib/pipeline/queries";
+import type { Audience, BoardStage } from "@/lib/pipeline/queries";
 
 import { moveLeadStageAction } from "../actions";
 import { DeleteLeadDialog } from "./DeleteLeadDialog";
@@ -27,8 +35,10 @@ function band(score: number): [string, string] {
 
 export function PipelineBoard({
   stages: initialStages,
+  audience,
 }: {
   stages: BoardStage[];
+  audience: Audience;
 }) {
   const router = useRouter();
   const [stages, setStages] = useState(initialStages);
@@ -98,7 +108,13 @@ export function PipelineBoard({
       <div className="thin-scroll min-h-0 flex-1 overflow-x-auto bg-[#FBFDFC] px-4 py-4 lg:px-6">
         <div className="flex h-full items-stretch gap-4">
           {stages.map((s) => (
-            <Column key={s.id} stage={s} total={total} onDeleted={removeLead} />
+            <Column
+              key={s.id}
+              stage={s}
+              total={total}
+              audience={audience}
+              onDeleted={removeLead}
+            />
           ))}
         </div>
       </div>
@@ -109,10 +125,12 @@ export function PipelineBoard({
 function Column({
   stage,
   total,
+  audience,
   onDeleted,
 }: {
   stage: BoardStage;
   total: number;
+  audience: Audience;
   onDeleted: (leadId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
@@ -185,6 +203,7 @@ function Column({
               key={l.id}
               lead={l}
               stageId={stage.id}
+              audience={audience}
               locked={stage.isCustomer}
               onDeleted={onDeleted}
             />
@@ -195,14 +214,20 @@ function Column({
   );
 }
 
+function fmtZar(n: number): string {
+  return `R${n.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`;
+}
+
 function LeadCard({
   lead,
   stageId,
+  audience,
   locked,
   onDeleted,
 }: {
   lead: BoardStage["leads"][number];
   stageId: string;
+  audience: Audience;
   locked: boolean;
   onDeleted: (leadId: string) => void;
 }) {
@@ -271,6 +296,81 @@ function LeadCard({
           </div>
         </div>
       </div>
+
+      {/* Audience context: a host card tells you the property + how to reach
+          them; an affiliate card tells you if they actually drive referrals. */}
+      {audience === "host" &&
+      (lead.host?.establishment || lead.host?.rooms || lead.phone) ? (
+        <div className="mt-2 space-y-1">
+          {lead.host?.establishment ? (
+            <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-brand-secondary">
+              <MapPin className="h-3 w-3 shrink-0 text-brand-mute" />
+              <span className="truncate">{lead.host.establishment}</span>
+            </div>
+          ) : null}
+          {lead.host?.rooms || lead.phone ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
+              {lead.host?.rooms ? (
+                <span className="inline-flex items-center gap-1">
+                  <BedDouble className="h-3 w-3" />
+                  {lead.host.rooms} rooms
+                </span>
+              ) : null}
+              {lead.phone ? (
+                <span className="inline-flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {lead.phone}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {audience === "affiliate" && lead.affiliate ? (
+        <div className="mt-2 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
+            {lead.affiliate.partnerNumber ? (
+              <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-brand-secondary">
+                #{lead.affiliate.partnerNumber}
+              </span>
+            ) : null}
+            {lead.affiliate.region ? (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {lead.affiliate.region}
+              </span>
+            ) : null}
+            {lead.phone ? (
+              <span className="inline-flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {lead.phone}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-semibold text-[#4F46E5]"
+              title={`${lead.affiliate.referrals} referred, ${lead.affiliate.convertedHosts} became hosts`}
+            >
+              <Users className="h-3 w-3" />
+              {lead.affiliate.referrals} ref
+              {lead.affiliate.convertedHosts > 0
+                ? ` · ${lead.affiliate.convertedHosts} host${lead.affiliate.convertedHosts === 1 ? "" : "s"}`
+                : ""}
+            </span>
+            {lead.affiliate.earnings > 0 ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold tabular-nums text-emerald-700"
+                title="Commission earned to date"
+              >
+                <TrendingUp className="h-3 w-3" />
+                {fmtZar(lead.affiliate.earnings)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         {lead.valueKind ? (

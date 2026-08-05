@@ -8,10 +8,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type Audience = "host" | "affiliate";
 
+/** Host-only context: the property behind the lead (from the 'created' activity). */
+export type BoardHostContext = {
+  establishment: string | null;
+  rooms: string | null;
+};
+
+/** Affiliate-only context: are they actually a productive partner? */
+export type BoardAffiliateContext = {
+  partnerNumber: string | null;
+  slug: string | null;
+  /** People they've referred (bound referrals). */
+  referrals: number;
+  /** …of which became hosts (referral converted to a host account). */
+  convertedHosts: number;
+  /** ZAR commission accrued to them (non-voided). */
+  earnings: number;
+  region: string | null;
+};
+
 export type BoardLead = {
   id: string;
   name: string;
   email: string | null;
+  phone: string | null;
   stageId: string;
   score: number;
   status: string;
@@ -28,6 +48,10 @@ export type BoardLead = {
   /** ZAR value on the card: realized Wielo revenue (paid) or the trial's expected price. */
   value: number;
   valueKind: "paid" | "trial" | null;
+  /** Present on host boards — the property this host runs. */
+  host: BoardHostContext | null;
+  /** Present on affiliate boards — the partner's productivity. */
+  affiliate: BoardAffiliateContext | null;
 };
 
 export type BoardStage = {
@@ -85,7 +109,7 @@ export async function getBoard(audience: Audience): Promise<Board> {
     admin
       .from("pipeline_leads")
       .select(
-        "id, user_id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, at_risk, user_profiles(full_name, email, is_lead)",
+        "id, user_id, stage_id, score, status, source_kind, source_label, affiliate_ref, owner_staff_id, created_at, last_activity_at, suppress_default_nurture, at_risk, user_profiles(full_name, email, phone, is_lead)",
       )
       .eq("audience", audience)
       .order("score", { ascending: false }),
@@ -143,17 +167,94 @@ export async function getBoard(audience: Audience): Promise<Board> {
     }
   }
 
+  // ── Audience-specific context so a card tells its whole story at a glance ──
+  // Host: the property (name + rooms) lives in the 'created' activity meta.
+  const hostCtxByLead = new Map<string, BoardHostContext>();
+  if (audience === "host" && leads.length) {
+    const { data: created } = await admin
+      .from("pipeline_activities")
+      .select("lead_id, meta")
+      .in(
+        "lead_id",
+        leads.map((l) => l.id),
+      )
+      .eq("kind", "created");
+    for (const a of created ?? []) {
+      const m = (a.meta ?? {}) as Record<string, unknown>;
+      hostCtxByLead.set(a.lead_id, {
+        establishment: (m.establishment_address as string) || null,
+        rooms: (m.rooms as string) || null,
+      });
+    }
+  }
+
+  // Affiliate: is this partner actually producing? Pull their account + referral
+  // count (and how many converted to hosts) + accrued commission, all batched.
+  const affCtxByUser = new Map<string, BoardAffiliateContext>();
+  if (audience === "affiliate" && leadUserIds.length) {
+    const { data: accts } = await admin
+      .from("affiliate_accounts")
+      .select("id, user_id, slug, partner_number, region")
+      .in("user_id", leadUserIds);
+    const acctList = accts ?? [];
+    const acctIds = acctList.map((a) => a.id);
+    const referralsByAcct = new Map<string, { total: number; hosts: number }>();
+    const earningsByAcct = new Map<string, number>();
+    if (acctIds.length) {
+      const [{ data: refs }, { data: comms }] = await Promise.all([
+        admin
+          .from("affiliate_referrals")
+          .select("affiliate_id, referred_host_id")
+          .in("affiliate_id", acctIds),
+        admin
+          .from("affiliate_commissions")
+          .select("affiliate_id, commission_amount, voided_at")
+          .in("affiliate_id", acctIds),
+      ]);
+      for (const r of refs ?? []) {
+        const cur = referralsByAcct.get(r.affiliate_id) ?? {
+          total: 0,
+          hosts: 0,
+        };
+        cur.total += 1;
+        if (r.referred_host_id) cur.hosts += 1;
+        referralsByAcct.set(r.affiliate_id, cur);
+      }
+      for (const c of comms ?? []) {
+        if (c.voided_at) continue; // voided commission never earned
+        earningsByAcct.set(
+          c.affiliate_id,
+          (earningsByAcct.get(c.affiliate_id) ?? 0) +
+            Number(c.commission_amount ?? 0),
+        );
+      }
+    }
+    for (const a of acctList) {
+      const r = referralsByAcct.get(a.id) ?? { total: 0, hosts: 0 };
+      affCtxByUser.set(a.user_id, {
+        partnerNumber: a.partner_number ?? null,
+        slug: a.slug ?? null,
+        referrals: r.total,
+        convertedHosts: r.hosts,
+        earnings: earningsByAcct.get(a.id) ?? 0,
+        region: a.region ?? null,
+      });
+    }
+  }
+
   const byStage = new Map<string, BoardLead[]>();
   for (const l of leads) {
     const prof = l.user_profiles as {
       full_name?: string;
       email?: string;
+      phone?: string;
       is_lead?: boolean;
     } | null;
     const lead: BoardLead = {
       id: l.id,
       name: prof?.full_name || prof?.email || "Unnamed lead",
       email: prof?.email ?? null,
+      phone: prof?.phone ?? null,
       stageId: l.stage_id,
       score: l.score,
       status: l.status,
@@ -177,6 +278,9 @@ export async function getBoard(audience: Audience): Promise<Board> {
           : (trialByUser.get(l.user_id) ?? 0) > 0
             ? "trial"
             : null,
+      host: audience === "host" ? (hostCtxByLead.get(l.id) ?? null) : null,
+      affiliate:
+        audience === "affiliate" ? (affCtxByUser.get(l.user_id) ?? null) : null,
     };
     const arr = byStage.get(l.stage_id) ?? [];
     arr.push(lead);
