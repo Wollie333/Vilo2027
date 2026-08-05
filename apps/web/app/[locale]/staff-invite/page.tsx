@@ -74,9 +74,24 @@ export default async function StaffInvitePage({
   const {
     data: { user },
   } = await sb.auth.getUser();
+  const nextPath = `/staff-invite?token=${token}`;
   if (!user) {
-    redirect(`/login?next=/staff-invite?token=${encodeURIComponent(token)}`);
+    // Not signed in — send to login pre-filled with the invited email so they
+    // sign in (or register) as the right account, then return here to auto-accept.
+    redirect(
+      `/login?email=${encodeURIComponent(invite.email)}&next=${encodeURIComponent(nextPath)}`,
+    );
   }
+
+  // Compare against the profile email (the accept action does the same), so the
+  // page and the server action agree on whether this is the right account.
+  const { data: profile } = await admin
+    .from("user_profiles")
+    .select("email")
+    .eq("id", user.id)
+    .maybeSingle();
+  const userEmail = (profile?.email ?? user.email ?? "").toLowerCase();
+  const matches = userEmail === invite.email.toLowerCase();
 
   return (
     <Shell brand={brand}>
@@ -84,11 +99,22 @@ export default async function StaffInvitePage({
         You&apos;ve been invited to join the {brand} admin team as{" "}
         <strong>{invite.role_id}</strong>.
       </p>
-      <p className="text-[13px] text-brand-mute">
-        Invite for <strong>{invite.email}</strong>. You&apos;re signed in as{" "}
-        {user.email}. If these don&apos;t match, sign in with the invited email.
-      </p>
-      <AcceptInvite token={token} />
+      {matches ? (
+        <p className="text-[13px] text-brand-mute">
+          Invite for <strong>{invite.email}</strong> — activating your access
+          now.
+        </p>
+      ) : (
+        <p className="text-[13px] text-brand-mute">
+          This invite is for <strong>{invite.email}</strong>, but you&apos;re
+          signed in as {userEmail}. Continue below to switch accounts.
+        </p>
+      )}
+      <AcceptInvite
+        token={token}
+        inviteEmail={invite.email}
+        matches={matches}
+      />
     </Shell>
   );
 }

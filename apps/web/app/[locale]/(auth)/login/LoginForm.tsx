@@ -28,13 +28,15 @@ import { loginAction, magicLinkAction } from "../actions";
 export function LoginForm({
   justRegistered,
   next,
+  defaultEmail = "",
 }: {
   justRegistered: boolean;
   next?: string | null;
+  defaultEmail?: string;
 }) {
   const [magicMode, setMagicMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [emailErr, setEmailErr] = useState<string | null>(null);

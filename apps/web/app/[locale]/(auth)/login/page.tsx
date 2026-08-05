@@ -12,9 +12,17 @@ export const metadata: Metadata = {
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams?: { verify?: string; next?: string };
+  searchParams?: { verify?: string; next?: string; email?: string };
 }) {
   const justRegistered = searchParams?.verify === "1";
   const next = safeNextPath(searchParams?.next);
-  return <LoginForm justRegistered={justRegistered} next={next} />;
+  const defaultEmail =
+    typeof searchParams?.email === "string" ? searchParams.email : "";
+  return (
+    <LoginForm
+      justRegistered={justRegistered}
+      next={next}
+      defaultEmail={defaultEmail}
+    />
+  );
 }

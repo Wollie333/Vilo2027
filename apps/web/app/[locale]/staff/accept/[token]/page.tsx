@@ -71,17 +71,10 @@ export default async function StaffAcceptPage({
     redirect(`/register?${qs.toString()}`);
   }
 
-  // Signed in with a different email → ask them to re-auth.
+  // Whether the signed-in account matches the invited email. If not, the accept
+  // button below offers to sign out + sign in as the invited email (no dead end).
   const profileEmail = (user.email ?? "").toLowerCase();
-  if (profileEmail !== invite.email.toLowerCase()) {
-    return (
-      <Shell
-        tone="error"
-        message={`This invite is for ${invite.email}. Sign in with that account to accept.`}
-        cta={{ href: "/login", label: "Switch account" }}
-      />
-    );
-  }
+  const matches = profileEmail === invite.email.toLowerCase();
 
   const hostObj = Array.isArray(invite.host)
     ? invite.host[0]
@@ -128,7 +121,18 @@ export default async function StaffAcceptPage({
           </dl>
         </div>
 
-        <AcceptButton token={params.token} />
+        {!matches ? (
+          <p className="rounded-card border border-brand-line bg-brand-light px-3 py-2 text-center text-[12px] text-brand-mute">
+            This invite is for <strong>{invite.email}</strong>, but you&rsquo;re
+            signed in as {profileEmail}. Continue below to switch accounts.
+          </p>
+        ) : null}
+
+        <AcceptButton
+          token={params.token}
+          inviteEmail={invite.email}
+          matches={matches}
+        />
 
         <p className="text-center text-[11px] text-brand-mute">
           Joining shares the host&rsquo;s bookings, calendar and inbox with you.
