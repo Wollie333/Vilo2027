@@ -1566,8 +1566,11 @@ function Dossier({
   const sep = <div className="h-px bg-brand-line" />;
   const eyebrow =
     "text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute";
+  // "Paid to Wielo" = completed CHARGES only (products/subs the user actually paid
+  // for) — NOT positive adjustments or affiliate commission/payout rows on this
+  // user. Same rule as the Overview headline stat so the two never diverge.
   const paidToWielo = data.wieloLedger
-    .filter((t) => t.status === "completed" && t.amount > 0)
+    .filter((t) => t.type === "charge" && t.status === "completed")
     .reduce((s, t) => s + t.amount, 0);
 
   return (
