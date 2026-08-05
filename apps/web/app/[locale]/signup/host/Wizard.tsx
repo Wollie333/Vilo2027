@@ -427,6 +427,12 @@ export function Wizard({
         : null,
     );
 
+  // A brief "working" overlay shown BETWEEN steps so each transition feels
+  // deliberate + interactive — held for a minimum beat even when the step is
+  // instant (client-only), and for the full duration of the real async on the
+  // account + finalize steps. null = hidden.
+  const [working, setWorking] = useState<string | null>(null);
+
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;
 
@@ -499,6 +505,28 @@ export function Wizard({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Minimum time the working overlay stays up, so even an instant client step
+  // reads as "doing something" rather than a jarring jump.
+  const MIN_WORK_MS = 900;
+
+  // Client-only steps: show the overlay, then advance after a beat.
+  function paceAdvance(message: string) {
+    setWorking(message);
+    window.setTimeout(() => {
+      advance();
+      setWorking(null);
+    }, MIN_WORK_MS);
+  }
+
+  // Async steps: hold the overlay until BOTH the real work and the minimum beat
+  // have elapsed (call after the work resolves, before advancing).
+  async function pace(startedAt: number) {
+    const remaining = MIN_WORK_MS - (Date.now() - startedAt);
+    if (remaining > 0) {
+      await new Promise((r) => window.setTimeout(r, remaining));
+    }
+  }
+
   function handleAccountNext() {
     const parsed = accountSchema.safeParse({
       first_name: data.firstName,
@@ -516,6 +544,8 @@ export function Wizard({
       return;
     }
     setErrors({});
+    setWorking("Creating your account…");
+    const started = Date.now();
     startCreate(async () => {
       // A slow connection often lands the token AFTER the visitor is ready to
       // submit. Wait for it here — inside the pending state, so this reads as
@@ -525,6 +555,7 @@ export function Wizard({
         toast.error(
           "The verification challenge didn't finish. Check your connection and try again.",
         );
+        setWorking(null);
         return;
       }
       const result = await createAccountAction(
@@ -544,6 +575,7 @@ export function Wizard({
         // The token is single-use — force a fresh challenge before a retry.
         setCaptchaReset((n) => n + 1);
         setCaptchaToken(null);
+        setWorking(null);
         return;
       }
       // CompleteRegistration — the auth account now exists (they're registered).
@@ -552,7 +584,9 @@ export function Wizard({
         { content_name: "Host signup", status: true, currency: "ZAR" },
         newEventId("cr"),
       );
+      await pace(started);
       advance();
+      setWorking(null);
     });
   }
 
@@ -569,7 +603,7 @@ export function Wizard({
       return;
     }
     setErrors({});
-    advance();
+    paceAdvance("Saving your profile…");
   }
 
   function handleListingNext() {
@@ -592,7 +626,7 @@ export function Wizard({
       return;
     }
     setErrors({});
-    advance();
+    paceAdvance("Setting up your first listing…");
   }
 
   function handlePlanNext() {
@@ -608,6 +642,10 @@ export function Wizard({
     // Always finalize first (writes host + a Free subscription baseline). Only
     // then, for a paid pick, send them to checkout — the webhook upgrades their
     // subscription to the product's plan once payment succeeds.
+    setWorking(
+      isPaid ? "Taking you to secure checkout…" : "Finalising your account…",
+    );
+    const started = Date.now();
     startFinalize(async () => {
       const result = await finalizeOnboardingAction({
         full_name: data.fullName,
@@ -636,6 +674,7 @@ export function Wizard({
       });
       if (!result.ok) {
         toast.error(result.error);
+        setWorking(null);
         return;
       }
 
@@ -648,6 +687,7 @@ export function Wizard({
         );
         if (!co.ok) {
           toast.error(co.error);
+          setWorking(null);
           return;
         }
         // InitiateCheckout — the host is committing to the paid plan and being
@@ -668,7 +708,9 @@ export function Wizard({
       }
 
       setFinalizeResult(result.data ?? null);
+      await pace(started);
       advance();
+      setWorking(null);
     });
   }
 
@@ -787,6 +829,7 @@ export function Wizard({
 
   return (
     <div className="min-h-screen w-full bg-brand-light text-brand-ink">
+      {working ? <WorkingOverlay message={working} /> : null}
       {/* Top bar — mobile only */}
       <div className="border-b border-brand-line bg-white lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
@@ -1045,6 +1088,32 @@ function Stepper({
 }
 
 // ─── Step 1: Account ──────────────────────────────────────────────
+
+// Full-screen "working" overlay shown between wizard steps so each transition
+// states what's happening and feels interactive. Blocks input while up.
+function WorkingOverlay({ message }: { message: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-brand-ink/25 backdrop-blur-sm"
+    >
+      <div className="flex min-w-[260px] flex-col items-center gap-4 rounded-card border border-brand-line bg-white px-8 py-7 text-center shadow-lift">
+        <VLogo
+          size={40}
+          gradientId="wizard-working"
+          className="wielo-logo-pulse"
+        />
+        <div className="flex items-center gap-2.5">
+          <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+          <span className="text-[14px] font-semibold text-brand-ink">
+            {message}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // A resolved "Referred by" partner — avatar (or initials) + name, with an
 // optional clear button. Deliberately shows NO contact details (email/phone).
