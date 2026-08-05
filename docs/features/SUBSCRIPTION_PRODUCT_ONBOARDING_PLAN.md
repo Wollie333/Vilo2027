@@ -148,11 +148,28 @@ webhook's `processSubscriptionEvent` charge.success exactly; idempotent with it.
   auto-confirm before the money lands). No "charged-but-not-upgraded" hole.
 So the "successful subscription → account upgraded" guarantee now holds uniformly across all three rails.
 
-### Phase 3 — Super-admin per-user price override (requirement #3b)
-Extend `adminUpdateSubscriptionAction` (+ the managesub dialog) to set an explicit `locked_base_amount`
-(any admin-entered amount, not just the founding price), reusing the existing proration + ledger posting.
-Add an audit row. Scope decision needed: recurring-price override only, or also a per-user discount %/comp
-flag? **DoD: set a custom price on a user, next charge/proration uses it, admin record + ledger reflect it.**
+### Phase 3 — Admin manual upgrade: price override + trial + reason (requirement #3 / #3b) — ⏳ NOT STARTED
+Founder-confirmed scope (2026-08-05, expanded from the original #3b): the admin user-record manual upgrade
+must give FULL control over a user's subscription/product. Manual upgrade to any product ALREADY exists
+(`setUserProductAction` at `admin/users/[id]/actions.ts:1303` + the Products-tab catalog cards). Extend it:
+1. **Reason note** — a free-text note in the controls modal, RECORDED in the user's History tab. `reason`
+   already exists on `setProductSchema` (optional); it flows to `admin_audit_log` via `withAdminAudit`. Just
+   surface a note field in the UI and pass it (consider making it required for a manual override).
+2. **Per-user price override** — an arbitrary recurring price the admin sets; persist as
+   `subscriptions.locked_base_amount` (the billing engine reads it via `resolveMembershipAmount`). Use it for
+   both the recurring amount AND the immediate charge (`effPrice = priceOverride ?? product.price`).
+3. **Trial duration** — a number + unit dropdown (days/weeks/months/years). When set: status `trialing`,
+   `current_period_end = now + trial`, and force `charge='none'` (no money collected now).
+**Backend plan (was stubbed then reverted for a clean save point):** add `priceOverride`, `trialValue`,
+`trialUnit` to `setProductSchema`; in the action compute the trial end, set `status`/`current_period_end`,
+add `locked_base_amount` to the subscription `patch` when overridden, and swap `newPrice`→`effPrice` in the
+charge block. **UI:** the set-product / managesub modal in `admin/users/[id]/UserRecord.tsx` (a 5984-line
+client component — find the set-product dialog that already collects charge/timing/creditOverride and add
+the reason textarea + price field + trial value/unit).
+**DoD: set a custom price + trial + reason on a user via a product card → sub reflects trialing + the
+custom locked amount, the immediate charge (if any) uses the override, and the reason shows in History.**
+**Also confirm (requirement #1):** signup already assigns the selected product via `activateMappedPlan`
+(Phase 0/1) — spot-check the admin record shows the product the user chose at signup.
 
 ### Phase 4 — Finance reconciliation (requirement #4)
 - **Comp/free activations post a ledger row** (a R0 or `type='adjustment'`/comp charge) so MRR and

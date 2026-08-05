@@ -2,7 +2,55 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt34) — **AFFILIATE: REFERRAL RESOLUTION + SUSPENSION LIFECYCLE + 5-DIGIT CODE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt35) — **SIGNUP/AUTH/ADMIN UX BATCH + 5 OPEN TASKS** ⬅ START HERE
+
+**All committed to `main` (== `origin/main`? NOT pushed — founder controls prod deploys). Clean tree.**
+tsc + lint + full vitest (490) GREEN throughout. Migrations applied to the linked cloud + types regenerated
+earlier this session (pt34). Continues pt34 (below) — same long session.
+
+### ✅ Done + committed since pt34 (newest first)
+- **Redundant "Create your first listing" teaser REMOVED** from the overview (`999da3d`) — deleted
+  `dashboard/_components/FirstListingTeaser.tsx` + its render/lookup in `dashboard/page.tsx`.
+- **Admin notification on EVERY signup** with account type (`c880312`) — host/guest/quote/partner signup
+  actions call `notifyAdmins` (category `support`, kind `user_signup`, href to the admin user record).
+- **Email-verify gate → blurred BLOCKING dashboard modal + auto-detect** (`25a1c25`) — unverified non-staff
+  users LAND on the dashboard/portal behind `components/auth/EmailVerifyGate.tsx` (no redirect); polls
+  `checkEmailVerifiedAction` (4s + on focus) → auto-dismiss on confirm; no manual button. Both layouts
+  changed from `redirect` to a flag. `/verify-email-required` route now unreachable (left as fallback).
+- **Consent links → modal everywhere** + **"Save & finish later" removed** from host wizard (`49b8d5a`) —
+  register + Looking-For were the only navigators left; all consent now uses `LegalDocModalLink`.
+- **"Working" overlay between wizard steps** (`77c835b`) — WorkingOverlay in `signup/host/Wizard.tsx`.
+- **Partner code surfaced 3 places** (`ae1a83d`) + **inline number+@handle** (`a082fa6`) — directory
+  column, admin affiliate record top-right, and PERSISTENT across the affiliate portal (`PartnerCodeCard`).
+
+### ⚠️ NOT self-verified live (need a real session the assistant can't drive — founder to confirm)
+- Email-verify modal (needs an UNVERIFIED non-staff session; super admin is staff so it never shows for the
+  founder — use the test host `qollietsh@gmail.com`). Working overlay + signup notifications (need a real
+  signup + password entry). The inline partner-code card (admin session expired mid-check).
+
+### ⭐ OPEN TASKS (tracked in the task list #1–#5; #1/#2 done)
+- **#3 Phase 3 — admin manual upgrade: reason note + PRICE OVERRIDE + TRIAL duration** (money; NOT STARTED,
+  schema stub was reverted for a clean tree). Founder confirmed: number + unit (days/weeks/months/years) for
+  trial. FULL design + DoD in `docs/features/SUBSCRIPTION_PRODUCT_ONBOARDING_PLAN.md` Phase 3. Extend
+  `setUserProductAction` (`admin/users/[id]/actions.ts:1303`) + the set-product modal in the 5984-line
+  `admin/users/[id]/UserRecord.tsx`. `reason` already on the schema (→ `admin_audit_log`/History).
+- **#4 Admin-managed welcome VIDEO** on the onboarding overview — the square hero region on
+  `OnboardingDashboard` renders an admin-set YouTube link when present; falls back to the current "Up next"
+  progress design when blank. Add an admin CMS field for the URL. (This is a DIFFERENT card from the removed
+  teaser — do NOT remove the progress card.)
+- **#5 Onboarding setup steps mismatch** — the overview says 6 steps but the real first-listing wizard has
+  more (seasonal pricing, policies, etc.). Make `OnboardingDashboard`'s steps match the real setup wizard.
+
+### Env / state
+- Dev server `web-dev` was running on :3000 (may have stopped). Founder logged into `/admin` as super admin
+  in their Chrome (claude-in-chrome); an UNVERIFIED test host `qollietsh@gmail.com` exists from their signup.
+  Super admin (`66fe4644-…`) now HAS an affiliate account: slug `wollie-steenkamp`, partner number `24198`.
+- `supabase db query --linked --file <sql>` is the way to introspect the remote (no Docker). The remote-only
+  `20260805120000` was `broadcast_banner_controls` (a parallel session's feature) — reconstructed into the repo.
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt34) — **AFFILIATE: REFERRAL RESOLUTION + SUSPENSION LIFECYCLE + 5-DIGIT CODE**
 
 All committed to `main` (not pushed). Migrations APPLIED to the linked cloud + types regenerated.
 tsc + lint + full vitest (490) GREEN. Continues pt33 (same session) — subscription→product onboarding is

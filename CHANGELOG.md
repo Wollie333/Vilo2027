@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-08-05 (pt35) — Signup / auth / admin UX batch.
+
+tsc + lint + full vitest (490) GREEN. No migration. Several items need a real non-staff/unverified session
+to live-verify (flagged in CURRENT_TASK pt35).
+
+- **Partner code surfaced** in the admin directory (new column), the admin affiliate record (top-right card),
+  and PERSISTENTLY across the affiliate portal (shared `PartnerCodeCard`) — number + @handle inline, copyable.
+- **"Working" overlay between signup steps** — states what's happening (Creating your account… etc.), min
+  ~900ms + full async on the real steps; validation failures skip it.
+- **Consent links open in a modal everywhere** — register + "Looking for" forms were the only consent
+  checkboxes still navigating to /terms|/privacy; converted to `LegalDocModalLink`. **"Save & finish later"
+  removed** from the host wizard (Back/Continue only).
+- **Email-verify gate → blocking dashboard modal** — unverified non-staff users land on the (blurred)
+  dashboard/portal behind `EmailVerifyGate` instead of a redirect; auto-detects confirmation (polls +
+  window-focus) and dismisses itself; the manual "I've confirmed" button is gone. Security gating stays
+  server-side (requireHost/assertFullHost).
+- **Admin notification on every signup** with account type (host/guest/quote/partner → `notifyAdmins`).
+- **Removed** the redundant "Create your first listing" overview teaser (deleted the dead component).
+
 ## 2026-08-05 (pt34) — Affiliate referral resolution + suspension lifecycle + 5-digit partner number.
 
 tsc + `pnpm lint` + full vitest (490) GREEN. Migrations applied to the linked cloud + types regenerated.
