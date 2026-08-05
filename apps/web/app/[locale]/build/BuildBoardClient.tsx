@@ -4,6 +4,7 @@ import { ChevronUp, Lightbulb, Loader2, Plus, X } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { TextArea, TextField } from "@/components/dashboard/fields";
 import {
   BOARD_STATUSES,
   STATUS_META,
@@ -311,33 +312,24 @@ function SubmitModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-5 space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-brand-ink">
-              Title
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={140}
-              placeholder="e.g. WhatsApp booking notifications"
-              disabled={pending}
-              className="w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-brand-ink">
-              Details <span className="font-normal text-brand-mute">(optional)</span>
-            </label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              maxLength={2000}
-              rows={4}
-              placeholder="What problem would this solve for you?"
-              disabled={pending}
-              className="w-full resize-none rounded-md border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
-            />
-          </div>
+          <TextField
+            label="Title"
+            value={title}
+            onChange={setTitle}
+            maxLength={140}
+            placeholder="e.g. WhatsApp booking notifications"
+            disabled={pending}
+          />
+          <TextArea
+            label="Details"
+            value={body}
+            onChange={setBody}
+            maxLength={2000}
+            rows={4}
+            placeholder="What problem would this solve for you?"
+            disabled={pending}
+            hint="Optional"
+          />
         </div>
 
         <div className="mt-6 flex justify-end gap-2">

@@ -17,6 +17,13 @@ import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
 
+import {
+  SegRow,
+  SelectField,
+  TextArea,
+  TextField,
+  ToggleField,
+} from "@/components/dashboard/fields";
 import { modal } from "@/components/ui/modal-host";
 import type { MessageConfig } from "@/lib/notifications/admin-config";
 
@@ -25,13 +32,6 @@ import {
   deleteBroadcastSafe,
 } from "../../broadcasts/actions";
 import type { DeliveryHealth } from "../health";
-import {
-  SegRow,
-  SelectField,
-  TextArea,
-  TextField,
-  ToggleField,
-} from "./fields";
 import {
   EditDrawer,
   EmailPreviewModal,

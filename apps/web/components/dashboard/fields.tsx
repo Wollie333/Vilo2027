@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 
-// Dashboard-themed form primitives for the Communications composer. Mirrors the
-// Specials wizard field set (app/[locale]/dashboard/specials/_components/fields)
-// so the two editors read the same — kept local so the feature stays
-// self-contained (no cross-feature import).
+// Shared dashboard-themed form primitives (brand-* tokens — app chrome, not a
+// site theme). One home for the label/input set used across admin + dashboard
+// editors (Communications, Build Board, …). Mirrors the Specials wizard field
+// look so every editor reads the same.
 
 export const inputCls =
   "w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none transition focus:border-brand-primary";
@@ -40,6 +40,7 @@ export function TextField({
   maxLength,
   hint,
   type = "text",
+  disabled,
 }: {
   label: string;
   value: string;
@@ -48,6 +49,7 @@ export function TextField({
   maxLength?: number;
   hint?: string;
   type?: "text" | "url" | "datetime-local";
+  disabled?: boolean;
 }) {
   return (
     <Field label={label} hint={hint}>
@@ -57,7 +59,8 @@ export function TextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className={`mt-1.5 ${inputCls}`}
+        disabled={disabled}
+        className={`mt-1.5 ${inputCls} disabled:opacity-60`}
       />
     </Field>
   );
@@ -71,6 +74,7 @@ export function TextArea({
   maxLength,
   rows = 4,
   hint,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -79,6 +83,7 @@ export function TextArea({
   maxLength?: number;
   rows?: number;
   hint?: string;
+  disabled?: boolean;
 }) {
   return (
     <Field label={label} hint={hint}>
@@ -88,7 +93,8 @@ export function TextArea({
         placeholder={placeholder}
         maxLength={maxLength}
         rows={rows}
-        className={`mt-1.5 resize-y ${inputCls}`}
+        disabled={disabled}
+        className={`mt-1.5 resize-y ${inputCls} disabled:opacity-60`}
       />
     </Field>
   );
@@ -100,19 +106,22 @@ export function SelectField<T extends string>({
   options,
   onChange,
   hint,
+  disabled,
 }: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (v: T) => void;
   hint?: string;
+  disabled?: boolean;
 }) {
   return (
     <Field label={label} hint={hint}>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className={`mt-1.5 ${inputCls}`}
+        disabled={disabled}
+        className={`mt-1.5 ${inputCls} disabled:opacity-60`}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -124,7 +133,7 @@ export function SelectField<T extends string>({
   );
 }
 
-// N-option inline segmented control (severity, dismiss mode, delivery).
+// N-option inline segmented control (severity, dismiss mode, delivery, …).
 export function SegRow<T extends string>({
   label,
   value,
@@ -174,11 +183,13 @@ export function ToggleField({
   hint,
   checked,
   onChange,
+  disabled,
 }: {
   label: string;
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -196,8 +207,9 @@ export function ToggleField({
         type="button"
         role="switch"
         aria-checked={checked}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
           checked ? "bg-brand-primary" : "bg-gray-200"
         }`}
       >
