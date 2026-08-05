@@ -230,6 +230,53 @@ export async function editBroadcastSafe(
   }
 }
 
+// ─── Delete a broadcast (hard delete) ────────────────────────────────────
+// Removes the row entirely (broadcast_acknowledgements cascade). Pre-MVP:
+// broadcasts carry no data worth preserving; cancel is the soft path, delete
+// is the hard one. The before-state is captured for the audit log.
+
+export const deleteBroadcastWrapped = withAdminAudit<
+  { id: string; reason?: string },
+  SimpleResult
+>(
+  {
+    permissionKey: "notifications.broadcast",
+    actionName: "broadcast.delete",
+    targetType: "broadcast",
+    getTargetId: (a) => a.id,
+  },
+  async (args, service) => {
+    const { data: before } = await service
+      .from("broadcast_announcements")
+      .select("*")
+      .eq("id", args.id)
+      .maybeSingle();
+    const { error } = await service
+      .from("broadcast_announcements")
+      .delete()
+      .eq("id", args.id);
+    if (error) return { result: { ok: false, error: error.message } };
+    revalidatePath("/admin/broadcasts");
+    revalidatePath("/admin/communications");
+    return { result: { ok: true }, after: before };
+  },
+);
+
+/** Thin wrapper exposed to the client: validates the id + calls the audited action. */
+export async function deleteBroadcastSafe(id: string): Promise<SimpleResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return { ok: false, error: "Invalid broadcast id." };
+  }
+  try {
+    return await deleteBroadcastWrapped({ id });
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to delete.",
+    };
+  }
+}
+
 // ─── Cancel a broadcast (requires reason) ────────────────────────────────
 
 export const cancelBroadcastAction = withAdminAudit<
