@@ -18,7 +18,10 @@ export default async function PipelinePage({
 }: {
   searchParams: { audience?: string };
 }) {
-  await requirePermission("pipeline.view");
+  const ctx = await requirePermission("pipeline.view");
+  // Only a super admin may delete leads (founder directive) — everyone else
+  // manages the pipeline without a destroy button.
+  const canDelete = ctx.roleId === "super_admin";
 
   const audience: Audience =
     searchParams.audience === "affiliate" ? "affiliate" : "host";
@@ -133,7 +136,11 @@ export default async function PipelinePage({
       </div>
 
       {/* Board */}
-      <PipelineBoard stages={board.stages} audience={board.audience} />
+      <PipelineBoard
+        stages={board.stages}
+        audience={board.audience}
+        canDelete={canDelete}
+      />
     </div>
   );
 }

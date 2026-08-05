@@ -10,8 +10,14 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
+  AlertTriangle,
   BedDouble,
+  CalendarClock,
+  Clock,
+  CreditCard,
+  Eye,
   Inbox,
+  Mail,
   MapPin,
   Phone,
   Trash2,
@@ -36,9 +42,11 @@ function band(score: number): [string, string] {
 export function PipelineBoard({
   stages: initialStages,
   audience,
+  canDelete,
 }: {
   stages: BoardStage[];
   audience: Audience;
+  canDelete: boolean;
 }) {
   const router = useRouter();
   const [stages, setStages] = useState(initialStages);
@@ -113,6 +121,7 @@ export function PipelineBoard({
               stage={s}
               total={total}
               audience={audience}
+              canDelete={canDelete}
               onDeleted={removeLead}
             />
           ))}
@@ -126,11 +135,13 @@ function Column({
   stage,
   total,
   audience,
+  canDelete,
   onDeleted,
 }: {
   stage: BoardStage;
   total: number;
   audience: Audience;
+  canDelete: boolean;
   onDeleted: (leadId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
@@ -205,6 +216,7 @@ function Column({
               stageId={stage.id}
               audience={audience}
               locked={stage.isCustomer}
+              canDelete={canDelete}
               onDeleted={onDeleted}
             />
           ))
@@ -218,17 +230,60 @@ function fmtZar(n: number): string {
   return `R${n.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`;
 }
 
+const PILL_TONES: Record<string, string> = {
+  emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  "emerald-soft": "border-emerald-100 bg-[#F0FBF5] text-emerald-700",
+  amber: "border-amber-200 bg-amber-50 text-amber-700",
+  red: "border-red-200 bg-red-50 text-red-700",
+  indigo: "border-[#D7DBFB] bg-[#EEF0FF] text-[#4F46E5]",
+  slate: "border-brand-line bg-[#F4F8F5] text-brand-secondary",
+  mute: "border-brand-line bg-brand-light text-brand-mute",
+};
+
+function Pill({
+  children,
+  tone = "mute",
+  icon: Icon,
+  title,
+}: {
+  children: React.ReactNode;
+  tone?: string;
+  icon?: typeof Users;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${PILL_TONES[tone] ?? PILL_TONES.mute}`}
+    >
+      {Icon ? <Icon className="h-3 w-3" /> : null}
+      {children}
+    </span>
+  );
+}
+
+/** "Trial · 14d left" / "Trial ends today" / "Trial ended". */
+function trialText(iso: string): string {
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  if (days > 1) return `Trial · ${days}d left`;
+  if (days === 1) return "Trial · 1d left";
+  if (days === 0) return "Trial ends today";
+  return "Trial ended";
+}
+
 function LeadCard({
   lead,
   stageId,
   audience,
   locked,
+  canDelete,
   onDeleted,
 }: {
   lead: BoardStage["leads"][number];
   stageId: string;
   audience: Audience;
   locked: boolean;
+  canDelete: boolean;
   onDeleted: (leadId: string) => void;
 }) {
   const router = useRouter();
@@ -242,32 +297,48 @@ function LeadCard({
   const av = lead.name.trim().slice(0, 2).toUpperCase();
   const [confirming, setConfirming] = useState(false);
 
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
   return (
     <div
       ref={setNodeRef}
       {...(locked ? {} : listeners)}
       {...(locked ? {} : attributes)}
-      onClick={() => router.push(`/admin/pipeline/${lead.id}`)}
-      className={`group relative rounded-2xl border border-brand-line bg-white p-3 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
-        locked ? "cursor-pointer" : "cursor-grab"
+      className={`group relative rounded-2xl border border-brand-line bg-white p-4 shadow-card transition hover:border-[#CDE6D8] hover:shadow-lift ${
+        locked ? "cursor-default" : "cursor-grab active:cursor-grabbing"
       } ${isDragging ? "opacity-40" : ""}`}
     >
-      {/* Delete — kept out of the drag/navigate path via stopPropagation.
-          Hidden on customer cards (Trial/Won): they're locked (server enforces). */}
-      {locked ? null : (
+      {/* Top-right actions. The card itself only drags — opening the record is an
+          explicit click on the eye, so inner links stay clickable and a drag is
+          never mistaken for a navigate. */}
+      <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5">
         <button
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={stop}
           onClick={(e) => {
-            e.stopPropagation();
-            setConfirming(true);
+            stop(e);
+            router.push(`/admin/pipeline/${lead.id}`);
           }}
-          className="absolute right-2 top-2 z-10 rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-          title="Delete lead"
-          aria-label="Delete lead"
+          className="rounded-lg p-1.5 text-brand-mute transition hover:bg-brand-light hover:text-brand-primary"
+          title="Open record"
+          aria-label="Open record"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Eye className="h-4 w-4" />
         </button>
-      )}
+        {canDelete && !locked ? (
+          <button
+            onPointerDown={stop}
+            onClick={(e) => {
+              stop(e);
+              setConfirming(true);
+            }}
+            className="rounded-lg p-1.5 text-brand-mute opacity-0 transition hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+            title="Delete lead"
+            aria-label="Delete lead"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </div>
 
       {confirming ? (
         <DeleteLeadDialog
@@ -283,150 +354,219 @@ function LeadCard({
         />
       ) : null}
 
-      <div className="flex items-start gap-2.5 pr-6">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-display text-[11px] font-bold text-white">
-          {av}
+      {/* Identity */}
+      <div className="flex items-start gap-3 pr-14">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-secondary font-display text-[13px] font-bold text-white">
+          {lead.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={lead.avatarUrl}
+              alt={lead.name}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            av
+          )}
         </span>
         <div className="min-w-0 flex-1">
-          <h4 className="truncate font-display text-[13.5px] font-bold leading-tight">
-            {lead.name}
-          </h4>
-          <div className="truncate text-[11.5px] text-brand-mute">
-            {lead.email ?? "—"}
+          <div className="flex items-center gap-1.5">
+            <h4 className="truncate font-display text-[14px] font-bold leading-tight">
+              {lead.name}
+            </h4>
+            {lead.isLead ? (
+              <span
+                className="shrink-0 rounded-full border border-brand-line bg-brand-light px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide text-brand-mute"
+                title="Passwordless lead — hasn't claimed an account yet"
+              >
+                lead
+              </span>
+            ) : null}
           </div>
+          {lead.email ? (
+            <a
+              href={`mailto:${lead.email}`}
+              onPointerDown={stop}
+              onClick={stop}
+              className="mt-0.5 flex items-center gap-1 text-[11.5px] text-brand-mute transition hover:text-brand-primary hover:underline"
+              title={`Email ${lead.email}`}
+            >
+              <Mail className="h-3 w-3 shrink-0" />
+              <span className="truncate">{lead.email}</span>
+            </a>
+          ) : (
+            <div className="text-[11.5px] text-brand-mute">—</div>
+          )}
+          {lead.phone ? (
+            <a
+              href={`tel:${lead.phone.replace(/[^\d+]/g, "")}`}
+              onPointerDown={stop}
+              onClick={stop}
+              className="mt-0.5 flex items-center gap-1 text-[11px] text-brand-mute transition hover:text-brand-primary hover:underline"
+              title={`Call ${lead.phone}`}
+            >
+              <Phone className="h-3 w-3 shrink-0" />
+              <span className="truncate">{lead.phone}</span>
+            </a>
+          ) : null}
         </div>
       </div>
 
-      {/* Audience context: a host card tells you the property + how to reach
-          them; an affiliate card tells you if they actually drive referrals. */}
-      {audience === "host" &&
-      (lead.host?.establishment || lead.host?.rooms || lead.phone) ? (
-        <div className="mt-2 space-y-1">
+      {/* Who they are: property (host) or partner identity (affiliate). */}
+      {audience === "host" && (lead.host?.establishment || lead.host?.rooms) ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
           {lead.host?.establishment ? (
-            <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-brand-secondary">
+            <span className="inline-flex min-w-0 items-center gap-1 font-medium text-brand-secondary">
               <MapPin className="h-3 w-3 shrink-0 text-brand-mute" />
               <span className="truncate">{lead.host.establishment}</span>
-            </div>
+            </span>
           ) : null}
-          {lead.host?.rooms || lead.phone ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
-              {lead.host?.rooms ? (
-                <span className="inline-flex items-center gap-1">
-                  <BedDouble className="h-3 w-3" />
-                  {lead.host.rooms} rooms
-                </span>
-              ) : null}
-              {lead.phone ? (
-                <span className="inline-flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {lead.phone}
-                </span>
-              ) : null}
-            </div>
+          {lead.host?.rooms ? (
+            <span className="inline-flex items-center gap-1 text-brand-mute">
+              <BedDouble className="h-3 w-3" />
+              {lead.host.rooms} rooms
+            </span>
           ) : null}
         </div>
       ) : null}
 
       {audience === "affiliate" && lead.affiliate ? (
-        <div className="mt-2 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
-            {lead.affiliate.partnerNumber ? (
-              <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-brand-secondary">
-                #{lead.affiliate.partnerNumber}
-              </span>
-            ) : null}
-            {lead.affiliate.region ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {lead.affiliate.region}
-              </span>
-            ) : null}
-            {lead.phone ? (
-              <span className="inline-flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {lead.phone}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className="inline-flex items-center gap-1 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-semibold text-[#4F46E5]"
-              title={`${lead.affiliate.referrals} referred, ${lead.affiliate.convertedHosts} became hosts`}
-            >
-              <Users className="h-3 w-3" />
-              {lead.affiliate.referrals} ref
-              {lead.affiliate.convertedHosts > 0
-                ? ` · ${lead.affiliate.convertedHosts} host${lead.affiliate.convertedHosts === 1 ? "" : "s"}`
-                : ""}
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
+          {lead.affiliate.partnerNumber ? (
+            <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-brand-secondary">
+              #{lead.affiliate.partnerNumber}
             </span>
-            {lead.affiliate.earnings > 0 ? (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold tabular-nums text-emerald-700"
-                title="Commission earned to date"
-              >
-                <TrendingUp className="h-3 w-3" />
-                {fmtZar(lead.affiliate.earnings)}
-              </span>
-            ) : null}
-          </div>
+          ) : null}
+          {lead.affiliate.region ? (
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {lead.affiliate.region}
+            </span>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        {lead.valueKind ? (
-          <span
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-              lead.valueKind === "paid"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-amber-200 bg-amber-50 text-amber-700"
-            }`}
-            title={
-              lead.valueKind === "paid"
-                ? "Wielo revenue from this customer"
-                : "Expected value of their live trial"
-            }
-          >
-            R{lead.value.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
-            {lead.valueKind === "trial" ? (
-              <span className="font-medium opacity-70">trial</span>
-            ) : null}
-          </span>
-        ) : null}
+      {/* Money & tenure pills */}
+      {lead.subscriptionAmount ||
+      lead.ltv > 0 ||
+      (lead.subscriptionStatus === "trialing" && lead.trialEndsAt) ||
+      lead.monthsActive > 0 ||
+      lead.paymentsMissed > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {lead.subscriptionAmount ? (
+            <Pill
+              tone="emerald-soft"
+              icon={CreditCard}
+              title={`Recurring subscription (${lead.subscriptionInterval === "annual" ? "annual" : "monthly"})`}
+            >
+              {fmtZar(lead.subscriptionAmount)}/
+              {lead.subscriptionInterval === "annual" ? "yr" : "mo"}
+            </Pill>
+          ) : null}
+          {lead.ltv > 0 ? (
+            <Pill
+              tone="emerald"
+              icon={TrendingUp}
+              title="Lifetime value — total paid to Wielo"
+            >
+              LTV {fmtZar(lead.ltv)}
+            </Pill>
+          ) : null}
+          {lead.subscriptionStatus === "trialing" && lead.trialEndsAt ? (
+            <Pill tone="amber" icon={Clock} title="Free-trial period">
+              {trialText(lead.trialEndsAt)}
+            </Pill>
+          ) : null}
+          {lead.monthsActive > 0 ? (
+            <Pill
+              tone="slate"
+              icon={CalendarClock}
+              title="Months as a paying customer"
+            >
+              {lead.monthsActive} mo active
+            </Pill>
+          ) : null}
+          {lead.paymentsMissed > 0 ? (
+            <Pill
+              tone="red"
+              icon={AlertTriangle}
+              title="Failed payments (dunning)"
+            >
+              {lead.paymentsMissed} missed
+            </Pill>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Signals: score, risk, relationships */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${bc}`}
         >
           {bl} · <b className="tabular-nums">{lead.score}</b>
         </span>
         {lead.atRisk ? (
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700"
-            title="Payment is faltering — reach out before they churn"
+          <Pill
+            tone="red"
+            title="Payment is faltering — reach out before churn"
           >
             ⚠ At risk
-          </span>
+          </Pill>
+        ) : null}
+        {audience === "affiliate" && lead.affiliate ? (
+          <Pill
+            tone="indigo"
+            icon={Users}
+            title={`${lead.affiliate.referrals} referred, ${lead.affiliate.convertedHosts} became hosts`}
+          >
+            {lead.affiliate.referrals} ref
+            {lead.affiliate.convertedHosts > 0
+              ? ` · ${lead.affiliate.convertedHosts} host${lead.affiliate.convertedHosts === 1 ? "" : "s"}`
+              : ""}
+          </Pill>
+        ) : null}
+        {audience === "affiliate" && (lead.affiliate?.earnings ?? 0) > 0 ? (
+          <Pill
+            tone="emerald"
+            icon={TrendingUp}
+            title="Commission earned to date"
+          >
+            {fmtZar(lead.affiliate!.earnings)} earned
+          </Pill>
+        ) : null}
+        {audience === "host" && lead.referredQty > 0 ? (
+          <Pill
+            tone="indigo"
+            icon={Users}
+            title="People this host has referred"
+          >
+            referred {lead.referredQty}
+          </Pill>
         ) : null}
         {lead.sourceKind === "competition" ? (
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
-            title={`Competition: ${lead.sourceLabel ?? "—"}`}
-          >
+          <Pill tone="amber" title={`Competition: ${lead.sourceLabel ?? "—"}`}>
             🏆 {lead.sourceLabel ?? "Competition"}
-          </span>
+          </Pill>
         ) : null}
         {lead.affiliateRef ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-medium text-[#4F46E5]">
-            <Users className="h-3 w-3" />
+          <Pill
+            tone="indigo"
+            icon={Users}
+            title="Referred to Wielo by this partner"
+          >
             via {lead.affiliateRef}
-          </span>
+          </Pill>
         ) : null}
         {lead.suppressed ? (
-          <span className="rounded-full border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-medium text-brand-mute">
+          <Pill
+            tone="mute"
+            title="Automated nurture emails are off for this lead"
+          >
             auto off
-          </span>
+          </Pill>
         ) : null}
       </div>
 
-      <div className="mt-2.5 flex items-center gap-2 border-t border-brand-line pt-2.5">
+      <div className="mt-3 flex items-center gap-2 border-t border-brand-line pt-3">
         {lead.ownerInitials ? (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-mute text-[8px] font-bold text-white">
             {lead.ownerInitials}

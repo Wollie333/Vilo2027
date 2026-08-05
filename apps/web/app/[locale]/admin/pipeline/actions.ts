@@ -318,7 +318,13 @@ export const deleteLeadAction = withAdminAudit<
     getTargetId: (a) => a.leadId,
   },
   async (a, service) => {
-    // Deleting the guest account is a heavier right than managing the pipeline.
+    // Deleting a pipeline lead is a super-admin-only right (founder directive):
+    // regular staff manage the pipeline but must never destroy a lead record.
+    const ctx = await requireAdmin();
+    if (ctx.roleId !== "super_admin") {
+      throw new Error("Only a super admin can delete pipeline leads.");
+    }
+    // Deleting the guest account is a heavier right still.
     if (a.deleteGuest) await requirePermission("users.delete");
 
     // Resolve the lead + its guest identity before the card is gone.
