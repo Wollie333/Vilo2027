@@ -4,9 +4,23 @@
 // unaffected (this wrapper as the default build command broke the Vercel build).
 // No new dependency (avoids needing cross-env for Windows). Appending our flag to
 // any existing NODE_OPTIONS is safe — Node takes the last --max-old-space-size.
+//
+// The heap is sized from ACTUAL physical RAM: 75% of total, capped at 6 GB and
+// floored at 2 GB. A fixed flag bigger than the machine's RAM (e.g. an 8 GB heap
+// on an 8 GB box) is worse than none — V8 grows past physical memory and the OS
+// OOM-kills the worker (exit 137). Deriving from os.totalmem() makes that mistake
+// impossible and adapts up on larger machines.
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 
-const HEAP = "--max-old-space-size=6144";
+const totalMb = Math.floor(os.totalmem() / (1024 * 1024));
+const heapMb = Math.max(2048, Math.min(6144, Math.floor(totalMb * 0.75)));
+const HEAP = `--max-old-space-size=${heapMb}`;
+console.log(
+  `[build:local] physical RAM ${totalMb} MB → V8 heap ${heapMb} MB. ` +
+    `Tip: don't run this alongside \`pnpm dev\` on a low-RAM machine — they ` +
+    `share the ${totalMb} MB and the .next dir.`,
+);
 const existing = process.env.NODE_OPTIONS ?? "";
 const NODE_OPTIONS = existing.includes("--max-old-space-size")
   ? existing
