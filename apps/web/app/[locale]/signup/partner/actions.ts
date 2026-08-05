@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 
+import { notifyAdmins } from "@/lib/admin/notify";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { activateAffiliateIfReady } from "@/lib/affiliate/activation";
 import { recordAcceptance } from "@/lib/affiliate/agreement";
@@ -299,6 +300,16 @@ export async function createPartnerAccountAction(
   // reports "not yet". It still runs: verification can be a no-op in
   // environments where email is already confirmed.
   const { activated } = await activateAffiliateIfReady(admin, account.id);
+
+  // Surface the new affiliate-partner signup to staff (funnel visibility).
+  await notifyAdmins(admin, {
+    category: "support",
+    kind: "user_signup",
+    title: "New affiliate partner signed up",
+    body: `${full_name} signed up as an affiliate partner.`,
+    userId: newUserId,
+    href: `/admin/users/${newUserId}`,
+  });
 
   return {
     ok: true,

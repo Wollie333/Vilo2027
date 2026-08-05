@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 
+import { notifyAdmins } from "@/lib/admin/notify";
 import {
   bindAffiliateReferral,
   resolveReferralPartner,
@@ -657,6 +658,20 @@ export async function finalizeOnboardingAction(
       // non-fatal
     }
   }
+
+  // Surface the new host signup to staff (funnel visibility) with the account
+  // type. Best-effort — a notification hiccup must never fail signup.
+  await notifyAdmins(createAdminClient(), {
+    category: "support",
+    kind: "user_signup",
+    title: "New host signed up",
+    body: `${d.full_name} completed host onboarding${
+      resolvedProductId ? " on a paid plan" : " on the free plan"
+    }.`,
+    userId: user.id,
+    hostId: host.id,
+    href: `/admin/users/${user.id}`,
+  });
 
   // Return the host id + chosen plan so the wizard can render a
   // thank-you / receipt step. The user clicks through to /dashboard

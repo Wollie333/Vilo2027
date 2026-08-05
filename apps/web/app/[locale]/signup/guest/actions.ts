@@ -295,18 +295,21 @@ export async function finalizeGuestOnboardingAction(
     return { ok: false, error: "Could not save your details. Try again." };
   }
 
-  // WS-4: a guest who self-identifies as an accommodation owner is a HOST lead —
-  // surface it to staff so the funnel doubles as a host pipeline. Best-effort.
-  if (d.owns_accommodation === true) {
-    await notifyAdmins(createAdminClient(), {
-      category: "support",
-      kind: "host_lead",
-      title: "New host lead from guest signup",
-      body: `${d.full_name} signed up as a guest and said they own accommodation.`,
-      userId: user.id,
-      href: `/admin/users/${user.id}`,
-    });
-  }
+  // Surface EVERY signup to staff (funnel visibility) with the account type. A
+  // guest who self-identifies as an accommodation owner is also a HOST lead (the
+  // funnel doubles as a host pipeline). Best-effort — never blocks signup.
+  await notifyAdmins(createAdminClient(), {
+    category: "support",
+    kind: "user_signup",
+    title: "New guest signed up",
+    body:
+      `${d.full_name} signed up as a guest.` +
+      (d.owns_accommodation === true
+        ? " They said they own accommodation — a host lead."
+        : ""),
+    userId: user.id,
+    href: `/admin/users/${user.id}`,
+  });
 
   // Honour a safe internal ?next (e.g. the Looking For landing sends new posters
   // straight to /portal/looking-for/new). Reject anything not a same-site path

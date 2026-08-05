@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 
+import { notifyAdmins } from "@/lib/admin/notify";
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
@@ -161,6 +162,16 @@ export async function createQuotesAccountAction(
     firstName: d.first_name,
   });
   await bindAffiliateReferral(newUserId);
+
+  // Surface the new quote-only signup to staff (funnel visibility). Best-effort.
+  await notifyAdmins(admin, {
+    category: "support",
+    kind: "user_signup",
+    title: "New quote-only signup",
+    body: `${full_name} signed up for a quote-only (Looking For) account.`,
+    userId: newUserId,
+    href: `/admin/users/${newUserId}`,
+  });
 
   return { ok: true };
 }
