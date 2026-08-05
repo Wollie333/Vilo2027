@@ -69,6 +69,26 @@ so the R50's `subscription_id=NULL` does NOT break commission (verified).
 
 ---
 
+## PROGRESS (2026-08-05, session pt37)
+
+**✅ Domain 1 (platform revenue, admin) — DONE + LIVE-VERIFIED.**
+- `96926cc` — env consistency: `lib/billing/environment.ts` `resolvePlatformEnvironment()`
+  is the single source for tagging manual ledger writes AND defaulting the env filter.
+  Both admin charge paths (`setUserProductAction` activation + `sellProduct` once-off)
+  now tag env; revenue ledger / reporting / customers all default to the current mode.
+  The mis-tagged R50 was backfilled to `test` on the linked DB. Verified: R50 shows as
+  Collected R50 identically across all three admin windows (Test = current mode).
+- `570ca42` — MRR/ARR respect `locked_base_amount`: `lib/billing/mrr.ts` `lockedMonthlyMrr()`
+  is the single rule, applied to the revenue-ledger MRR loop, the reporting MRR loop +
+  plan mix, and the NRR cohort calc. Verified: MRR R50 / ARR R600 / ARPU R50 on both
+  the revenue ledger and reporting (was R999) for the R50-locked host.
+- `55123f7` — D1c: the admin user-record "Paid to Wielo" now uses ONE charge-only
+  definition in both the detail panel and the Overview headline.
+
+**⏳ Domain 2 (host) & Domain 3 (affiliate) — NOT STARTED.** See the DECISIONS below —
+these are different-meaning numbers, not just bugs, so confirm the canonical definition
+before unifying, then live-verify with a host + affiliate session.
+
 ## Proposed design
 
 **Principle:** one canonical aggregator per domain; every window renders its numbers
@@ -105,6 +125,32 @@ record; host ledger/payments/reports/billing; affiliate overview/payouts) with D
    the read-default so producer + consumer can never drift.
 2. **Domains:** ✅ **Keep the 3 domains separate**, one canonical aggregator each; every
    window mirrors its aggregator.
+
+## DECISIONS NEEDED — Domain 2 & 3 (next session)
+
+**DECISION 3 — host "Collected" (D2a).** The Payments board and the Ledger/Reports
+show different "Collected" numbers because they mean different things:
+- Payments board `sumPaidFromRows` (`lib/payments/ledger.ts`): Σ(amount − refunded) over
+  inbound payment rows, INCLUDING `kind='credit'` (applied store credit). This is
+  "amount settled against bookings" and also drives booking balance/payment_status.
+- Ledger + Reports `txnFlows.collected` (`lib/finance/transactions.ts`, the documented
+  canonical aggregator): gross cash for `CASH_KINDS=[deposit,balance,addon,payment]`
+  (EXCLUDES credit), refunds kept as a SEPARATE line.
+  → **Which is the canonical "Collected" the host sees?** Recommendation: make the
+  Payments-board headline KPI mirror `txnStats`/`txnFlows` (gross cash, refunds
+  separate) — the same the Ledger/Reports use — and keep `sumPaidFromRows` only for
+  per-booking settlement. Needs founder confirm of the definition.
+
+**DECISION 4 — affiliate figures (D3a–d).** Canonical source = `getAffiliateBalance` /
+`summariseCommissions` (`lib/affiliate/balance.ts`). Proposed canonical labels:
+- "Paid out to date" → **net** (`affiliate_payouts.net_amount`, what actually left),
+  with gross commission as a sub-line (currently shows gross `balance.paid` beside net
+  payout rows — D3a).
+- Single "lifetime earned" = `balance.lifetime`; the tier card keep its own "cleared"
+  basis but relabel so it's not read as total (D3b).
+- "This month earned" derive from `summariseCommissions`, not the ad-hoc positive-only
+  aggregate (D3c). Monthly statement definition reconciled with status-split (D3d).
+  → Confirm the labels, then unify + live-verify in the affiliate portal.
 
 ## DECISIONS NEEDED (original)
 

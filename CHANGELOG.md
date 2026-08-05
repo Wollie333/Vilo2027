@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-08-05 (pt37) — Reporting single source of truth: Domain 1 (platform revenue).
+
+tsc (full) + lint + full vitest (490) GREEN. No migration (one data backfill on the linked
+DB). Live-verified in the super-admin session. Full `pnpm build` not re-run this stretch —
+use `pnpm build:local` (hardened) next session. Plan: `docs/features/REPORTING_SINGLE_SOURCE_PLAN.md`.
+
+Founder pivot: build one source of truth for all money reporting (admins/hosts/affiliates),
+every window a mirror. Triggered by a manual R50 charge showing "collected" in one admin
+view but "nothing collected" in the revenue ledger. Confirmed 3 separate money domains
+(booking / platform-revenue / affiliate), each with one canonical aggregator; env scope =
+current Paystack mode everywhere.
+
+Domain 1 (platform revenue, admin) — done + verified:
+- **R50 root cause fixed** (`96926cc`) — the admin activation + once-off charge inserts
+  omitted `environment` → default `'live'`; the revenue ledger auto-filters to the current
+  mode (`test`) and hid them. New `lib/billing/environment.ts` `resolvePlatformEnvironment()`
+  is the single source for BOTH tagging manual ledger writes and defaulting the env filter;
+  every Domain-1 window (revenue ledger, reporting, PDF, customers) now agrees. Backfilled
+  the one mis-tagged R50 to `test`.
+- **MRR/ARR respect the locked override** (`570ca42`) — `lib/billing/mrr.ts`
+  `lockedMonthlyMrr()` is the single rule; MRR read `locked_base_amount` (the price override /
+  Founding lock) instead of the list price. MRR R50 / ARR R600 (was R999) for the R50-locked host.
+- **"Paid to Wielo" one definition** (`55123f7`) — the admin user record summed it two ways
+  (any positive completed row vs charges-only); aligned to charges-only.
+- Also: `chore e94792b` — `build:local` sizes the V8 heap from actual RAM (≤ physical) so an
+  over-RAM heap can't OOM-kill the build.
+
+Domain 2 (host) + Domain 3 (affiliate) not started — see the plan doc DECISIONS 3–4.
+
 ## 2026-08-05 (pt36) — Phase 3: admin manual upgrade — reason + price override + trial.
 
 tsc + lint + full vitest (490) GREEN. No migration (columns already existed). **Live-verified end-to-end**

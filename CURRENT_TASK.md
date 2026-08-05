@@ -2,7 +2,68 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt36) — **#3 PHASE 3 DONE + LIVE-VERIFIED; #4/#5 NEXT** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-05 pt37) — **REPORTING SINGLE SOURCE: DOMAIN 1 DONE; DOMAIN 2/3 NEXT** ⬅ START HERE
+
+Continues pt36 (same session). Founder pivoted mid-session to a NEW priority: **one
+source of truth for all money reporting**, every window a mirror, correct for admins +
+hosts + affiliates, live-tested. Triggered by: the #3 R50 test charge showed "collected"
+in one admin view but "nothing collected" in the revenue ledger.
+**Living doc:** `docs/features/REPORTING_SINGLE_SOURCE_PLAN.md` (full map + confirmed decisions + progress).
+
+### Founder decisions (confirmed this session)
+- **Env scope:** current mode everywhere (windows default to the platform's `paystack_mode`;
+  test now → all show test; auto-flips to live at launch).
+- **Domains:** keep the 3 money domains SEPARATE (booking / platform-revenue / affiliate),
+  one canonical aggregator each — do NOT merge.
+
+### The landscape (3 domains, each its own ledger)
+1. **Platform revenue** host→Wielo — `platform_ledger` via `lib/billing/wielo-ledger.ts`.
+2. **Booking money** guest→host — `payments`/`invoices`/… via `lib/finance/transactions.ts`.
+3. **Affiliate commission** Wielo→affiliate — `affiliate_commissions`/`affiliate_payouts`
+   via `lib/affiliate/balance.ts`.
+
+### ✅ DOMAIN 1 (admin platform revenue) — DONE + LIVE-VERIFIED, committed
+- **R50 root cause:** manual charge inserts omitted `environment` → default `'live'`;
+  revenue ledger auto-filters to `test` (current mode) → hid it. Fixed producer + made
+  every window default env consistently. `lib/billing/environment.ts`
+  `resolvePlatformEnvironment()` is the single source (tags writes AND defaults the read
+  filter). Commits: `96926cc` (env), `570ca42` (MRR respects `locked_base_amount`),
+  `55123f7` (user-record "Paid to Wielo" one definition).
+- **Live-verified (super-admin session):** revenue ledger + reporting + customers all show
+  Collected R50 and MRR R50 / ARR R600 (was MRR R999) for the R50-locked guest@ host.
+- **DB fix applied:** backfilled the one mis-tagged manual charge (R50) to `test` on the
+  linked cloud. `platform_ledger.environment` default is `'live'` (migration
+  `20260616000020`); real payment rails tag env from creds — only manual inserts were buggy.
+
+### ⏳ DOMAIN 2 (host) & DOMAIN 3 (affiliate) — NOT STARTED (next session)
+See the plan doc DECISION 3 (host "Collected": Payments board `sumPaidFromRows` incl.
+credit + nets refunds vs Ledger/Reports `txnFlows` gross cash, refunds separate — pick
+canonical) and DECISION 4 (affiliate: payout gross-vs-net, two "lifetime" numbers, ad-hoc
+"this month" → all from `getAffiliateBalance`). Confirm definitions → unify → live-verify
+with a host + affiliate session.
+
+### ⚠️ Checks / state
+- tsc (full) + lint + full vitest (490) GREEN across all Domain-1 changes. **Full
+  `pnpm build` NOT re-run this stretch** — run `pnpm build:local` (now hardened to auto-size
+  the V8 heap ≤ RAM, commit `e94792b`) first next session. NEVER pass `--max-old-space-size`
+  above physical RAM (that OOM-killed a build this session — the machine has ~8 GB).
+- Dev server `web-dev` running on :3000. Founder logged into `/admin` as super admin in
+  Chrome (claude-in-chrome). Test fixtures now dirty: `host1@wielostarter.com` = Starter
+  trialing (R123 lock); `guest@wielostarter.com` = Starter active (R50 lock) + a completed
+  R50 ledger charge/invoice (INV-0359). Throwaway `*@wielostarter.com` — wipe pre-launch.
+
+### 🅿️ PAUSED (pre-reporting) — resume after reporting
+- **#4 welcome VIDEO** on `OnboardingDashboard` — founder decided: a tab under **Comms**
+  (admin) sets the URL; store in `help_settings` KV (no migration); square hero renders the
+  YouTube embed when set, else the progress ring. Don't remove the progress card.
+- **#5 onboarding steps** — overview shows 6 (`setupSteps.ts`) but the real wizard
+  (`setup/SetupWizard.tsx` `SECTIONS`) has 8: profile, business, banking, listing, rooms,
+  seasonal(optional), policies, review. `GettingStartedState` lacks business/rooms/seasonal
+  done-flags. Confirm shape (keep email step? count optional seasonal?) then implement.
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt36) — **#3 PHASE 3 DONE + LIVE-VERIFIED; #4/#5 NEXT**
 
 Continues pt35 (same session). Founder asked to work #3 → #4 → #5 one at a time, testing each to "land
 fully working." tsc + lint + full vitest (490) GREEN throughout. No migration (trial/lock columns existed).
