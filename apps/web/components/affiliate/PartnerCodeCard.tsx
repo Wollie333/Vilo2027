@@ -44,7 +44,7 @@ export function PartnerCodeCard({
         <div className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-brand-mute">
           Partner code
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span className="font-mono text-[15px] font-bold tracking-wide text-brand-ink">
             {partnerNumber}
           </span>
@@ -60,20 +60,21 @@ export function PartnerCodeCard({
               <Copy className="h-3 w-3" />
             )}
           </button>
+          <span className="text-brand-line">·</span>
+          <button
+            type="button"
+            onClick={() => copy(slug, "handle")}
+            title="Copy username"
+            className="flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-brand-mute transition hover:text-brand-ink"
+          >
+            <span className="truncate">@{slug}</span>
+            {copied === "handle" ? (
+              <Check className="h-2.5 w-2.5 shrink-0" />
+            ) : (
+              <Copy className="h-2.5 w-2.5 shrink-0" />
+            )}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => copy(slug, "handle")}
-          title="Copy username"
-          className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-brand-mute transition hover:text-brand-ink"
-        >
-          <span className="truncate">@{slug}</span>
-          {copied === "handle" ? (
-            <Check className="h-2.5 w-2.5" />
-          ) : (
-            <Copy className="h-2.5 w-2.5" />
-          )}
-        </button>
       </div>
     </div>
   );
