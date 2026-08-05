@@ -39,6 +39,7 @@ import {
   round2,
 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import {
   applyCredit,
   grantCreditsForOrder,
@@ -1592,6 +1593,9 @@ export const setUserProductAction = withAdminAudit<
         const admin = await requirePermission("subscriptions.edit");
 
         if (effCharge === "paid") {
+          // Tag the current platform env so the charge lands in the right ledger
+          // scope (not the column default 'live') and shows in every window.
+          const environment = await resolvePlatformEnvironment(service);
           const { data: led, error: ledErr } = await service
             .from("platform_ledger")
             .insert({
@@ -1602,6 +1606,7 @@ export const setUserProductAction = withAdminAudit<
               status: "completed",
               amount: chargeAmount,
               currency,
+              environment,
               provider: "manual",
               reason: label,
               created_by: admin.userId,
@@ -1870,6 +1875,7 @@ export const sellProductAction = withAdminAudit<
     }
 
     if (price > 0) {
+      const environment = await resolvePlatformEnvironment(service);
       const { data: led, error: ledErr } = await service
         .from("platform_ledger")
         .insert({
@@ -1880,6 +1886,7 @@ export const sellProductAction = withAdminAudit<
           status: "completed",
           amount: price,
           currency,
+          environment,
           provider: "manual",
           reason: `Product sale · ${product.name}`,
           created_by: admin.userId,

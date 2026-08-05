@@ -1,5 +1,6 @@
 import "server-only";
 
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { WIELO_SUPPORT_EMAIL } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -185,11 +186,15 @@ export type ReportEnv = "live" | "test" | "all";
 export async function buildPlatformReport(
   range: ReportRange = "12m",
   nowMs: number = Date.now(),
-  // Which ledger environment feeds the revenue figures. Default "live" (the real
-  // business view); "test"/"all" let the founder see test purchases while building.
-  env: ReportEnv = "live",
+  // Which ledger environment feeds the revenue figures. Omit to follow the
+  // platform's CURRENT Paystack mode (the same default every revenue window uses —
+  // single source of truth), so pre-launch you see your test data and it flips to
+  // live at launch. Pass "test"/"all" explicitly to override.
+  env?: ReportEnv,
 ): Promise<PlatformReport> {
   const service = createAdminClient();
+  const resolvedEnv: ReportEnv =
+    env ?? (await resolvePlatformEnvironment(service));
   const periodStart = rangeStart(range, nowMs).toISOString();
 
   const [
@@ -219,7 +224,7 @@ export async function buildPlatformReport(
     // flip the Overview to Test/All to see them while building.
     fetchWieloLedger(service, {
       limit: 10_000,
-      environment: env === "all" ? undefined : env,
+      environment: resolvedEnv === "all" ? undefined : resolvedEnv,
     }),
     service
       .from("user_profiles")

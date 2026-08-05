@@ -6,6 +6,7 @@ import {
   type AdminColumn,
 } from "@/app/[locale]/admin/_components/AdminTable";
 import { requirePermission } from "@/lib/admin";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -21,11 +22,16 @@ export default async function AdminCustomersPage() {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
+  // Scope to the platform's current env (shared default) so pre-launch test
+  // purchases don't inflate the customer list; flips to live at launch.
+  const environment = await resolvePlatformEnvironment(service);
+
   const { data: charges } = await service
     .from("platform_ledger")
     .select("user_id, amount, currency, created_at")
     .eq("type", "charge")
     .eq("status", "completed")
+    .eq("environment", environment)
     .not("user_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(5000);

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { createProductOrder } from "@/lib/billing/product-checkout";
 
 const LEDGER_TARGET = "00000000-0000-0000-0000-00000001ed6e";
@@ -63,15 +64,10 @@ export const recordManualLedgerEntryAction = withAdminAudit<
 
     const admin = await requirePermission("subscriptions.edit");
 
-    // Inherit the platform's current Paystack mode so a manual entry posted while
-    // testing shows up in the Test-filtered ledger view (instead of always being
-    // 'live' via the column default and vanishing from the test scope).
-    const { data: paySettings } = await service
-      .from("platform_payment_settings")
-      .select("paystack_mode")
-      .eq("id", true)
-      .maybeSingle();
-    const environment = paySettings?.paystack_mode === "test" ? "test" : "live";
+    // Inherit the platform's current Paystack mode (shared helper) so a manual entry
+    // posted while testing shows up in the Test-filtered ledger view instead of
+    // defaulting to 'live' and vanishing from the test scope.
+    const environment = await resolvePlatformEnvironment(service);
 
     // A manual REFUND auto-links to the charge it reverses — the payer's most
     // recent unreversed commissionable charge — so affiliate commission is

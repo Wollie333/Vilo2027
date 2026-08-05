@@ -1,4 +1,5 @@
 import { requirePermission } from "@/lib/admin";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import {
@@ -29,20 +30,14 @@ export default async function AdminRevenuePage({
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
-  // Env: default to the platform's active Paystack mode so test transactions
-  // show in the ledger while you're testing; flips to live at launch. ?env wins.
-  const { data: paySettings } = await service
-    .from("platform_payment_settings")
-    .select("paystack_mode")
-    .eq("id", true)
-    .maybeSingle();
+  // Env: default to the platform's active Paystack mode (shared helper — the same
+  // default every revenue window uses) so test transactions show while you're
+  // testing; flips to live at launch. An explicit ?env wins.
   const envParam = (searchParams?.env ?? "").trim();
   const envFilter: "live" | "test" | "all" =
     envParam === "test" || envParam === "all" || envParam === "live"
       ? (envParam as "live" | "test" | "all")
-      : paySettings?.paystack_mode === "test"
-        ? "test"
-        : "live";
+      : await resolvePlatformEnvironment(service);
 
   const productParam = (searchParams?.product ?? "").trim();
   const userEmail = (searchParams?.user ?? "").trim();
