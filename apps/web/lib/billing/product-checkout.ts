@@ -1541,6 +1541,100 @@ export async function confirmProductOrderByReference(
   };
 }
 
+export type ConfirmSubscriptionResult =
+  | { ok: true; activated: boolean }
+  | { ok: false; error: string };
+
+// Settle a NATIVE subscription checkout (dashboard plan picker →
+// startSubscriptionCheckout) from the billing return page on return from Paystack
+// (?reference=sub_…). This is the return-page FALLBACK that mirrors the webhook's
+// processSubscriptionEvent charge.success. The webhook is normally the sole
+// activator on this rail, but it has a history of NOT firing (leaving a host
+// charged but not upgraded, with no return-page backstop like the product rail
+// has). Here we verify the transaction server-side, flip the pending
+// platform_ledger row to completed (compare-and-set, so only ONE of {this page,
+// the webhook} activates), and activate via the same activateMappedPlan primitive
+// the product rail + admin flow use. Idempotent: a second call (or the webhook)
+// no-ops once the row is completed.
+export async function confirmSubscriptionByReference(
+  reference: string,
+): Promise<ConfirmSubscriptionResult> {
+  const admin = createAdminClient();
+
+  // The native rail seeds exactly one pending platform_ledger charge for this
+  // reference (startSubscriptionCheckout), carrying host_id/user_id/plan/cycle —
+  // so we never need Paystack metadata to activate.
+  const { data: row } = await admin
+    .from("platform_ledger")
+    .select("id, status, user_id, host_id, plan, billing_cycle, environment")
+    .eq("provider_reference", reference)
+    .eq("type", "charge")
+    .maybeSingle();
+  // No pending subscription charge for this ref → not a native checkout we own.
+  if (!row || !row.host_id || !row.plan) return { ok: true, activated: false };
+  // Already settled (a prior return-page hit or the webhook) → nothing to do.
+  if (row.status === "completed") return { ok: true, activated: true };
+
+  const secret = await getPlatformPaystackSecret();
+  if (!secret) return { ok: false, error: "Billing is not configured." };
+
+  const verified = await verifyTransaction(reference, secret);
+  if (!verified || verified.status !== "success") {
+    // Not paid yet — leave the pending row for the webhook / a later return.
+    return { ok: true, activated: false };
+  }
+
+  const environment = row.environment ?? envFromSecret(secret);
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const cycle = row.billing_cycle === "annual" ? "annual" : "monthly";
+
+  // Compare-and-set: only the writer that flips pending→completed proceeds to
+  // activate. The webhook fires near-simultaneously; without this guard both would
+  // activate and double the history/credits. Mirrors processSubscriptionEvent (R3).
+  const { data: flipped } = await admin
+    .from("platform_ledger")
+    .update({
+      status: "completed",
+      paid_at: nowIso,
+      period_start: nowIso,
+      period_end: addMonths(now, cycle === "annual" ? 12 : 1),
+      environment,
+    })
+    .eq("id", row.id)
+    .eq("status", "pending")
+    .select("id");
+  if (!flipped || flipped.length === 0) {
+    // Another path (the webhook) settled it first — it activates.
+    return { ok: true, activated: true };
+  }
+
+  // Accrue affiliate commission if the payer was referred (idempotent RPC).
+  try {
+    await accrueAffiliateAndNotify(admin, row.id);
+  } catch {
+    // Commission accrual must never break settlement.
+  }
+
+  // Native subscription billing is the membership/service PRODUCT behind `plan`
+  // (its slug). Resolve it so gating reads product_features and the admin sees the
+  // active product. Same resolution as the webhook (processSubscriptionEvent).
+  const { data: prod } = await admin
+    .from("products")
+    .select("id")
+    .eq("slug", row.plan)
+    .in("product_type", ["membership", "service"])
+    .maybeSingle();
+  const productId = prod?.id ?? null;
+
+  // Activate via the shared primitive (retires the baseline membership, sets
+  // product_id/plan/period, grants credits, welcome email — subscription_history
+  // follows from the subscriptions trigger). No-op if the plan maps to no product.
+  await activateMappedPlan(admin, row.user_id, productId, now, cycle);
+
+  return { ok: true, activated: true };
+}
+
 // Settle a product order from the public pay page on return from PayPal
 // (?token=<orderId>). The PayPal sibling of confirmProductOrderByReference:
 // capture the approved order on Wielo's OWN PayPal app, then flip the order +

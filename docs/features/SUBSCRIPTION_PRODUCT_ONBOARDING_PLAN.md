@@ -114,14 +114,24 @@ grants (listings_limit + direct_booking) → both persisted at create (rail "2 e
 Files: `admin/products/actions.ts`, `admin/products/ProductEditor.tsx`. tsc + lint green.
 **Not yet verified:** the full buy→gate-opens path (needs Phase 0 end-to-end with a real subscription).
 
-### Phase 2 — Close the native-subscription-rail gap (requirement #1)
-Make "successful subscription" reliably upgrade the account on the plan-picker rail. Two routes:
-- **(Recommended)** Add a return-page activation fallback mirroring the product rail's
-  `confirmProductOrderByReference` (verify + compare-and-set + activate), so the webhook becomes a backstop
-  not a single point of failure.
-- Or: route the dashboard plan picker through the **product rail** (which already has redundancy) and
-  retire the fragile native rail. Bigger change; cleaner long-term. **Decision needed** (see below).
-**DoD: pay via the plan picker with the webhook disabled → account still upgrades.**
+### Phase 2 — Close the native-subscription-rail gap (requirement #1) — ⚠️ CODE COMPLETE, NOT LIVE-VERIFIED (2026-08-05)
+Chosen route (confirmed): **return-page activation fallback**. Added
+`confirmSubscriptionByReference(reference)` to `lib/billing/product-checkout.ts` — it loads the pending
+`platform_ledger` charge the native rail seeded (`startSubscriptionCheckout`), verifies the Paystack
+transaction server-side, flips the row pending→completed via **compare-and-set** (so only one of {return
+page, webhook} activates), resolves the membership/service product from the plan slug, and activates via the
+shared `activateMappedPlan` primitive (retires the baseline membership, sets product_id/plan/period, grants
+credits, welcome email). Wired into `subscription/billing/return/page.tsx` on verified success. Mirrors the
+webhook's `processSubscriptionEvent` charge.success exactly; idempotent with it. tsc + lint green.
+
+**NOT live-verified** — this is a payment settle path and needs a real test-mode proof:
+- **DoD:** with platform Paystack configured (test mode) and the webhook disabled/suppressed, complete a
+  subscription purchase via the dashboard plan picker → the return page alone upgrades the account
+  (`subscriptions.product_id` + status active, `platform_ledger` completed, feature gate opens).
+- **Blockers today:** clean-slate DB has no host account; platform Paystack may not be configured in this
+  env (if unconfigured, `startPlanCheckoutAction` uses state-only `switchPlan` and this rail isn't hit).
+- **Verification options:** (a) founder-driven test-mode payment once a host + test keys exist; (b) a
+  scripted harness that seeds a pending ledger row + a real test reference. Pending founder call.
 
 ### Phase 3 — Super-admin per-user price override (requirement #3b)
 Extend `adminUpdateSubscriptionAction` (+ the managesub dialog) to set an explicit `locked_base_amount`

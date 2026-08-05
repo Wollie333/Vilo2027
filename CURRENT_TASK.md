@@ -19,13 +19,19 @@
    `CANONICAL_PRODUCT_FEATURES` (no free-text), rail hint fixed. Verified in founder's admin session:
    new product with 2 grants persisted at create, `limit_value` round-trips. Test product deleted after.
 
-### ⭐ NEXT (locked order): Phase 2 → native-subscription-rail return-page activation fallback
-The dashboard plan-picker (`startPlanCheckoutAction` → `startSubscriptionCheckout`) upgrades the account
-ONLY if the Paystack webhook fires (`processSubscriptionEvent`) — no return-page fallback, and that webhook
-has historically failed. Add a verify+compare-and-set+activate on `subscription/billing/return/page.tsx`
-mirroring the product rail's `confirmProductOrderByReference`, so the webhook becomes a backstop.
-Then Phase 3 (per-user price override), Phase 4 (comp-ledger + reconciliation), Phase 5 (invite→account
-provisioning: adding a team member mints the account; accept → staff account + auto free guest account).
+### Phase 2 (native-rail activation fallback) — ⚠️ CODE COMPLETE + WIP-COMMITTED, NOT LIVE-VERIFIED
+Added `confirmSubscriptionByReference()` in `lib/billing/product-checkout.ts` (verify + compare-and-set
+ledger flip + `activateMappedPlan`), wired into `subscription/billing/return/page.tsx`. Mirrors the
+webhook's `processSubscriptionEvent`, idempotent with it. tsc + lint green. **NOT live-verified** — payment
+settle path; needs a test-mode Paystack subscription payment with the webhook suppressed. **Verification
+plan (founder): (1) build a script harness for the idempotency/guard paths, THEN (2) founder-driven smoke
+test** with real test keys once a host + platform Paystack test config exist. See the plan doc Phase 2.
+
+### ⭐ NEXT: finish Phase 2 verification (harness → smoke test), then Phase 3
+Phase 3 (per-user arbitrary price override — extend `adminUpdateSubscriptionAction` + managesub dialog to
+persist an explicit `locked_base_amount`), Phase 4 (comp-ledger row on admin comp/free activation +
+reconciliation query), Phase 5 (invite→account provisioning: adding a team member mints the account; accept
+→ staff account + auto free guest account).
 
 ### Env / state
 - Dev server `web-dev` RUNNING on :3000. Founder logged into `/admin` as super admin in their Chrome

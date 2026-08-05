@@ -3,14 +3,17 @@ import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { activatePayPalSubscription } from "@/lib/billing/paypal-subscription";
+import { confirmSubscriptionByReference } from "@/lib/billing/product-checkout";
 import { verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 // Both rails redirect here after the host pays for a plan:
-//  - Paystack (?reference) — verify the transaction (defence-in-depth); the
-//    webhook is the source of truth that activates + completes the ledger.
+//  - Paystack (?reference) — verify the transaction, then ACTIVATE on return via
+//    confirmSubscriptionByReference (compare-and-set guarded). The webhook
+//    (processSubscriptionEvent) remains the backstop, but this return-page
+//    fallback ensures a charged host is upgraded even if the webhook never fires.
 //  - PayPal (?subscription_id) — the payer approved a native subscription; we
 //    activate the row on return (idempotent; the ACTIVATED webhook is the
 //    backstop) and money lands via PAYMENT.SALE.COMPLETED.
@@ -43,8 +46,19 @@ export default async function BillingReturnPage({
     if (reference && secret) {
       try {
         const tx = await verifyTransaction(reference, secret);
-        if (tx?.status === "success") state = "success";
-        else if (tx && tx.status !== "success") state = "failed";
+        if (tx?.status === "success") {
+          state = "success";
+          // Return-page activation FALLBACK. The webhook
+          // (processSubscriptionEvent) is normally the source of truth, but it
+          // has historically failed to fire, leaving a host charged but not
+          // upgraded. Activate here — idempotent and compare-and-set guarded so
+          // it can't double-activate with the webhook.
+          try {
+            await confirmSubscriptionByReference(reference);
+          } catch {
+            // Non-fatal — the webhook stays the backstop; display shows success.
+          }
+        } else if (tx && tx.status !== "success") state = "failed";
       } catch {
         state = "pending";
       }
