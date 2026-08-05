@@ -2275,6 +2275,8 @@ export type Database = {
       broadcast_announcements: {
         Row: {
           audience: string
+          banner_dismiss_mode: string
+          banner_surfaces: string[]
           body: string
           cancelled_at: string | null
           created_at: string
@@ -2286,11 +2288,15 @@ export type Database = {
           link_url: string | null
           requires_ack: boolean
           severity: string
+          show_banner: boolean
           starts_at: string
           title: string
+          updated_at: string | null
         }
         Insert: {
           audience: string
+          banner_dismiss_mode?: string
+          banner_surfaces?: string[]
           body: string
           cancelled_at?: string | null
           created_at?: string
@@ -2302,11 +2308,15 @@ export type Database = {
           link_url?: string | null
           requires_ack?: boolean
           severity: string
+          show_banner?: boolean
           starts_at?: string
           title: string
+          updated_at?: string | null
         }
         Update: {
           audience?: string
+          banner_dismiss_mode?: string
+          banner_surfaces?: string[]
           body?: string
           cancelled_at?: string | null
           created_at?: string
@@ -2318,8 +2328,10 @@ export type Database = {
           link_url?: string | null
           requires_ack?: boolean
           severity?: string
+          show_banner?: boolean
           starts_at?: string
           title?: string
+          updated_at?: string | null
         }
         Relationships: [
           {

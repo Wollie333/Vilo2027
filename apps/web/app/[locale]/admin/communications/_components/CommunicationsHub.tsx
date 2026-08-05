@@ -3,10 +3,19 @@
 import { Activity, Megaphone, Plus, Search, Zap } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
+import { Link } from "@/i18n/navigation";
+
 import type { MessageConfig } from "@/lib/notifications/admin-config";
 
 import { createBroadcastAction } from "../../broadcasts/actions";
 import type { DeliveryHealth } from "../health";
+import {
+  SegRow,
+  SelectField,
+  TextArea,
+  TextField,
+  ToggleField,
+} from "./fields";
 import {
   EditDrawer,
   EmailPreviewModal,
@@ -75,13 +84,15 @@ export function CommunicationsHub({
               </span>{" "}
               sent · 24h
             </span>
-            <button
-              type="button"
-              className="btn-pri h-9"
-              onClick={() => setTab("send")}
-            >
-              <Plus className="h-4 w-4" /> New send
-            </button>
+            {tab !== "send" ? (
+              <button
+                type="button"
+                className="btn-pri h-9"
+                onClick={() => setTab("send")}
+              >
+                <Plus className="h-4 w-4" /> New send
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -356,13 +367,31 @@ function SendTab({ history }: { history: HistoryRow[] }) {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
   const [isBanner, setIsBanner] = useState(false);
+  const [surfaces, setSurfaces] = useState<("dashboard" | "public")[]>([
+    "dashboard",
+  ]);
+  const [dismissMode, setDismissMode] = useState<
+    "dismissible" | "acknowledge" | "persistent"
+  >("dismissible");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [sending, startSend] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  function toggleSurface(surface: "dashboard" | "public") {
+    setSurfaces((prev) =>
+      prev.includes(surface)
+        ? prev.filter((s) => s !== surface)
+        : [...prev, surface],
+    );
+  }
+
   function send() {
     setMsg(null);
+    if (isBanner && surfaces.length === 0) {
+      setMsg({ ok: false, text: "Pick at least one surface for the banner." });
+      return;
+    }
     startSend(async () => {
       const res = await createBroadcastAction({
         severity,
@@ -374,6 +403,9 @@ function SendTab({ history }: { history: HistoryRow[] }) {
         starts_at: isBanner && startsAt ? startsAt : null,
         ends_at: isBanner && endsAt ? endsAt : null,
         requires_ack: false,
+        show_banner: isBanner,
+        banner_surfaces: isBanner ? surfaces : [],
+        banner_dismiss_mode: dismissMode,
       });
       if (res.ok) {
         setMsg({ ok: true, text: "Sent." });
@@ -388,156 +420,145 @@ function SendTab({ history }: { history: HistoryRow[] }) {
   }
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid gap-5">
-        <div className="card p-5">
-          <div className="smallcaps">1 · Audience</div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-4">
-            {AUDIENCES.map((a) => (
-              <button
-                key={a.value}
-                className={`selrow ${audience === a.value ? "on" : ""}`}
-                onClick={() => setAudience(a.value)}
-              >
-                <span className="rad" />
-                <span className="font-semibold">{a.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="fhelp">
-            Sends a platform announcement (in-app + push, and email where the
-            recipient allows it). For specific people, use the Send-to-users
-            tool.
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="space-y-5">
+        {/* Compose */}
+        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <div className="space-y-4">
+            <SelectField
+              label="Audience"
+              value={audience}
+              options={AUDIENCES.map((a) => ({
+                value: a.value,
+                label: a.label,
+              }))}
+              onChange={(v) => setAudience(v)}
+              hint="Delivered in-app + push, and email where the recipient allows it. For specific people, use Send-to-users."
+            />
+            <TextField
+              label="Title"
+              value={title}
+              onChange={setTitle}
+              placeholder="What's happening"
+              maxLength={120}
+            />
+            <TextArea
+              label="Message"
+              value={body}
+              onChange={setBody}
+              placeholder="The message…"
+              rows={4}
+              maxLength={2000}
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TextField
+                label="Link label"
+                value={linkLabel}
+                onChange={setLinkLabel}
+                placeholder="Read more"
+                hint="Optional"
+              />
+              <TextField
+                label="Link URL"
+                type="url"
+                value={linkUrl}
+                onChange={setLinkUrl}
+                placeholder="https://…"
+                hint="Optional"
+              />
+            </div>
+            <SegRow
+              label="Severity"
+              value={severity}
+              options={SEVERITIES.map((s) => ({
+                value: s,
+                label: s[0]!.toUpperCase() + s.slice(1),
+              }))}
+              onChange={(v) => setSeverity(v)}
+              hint="Sets the colour, the bell notification, and (critical only) an email."
+            />
           </div>
         </div>
 
-        <div className="card p-5">
-          <div className="smallcaps">2 · Delivery</div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button
-              className={`selrow ${!isBanner ? "on" : ""}`}
-              onClick={() => setIsBanner(false)}
-            >
-              <span className="rad" />
-              <div className="text-left">
-                <div className="font-semibold">One-off message</div>
-                <div className="text-[11.5px] text-brand-mute">Sends now</div>
-              </div>
-            </button>
-            <button
-              className={`selrow ${isBanner ? "on" : ""}`}
-              onClick={() => setIsBanner(true)}
-            >
-              <span className="rad" />
-              <div className="text-left">
-                <div className="font-semibold">Standing banner</div>
-                <div className="text-[11.5px] text-brand-mute">
-                  Shows until it expires
+        {/* Banner display */}
+        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <div className="space-y-4">
+            <ToggleField
+              label="Show as a banner"
+              hint="Off = bell notification only. On = also pin a banner until it expires."
+              checked={isBanner}
+              onChange={setIsBanner}
+            />
+            {isBanner ? (
+              <div className="space-y-4 border-t border-brand-line pt-4">
+                <div>
+                  <span className="block text-[13px] font-semibold text-brand-ink">
+                    Show banner on
+                  </span>
+                  <div className="mt-2 space-y-2.5">
+                    <ToggleField
+                      label="Dashboard"
+                      hint="Host & guest app"
+                      checked={surfaces.includes("dashboard")}
+                      onChange={() => toggleSurface("dashboard")}
+                    />
+                    <ToggleField
+                      label="Public site"
+                      hint="Wielo public pages"
+                      checked={surfaces.includes("public")}
+                      onChange={() => toggleSurface("public")}
+                    />
+                  </div>
+                </div>
+                <SegRow
+                  label="How viewers close it"
+                  value={dismissMode}
+                  options={[
+                    { value: "dismissible", label: "Dismissible" },
+                    { value: "acknowledge", label: "Require ack" },
+                    { value: "persistent", label: "Always show" },
+                  ]}
+                  onChange={(v) => setDismissMode(v)}
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextField
+                    label="Starts"
+                    type="datetime-local"
+                    value={startsAt}
+                    onChange={setStartsAt}
+                    hint="Optional — defaults to now"
+                  />
+                  <TextField
+                    label="Ends"
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={setEndsAt}
+                    hint="Optional — open-ended"
+                  />
                 </div>
               </div>
-            </button>
-          </div>
-          {isBanner ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="flabel">Starts</label>
-                <input
-                  type="datetime-local"
-                  className="fld"
-                  value={startsAt}
-                  onChange={(e) => setStartsAt(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="flabel">Ends</label>
-                <input
-                  type="datetime-local"
-                  className="fld"
-                  value={endsAt}
-                  onChange={(e) => setEndsAt(e.target.value)}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="card p-5">
-          <div className="smallcaps">3 · Content</div>
-          <div className="mt-3 grid gap-3">
-            <div>
-              <label className="flabel">Title</label>
-              <input
-                className="fld"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="What's happening"
-              />
-            </div>
-            <div>
-              <label className="flabel">Body</label>
-              <textarea
-                className="fld"
-                rows={4}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="The message…"
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="flabel">
-                  Link label{" "}
-                  <span className="font-normal text-brand-mute">optional</span>
-                </label>
-                <input
-                  className="fld"
-                  value={linkLabel}
-                  onChange={(e) => setLinkLabel(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="flabel">Link URL</label>
-                <input
-                  className="fld mono text-[12px]"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://…"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="flabel">Severity</label>
-              <div className="seg mt-0.5">
-                {SEVERITIES.map((s) => (
-                  <button
-                    key={s}
-                    className={severity === s ? "on" : ""}
-                    onClick={() => setSeverity(s)}
-                  >
-                    {s[0]!.toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-brand-line pt-4">
-            <button
-              className="btn-pri"
-              onClick={send}
-              disabled={
-                sending || title.trim().length < 3 || body.trim().length < 10
-              }
-            >
-              <Megaphone className="h-4 w-4" /> {sending ? "Sending…" : "Send"}
-            </button>
-            {msg ? (
-              <span
-                className={`text-[12.5px] font-medium ${msg.ok ? "text-brand-primary" : "text-[#B91C1C]"}`}
-              >
-                {msg.text}
-              </span>
             ) : null}
           </div>
+        </div>
+
+        {/* Action */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            className="btn-pri"
+            onClick={send}
+            disabled={
+              sending || title.trim().length < 3 || body.trim().length < 10
+            }
+          >
+            <Megaphone className="h-4 w-4" /> {sending ? "Sending…" : "Send"}
+          </button>
+          {msg ? (
+            <span
+              className={`text-[12.5px] font-medium ${msg.ok ? "text-brand-primary" : "text-[#B91C1C]"}`}
+            >
+              {msg.text}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -563,9 +584,15 @@ function SendTab({ history }: { history: HistoryRow[] }) {
                 </tr>
               ) : (
                 history.map((h) => (
-                  <tr key={h.id}>
+                  <tr key={h.id} className="group">
                     <td className="font-semibold text-brand-ink">
-                      {h.title}
+                      <Link
+                        href={`/admin/broadcasts/${h.id}`}
+                        className="hover:text-brand-primary hover:underline"
+                        title="View stats & edit"
+                      >
+                        {h.title}
+                      </Link>
                       {h.cancelledAt ? (
                         <span className="ml-1 text-[11px] text-brand-mute">
                           (cancelled)

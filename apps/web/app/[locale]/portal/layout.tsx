@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";
+import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
@@ -153,10 +154,13 @@ export default async function PortalLayout({
       }
       bottomNav={<PortalMobileNav />}
       banner={
-        !(profile as { email_verified_at?: string | null } | null)
-          ?.email_verified_at ? (
-          <VerifyEmailBanner email={user.email ?? ""} />
-        ) : undefined
+        <>
+          {!(profile as { email_verified_at?: string | null } | null)
+            ?.email_verified_at ? (
+            <VerifyEmailBanner email={user.email ?? ""} />
+          ) : null}
+          <BroadcastBanner />
+        </>
       }
     >
       {children}

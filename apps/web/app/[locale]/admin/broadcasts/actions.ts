@@ -7,8 +7,10 @@ import { withAdminAudit } from "@/lib/admin/withAdminAudit";
 import {
   broadcastSchema,
   cancelBroadcastSchema,
+  editBroadcastSchema,
   type BroadcastInput,
   type CancelBroadcastInput,
+  type EditBroadcastInput,
 } from "./schemas";
 
 type CreateResult = { ok: true; id: string } | { ok: false; error: string };
@@ -81,7 +83,13 @@ async function runCreateBroadcast(
     return { ok: false, error: "Not authorised." };
   }
   const service = createAdminClient();
-  const requiresAck = input.severity === "critical" ? true : input.requires_ack;
+  // requires_ack is the banner's "must acknowledge" behaviour. Keep the legacy
+  // column in lockstep with the dismiss mode so the detail stat + any consumer
+  // reading requires_ack stays truthful. Critical always requires ack.
+  const requiresAck =
+    input.severity === "critical" ||
+    input.banner_dismiss_mode === "acknowledge" ||
+    input.requires_ack;
 
   const { data, error } = await service
     .from("broadcast_announcements")
@@ -94,6 +102,9 @@ async function runCreateBroadcast(
       link_url: input.link_url || null,
       link_label: input.link_label || null,
       requires_ack: requiresAck,
+      show_banner: input.show_banner,
+      banner_surfaces: input.show_banner ? input.banner_surfaces : [],
+      banner_dismiss_mode: input.banner_dismiss_mode,
       starts_at: input.starts_at || new Date().toISOString(),
       ends_at: input.ends_at || null,
     })
@@ -137,6 +148,86 @@ async function runCreateBroadcast(
   // stays stale after a send from that tab.
   revalidatePath("/admin/communications");
   return { ok: true, id: data.id as string };
+}
+
+// ─── Edit a broadcast (content, link, banner display, schedule) ──────────
+// Audience + severity are intentionally NOT editable — the fan-out (bell
+// notifications, critical email) already ran for that specific audience and
+// severity, so changing them would misrepresent who was reached. The live
+// banner reads the row directly, so content/banner edits show immediately;
+// already-minted bell entries keep the text they were sent with.
+
+export const editBroadcastWrapped = withAdminAudit<
+  EditBroadcastInput,
+  SimpleResult
+>(
+  {
+    permissionKey: "notifications.broadcast",
+    actionName: "broadcast.edit",
+    targetType: "broadcast",
+    getTargetId: (a) => a.id,
+  },
+  async (args, service) => {
+    const requiresAck =
+      args.banner_dismiss_mode === "acknowledge" || args.requires_ack;
+    const { data, error } = await service
+      .from("broadcast_announcements")
+      .update({
+        title: args.title,
+        body: args.body,
+        link_url: args.link_url || null,
+        link_label: args.link_label || null,
+        requires_ack: requiresAck,
+        show_banner: args.show_banner,
+        banner_surfaces: args.show_banner ? args.banner_surfaces : [],
+        banner_dismiss_mode: args.banner_dismiss_mode,
+        starts_at: args.starts_at || undefined,
+        ends_at: args.ends_at || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", args.id)
+      .is("cancelled_at", null)
+      .select("*")
+      .maybeSingle();
+    if (error) return { result: { ok: false, error: error.message } };
+    if (!data) {
+      return {
+        result: {
+          ok: false,
+          error: "Broadcast not found or already cancelled.",
+        },
+      };
+    }
+    revalidatePath("/admin/broadcasts");
+    revalidatePath(`/admin/broadcasts/${args.id}`);
+    // The banner reads the live row on the next render of any surface it's
+    // mounted in — revalidate those so an edit shows without a hard reload.
+    revalidatePath("/dashboard");
+    revalidatePath("/portal");
+    revalidatePath("/", "layout");
+    return { result: { ok: true }, after: data };
+  },
+);
+
+/** Thin wrapper exposed to the client: Zod-validates + calls the audited action. */
+export async function editBroadcastSafe(
+  raw: EditBroadcastInput,
+): Promise<SimpleResult> {
+  const parsed = editBroadcastSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  try {
+    return await editBroadcastWrapped(parsed.data);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to save.",
+    };
+  }
 }
 
 // ─── Cancel a broadcast (requires reason) ────────────────────────────────
