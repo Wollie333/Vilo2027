@@ -13,6 +13,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { modal } from "@/components/ui/modal-host";
 import { COMPETITION_RULES_TEMPLATE_HTML } from "@/lib/legal/competitionRulesTemplate";
 import type { LegalDocumentVersion } from "@/lib/legalDocuments";
 
@@ -188,14 +189,15 @@ function DocumentCard({
   const [pending, start] = useTransition();
   const [viewing, setViewing] = useState<number | null>(null);
 
-  function restore(version: number) {
+  async function restore(version: number) {
     if (pending) return;
-    if (
-      !window.confirm(
-        `Restore version ${version}? This publishes its text as a new version — it doesn't overwrite history.`,
-      )
-    )
-      return;
+    const ok = await modal.confirm({
+      title: `Restore version ${version}?`,
+      description:
+        "This publishes its text as a new version — it doesn't overwrite history.",
+      confirmLabel: "Restore",
+    });
+    if (!ok) return;
     start(async () => {
       try {
         const res = await restoreLegalDocumentVersionAction({

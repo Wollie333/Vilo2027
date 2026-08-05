@@ -23,6 +23,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { modal } from "@/components/ui/modal-host";
 import {
   Select,
   SelectContent,
@@ -95,7 +96,7 @@ export function BroadcastForm({
     );
   }
 
-  function onSubmit(values: BroadcastInput) {
+  async function onSubmit(values: BroadcastInput) {
     if (isEdit && editContext) {
       start(async () => {
         const payload: EditBroadcastInput = {
@@ -139,15 +140,14 @@ export function BroadcastForm({
     const when = values.starts_at ? "when it goes live" : "immediately";
     const emailWarning =
       values.severity === "critical"
-        ? `\n\n⚠ CRITICAL — this also emails ${audienceLabel}.`
+        ? ` This is CRITICAL — it also emails ${audienceLabel}.`
         : "";
-    if (
-      !window.confirm(
-        `Send this broadcast to ${audienceLabel} (${when})?${emailWarning}`,
-      )
-    ) {
-      return;
-    }
+    const ok = await modal.confirm({
+      title: `Send this broadcast to ${audienceLabel}?`,
+      description: `It goes out ${when}.${emailWarning}`,
+      confirmLabel: "Send broadcast",
+    });
+    if (!ok) return;
 
     start(async () => {
       const result = await createBroadcastAction(values);
