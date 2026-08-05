@@ -54,7 +54,11 @@ export async function GET(
     .select("id, slug, status")
     .ilike("slug", slug)
     .maybeSingle();
-  if (!aff || aff.status !== "active") return res;
+  // A suspended partner still CAPTURES referrals (they just earn nothing — the
+  // accrual RPC returns no commission for a non-active affiliate, so 100% stays
+  // with Wielo). Only closed/pending partners drop attribution entirely.
+  if (!aff || (aff.status !== "active" && aff.status !== "suspended"))
+    return res;
 
   const { data: settings } = await admin
     .from("affiliate_settings")

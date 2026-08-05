@@ -122,7 +122,10 @@ export async function resolveReferralPartner(
         "slug, photo_url, user:user_profiles!user_id ( full_name, avatar_url )",
       )
       .ilike("slug", trimmed)
-      .eq("status", "active")
+      // A suspended partner still shows in the "Referred by" field and still
+      // captures the referral (they just earn nothing while suspended). Only
+      // closed/pending partners stop resolving — their referrals default to Wielo.
+      .in("status", ["active", "suspended"])
       .maybeSingle();
     if (!data) return null;
     const u = Array.isArray(data.user) ? data.user[0] : data.user;
@@ -144,9 +147,11 @@ export async function resolveReferralPartner(
  * (SoT §3.2 rule 6). The cookie always wins (first-touch, and it carries the
  * competition rate); a manual code only applies when the cookie yielded nothing,
  * and binds on the DEFAULT programme (no competition — a typed code is not a
- * competition click). No-op when the partner is unknown/suspended, the cookie has
- * expired with no code, or it would be a self-referral. Always clears the cookie
- * when consumed.
+ * competition click). Binds for an active OR suspended partner (a suspended one
+ * captures the referral but earns nothing — the accrual RPC gives 100% to Wielo
+ * until they are reactivated). No-op when the partner is unknown, closed/pending,
+ * the cookie has expired with no code, or it would be a self-referral. Always
+ * clears the cookie when consumed.
  */
 export async function bindAffiliateReferral(
   referredUserId: string,
@@ -188,7 +193,11 @@ export async function bindAffiliateReferral(
       .select("id, user_id, status")
       .eq("id", affiliateId)
       .maybeSingle();
-    if (!aff || aff.status !== "active") {
+    // A suspended partner STILL captures the referral (bound under them), but the
+    // accrual RPC yields no commission while non-active, so 100% stays with Wielo
+    // until/unless they are reactivated. A closed/pending partner binds nothing —
+    // its referrals default to Wielo.
+    if (!aff || (aff.status !== "active" && aff.status !== "suspended")) {
       clearRefCookie();
       return;
     }
