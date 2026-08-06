@@ -379,7 +379,7 @@ export function SetupWizard(props: Props) {
           <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
             Steps
           </div>
-          <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
+          <nav className="flex flex-col gap-1">
             {SECTIONS.map((s, i) => {
               const reachable = i <= maxReached;
               const isCurrent = i === current;
@@ -393,7 +393,7 @@ export function SetupWizard(props: Props) {
                   disabled={!reachable}
                   aria-current={isCurrent ? "page" : undefined}
                   title={s.label}
-                  className={`flex w-full shrink-0 items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
+                  className={`flex w-full items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
                     isCurrent
                       ? "border-brand-line bg-white shadow-card"
                       : reachable

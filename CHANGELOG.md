@@ -25,6 +25,16 @@ Two host-onboarding polish items, both live-verified in-browser (real host, draf
   sub-labels), an icon-tile panel header, and a `border-t` Back / counter / Publish footer. Step
   components, per-step save-gated forward flow, deep-linking, confetti and the "you're live" modal are
   untouched — founder directive: "one step at a time is perfect, just the design needs to fit".
+- **Mobile fix (follow-up):** the reskinned rail nav initially used a horizontal `overflow-x-auto`
+  strip with `w-full shrink-0` buttons — on phones each step button became full-viewport-width in a
+  side-scroller (one visible at a time). Changed to a plain vertical `flex-col` stack so the rail
+  stacks above the panel on mobile, matching the shipped Add-ons/Specials editors exactly. The rest
+  of the shell was already mobile-safe by construction (flex-wrap identity bar with the step count
+  hidden below `md`, single-column grid below `lg`, wrapping panel header, short-label
+  `justify-between` footer); the step forms already rendered at mobile width in the prior wizard.
+  ⚠️ Visual mobile capture was blocked in this environment (the only logged-in Chrome won't emulate a
+  mobile viewport; the emulation-capable in-app browser isn't authenticated), so mobile-readiness was
+  verified by code audit + parity with the mobile-proven Add-ons/Specials layout, not a screenshot.
 
 ## 2026-08-06 — Listing-strength badge on the properties list.
 
