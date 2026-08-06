@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-08-06 — Setup wizard reskin + gate publish nudge on setup completion.
+
+Two host-onboarding polish items, both live-verified in-browser (real host, draft listing).
+
+- **Publish banner now waits for setup to finish.** The dashboard-shell "Publish your listing"
+  banner + once-per-session modal (`PublishListingReminder`, driven from `dashboard/layout.tsx`)
+  previously fired the moment a *draft* listing existed (`host && listingCount>0 && !hasLiveListing`)
+  — nagging the host to publish while the server gate (`togglePublishAction`) would still reject
+  them. Added a `setupReadyToPublish` check to `needsPublish` using the SAME predicate the onboarding
+  checklist + publish gate use (`fetchGettingStartedState` → `buildSetupSteps`, every required step
+  done except the publish step itself). Verified: with 3/6 steps done the banner is absent; it only
+  returns once setup is complete. No change to the step flow or the gate.
+- **Setup wizard reskinned to match the Add-ons / Specials editors.** The wizard felt narrow/out of
+  place — it was capped at `mx-auto max-w-6xl` with a 280px rail + flat progress bar. Rebuilt the
+  shell to the shared design system: no width cap (`space-y-5`, fills the shell), a full-width
+  identity bar (thumbnail · breadcrumb · listing name · Draft/Live pill · step counter · Exit), a
+  288px sticky rail with a `ProgressRing` donut + icon-tile step nav (Done checks + Required/Optional
+  sub-labels), an icon-tile panel header, and a `border-t` Back / counter / Publish footer. Step
+  components, per-step save-gated forward flow, deep-linking, confetti and the "you're live" modal are
+  untouched — founder directive: "one step at a time is perfect, just the design needs to fit".
+
 ## 2026-08-06 — Listing-strength badge on the properties list.
 
 Surfaces each listing's search-ranking score right on the properties page
@@ -37,7 +58,6 @@ Completes the fair ranking. `search_directory` RPC (mig `20260806200000`) gains,
 - ⚠️ Migration hygiene: a concurrent `20260806190000_platform_ledger_order_link.sql` (from
   rebased main) collided with the help-article migration's timestamp; renamed the article to
   `20260806191000` to resolve. Watch for timestamp collisions after rebasing over concurrent work.
-
 ## 2026-08-06 — Host "Listing Strength" transparency page.
 
 Makes the fair ranking visible + coachable. A **Gauge icon on each property card**

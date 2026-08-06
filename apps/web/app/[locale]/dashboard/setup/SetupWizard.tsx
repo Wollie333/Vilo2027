@@ -6,9 +6,11 @@ import {
   Building2,
   CalendarRange,
   Check,
+  ChevronRight,
   CreditCard,
   ExternalLink,
   Home as HomeIcon,
+  Image as ImageIcon,
   LayoutDashboard,
   Link as LinkIcon,
   type LucideIcon,
@@ -287,114 +289,183 @@ export function SetupWizard(props: Props) {
     });
   }
 
+  const coverUrl = photos[0]?.url ?? host.avatar_url ?? null;
+  const remaining = requiredSections.length - doneCount;
+
   return (
-    <div className="mx-auto max-w-6xl">
-      {/* mobile top bar */}
-      <div className="mb-4 flex items-center gap-3 lg:hidden">
-        <Link
-          href="/dashboard"
-          className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 text-brand-mute" /> Exit
-        </Link>
-        <span className="ml-auto text-[12.5px] font-medium tabular-nums text-brand-mute">
-          Step {current + 1} of {SECTIONS.length}
-        </span>
+    <div className="space-y-5">
+      {/* ============ IDENTITY BAR ============ */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
+        <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
+          {coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-brand-mute">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
+            <Link href="/dashboard" className="hover:text-brand-ink">
+              Dashboard
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-brand-ink">Finish setup</span>
+          </nav>
+          <div className="mt-0.5 flex items-center gap-2.5">
+            <h1 className="truncate font-display text-[19px] font-extrabold leading-none text-brand-ink">
+              {listing.name || "Your listing"}
+            </h1>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${
+                listing.is_published
+                  ? "border-brand-primary/30 bg-brand-accent text-brand-secondary"
+                  : "border-brand-line bg-brand-light text-brand-mute"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  listing.is_published ? "bg-brand-primary" : "bg-brand-mute"
+                }`}
+              />
+              {listing.is_published ? "Live" : "Draft"}
+            </span>
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <span className="mr-1 hidden items-center gap-1.5 text-[12px] md:inline-flex">
+            {ready ? (
+              <span className="inline-flex items-center gap-1.5 text-brand-secondary">
+                <Check className="h-3.5 w-3.5 text-brand-primary" /> Ready to
+                publish
+              </span>
+            ) : (
+              <span className="tabular-nums text-brand-mute">
+                {doneCount}/{requiredSections.length} required steps done
+              </span>
+            )}
+          </span>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 text-brand-mute" /> Exit
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        {/* ─── Left rail: progress + clickable steps + publish CTA ─── */}
-        <aside className="lg:sticky lg:top-6 lg:space-y-4 lg:self-start">
-          <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                Setup progress
-              </span>
-              <span className="font-display text-sm font-bold tabular-nums text-brand-primary">
-                {pct}%
-              </span>
+      {/* ============ SPLIT: step rail + active panel ============ */}
+      <div className="grid gap-6 lg:grid-cols-[288px_1fr]">
+        {/* ─── Left rail: progress ring + clickable steps ─── */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          {/* progress summary */}
+          <div className="mb-3 flex items-center gap-3 rounded-card border border-brand-line bg-white p-3.5 shadow-card">
+            <ProgressRing pct={pct} />
+            <div className="min-w-0">
+              <div className="font-display text-[14px] font-bold text-brand-ink">
+                {ready ? "Ready to publish" : "Almost ready"}
+              </div>
+              <div className="text-[11px] text-brand-mute">
+                {ready
+                  ? "Publish to go live"
+                  : `${remaining} step${remaining === 1 ? "" : "s"} left`}
+              </div>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
-              <div
-                className="h-full rounded-pill bg-brand-primary transition-all duration-500"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
+          </div>
 
-            <nav className="mt-4 flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5 lg:overflow-visible">
-              {SECTIONS.map((s, i) => {
-                const reachable = i <= maxReached;
-                const isCurrent = i === current;
-                const isDone = done[s.key] && s.key !== "review";
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => goTo(i)}
-                    disabled={!reachable}
-                    title={s.label}
-                    className={`group flex shrink-0 items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors lg:w-full ${
-                      isCurrent
-                        ? "bg-brand-accent"
-                        : reachable
-                          ? "hover:bg-brand-light"
-                          : "cursor-not-allowed opacity-50"
+          <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Steps
+          </div>
+          <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
+            {SECTIONS.map((s, i) => {
+              const reachable = i <= maxReached;
+              const isCurrent = i === current;
+              const isDone = done[s.key] && s.key !== "review";
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  disabled={!reachable}
+                  aria-current={isCurrent ? "page" : undefined}
+                  title={s.label}
+                  className={`flex w-full shrink-0 items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
+                    isCurrent
+                      ? "border-brand-line bg-white shadow-card"
+                      : reachable
+                        ? "border-transparent hover:bg-white"
+                        : "cursor-not-allowed border-transparent opacity-45"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition ${
+                      isDone || isCurrent
+                        ? "bg-brand-primary text-white"
+                        : "bg-brand-accent/70 text-brand-secondary"
                     }`}
                   >
+                    {isDone ? (
+                      <Check className="h-[18px] w-[18px]" strokeWidth={3} />
+                    ) : (
+                      <Icon className="h-[18px] w-[18px]" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
                     <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold tabular-nums transition-colors ${
-                        isDone
-                          ? "border-brand-primary bg-brand-primary text-white"
-                          : isCurrent
-                            ? "border-brand-primary bg-white text-brand-primary"
-                            : "border-brand-line bg-white text-brand-mute"
-                      }`}
-                    >
-                      {isDone ? (
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      ) : (
-                        s.n
-                      )}
-                    </span>
-                    <span
-                      className={`flex-1 truncate text-[13px] font-medium ${
-                        isCurrent
-                          ? "text-brand-ink"
-                          : "text-brand-mute group-hover:text-brand-ink"
+                      className={`block text-[13.5px] font-semibold leading-tight ${
+                        isCurrent ? "text-brand-ink" : "text-brand-ink/80"
                       }`}
                     >
                       {s.rail}
                     </span>
-                    {s.required && !isDone ? (
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-pending"
-                        title="Required"
-                      />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Publish happens from the review step's footer Back / Publish pair
-              (all devices) — no duplicate publish control in the rail. */}
+                    <span className="mt-0.5 block truncate text-[11px] text-brand-mute">
+                      {isDone ? "Done" : s.required ? "Required" : "Optional"}
+                    </span>
+                  </span>
+                  {isDone ? (
+                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : s.required && reachable ? (
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-pending"
+                      title="Required"
+                    />
+                  ) : null}
+                </button>
+              );
+            })}
+          </nav>
         </aside>
 
         {/* ─── Content column ─── */}
         <div className="min-w-0">
-          {/* step heading */}
-          <div className="mb-5">
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
-              <cur.icon className="h-3.5 w-3.5" />{" "}
-              {cur.required ? "Required" : "Final"} step
+          {/* panel header */}
+          <div className="mb-5 flex items-start gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-brand-accent text-brand-secondary">
+              <cur.icon className="h-[22px] w-[22px]" />
             </span>
-            <h1 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink md:text-[28px]">
-              {cur.label}
-            </h1>
-            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-brand-mute">
-              {cur.help}
-            </p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-display text-[22px] font-extrabold leading-tight tracking-tight text-brand-ink">
+                  {cur.label}
+                </h2>
+                <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-secondary">
+                  {cur.key === "review"
+                    ? "Final"
+                    : cur.required
+                      ? "Required"
+                      : "Optional"}
+                </span>
+              </div>
+              <p className="mt-1 max-w-xl text-[13.5px] leading-relaxed text-brand-mute">
+                {cur.help}
+              </p>
+            </div>
           </div>
 
           {/* step body */}
@@ -488,25 +559,31 @@ export function SetupWizard(props: Props) {
             </section>
           )}
 
-          {/* footer nav — a single global Back (each step owns its own forward
+          {/* footer nav — global Back (each step owns its own forward
           "Continue"/"Save & continue" button); the review step adds Publish. */}
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={back}
-              disabled={current === 0}
-              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </button>
+          <div className="mt-7 flex items-center justify-between gap-3 border-t border-brand-line pt-5">
+            {current > 0 ? (
+              <button
+                type="button"
+                onClick={back}
+                className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+              >
+                <ArrowLeft className="h-4 w-4" /> {SECTIONS[current - 1].rail}
+              </button>
+            ) : (
+              <span />
+            )}
+            <span className="text-[12px] font-medium tabular-nums text-brand-mute">
+              {current + 1} / {SECTIONS.length}
+            </span>
             {isReview ? (
               <button
                 type="button"
                 onClick={publish}
                 disabled={publishing}
-                className={`ml-auto inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
+                className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-[13px] font-semibold text-white transition ${
                   ready
-                    ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                    ? "bg-brand-primary shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary"
                     : "cursor-not-allowed bg-brand-mute/60"
                 }`}
               >
@@ -517,7 +594,9 @@ export function SetupWizard(props: Props) {
                     ? "Publish listing"
                     : "Finish required steps"}
               </button>
-            ) : null}
+            ) : (
+              <span />
+            )}
           </div>
         </div>
       </div>
@@ -534,6 +613,39 @@ export function SetupWizard(props: Props) {
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+// Progress donut — shared visual language with the Add-ons / Specials editors.
+function ProgressRing({ pct }: { pct: number }) {
+  const circumference = 2 * Math.PI * 15.5;
+  const dash = (pct / 100) * circumference;
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#E4EFE8"
+          strokeWidth="3.4"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#10B981"
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center font-display text-[11.5px] font-bold tabular-nums text-brand-ink">
+        {pct}%
+      </div>
     </div>
   );
 }
