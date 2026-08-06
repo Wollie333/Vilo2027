@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-08-06 — Two-product catalog: rename Starter→Standard, Founder→R499, slug follows name, prune the rest.
+
+Founder decision: only two live products — **Standard R999/mo** (was "Starter", slug `pro`) and **Founder R499/mo**
+(competition/founding product). All other products removed. Product `slug` is now always derived from `name`
+(not user-editable). Migration applied to cloud + verified live; `tsc` + `pnpm lint` + 11 pricing tests green.
+
+- **Slug follows name** (`admin/products/actions.ts`): `upsertProductAction` now re-derives `slug = slugify(name)`
+  on every save (create AND edit — it used to preserve the old slug on rename), reusing the shared, unit-tested
+  `@/lib/help/slug` (`slugify` + `uniqueSlug`) and dropping the private duplicate slugify. The form already had no
+  slug input — slug stays read-only and auto-tracks the name.
+- **Rename-proof affiliate lookup** (`portal/affiliates/page.tsx`): replaced a hardcoded `.eq("slug","pro")` with
+  an attribute query (active + visible + host + membership + price>0, cheapest) so it survives product renames.
+- **Migration `20260806150000_two_product_catalog.sql`**: Starter→"Standard" (slug `pro`→`standard`, keeps annual
+  R9,999 + founding R599); Founder → `price=499` + `founding_price=499` (annual R4,999 unchanged); DELETE Beta,
+  Wielo Quotes, StayFlow Web-design, 50 Quote Credits. Money-safe: recurring charge reads `products.price` live at
+  renewal (founding-locked subs bill the snapshotted amount, so no retroactive change); the 2 existing subs keep
+  their exact billing basis (locked 50/123) and now link to "Standard"; removed products had 0 subs/orders/
+  scheduled-changes/coupons (feature rows cascade). Note: removing "50 Quote Credits" leaves no one-off credit
+  top-up SKU, and removing "Beta" drops the free tile from host signup (both intended).
+
 ## 2026-08-06 — Automated "trial ending soon" email (~24h before trial expiry), affiliate-aware CTA.
 
 New transactional email that fires ~24h before a free trial expires, prompting the host to subscribe. Net-new

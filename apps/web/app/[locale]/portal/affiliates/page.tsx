@@ -107,11 +107,18 @@ export default async function AffiliateOverviewPage() {
       )
       .eq("affiliate_id", account.id)
       .order("created_at", { ascending: false }),
+    // The primary public host membership (what a referred host pays) — resolved by
+    // attributes, not a hardcoded slug, so it survives product renames.
     admin
       .from("products")
       .select("price, name, affiliate_value")
-      .eq("slug", "pro")
       .eq("is_active", true)
+      .eq("is_visible", true)
+      .eq("account_kind", "host")
+      .eq("product_type", "membership")
+      .gt("price", 0)
+      .order("price", { ascending: true })
+      .limit(1)
       .maybeSingle(),
     getAffiliateTier(admin, account.id),
   ]);

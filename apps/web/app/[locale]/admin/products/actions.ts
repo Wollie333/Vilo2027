@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { createProductOrder } from "@/lib/billing/product-checkout";
+import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { PRODUCTS_CACHE_TAG } from "@/lib/products/getProducts";
 
 const PRODUCT_TARGET = "00000000-0000-0000-0000-0000000900d5";
@@ -75,15 +76,6 @@ const upsertSchema = z.object({
   reason: z.string().optional(),
 });
 
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
-
 export type UpsertProductInput = z.infer<typeof upsertSchema>;
 
 export const upsertProductAction = withAdminAudit<
@@ -103,27 +95,21 @@ export const upsertProductAction = withAdminAudit<
     }
     const d = parsed.data;
 
-    // Resolve a stable slug for the standalone page. Keep an existing product's
-    // slug (don't break shared links); generate a unique one otherwise.
-    let slug: string;
-    if (d.id) {
-      const { data: existing } = await service
-        .from("products")
-        .select("slug")
-        .eq("id", d.id)
-        .maybeSingle();
-      slug = existing?.slug ?? (slugify(d.name) || "product");
-    } else {
-      slug = slugify(d.name) || "product";
-    }
-    const { data: clash } = await service
+    // Slug ALWAYS tracks the product name — it is not user-editable. Re-derive on
+    // every save (create AND edit) so a rename updates the /p/<slug> link; keep it
+    // unique with a deterministic suffix if another product owns the same name.
+    const base = slugify(d.name) || "product";
+    const { data: clashes } = await service
       .from("products")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
-    if (clash && clash.id !== d.id) {
-      slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
-    }
+      .select("id, slug")
+      .or(`slug.eq.${base},slug.like.${base}-%`);
+    const taken = new Set(
+      (clashes ?? [])
+        .filter((c) => c.id !== d.id)
+        .map((c) => c.slug as string)
+        .filter(Boolean),
+    );
+    const slug = uniqueSlug(d.name, taken);
 
     // `type` is a GENERATED column derived from product_type — write product_type.
     const isSubLike =
