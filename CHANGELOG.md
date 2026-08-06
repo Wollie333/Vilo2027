@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-08-06 — Pause the "Founding Race" competition (strategy change: no competition near-term).
+
+Founder decision: no competition runs in the near term. Paused the Founding Race by moving the
+`affiliate_campaigns` row (slug `founding-race`) from `active` → `draft` — the single gate every competition
+surface reads. Migration `20260806160000`; applied to cloud + verified live (both `/competitions/founding-race`
+and `/race` now 404).
+
+- **What turns off** (all gated on `status='active'`): the signup free-trial via a competition-tagged referral
+  (`isCampaignWindowOpen`), `/r?c=` campaign tagging (new referrals fall back to the default per-product affiliate
+  rate), the daily campaign-comms sweep + kickoff/enrollment/standings emails, the public leaderboard + `/race`
+  alias, the partner co-branded "Founding Race is live" banner, and the portal Campaigns tab card.
+- **Chosen `draft` (Pause), not delete/archive**: reversible (one "Launch" click relaunches it) and non-destructive
+  — a hard delete would CASCADE daily scores/enrollments/floors/prize awards and NULL `affiliate_referrals.campaign_id`
+  (un-tagging earned commission). `commission_structure` + `competition` JSONB left intact so any bound referral keeps
+  its snapshotted rate.
+- **Left untouched (verified independent)**: `platform_payment_settings.founding_offers_open` is already `false`;
+  the Founder product keeps its `founding_price` (hidden, per founder); Standard's 14-day product trial still applies
+  (trials never depended on the campaign) — so the new "trial ending" email keeps working.
+
 ## 2026-08-06 — Two-product catalog: rename Starter→Standard, Founder→R499, slug follows name, prune the rest.
 
 Founder decision: only two live products — **Standard R999/mo** (was "Starter", slug `pro`) and **Founder R499/mo**
