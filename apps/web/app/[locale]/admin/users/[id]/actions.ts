@@ -1301,6 +1301,11 @@ const setProductSchema = z.object({
   // null/omitted = use the catalog price. Immediate-activation modes only
   // (none/paid); a paylink defers activation so it can't lock a recurring price.
   customBaseAmount: z.number().min(0).max(10_000_000).nullable().optional(),
+  // Optional per-user TRIAL: grant this many days of trial. The subscription is
+  // created as 'trialing' with trial_ends_at = now + N days and NOTHING is charged
+  // now (a trial is never a charge); it converts to the (possibly overridden) price
+  // when they pay after the trial. null/0/omitted = a normal (immediate) activation.
+  trialDays: z.number().int().min(0).max(365).nullable().optional(),
   // Whether a "paylink" upgrade offer is ALSO emailed. The inbox card always
   // posts; the email is the admin's choice per offer. Defaults on.
   sendEmail: z.boolean().optional().default(true),
@@ -1460,6 +1465,18 @@ export const setUserProductAction = withAdminAudit<
       }
     }
 
+    // Per-user TRIAL grant → the sub is created as 'trialing' with trial_ends_at
+    // = now + N days and nothing is charged now (the charge block below is skipped
+    // for a trial). It converts to the priced plan (custom base if overridden)
+    // when the host pays after the trial. The trial window IS the period.
+    const trialDays = parsed.data.trialDays ?? 0;
+    const trialEndsAtIso =
+      trialDays > 0
+        ? new Date(
+            new Date(now).getTime() + trialDays * 86_400_000,
+          ).toISOString()
+        : null;
+
     // A mid-cycle membership upgrade (switch) keeps the OLD membership's window; a
     // same-product re-activation keeps its own live window; a fresh activation /
     // service add / ended-period renewal starts a new one.
@@ -1467,10 +1484,14 @@ export const setUserProductAction = withAdminAudit<
       product_id: product.id,
       plan,
       billing_cycle: cycle,
-      status: "active" as const,
+      status: (trialEndsAtIso ? "trialing" : "active") as "trialing" | "active",
       current_period_start: carryStart ?? renewStart ?? now,
       current_period_end:
-        carryEnd ?? renewEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1),
+        trialEndsAtIso ??
+        carryEnd ??
+        renewEnd ??
+        addMonthsIso(cycle === "annual" ? 12 : 1),
+      ...(trialEndsAtIso ? { trial_ends_at: trialEndsAtIso } : {}),
       updated_at: now,
     };
 
@@ -1552,7 +1573,11 @@ export const setUserProductAction = withAdminAudit<
       parsed.data.customBaseAmount != null
         ? round2(parsed.data.customBaseAmount)
         : newPrice;
-    if ((charge === "paid" || charge === "paylink") && effectivePrice > 0) {
+    if (
+      (charge === "paid" || charge === "paylink") &&
+      effectivePrice > 0 &&
+      !trialEndsAtIso
+    ) {
       const chargeAmount = switchingMembership
         ? membershipSwitchAmount(effectivePrice, oldPrice, carryStart, carryEnd)
         : round2(effectivePrice);
@@ -2568,6 +2593,7 @@ export async function setUserProduct(input: {
   timing?: "now" | "end_of_cycle";
   creditOverride?: number | null;
   customBaseAmount?: number | null;
+  trialDays?: number | null;
   sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {

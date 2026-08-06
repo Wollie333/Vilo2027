@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-08-06 — Per-user trial (admin + dashboard self-serve), and verified money consolidation.
+
+Extends the per-user product controls. Money-consolidation VERIFIED live: subscription price, affiliate commission,
+and reporting all flow from the ledger charge amount, so a per-user override adjusts all three.
+
+- **Admin per-user trial** (`setUserProductAction` + `UserRecord.tsx`): the assign-product modal gains a "Free trial
+  for this host (days)" field alongside the price override. Setting N days activates the sub as `trialing`
+  (trial_ends_at = now + N, **no charge**), converting to the (possibly overridden) price when they pay after the trial.
+- **Dashboard self-serve trial** (`switchToProductAction`): a first-time subscriber (not already on a paid membership)
+  picking a product with `trial_days>0` now starts a trialing sub via `purchaseProductBySlug` — matching the public
+  `/p/[slug]` flow — instead of charging immediately. Upgraders (existing paid membership) still fall through to paid.
+- **Money consolidation (verified):** commission = `rate × (ledger.amount − VAT − setup)` (`accrue_affiliate_commission`),
+  accrued by explicit `accrueAffiliateAndNotify(led.id)` at activation (setUserProductAction) + renewal
+  (subscription-renewal.ts). Since the ledger amount carries the override, commission auto-follows. **Rollback probe:**
+  a R700 override charge for a referred host → commission **R175** (25% × 700), NOT R249.75 (25% × 999). Subscription
+  side verified live earlier (locked_base_amount=700). Reporting reads the accrued rows, so it reflects the override.
+
 ## 2026-08-06 — Per-user price override (admin can set a custom recurring price for one host).
 
 Launch-readiness fix (sweep gap #2, pt32 requirement 3). The admin could free-grant or charge the catalog price but

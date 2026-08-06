@@ -12,7 +12,10 @@ import {
   startPayPalSubscriptionCheckout,
   startPayPalUpgradeCheckout,
 } from "@/lib/billing/paypal-subscription";
-import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
+import {
+  startProductCheckoutDirect,
+  purchaseProductBySlug,
+} from "@/lib/billing/product-checkout";
 import { getRecurringConfig } from "@/lib/billing/recurring";
 import {
   getUpgradeQuote,
@@ -367,7 +370,9 @@ export async function switchToProductAction(input: {
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
-    .select("id, slug, type, price, billing_cycle, plan_key, is_active")
+    .select(
+      "id, slug, type, price, billing_cycle, plan_key, is_active, trial_days",
+    )
     .eq("id", parsed.data.productId)
     .maybeSingle();
   if (!product || product.type !== "subscription" || !product.is_active) {
@@ -433,6 +438,25 @@ export async function switchToProductAction(input: {
   const paid = Number(product.price) > 0;
   const origin = headers().get("origin");
   const recurring = await getRecurringConfig();
+
+  // Free-trial: a FIRST-TIME subscriber (not already on a paid membership) picking
+  // a product that offers a trial starts a TRIALING subscription (no charge)
+  // instead of paying now — matching the public /p/[slug] flow. Eligibility (one
+  // trial per product) + the trialing-sub creation are handled inside
+  // purchaseProductBySlug. A paying host upgrading (existing.product_id set) never
+  // trials — they fall through to the paid rails below.
+  const trialDays = Number(product.trial_days ?? 0);
+  if (trialDays > 0 && !existing?.product_id && product.slug) {
+    const r = await purchaseProductBySlug(
+      product.slug,
+      user.email,
+      origin ?? "",
+      user.id,
+    );
+    if (!r.ok) return { ok: false, error: r.error };
+    revalidatePath("/dashboard/settings/subscription");
+    return { ok: true, redirectUrl: r.url };
+  }
 
   // PayPal rail (native recurring subscription). Offered only when the PayPal
   // recurring flag is armed. A mid-cycle UPGRADE (host already on a paid plan)

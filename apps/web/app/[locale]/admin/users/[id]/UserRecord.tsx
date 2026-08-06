@@ -2261,12 +2261,21 @@ function ProductsPanel({
     const n = Number(t);
     return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
   };
+  // Optional per-user TRIAL length in days (blank/0 = no trial, activate now).
+  const [trialDays, setTrialDays] = useState("");
+  const parsedTrialDays = (): number | null => {
+    const t = trialDays.trim();
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+  };
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
     setChargeTiming("now");
     setCreditOverride("");
     setCustomPrice("");
+    setTrialDays("");
     setOfferEmail(true);
   };
 
@@ -2384,6 +2393,7 @@ function ProductsPanel({
         charge: mode,
         creditOverride: parsedOverride(),
         customBaseAmount: parsedCustomPrice(),
+        trialDays: parsedTrialDays(),
       });
       setBusyId(null);
       if (r.ok) {
@@ -3023,6 +3033,23 @@ function ProductsPanel({
                   Leave blank to bill the catalog price. Set an amount to lock a
                   custom recurring base for THIS host — it drives the charge now
                   and every future renewal.
+                </p>
+              </Lbl>
+            ) : null}
+            {charge.product.productType === "membership" &&
+            chargeTiming === "now" ? (
+              <Lbl label="Free trial for this host (optional, days)">
+                <Input
+                  type="number"
+                  min={0}
+                  value={trialDays}
+                  onChange={(e) => setTrialDays(e.target.value)}
+                  placeholder="Blank = no trial (activate now)"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Set a number of days to start this host on a free trial (no
+                  charge now — it converts to the price above when they pay
+                  after the trial). Use “Activate without charging”.
                 </p>
               </Lbl>
             ) : null}
