@@ -115,16 +115,18 @@ export function OnboardingDashboard({
           </div>
 
           {welcomeVideo ? (
-            <div className="flex items-center justify-center border-t border-brand-line bg-black p-3 md:border-l md:border-t-0 lg:p-4">
-              <div className="aspect-video w-full overflow-hidden rounded-[10px] bg-black">
-                <iframe
-                  src={welcomeVideo.embedUrl}
-                  title={`Welcome to ${brandName}`}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+            // Video fills the whole right panel edge-to-edge — no padding, no
+            // black letterbox. brand-primary sits behind it so any gap reads
+            // green, never black. The section's rounded-card + overflow-hidden
+            // clips the video to the card's rounded corner.
+            <div className="relative min-h-[220px] overflow-hidden border-t border-brand-line bg-brand-primary md:min-h-0 md:border-l md:border-t-0">
+              <iframe
+                src={welcomeVideo.embedUrl}
+                title={`Welcome to ${brandName}`}
+                className="absolute inset-0 h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 border-t border-brand-line bg-[#FAFCFB] p-6 md:border-l md:border-t-0 lg:p-8">
