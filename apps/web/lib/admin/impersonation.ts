@@ -75,7 +75,19 @@ export async function openImpersonationSession(
  */
 export async function closeImpersonationSession(): Promise<string | null> {
   const ctx = readImpersonationCookie();
-  cookies().delete(IMPERSONATION_COOKIE);
+  // Overwrite with an already-expired cookie rather than cookies().delete():
+  // a bare delete() followed by redirect() is not reliably committed in Next
+  // 14.2 (the Set-Cookie is dropped), so the banner survived "End session" and
+  // it looked like nothing happened. Re-setting with maxAge 0 + epoch expiry and
+  // the SAME attributes it was written with reliably clears it.
+  cookies().set(IMPERSONATION_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  });
   if (!ctx) return null;
 
   const service = createAdminClient();

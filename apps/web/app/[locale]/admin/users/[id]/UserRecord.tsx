@@ -3512,12 +3512,6 @@ function LedgerPanel({
 
   return (
     <div className="space-y-5">
-      <SupportBanner
-        support={data.support}
-        isHost={!!data.host}
-        onRequest={onRequestSupport}
-      />
-
       {/* Pills (left) + finance actions (right). Wielo actions manage the user's
           Wielo account; on the booking ledger the same power is gated by the
           host's support grant (then row-level manage opens on that ledger). */}
@@ -3585,6 +3579,19 @@ function LedgerPanel({
           </span>
         )}
       </div>
+
+      {/* Read-only / request-edit-access notice — ONLY on the Bookings (guests)
+          ledger. That ledger is the host's own guest money, so an admin needs the
+          host's permission to change it. The Wielo account ledger (them → Wielo)
+          is Wielo's own revenue, which admins manage directly — no grant needed,
+          so the banner must never appear there. */}
+      {view === "bookings" ? (
+        <SupportBanner
+          support={data.support}
+          isHost={!!data.host}
+          onRequest={onRequestSupport}
+        />
+      ) : null}
 
       {showBookings ? (
         <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
