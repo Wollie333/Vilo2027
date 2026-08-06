@@ -24,7 +24,11 @@ the editor). (Started as an editor tab, then moved to a page per founder — cle
 - **`ListingStrengthCard.tsx`**: 2-column spread — score ring + "Ranking is earned, not bought"
   banner + component breakdown on the left; per-item **Fix →** quick-wins (deep-link to the editor
   tab that resolves each) + keyword tip on the right. Rendered by the strength page (breadcrumbs).
-- Deferred: public ranking-factors help article (page links to `/help` for now).
+- **Public help article** `how-search-ranking-works` (mig `20260806190000`) in the "Listings &
+  photos" category — plain-English ranking factors + "rank is earned, not bought"; the strength
+  page links straight to it. Live-verified rendering at `/help/how-search-ranking-works`. ⚠️ CLI
+  no-op quirk: `db push` recorded the migration without running its INSERT → `migration repair
+  --status reverted` + re-push (verify the row actually landed, don't trust "up to date").
 
 ## 2026-08-06 — Front-page availability search + ethical earned-only ranking.
 

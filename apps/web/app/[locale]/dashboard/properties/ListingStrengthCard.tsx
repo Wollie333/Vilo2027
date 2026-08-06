@@ -229,7 +229,7 @@ export function ListingStrengthCard({
           <p>
             Ranking updates within about 15 minutes of a change.{" "}
             <Link
-              href="/help"
+              href="/help/how-search-ranking-works"
               className="font-medium text-brand-primary hover:underline"
             >
               Learn how Wielo search ranking works
