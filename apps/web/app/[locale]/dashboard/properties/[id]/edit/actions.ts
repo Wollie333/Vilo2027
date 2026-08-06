@@ -258,7 +258,13 @@ export async function replaceLocalPicksAction(
 
   const supabase = own.db;
 
-  // Full replacement — wipe this listing's picks then re-insert in order.
+  // Full replacement — snapshot → wipe → re-insert in order. Snapshot the old
+  // picks so a failed insert can be rolled back instead of losing them all.
+  const { data: oldPicks } = await supabase
+    .from("property_local_picks")
+    .select("category, title, blurb, distance_label, sort_order")
+    .eq("property_id", listingId);
+
   const { error: delErr } = await supabase
     .from("property_local_picks")
     .delete()
@@ -280,6 +286,15 @@ export async function replaceLocalPicksAction(
       .from("property_local_picks")
       .insert(rows);
     if (insErr) {
+      // Restore the old picks (the INSERT is atomic, so nothing partial
+      // remains) so a failed save doesn't wipe the host's local picks.
+      if ((oldPicks ?? []).length > 0) {
+        await supabase
+          .from("property_local_picks")
+          .insert(
+            (oldPicks ?? []).map((p) => ({ property_id: listingId, ...p })),
+          );
+      }
       return { ok: false, error: "Could not save local picks." };
     }
   }
@@ -338,6 +353,18 @@ export async function replaceAmenitiesAction(
       .from("property_amenities")
       .insert(rows);
     if (insErr) {
+      // The INSERT is atomic (all-or-nothing), so no partial rows survive to
+      // conflict — restore what we deleted so a failed save can't wipe the
+      // host's amenities.
+      if (roomByKey.size > 0) {
+        await supabase.from("property_amenities").insert(
+          Array.from(roomByKey.entries()).map(([key, roomId]) => ({
+            property_id: listingId,
+            amenity_key: key,
+            room_id: roomId,
+          })),
+        );
+      }
       return { ok: false, error: "Could not save amenities." };
     }
   }
@@ -444,18 +471,17 @@ export async function registerListingPhotoAction(
     .from("listing-photos")
     .getPublicUrl(storagePath);
 
-  const { count } = await supabase
-    .from("property_photos")
-    .select("id", { count: "exact", head: true })
-    .eq("property_id", listingId);
-
+  // sort_order is assigned by the property_photos BEFORE-INSERT trigger
+  // (advisory-locked max+1) so concurrent uploads can't collide on the cover
+  // slot (sort_order 0). Pass NULL and let the DB fill it — the old COUNT(*)
+  // pre-read made every in-flight upload read the same count → same order.
   const { data: row, error: rowErr } = await supabase
     .from("property_photos")
     .insert({
       property_id: listingId,
       storage_path: storagePath,
       url: publicUrl.publicUrl,
-      sort_order: count ?? 0,
+      sort_order: null as unknown as number,
       room_id: roomId,
     })
     .select("id, url")
@@ -1965,6 +1991,14 @@ export async function setRoomAmenitiesAction(
 
   const supabase = own.db;
 
+  // Snapshot the room's current amenity keys so a failed re-save can be rolled
+  // back instead of leaving the room with no amenities.
+  const { data: existingRoom } = await supabase
+    .from("property_amenities")
+    .select("amenity_key")
+    .eq("property_id", listingId)
+    .eq("room_id", roomId);
+
   const { error: delErr } = await supabase
     .from("property_amenities")
     .delete()
@@ -1985,6 +2019,17 @@ export async function setRoomAmenitiesAction(
       .from("property_amenities")
       .insert(rows);
     if (insErr) {
+      // Restore the deleted keys (the INSERT is atomic, so nothing partial
+      // remains) so a failed save doesn't strip the room's amenities.
+      if ((existingRoom ?? []).length > 0) {
+        await supabase.from("property_amenities").insert(
+          (existingRoom ?? []).map((r) => ({
+            property_id: listingId,
+            room_id: roomId,
+            amenity_key: r.amenity_key,
+          })),
+        );
+      }
       return { ok: false, error: "Could not save room amenities." };
     }
   }
@@ -2025,7 +2070,13 @@ export async function setRoomBedsAction(
     return { ok: false, error: "Room not found on this listing." };
   }
 
-  // One-shot replacement: wipe + insert.
+  // One-shot replacement: snapshot → wipe → insert. Snapshot the old beds so a
+  // failed insert can be rolled back instead of leaving the room bedless.
+  const { data: oldBeds } = await supabase
+    .from("room_beds")
+    .select("bed_kind, quantity, sleeps, sort_order")
+    .eq("room_id", roomId);
+
   const { error: delErr } = await supabase
     .from("room_beds")
     .delete()
@@ -2044,6 +2095,13 @@ export async function setRoomBedsAction(
     }));
     const { error: insErr } = await supabase.from("room_beds").insert(rows);
     if (insErr) {
+      // Restore the old beds (the INSERT is atomic, so nothing partial remains)
+      // so a failed save doesn't wipe the room's bed composition + capacity.
+      if ((oldBeds ?? []).length > 0) {
+        await supabase
+          .from("room_beds")
+          .insert((oldBeds ?? []).map((b) => ({ room_id: roomId, ...b })));
+      }
       return { ok: false, error: "Could not save beds." };
     }
   }

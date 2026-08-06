@@ -15,10 +15,15 @@ import { LogoUploader } from "./LogoUploader";
 export function BusinessDetailsForm({
   defaults,
   logoUrl,
+  requireName = false,
   onSaved,
 }: {
   defaults: BusinessDetailsInput;
   logoUrl?: string | null;
+  /** Setup passes this: a business name is mandatory here (it gates the step),
+      so block a nameless "save" that would collapse to a success the host can't
+      continue past. Settings leaves it off — individuals may save with no name. */
+  requireName?: boolean;
   onSaved?: () => void;
 }) {
   const [pending, start] = useTransition();
@@ -44,6 +49,14 @@ export function BusinessDetailsForm({
   });
 
   function onSubmit(values: BusinessDetailsInput) {
+    if (
+      requireName &&
+      !values.trading_name?.trim() &&
+      !values.legal_name?.trim()
+    ) {
+      toast.error("Add your business name (trading or legal) to continue.");
+      return;
+    }
     start(async () => {
       const result = await saveBusinessDetailsAction(values);
       if (!result.ok) {
@@ -79,8 +92,9 @@ export function BusinessDetailsForm({
               Business details
             </h3>
             <p className="mt-0.5 text-xs text-brand-mute">
-              Printed on invoices &amp; quotes. Leave blank if you trade as an
-              individual.
+              {requireName
+                ? "Your business name appears on invoices, quotes and EFT instructions."
+                : "Printed on invoices & quotes. Leave blank if you trade as an individual."}
             </p>
           </div>
         </div>
@@ -136,7 +150,8 @@ export function BusinessDetailsForm({
             </Field>
             <Field
               label="Trading as"
-              optional
+              optional={!requireName}
+              required={requireName}
               error={errors.trading_name?.message}
             >
               <TextInput

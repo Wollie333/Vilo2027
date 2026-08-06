@@ -26,7 +26,11 @@ export function StepBusiness({
         payment instructions. You can refine this anytime from Settings.
       </p>
 
-      <BusinessDetailsForm defaults={businessDefaults} onSaved={onChanged} />
+      <BusinessDetailsForm
+        defaults={businessDefaults}
+        requireName
+        onSaved={onChanged}
+      />
 
       <div className="flex items-center justify-between border-t border-brand-line pt-5">
         <span className="text-xs text-brand-mute">

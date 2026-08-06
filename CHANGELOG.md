@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-08-06 — Close out the deferred hardening items (photos, atomicity, forms).
+
+Picked up the five items the previous pass flagged and deferred:
+
+- **Photo `sort_order` collision → atomic (migration `20260806210000`).** The uploader
+  runs 4 at a time and each `registerListingPhotoAction` assigned `sort_order` from a
+  pre-read `COUNT(*)`, so concurrent uploads all wrote the same value and the cover photo
+  was non-deterministic. A `BEFORE INSERT` trigger now fills `sort_order` from `max+1`
+  under a per-property transaction advisory lock; the action passes `NULL` and lets the DB
+  assign it. (Kept the column `NOT NULL`; only dropped its default so NULL reaches the
+  trigger — no type regen, no blast radius.)
+- **Server-side photo size/type enforcement (migration `20260806220000`).** Set
+  `file_size_limit` + `allowed_mime_types` on the `listing-photos` (8 MB) and `avatars`
+  (4 MB) buckets, so the signed-upload path is enforced by Storage for every upload, not
+  just the browser picker.
+- **Non-atomic delete-then-insert → restore-on-failure.** `replaceAmenitiesAction`,
+  `setRoomAmenitiesAction`, `setRoomBedsAction` and `replaceLocalPicksAction` snapshot the
+  rows before wiping and re-insert them if the insert fails (the INSERT is atomic, so no
+  partial rows survive) — a failed save can no longer wipe amenities / beds / picks.
+- **Business form "saved but can't continue".** `BusinessDetailsForm` gained an opt-in
+  `requireName` (setup passes it): a nameless save is blocked with a clear toast and the
+  Trading-as field is marked required, so the step can't collapse to a success the host
+  can't get past. Settings keeps the old behaviour (individuals may save with no name).
+- **Non-atomic auth-email change.** `saveProfileAction` now writes the DB rows first and
+  changes the auth login email LAST, only flipping `user_profiles.email` after auth
+  succeeds — a DB failure can no longer strand a changed login email out of sync with
+  every stored copy.
+
 ## 2026-08-06 — Setup wizard hardening pass (all 8 steps) + pull signup data through.
 
 Walked every step live (zero runtime/console errors) and ran a 3-way code audit of the
