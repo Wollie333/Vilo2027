@@ -87,6 +87,7 @@ type ListingRow = {
   avg_rating: number | string | null;
   total_reviews: number | null;
   total_bookings: number | null;
+  ranking_score: number | string | null;
   created_at: string;
   photos: Array<{ url: string; sort_order: number }> | null;
   rooms: Array<{ id: string }> | null;
@@ -118,6 +119,8 @@ type Derived = ListingRow & {
   bookedNights: number;
   /** Next upcoming check-in, formatted ("Today" / "14 Jun"), or null. */
   nextBooking: string | null;
+  /** Directory search-ranking strength, 0–100 (the stored ranking_score). */
+  strengthScore: number;
 };
 
 function statusOf(l: ListingRow): "published" | "draft" | "paused" {
@@ -202,7 +205,7 @@ export default async function ListingsPage({
         supabase
           .from("properties")
           .select(
-            "id, name, slug, property_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:property_photos ( url, sort_order ), rooms:property_rooms ( id )",
+            "id, name, slug, property_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, ranking_score, created_at, photos:property_photos ( url, sort_order ), rooms:property_rooms ( id )",
           )
           .eq("host_id", host.id)
           .eq("property_type", "accommodation")
@@ -280,6 +283,10 @@ export default async function ListingsPage({
       occupancy: occupancyPct(nights, cur.days),
       bookedNights: nights,
       nextBooking: nextDate ? formatNextDate(nextDate, todayStr) : null,
+      strengthScore: Math.max(
+        0,
+        Math.min(100, Math.round(Number(l.ranking_score ?? 0) * 100)),
+      ),
     };
   });
 
@@ -831,6 +838,15 @@ function RatingStat({ rating }: { rating: number | null }) {
 
 function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
   const top = isSpotlight && l.status === "published";
+  // Colour the strength badge by band so a weak listing reads as "improve me".
+  const strengthTone =
+    l.strengthScore >= 75
+      ? "text-brand-primary"
+      : l.strengthScore >= 50
+        ? "text-brand-secondary"
+        : l.strengthScore >= 25
+          ? "text-amber-600"
+          : "text-brand-mute";
   return (
     <article
       className={`group flex flex-col overflow-hidden rounded-card bg-white shadow-card transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-lift ${
@@ -871,11 +887,13 @@ function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
 
         <Link
           href={`/dashboard/properties/${l.id}/strength`}
-          aria-label="Listing strength"
-          title="Listing strength"
-          className="absolute right-12 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-brand-ink shadow-sm backdrop-blur transition hover:bg-white hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          aria-label={`Listing strength ${l.strengthScore} out of 100 — how you rank in search`}
+          title="Listing strength — how you rank in search"
+          className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-pill bg-white/95 px-2 py-1 text-[11px] font-bold text-brand-ink shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
         >
-          <Gauge className="h-4 w-4" />
+          <Gauge className={`h-3.5 w-3.5 ${strengthTone}`} />
+          {l.strengthScore}
+          <span className="font-medium text-brand-mute">/100</span>
         </Link>
 
         <ListingCardMenu
@@ -1076,6 +1094,14 @@ function ListingRowItem({
   isSpotlight: boolean;
 }) {
   const top = isSpotlight && l.status === "published";
+  const strengthTone =
+    l.strengthScore >= 75
+      ? "text-brand-primary"
+      : l.strengthScore >= 50
+        ? "text-brand-secondary"
+        : l.strengthScore >= 25
+          ? "text-amber-600"
+          : "text-brand-mute";
   return (
     <Link
       href={`/dashboard/properties/${l.id}/edit`}
@@ -1118,6 +1144,14 @@ function ListingRowItem({
           ) : null}
         </div>
       </div>
+      <span
+        className="hidden shrink-0 items-center gap-1 rounded-pill bg-brand-light px-2 py-1 text-[11px] font-bold text-brand-ink sm:inline-flex"
+        title="Listing strength — how you rank in search"
+      >
+        <Gauge className={`h-3.5 w-3.5 ${strengthTone}`} />
+        {l.strengthScore}
+        <span className="font-medium text-brand-mute">/100</span>
+      </span>
       {l.price != null ? (
         <div className="hidden shrink-0 text-right sm:block">
           <div className="num whitespace-nowrap font-display text-[14px] font-bold text-brand-ink">

@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-08-06 — Listing-strength badge on the properties list.
+
+Surfaces each listing's search-ranking score right on the properties page
+(`dashboard/properties`) so hosts notice it at a glance. Grid card: a colour-banded
+`Gauge N/100` pill (bottom-right) linking to the strength page; list rows: the same
+chip, non-interactive (the row already links to the editor — no nested link). Score =
+`round(properties.ranking_score × 100)`, added to the list query (one column, no extra
+round-trip). Tone by band (strong/good/building/weak). Live-verified: badge renders +
+links to `/dashboard/properties/[id]/strength`.
+
 ## 2026-08-06 — Fair-search refinements: host diversity + freshness/exploration.
 
 Completes the fair ranking. `search_directory` RPC (mig `20260806200000`) gains, for the
