@@ -61,7 +61,9 @@ export default async function SetupPage({
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("full_name, email, phone, avatar_url, email_verified_at")
+    .select(
+      "full_name, email, phone, avatar_url, email_verified_at, bio, languages",
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -322,16 +324,20 @@ export default async function SetupPage({
         id: host.id,
         handle: host.handle,
         display_name: host.display_name,
-        bio: host.bio ?? "",
-        // Show the photo the host already has. saveProfileAction mirrors the
-        // avatar onto BOTH user_profiles.avatar_url (the account/header avatar)
-        // and hosts.avatar_url, but an avatar set via signup/settings before
-        // that mirror ran leaves hosts.avatar_url empty — which made the setup
-        // profile step render the "?" initials placeholder even though the
-        // header shows the real photo. Fall back to the account avatar so the
-        // two always match; saving the profile step re-mirrors it onto hosts.
+        // Signup writes bio / languages / avatar onto BOTH hosts.* AND
+        // user_profiles.* — but a host row created by a path that skipped that
+        // write (existing-host finalize, paid-receipt return, a DB trigger)
+        // leaves the hosts.* copies empty while user_profiles still holds what
+        // the host typed at signup. Fall back to the user_profiles copy so
+        // everything the host already filled in (photo, bio, languages) pulls
+        // straight through into the setup step; saving the step re-mirrors it
+        // onto hosts. (Column is user_profiles.languages, hosts.languages_spoken.)
+        bio: host.bio || profile?.bio || "",
         avatar_url: host.avatar_url || profile?.avatar_url || "",
-        languages_spoken: host.languages_spoken ?? [],
+        languages_spoken:
+          host.languages_spoken && host.languages_spoken.length > 0
+            ? host.languages_spoken
+            : (profile?.languages ?? []),
         highlights: host.highlights ?? [],
         website_url: host.website_url ?? "",
         // Paystack subaccount isn't wired up yet (no column on hosts).
