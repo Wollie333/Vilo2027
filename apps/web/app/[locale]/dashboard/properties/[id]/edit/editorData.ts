@@ -2,6 +2,10 @@ import "server-only";
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { hostHasFeature } from "@/lib/products/featureGate";
+import {
+  computeListingStrength,
+  type ListingStrength,
+} from "@/lib/search/listingStrength";
 import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 import { getCategoriesForKind } from "@/lib/taxonomy/getCategories";
@@ -37,6 +41,8 @@ export type ListingEditorData = {
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
   businesses: { id: string; name: string }[];
+  /** Transparent, host-facing view of this listing's search ranking. */
+  strength: ListingStrength;
   access: {
     check_in_method: string | null;
     check_in_instructions: string | null;
@@ -414,6 +420,31 @@ export async function loadListingEditorData(
       kind: c.kind,
     }));
 
+  // The stored ranking row is the algorithm's own value — the panel shows it
+  // verbatim so the host's number can never drift from where they actually rank.
+  const { data: rankingRow } = await db
+    .from("property_rankings")
+    .select(
+      "ranking_score, component_rating, component_reviews, component_profile, component_response_rate, last_calculated",
+    )
+    .eq("property_id", listingId)
+    .maybeSingle();
+
+  const strength = computeListingStrength({
+    rankingScore: rankingRow?.ranking_score ?? null,
+    componentRating: rankingRow?.component_rating ?? null,
+    componentReviews: rankingRow?.component_reviews ?? null,
+    componentProfile: rankingRow?.component_profile ?? null,
+    componentResponse: rankingRow?.component_response_rate ?? null,
+    lastCalculated: rankingRow?.last_calculated ?? null,
+    name: listing.name,
+    city: listing.city,
+    hasDescription: Boolean(listing.description?.trim()),
+    hasCheckInTime: Boolean(listing.check_in_time),
+    photoCount: photos.length,
+    amenityCount: amenities.length,
+  });
+
   return {
     listing,
     amenities,
@@ -427,6 +458,7 @@ export async function loadListingEditorData(
     categoryLeaves,
     amenityGroups,
     businesses,
+    strength,
     access,
     localPicks,
     channels: {

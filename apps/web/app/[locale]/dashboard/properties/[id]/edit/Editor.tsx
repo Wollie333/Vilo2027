@@ -18,6 +18,7 @@ import {
   Radio,
   Receipt,
   Settings as SettingsIcon,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -48,9 +49,11 @@ import {
   type AvailablePolicy,
 } from "./tabs/PoliciesTab";
 import { PricingTab } from "./tabs/PricingTab";
+import { RankingTab } from "./tabs/RankingTab";
 import { RoomsTab } from "./tabs/RoomsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import type { ListingEditorData } from "./editorData";
+import type { ListingStrength } from "@/lib/search/listingStrength";
 import type { LocalPickInput } from "./schemas";
 
 export type EditorListing = {
@@ -179,6 +182,7 @@ type TabKey =
   | "access"
   | "settings"
   | "channels"
+  | "ranking"
   | "review"
   | "danger";
 
@@ -196,6 +200,7 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "access", label: "Guest access", icon: KeyRound },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
   { key: "channels", label: "Channels", icon: Radio },
+  { key: "ranking", label: "Search ranking", icon: TrendingUp },
   { key: "review", label: "Review & publish", icon: ClipboardCheck },
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
@@ -247,6 +252,10 @@ const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
     title: "Channels",
     desc: "Where this property is published — the Wielo directory and your website.",
   },
+  ranking: {
+    title: "Search ranking",
+    desc: "How you rank in the directory, and the quick wins to climb — earned, never bought.",
+  },
   review: {
     title: "Review & publish",
     desc: "Everything at a glance before your property goes live.",
@@ -270,6 +279,7 @@ export function Editor({
   categoryLeaves,
   amenityGroups,
   businesses,
+  strength,
   access,
   localPicks,
   channels,
@@ -288,6 +298,7 @@ export function Editor({
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
   businesses: { id: string; name: string }[];
+  strength: ListingStrength;
   access: AccessInitial | null;
   localPicks: LocalPickInput[];
   channels: ListingEditorData["channels"];
@@ -680,6 +691,12 @@ export function Editor({
               publishPending={publishPending}
               onToggleDirectory={togglePublish}
               channels={channels}
+            />
+          ) : null}
+          {active === "ranking" ? (
+            <RankingTab
+              strength={strength}
+              onGoTab={(tab) => setActive(tab as TabKey)}
             />
           ) : null}
           {active === "review" ? (
