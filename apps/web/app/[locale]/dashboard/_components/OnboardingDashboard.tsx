@@ -37,11 +37,15 @@ export function OnboardingDashboard({
   firstName,
   handle,
   steps,
+  welcomeVideo,
 }: {
   brandName: string;
   firstName: string;
   handle: string | null;
   steps: SetupStep[];
+  /** Admin-set welcome video (Communications → Onboarding). When present, the
+   * hero's right panel plays it instead of the progress ring. */
+  welcomeVideo?: { embedUrl: string } | null;
 }) {
   const { total, done, pct, nextStep } = setupProgress(steps);
   const RING = 326.726; // 2π·52
@@ -110,48 +114,64 @@ export function OnboardingDashboard({
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-4 border-t border-brand-line bg-[#FAFCFB] p-6 md:border-l md:border-t-0 lg:p-8">
-            <div className="relative h-[116px] w-[116px] shrink-0">
-              <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  fill="none"
-                  stroke="#E4EFE8"
-                  strokeWidth="10"
+          {welcomeVideo ? (
+            <div className="flex items-center justify-center border-t border-brand-line bg-black p-3 md:border-l md:border-t-0 lg:p-4">
+              <div className="aspect-video w-full overflow-hidden rounded-[10px] bg-black">
+                <iframe
+                  src={welcomeVideo.embedUrl}
+                  title={`Welcome to ${brandName}`}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={RING}
-                  strokeDashoffset={offset}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="font-display text-[26px] font-extrabold leading-none text-brand-ink">
-                  {done}
-                  <span className="text-[18px] text-brand-mute">/{total}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-4 border-t border-brand-line bg-[#FAFCFB] p-6 md:border-l md:border-t-0 lg:p-8">
+              <div className="relative h-[116px] w-[116px] shrink-0">
+                <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke="#E4EFE8"
+                    strokeWidth="10"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={RING}
+                    strokeDashoffset={offset}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="font-display text-[26px] font-extrabold leading-none text-brand-ink">
+                    {done}
+                    <span className="text-[18px] text-brand-mute">
+                      /{total}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                    steps done
+                  </div>
                 </div>
-                <div className="mt-1 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                  steps done
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                  Up next
+                </div>
+                <div className="mt-1 font-display text-[15px] font-bold text-brand-ink">
+                  {nextStep?.title ?? "You're all set"}
                 </div>
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-                Up next
-              </div>
-              <div className="mt-1 font-display text-[15px] font-bold text-brand-ink">
-                {nextStep?.title ?? "You're all set"}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

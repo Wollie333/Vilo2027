@@ -8,6 +8,7 @@ import {
   groupByArea,
   listMessageConfigs,
 } from "@/lib/notifications/admin-config";
+import { ONBOARDING_VIDEO_KEY } from "@/lib/help/onboardingVideo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSamplePayload } from "../emails/samplePayloads";
 import { CommunicationsHub } from "./_components/CommunicationsHub";
@@ -20,17 +21,25 @@ export default async function CommunicationsPage() {
   await requirePermission("notifications.broadcast");
 
   const admin = createAdminClient();
-  const [configs, health, { data: broadcasts }] = await Promise.all([
-    listMessageConfigs(),
-    loadDeliveryHealth(),
-    admin
-      .from("broadcast_announcements")
-      .select(
-        "id, title, audience, severity, starts_at, ends_at, cancelled_at, created_at",
-      )
-      .order("created_at", { ascending: false })
-      .limit(20),
-  ]);
+  const [configs, health, { data: broadcasts }, { data: videoSetting }] =
+    await Promise.all([
+      listMessageConfigs(),
+      loadDeliveryHealth(),
+      admin
+        .from("broadcast_announcements")
+        .select(
+          "id, title, audience, severity, starts_at, ends_at, cancelled_at, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(20),
+      admin
+        .from("help_settings")
+        .select("value")
+        .eq("key", ONBOARDING_VIDEO_KEY)
+        .maybeSingle(),
+    ]);
+  const welcomeVideoUrl =
+    (videoSetting?.value as { url?: string } | null)?.url ?? "";
   const groups = groupByArea(configs);
   const history = (broadcasts ?? []).map((b) => ({
     id: b.id as string,
@@ -60,6 +69,7 @@ export default async function CommunicationsPage() {
       defaults={defaults}
       health={health}
       history={history}
+      welcomeVideoUrl={welcomeVideoUrl}
     />
   );
 }

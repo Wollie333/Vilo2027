@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { fetchGettingStartedState } from "@/lib/help/queries";
+import { fetchOnboardingWelcomeVideo } from "@/lib/help/onboardingVideo";
 import { throwOnError, throwOnErrorWithCount } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -141,11 +142,15 @@ export default async function DashboardPage({
 
   // ── Setup not 100% → onboarding view only (dashboard unlocks at 100%). ──
   if (!setupComplete) {
+    // Admin-set welcome video (Communications → Onboarding) — the hero plays it
+    // instead of the progress ring when present.
+    const welcomeVideo = await fetchOnboardingWelcomeVideo();
     return (
       <div className="space-y-6">
         <OnboardingFreshness />
         {justOnboarded ? <WelcomeToast /> : null}
         <OnboardingDashboard
+          welcomeVideo={welcomeVideo}
           brandName={brandName}
           firstName={firstName}
           handle={host.handle}

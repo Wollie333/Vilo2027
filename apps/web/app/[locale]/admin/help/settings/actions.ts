@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
+import { parseVideoEmbed } from "@/lib/help/embed";
+import { ONBOARDING_VIDEO_KEY } from "@/lib/help/onboardingVideo";
 
 const trendingSchema = z.object({
   trending: z.array(z.string().min(1).max(60)).max(10),
@@ -148,6 +150,61 @@ export async function saveContact(input: {
     };
   try {
     await saveContactAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+// ── Onboarding welcome video (host overview hero) ────────────────────────────
+// An admin sets a YouTube/Vimeo URL from the Communications section; the host
+// onboarding overview renders it when present, else the progress ring. An empty
+// url CLEARS it (back to the ring). Stored as one help_settings KV row.
+const onboardingVideoSchema = z.object({
+  url: z.string().trim().max(500),
+  reason: z.string().optional(),
+});
+
+export const saveOnboardingVideoAction = withAdminAudit<
+  z.infer<typeof onboardingVideoSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "notifications.broadcast",
+    actionName: "onboarding.welcome_video",
+    targetType: "help_settings",
+    getTargetId: () => "00000000-0000-0000-0000-000000000004",
+  },
+  async (args, service) => {
+    await upsertSetting(service, ONBOARDING_VIDEO_KEY, { url: args.url });
+    revalidatePath("/admin/communications");
+    revalidatePath("/dashboard");
+    return { result: { ok: true }, after: { url: args.url } };
+  },
+);
+
+export async function saveOnboardingVideo(input: {
+  url: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = onboardingVideoSchema.safeParse(input);
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  // A non-empty URL must resolve to a real YouTube/Vimeo embed, or we'd store a
+  // link the hero can't render. An empty string is allowed — it clears the video.
+  if (parsed.data.url && !parseVideoEmbed(parsed.data.url)) {
+    return {
+      ok: false,
+      error: "Paste a valid YouTube or Vimeo link (or clear the field).",
+    };
+  }
+  try {
+    await saveOnboardingVideoAction(parsed.data);
     return { ok: true as const };
   } catch (e) {
     return {

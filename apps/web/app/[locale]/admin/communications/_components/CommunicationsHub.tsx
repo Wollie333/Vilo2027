@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowLeft,
   Eye,
+  Film,
   Megaphone,
   Pencil,
   Plus,
@@ -38,6 +39,7 @@ import {
   MessageCard,
   useMessageToggles,
 } from "./messageManagement";
+import { WelcomeVideoControl } from "./WelcomeVideoControl";
 
 type Group = {
   key: string;
@@ -56,18 +58,20 @@ type HistoryRow = {
   createdAt: string;
 };
 
-type TabKey = "auto" | "send" | "health";
+type TabKey = "auto" | "send" | "health" | "onboarding";
 
 export function CommunicationsHub({
   groups,
   defaults,
   health,
   history,
+  welcomeVideoUrl,
 }: {
   groups: Group[];
   defaults: Record<string, { subject: string }>;
   health: DeliveryHealth;
   history: HistoryRow[];
+  welcomeVideoUrl: string;
 }) {
   const [tab, setTab] = useState<TabKey>("auto");
 
@@ -126,6 +130,12 @@ export function CommunicationsHub({
               <span className="pillcnt">{health.failed24h}</span>
             ) : null}
           </TabBtn>
+          <TabBtn
+            on={tab === "onboarding"}
+            onClick={() => setTab("onboarding")}
+          >
+            <Film className="h-[17px] w-[17px]" /> Onboarding
+          </TabBtn>
         </div>
       </div>
 
@@ -140,6 +150,9 @@ export function CommunicationsHub({
         ) : null}
         {tab === "send" ? <SendTab history={history} /> : null}
         {tab === "health" ? <HealthTab health={health} /> : null}
+        {tab === "onboarding" ? (
+          <WelcomeVideoControl initialUrl={welcomeVideoUrl} />
+        ) : null}
       </div>
     </div>
   );
