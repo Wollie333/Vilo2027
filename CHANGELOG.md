@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-08-06 — Harden the default affiliate program: fix the "0 paying" drift.
+
+Founder hit two symptoms: the portal showed "0 paying" and the admin affiliate page
+showed "0 paid customers · Petrus = Free" even though Petrus has a live paid **Starter**
+subscription (Active, monthly, R998 paid) that earned R125 commission. Root cause: four
+separate pages each hardcoded `PAID_PLANS = { basic, pro, business }` to decide "paying"
+— an allowlist that drifted from the real product catalogue (Starter / Standard / Founder
+/ Growth), so genuinely-paying hosts were mislabelled "Free" and dropped from every count.
+Commission is charge-driven (catalog-agnostic) so it fired — hence "R125 but 0 paying".
+
+- **One shared, catalog-agnostic helper** `lib/affiliate/paying.ts` `isPayingSubscription`:
+  paying = a non-free plan on an `active`/`past_due` subscription (trialing excluded — a
+  free trial hasn't paid). Replaces the duplicated allowlist in all four surfaces so the
+  portal Overview, the affiliate products page, the admin per-affiliate page and the admin
+  user record can never disagree again. Petrus now correctly counts + shows as Starter.
+- **Reliability:** the `/r/<slug>` click-log insert and `bindAffiliateReferral` swallowed
+  ALL errors silently — exactly how clicks/attribution can drop to 0 undiagnosably. Both
+  now log real failures (still never blocking the redirect / account creation; the
+  bind-once 23505 conflict is still ignored as expected).
+- On the "0 clicks / 2 signups": that's accurate — both referrals were created by typing
+  the partner code at signup (`source='manual_code'`), which never hits `/r/<slug>`, so no
+  click row exists. Not a bug; the funnel just presents expected data starkly.
+- Noted for a focused follow-up (not changed here): the admin **Metrics** tab funnel RPC
+  (`program_affiliate_funnel`) still requires `subscription_id IS NOT NULL` on the charge,
+  which the first charge doesn't set (only renewals do), so its "paying" lags a cycle;
+  plus `platform_ledger.vat_amount` is never written, so commission is on gross once
+  VAT-exclusive. Both are money/analytics-adjacent and deserve their own verified pass.
+
 ## 2026-08-06 — Close out the deferred hardening items (photos, atomicity, forms).
 
 Picked up the five items the previous pass flagged and deferred:

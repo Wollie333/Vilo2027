@@ -14,11 +14,10 @@ import {
   ProductRatesTable,
   type RateRow,
 } from "../_components/ProductRatesTable";
+import { isPayingSubscription } from "@/lib/affiliate/paying";
 
 export const metadata: Metadata = { title: "Affiliate links" };
 export const dynamic = "force-dynamic";
-
-const PAID_PLANS = new Set(["basic", "pro", "business"]);
 
 type ProductRow = {
   id: string;
@@ -119,14 +118,7 @@ export default async function AffiliateLinksPage() {
         data: [] as { host_id: string; plan: string | null; status: string }[],
       };
   const payingHosts = new Set(
-    (subs ?? [])
-      .filter(
-        (s) =>
-          s.plan != null &&
-          PAID_PLANS.has(s.plan) &&
-          ["active", "trialing", "past_due"].includes(s.status),
-      )
-      .map((s) => s.host_id),
+    (subs ?? []).filter(isPayingSubscription).map((s) => s.host_id),
   );
   const isPaying = (uid: string) => {
     const h = hostByUser.get(uid);

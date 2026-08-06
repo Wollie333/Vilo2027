@@ -22,10 +22,9 @@ import { ReassignReferralControl } from "./ReassignReferralControl";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isPayingSubscription } from "@/lib/affiliate/paying";
 
 export const dynamic = "force-dynamic";
-
-const PAID_PLANS = new Set(["basic", "pro", "business"]);
 
 function pct(part: number, whole: number): number {
   if (whole <= 0) return 0;
@@ -164,11 +163,7 @@ export default async function AdminAffiliateFunnelPage({
     const profile = profileById.get(r.referred_user_id);
     const hostId = hostByUser.get(r.referred_user_id);
     const sub = hostId ? planByHost.get(hostId) : undefined;
-    const isPaid =
-      !!sub &&
-      sub.plan != null &&
-      PAID_PLANS.has(sub.plan) &&
-      ["active", "trialing", "past_due"].includes(sub.status);
+    const isPaid = !!sub && isPayingSubscription(sub);
     return {
       id: r.id,
       name: profile?.full_name || "Unnamed",

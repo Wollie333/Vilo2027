@@ -140,7 +140,7 @@ export async function GET(
     const visitorHash = ip
       ? createHash("sha256").update(`${ip}|${ua}`).digest("hex").slice(0, 32)
       : null;
-    const { data: click } = await admin
+    const { data: click, error: clickErr } = await admin
       .from("affiliate_clicks")
       .insert({
         affiliate_id: aff.id,
@@ -158,9 +158,15 @@ export async function GET(
       })
       .select("id")
       .maybeSingle();
+    // Never block the redirect, but make failures VISIBLE: a swallowed insert
+    // error (schema/RLS drift) is exactly how clicks silently drop to 0 while
+    // signups keep flowing, which is undiagnosable without a log.
+    if (clickErr) {
+      console.error("[affiliate/click] failed to log click", clickErr);
+    }
     clickId = click?.id ?? null;
-  } catch {
-    // Logging failures must not block the redirect.
+  } catch (err) {
+    console.error("[affiliate/click] click log threw", err);
   }
 
   res.cookies.set(

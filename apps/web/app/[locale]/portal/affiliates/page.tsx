@@ -27,14 +27,14 @@ import { getAffiliateTier } from "@/lib/affiliate/tiers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { isPayingSubscription } from "@/lib/affiliate/paying";
+
 import { AffiliateBaseLink } from "./_components/AffiliateBaseLink";
 import { CopyLinkButton } from "./_components/CopyLinkButton";
 import { EarningsCalculator } from "./_components/EarningsCalculator";
 
 export const metadata: Metadata = { title: "Affiliates" };
 export const dynamic = "force-dynamic";
-
-const PAID_PLANS = new Set(["basic", "pro", "business"]);
 
 function zar(n: number): string {
   return "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
@@ -205,14 +205,7 @@ export default async function AffiliateOverviewPage() {
       .map((s) => s.host_id),
   );
   const payingHostIds = new Set(
-    (subs ?? [])
-      .filter(
-        (s) =>
-          s.plan != null &&
-          PAID_PLANS.has(s.plan) &&
-          ["active", "trialing", "past_due"].includes(s.status),
-      )
-      .map((s) => s.host_id),
+    (subs ?? []).filter(isPayingSubscription).map((s) => s.host_id),
   );
   const paidCount = refs.filter((r) => {
     const hid = hostByUser.get(r.referred_user_id);

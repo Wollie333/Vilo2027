@@ -259,9 +259,8 @@ export async function bindAffiliateReferral(
       }
     }
 
-    // Bind once. UNIQUE(referred_user_id) makes a repeat a no-op (error 23505);
-    // we ignore the error rather than surface it.
-    await admin.from("affiliate_referrals").insert({
+    // Bind once. UNIQUE(referred_user_id) makes a repeat a no-op (error 23505).
+    const { error: bindErr } = await admin.from("affiliate_referrals").insert({
       affiliate_id: aff.id,
       referred_user_id: referredUserId,
       referred_host_id: referredHostId ?? null,
@@ -270,9 +269,16 @@ export async function bindAffiliateReferral(
       commission_snapshot: commissionSnapshot,
       source: fromCookie ? "signup" : "manual_code",
     });
+    // 23505 is the expected bind-once conflict — ignore it. ANY other error
+    // silently drops attribution (and the affiliate's commission) with no trace;
+    // log it so it's diagnosable, while never breaking account creation.
+    if (bindErr && bindErr.code !== "23505") {
+      console.error("[affiliate/bind] referral insert failed", bindErr);
+    }
 
     clearRefCookie();
-  } catch {
+  } catch (err) {
     // Attribution is never allowed to break account creation.
+    console.error("[affiliate/bind] attribution threw", err);
   }
 }

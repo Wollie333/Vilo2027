@@ -6,6 +6,7 @@ import {
   getLatestSupportGrant,
 } from "@/lib/admin/supportGrant";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
+import { isPayingSubscription } from "@/lib/affiliate/paying";
 import { fetchWieloLedger, isAffiliateTxn } from "@/lib/billing/wielo-ledger";
 import { getCreditBalance } from "@/lib/credits/wallet";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
@@ -866,8 +867,6 @@ async function loadRelationships(
   return out;
 }
 
-const PAID_PLANS = new Set(["basic", "pro", "business"]);
-
 // Everyone this user has referred via their affiliate link, with each referred
 // user's plan and the commission earned from them.
 async function loadReferrals(
@@ -1044,11 +1043,7 @@ async function loadReferrals(
     const profile = profileById.get(r.referred_user_id);
     const hostId = hostByUser.get(r.referred_user_id);
     const sub = hostId ? subByHost.get(hostId) : undefined;
-    const isPaid =
-      !!sub &&
-      sub.plan != null &&
-      PAID_PLANS.has(sub.plan) &&
-      ["active", "trialing", "past_due"].includes(sub.status);
+    const isPaid = !!sub && isPayingSubscription(sub);
     const plan = isPaid
       ? sub!.plan!.charAt(0).toUpperCase() + sub!.plan!.slice(1)
       : hostId
