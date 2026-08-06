@@ -1294,6 +1294,13 @@ const setProductSchema = z.object({
   // the cycle instead of the product's default credit_quantity. null/omitted =
   // use the product default.
   creditOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  // Optional per-user PRICE override (ZAR): bill THIS recurring base amount for
+  // this host instead of the product's catalog price. Snapshotted onto the
+  // subscription's locked_base_amount so every renewal charges it (the same lock
+  // mechanism the Founding rate uses). Also drives the first charge here.
+  // null/omitted = use the catalog price. Immediate-activation modes only
+  // (none/paid); a paylink defers activation so it can't lock a recurring price.
+  customBaseAmount: z.number().min(0).max(10_000_000).nullable().optional(),
   // Whether a "paylink" upgrade offer is ALSO emailed. The inbox card always
   // posts; the email is the admin's choice per offer. Defaults on.
   sendEmail: z.boolean().optional().default(true),
@@ -1502,6 +1509,33 @@ export const setUserProductAction = withAdminAudit<
         periodStart: patch.current_period_start,
         overrideQty: parsed.data.creditOverride ?? null,
       });
+
+      // Per-user PRICE override → snapshot onto the subscription's lock so every
+      // renewal bills the custom base amount (subscription-renewal.ts bills
+      // locked_base_amount when set). Same lock fields the Founding rate uses;
+      // is_founding stays false to mark this an admin override, not a founding lock.
+      if (parsed.data.customBaseAmount != null) {
+        const { data: sub } = await service
+          .from("subscriptions")
+          .select("id")
+          .eq("host_id", hostId)
+          .eq("product_id", product.id)
+          .maybeSingle();
+        if (sub) {
+          const { error: lockErr } = await service
+            .from("subscriptions")
+            .update({
+              is_founding: false,
+              locked_base_amount: round2(parsed.data.customBaseAmount),
+              locked_per_listing_amount: 0,
+              locked_currency: "ZAR",
+              price_locked_at: now,
+              updated_at: now,
+            })
+            .eq("id", sub.id);
+          if (lockErr) throw new Error(lockErr.message);
+        }
+      }
     }
 
     // ─── Auto-ledger: a paid upgrade/add records the money for the pro-rated
@@ -1512,10 +1546,16 @@ export const setUserProductAction = withAdminAudit<
     // custom-amount order that ACTIVATES the plan on payment + drops an upgrade
     // card into the buyer's Wielo inbox with a Pay button.
     let payUrl: string | undefined;
-    if ((charge === "paid" || charge === "paylink") && newPrice > 0) {
+    // A per-user price override bills the custom base instead of the catalog
+    // price (both the first charge here and — via the lock below — every renewal).
+    const effectivePrice =
+      parsed.data.customBaseAmount != null
+        ? round2(parsed.data.customBaseAmount)
+        : newPrice;
+    if ((charge === "paid" || charge === "paylink") && effectivePrice > 0) {
       const chargeAmount = switchingMembership
-        ? membershipSwitchAmount(newPrice, oldPrice, carryStart, carryEnd)
-        : round2(newPrice);
+        ? membershipSwitchAmount(effectivePrice, oldPrice, carryStart, carryEnd)
+        : round2(effectivePrice);
       if (chargeAmount > 0) {
         const label = switchingMembership
           ? `Pro-rated upgrade to ${product.name}`
@@ -2527,6 +2567,7 @@ export async function setUserProduct(input: {
   charge?: "paid" | "paylink" | "none";
   timing?: "now" | "end_of_cycle";
   creditOverride?: number | null;
+  customBaseAmount?: number | null;
   sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {

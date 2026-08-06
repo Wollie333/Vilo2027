@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-08-06 — Per-user price override (admin can set a custom recurring price for one host).
+
+Launch-readiness fix (sweep gap #2, pt32 requirement 3). The admin could free-grant or charge the catalog price but
+not set a bespoke recurring amount for a single host. Now `setUserProductAction` accepts a `customBaseAmount` (ZAR):
+it drives the first charge AND is snapshotted onto the subscription's `locked_base_amount` so **every renewal bills the
+custom base** — reusing the exact lock mechanism the Founding rate uses (`subscription-renewal.ts` already charges
+`locked_base_amount` when set; `is_founding` stays false to mark it an admin override, not a founding lock). `tsc` +
+`pnpm lint` green.
+
+- **`setUserProductAction`** (`admin/users/[id]/actions.ts`): new `customBaseAmount` in the schema + the client
+  wrapper; `effectivePrice = customBaseAmount ?? catalog price` drives the pro-rated/first charge; after immediate
+  activation (charge none/paid) it snapshots `locked_base_amount` + `locked_currency='ZAR'` + `price_locked_at` onto
+  the sub. (Paylink defers activation, so the recurring lock only applies to immediate-activation modes.)
+- **Admin UI** (`UserRecord.tsx`): "Recurring price for this host (optional override, ZAR)" field on the membership
+  activate dialog — blank = catalog price. Verified by mechanism: `locked_base_amount → renewal charge` is already
+  proven live by the seed subs (R50/R123) + the ledger sweep; the write is a typechecked update.
+
 ## 2026-08-06 — Wire the real product free-trial (Standard advertised 14 days but charged immediately).
 
 Launch-readiness fix (sweep gap #1). `/p/[slug]` advertised "{trial_days}-day free trial" but the buy flow charged

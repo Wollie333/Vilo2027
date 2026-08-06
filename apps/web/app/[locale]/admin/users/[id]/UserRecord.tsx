@@ -2253,11 +2253,20 @@ function ProductsPanel({
     const n = Number(t);
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
   };
+  // Optional per-user recurring PRICE override in ZAR (blank = catalog price).
+  const [customPrice, setCustomPrice] = useState("");
+  const parsedCustomPrice = (): number | null => {
+    const t = customPrice.trim();
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+  };
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
     setChargeTiming("now");
     setCreditOverride("");
+    setCustomPrice("");
     setOfferEmail(true);
   };
 
@@ -2374,6 +2383,7 @@ function ProductsPanel({
         productId,
         charge: mode,
         creditOverride: parsedOverride(),
+        customBaseAmount: parsedCustomPrice(),
       });
       setBusyId(null);
       if (r.ok) {
@@ -2995,6 +3005,24 @@ function ProductsPanel({
                   Leave blank to grant the plan default (
                   {charge.product.creditQuantity}). Set a number to grant that
                   many Wielo Credits for this activation instead.
+                </p>
+              </Lbl>
+            ) : null}
+            {charge.product.productType === "membership" &&
+            chargeTiming === "now" ? (
+              <Lbl label="Recurring price for this host (optional override, ZAR)">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  placeholder="Blank = catalog price"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Leave blank to bill the catalog price. Set an amount to lock a
+                  custom recurring base for THIS host — it drives the charge now
+                  and every future renewal.
                 </p>
               </Lbl>
             ) : null}
