@@ -7797,6 +7797,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           is_prorated_upgrade: boolean
+          order_id: string | null
           paid_at: string | null
           period_end: string | null
           period_start: string | null
@@ -7828,6 +7829,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           is_prorated_upgrade?: boolean
+          order_id?: string | null
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -7859,6 +7861,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           is_prorated_upgrade?: boolean
+          order_id?: string | null
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -7924,6 +7927,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
             referencedColumns: ["id"]
           },
           {

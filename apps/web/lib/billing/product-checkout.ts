@@ -401,6 +401,44 @@ async function recordPromoRedemption(
   }
 }
 
+/**
+ * Multi-payment-method reconciler (SSOT). A single product order can seed one
+ * PENDING platform_ledger charge per method the buyer touched — EFT
+ * (`eft_<order>`), Paystack (`prod_<order>_<ts>`), PayPal (`<paypalId>`) — but
+ * only ONE method ever actually pays. Every settle path completes its OWN charge
+ * row and flips the order to `paid`; the abandoned siblings would otherwise stay
+ * `pending` forever, showing as a phantom "outstanding" balance next to the real
+ * payment (the exact bug: EFT selected, then paid by card → outstanding R499 +
+ * received R499 on one order).
+ *
+ * A PAID order can never legitimately have an outstanding charge, so this voids
+ * (→ `status='failed'`) every OTHER pending charge linked to the order. Voided
+ * rows drop off the owed balance (owedContribution) and the outstanding KPI
+ * (wieloLedgerStats.pending) but stay in the ledger as an auditable trail. Never
+ * touches a `completed` charge (a genuine second payment would need a refund,
+ * not a void), and never the just-settled row (already `completed` by call time).
+ * Idempotent. Best-effort: a stray audit row must never break a settlement that
+ * already took the buyer's money. Call AFTER the winning charge is completed.
+ */
+async function reconcileOrderCharges(
+  admin: ReturnType<typeof createAdminClient>,
+  orderId: string,
+): Promise<void> {
+  try {
+    await admin
+      .from("platform_ledger")
+      .update({
+        status: "failed",
+        reason: "Superseded — order paid via another method",
+      })
+      .eq("order_id", orderId)
+      .eq("type", "charge")
+      .eq("status", "pending");
+  } catch {
+    // Never break settlement over a superseded-charge cleanup.
+  }
+}
+
 // Self-serve purchase from a product's standalone page (/p/[slug]).
 export async function startProductPurchaseBySlug(
   slug: string,
@@ -924,6 +962,7 @@ export async function startProductPaystack(
     await admin.from("platform_ledger").insert({
       user_id: order.payer_user_id,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
@@ -1038,6 +1077,7 @@ export async function startProductPayPal(
     await admin.from("platform_ledger").insert({
       user_id: order.payer_user_id,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
@@ -1114,6 +1154,7 @@ export async function recordProductEftIntent(
     await admin.from("platform_ledger").insert({
       user_id: userId,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
@@ -1207,6 +1248,7 @@ export async function markProductOrderEftReceived(
     await admin.from("platform_ledger").insert({
       user_id: order.payer_user_id,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
@@ -1220,6 +1262,10 @@ export async function markProductOrderEftReceived(
       reason: "Product purchase (EFT)",
     });
   }
+
+  // Multi-method reconcile: EFT confirmed, so void any pending charge left behind
+  // by a card/PayPal attempt on this same order.
+  await reconcileOrderCharges(admin, order.id);
 
   // Same downstream settle as the card path.
   await recordPromoRedemption(admin, order);
@@ -1527,6 +1573,13 @@ export async function reconcilePaidProductActivations(
   );
 
   for (const o of orders) {
+    // Self-heal the multi-method duplicate charge: a PAID order must not leave a
+    // pending charge from an abandoned method (e.g. an EFT intent the buyer then
+    // paid by card). Runs for EVERY paid order — including ones whose product is
+    // already active — so a lingering phantom "outstanding" clears on load even
+    // when there's no plan left to activate. Idempotent + best-effort.
+    await reconcileOrderCharges(admin, o.id);
+
     if (!o.product_id || activeProducts.has(o.product_id)) continue;
     await activateMappedPlan(
       admin,
@@ -1626,6 +1679,7 @@ export async function confirmProductOrderByReference(
     await admin.from("platform_ledger").insert({
       user_id: order.payer_user_id,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
@@ -1656,6 +1710,10 @@ export async function confirmProductOrderByReference(
   } catch {
     // Commission accrual must never break settlement.
   }
+
+  // Multi-method reconcile: this order is now paid by card, so void any pending
+  // charge left behind by a method the buyer touched first (e.g. an EFT intent).
+  await reconcileOrderCharges(admin, order.id);
 
   // A custom-amount top-up order (e.g. a pro-rated upgrade delta) must NOT open a
   // fresh billing cycle — it tops up the host's existing period.
@@ -1884,6 +1942,7 @@ export async function capturePayPalProductOrder(
     await admin.from("platform_ledger").insert({
       user_id: order.payer_user_id,
       product_id: order.product_id,
+      order_id: order.id,
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
@@ -1914,6 +1973,10 @@ export async function capturePayPalProductOrder(
   } catch {
     // Commission accrual must never break settlement.
   }
+
+  // Multi-method reconcile: paid by PayPal now, so void any pending charge left
+  // behind by a method the buyer touched first (EFT intent / a card attempt).
+  await reconcileOrderCharges(admin, order.id);
 
   // Custom-amount top-up (upgrade delta) → collect only; no fresh cycle.
   if (order.activate_on_pay !== false) {
