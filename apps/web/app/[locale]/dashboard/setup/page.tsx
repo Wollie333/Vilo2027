@@ -323,7 +323,14 @@ export default async function SetupPage({
         handle: host.handle,
         display_name: host.display_name,
         bio: host.bio ?? "",
-        avatar_url: host.avatar_url ?? "",
+        // Show the photo the host already has. saveProfileAction mirrors the
+        // avatar onto BOTH user_profiles.avatar_url (the account/header avatar)
+        // and hosts.avatar_url, but an avatar set via signup/settings before
+        // that mirror ran leaves hosts.avatar_url empty — which made the setup
+        // profile step render the "?" initials placeholder even though the
+        // header shows the real photo. Fall back to the account avatar so the
+        // two always match; saving the profile step re-mirrors it onto hosts.
+        avatar_url: host.avatar_url || profile?.avatar_url || "",
         languages_spoken: host.languages_spoken ?? [],
         highlights: host.highlights ?? [],
         website_url: host.website_url ?? "",
