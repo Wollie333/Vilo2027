@@ -23,7 +23,7 @@ export const moveLeadStageAction = withAdminAudit<
     const ctx = await requireAdmin();
     const { data: stage } = await service
       .from("pipeline_stages")
-      .select("key, label, is_won, is_lost, is_customer")
+      .select("key, label, is_won, is_lost, is_customer, system_managed")
       .eq("id", a.stageId)
       .maybeSingle();
     if (!stage) throw new Error("Unknown stage.");
@@ -41,12 +41,12 @@ export const moveLeadStageAction = withAdminAudit<
         "This lead is a won customer — it stays Won while they're paying and can't be moved by hand.",
       );
     }
-    // Customer stages (Trial + Won) are SYSTEM-driven: a card lands there only
-    // when the host actually starts a trial or pays (DB triggers). Block manual
-    // drags in so the board can't claim a customer who isn't one.
-    if (stage.is_customer) {
+    // Trial / Won / Churned are SYSTEM-driven: a card lands there only when the
+    // host actually starts a trial, pays, or churns (DB lifecycle triggers).
+    // Block manual drags in so the board can't claim (or churn) a customer by hand.
+    if (stage.system_managed) {
       throw new Error(
-        "Trial and Won are set automatically when a lead starts a trial or pays — you can't move a card here manually.",
+        "Trial, Won and Churned are set automatically from the customer's subscription — you can't move a card here manually.",
       );
     }
     const status = stage.is_won ? "won" : stage.is_lost ? "lost" : "open";
@@ -103,7 +103,7 @@ export const setLeadOutcomeAction = withAdminAudit<
     // "Won" is earned, not asserted: a host card wins when they pay
     // (on_platform_ledger_settled) and an affiliate card wins when they
     // register (on_affiliate_activated). Blocking the manual path keeps the
-    // board's Won column — and therefore its value + conversion KPIs — honest.
+    // board's Won column — and therefore its conversion KPIs — honest.
     if (a.outcome === "won") {
       throw new Error(
         "Won is set automatically when a lead pays (host) or registers (affiliate) — it can't be marked by hand.",
@@ -318,7 +318,13 @@ export const deleteLeadAction = withAdminAudit<
     getTargetId: (a) => a.leadId,
   },
   async (a, service) => {
-    // Deleting the guest account is a heavier right than managing the pipeline.
+    // Deleting a pipeline lead is a super-admin-only right (founder directive):
+    // regular staff manage the pipeline but must never destroy a lead record.
+    const ctx = await requireAdmin();
+    if (ctx.roleId !== "super_admin") {
+      throw new Error("Only a super admin can delete pipeline leads.");
+    }
+    // Deleting the guest account is a heavier right still.
     if (a.deleteGuest) await requirePermission("users.delete");
 
     // Resolve the lead + its guest identity before the card is gone.

@@ -19,7 +19,12 @@ import {
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
-import type { LeadFile, LeadRecord, LeadTask } from "@/lib/pipeline/queries";
+import type {
+  LeadFile,
+  LeadRecord,
+  LeadReferrer,
+  LeadTask,
+} from "@/lib/pipeline/queries";
 
 import { DeleteLeadDialog } from "../../_components/DeleteLeadDialog";
 import {
@@ -119,11 +124,13 @@ export function LeadRecordClient({
   tasks,
   files,
   currentStaff,
+  canDelete,
 }: {
   lead: LeadRecord;
   tasks: LeadTask[];
   files: LeadFile[];
   currentStaff: { id: string; name: string };
+  canDelete: boolean;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("Activity");
@@ -268,10 +275,24 @@ export function LeadRecordClient({
                     className={
                       lead.status === "won"
                         ? "border-brand-line bg-brand-light text-brand-secondary"
-                        : "border-brand-line bg-[#F7F8F8] text-brand-mute"
+                        : lead.status === "churned"
+                          ? "border-rose-200 bg-rose-50 text-rose-600"
+                          : "border-brand-line bg-[#F7F8F8] text-brand-mute"
                     }
                   >
-                    {lead.status === "won" ? "Won" : "Lost"}
+                    {lead.status === "won"
+                      ? "Won"
+                      : lead.status === "churned"
+                        ? "Churned"
+                        : "Lost"}
+                  </Tag>
+                ) : null}
+                {lead.atRisk ? (
+                  <Tag
+                    className="border-red-200 bg-red-50 text-red-700"
+                    title="Payment is faltering — reach out before they churn"
+                  >
+                    ⚠ At risk
                   </Tag>
                 ) : null}
               </div>
@@ -325,7 +346,7 @@ export function LeadRecordClient({
               </button>
               {/* No manual "Mark won": a card wins only when the host pays or
                   the affiliate registers (DB triggers). Keeps Won — and the
-                  board's value/conversion KPIs — honest. */}
+                  board's conversion KPIs — honest. */}
               <button
                 disabled={
                   pending || lead.status === "lost" || lead.status === "won"
@@ -340,15 +361,18 @@ export function LeadRecordClient({
                 <XCircle className="h-4 w-4" />
                 Lost
               </button>
-              <button
-                disabled={pending}
-                onClick={() => setConfirmingDelete(true)}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-red-200 bg-white px-3 text-[13px] font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                title="Delete lead"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </button>
+              {/* Delete is a super-admin-only right (founder directive). */}
+              {canDelete ? (
+                <button
+                  disabled={pending}
+                  onClick={() => setConfirmingDelete(true)}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-red-200 bg-white px-3 text-[13px] font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                  title="Delete lead"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -401,7 +425,18 @@ export function LeadRecordClient({
           <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-[14px] border border-brand-line bg-white sm:grid-cols-3 lg:grid-cols-6">
             <Fact k="Lead score" v={`${lead.score}`} />
             <Fact k="Source" v={sourceLabel(lead.sourceKind)} />
-            <Fact k="Referred by" v={lead.affiliateRef ?? "—"} />
+            {lead.referrer ? (
+              <div className="border-l border-brand-line px-3.5 py-2.5 first:border-l-0">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-brand-mute">
+                  Referred by
+                </div>
+                <div className="mt-1">
+                  <ReferrerLink referrer={lead.referrer} compact />
+                </div>
+              </div>
+            ) : (
+              <Fact k="Referred by" v={lead.affiliateRef ?? "—"} />
+            )}
             <Fact k="In pipeline" v={`${daysSince(lead.createdAt)} days`} />
             <Fact k="Rooms" v={lead.rooms ?? "—"} />
             <Fact
@@ -411,6 +446,32 @@ export function LeadRecordClient({
           </div>
         </div>
       </div>
+
+      {/* Lifecycle callout: at-risk (about to churn) or churned (has left).
+          Churned wins — an at-risk card that tips over becomes churned. */}
+      {lead.status === "churned" || lead.atRisk ? (
+        <div className="mx-auto max-w-[1440px] px-4 pt-5 lg:px-8">
+          {lead.status === "churned" ? (
+            <div className="flex items-start gap-3 rounded-card border border-rose-200 bg-rose-50 px-4 py-3">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+              <div className="text-[13px] text-rose-700">
+                <span className="font-semibold">Churned.</span> This customer
+                cancelled or lapsed after paying. They can still be re-engaged —
+                move the card back into the pipeline to start a win-back.
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3 rounded-card border border-red-200 bg-red-50 px-4 py-3">
+              <PhoneCall className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <div className="text-[13px] text-red-700">
+                <span className="font-semibold">At risk.</span> Payment is
+                faltering (past due or paused). Reach out now — a quick call
+                often saves the subscription before it churns.
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Body */}
       <div className="mx-auto grid max-w-[1440px] items-start gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_312px] lg:px-8">
@@ -539,14 +600,24 @@ export function LeadRecordClient({
                       ? "Won"
                       : lead.status === "lost"
                         ? "Lost"
-                        : "Open"
+                        : lead.status === "churned"
+                          ? "Churned"
+                          : lead.atRisk
+                            ? "Open · at risk"
+                            : "Open"
                   }
                 />
               </DetailCard>
 
               <DetailCard title="Attribution & consent">
                 <Row k="Source" v={sourceLabel(lead.sourceKind)} />
-                <Row k="Referred by" v={lead.affiliateRef ?? "—"} />
+                {lead.referrer ? (
+                  <RichRow k="Referred by">
+                    <ReferrerLink referrer={lead.referrer} />
+                  </RichRow>
+                ) : (
+                  <Row k="Referred by" v={lead.affiliateRef ?? "—"} />
+                )}
                 <Row k="Ad source" v={lead.adSource ?? "—"} />
                 <Row
                   k="Marketing consent"
@@ -921,12 +992,15 @@ export function LeadRecordClient({
 function Tag({
   children,
   className = "",
+  title,
 }: {
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold ${className}`}
     >
       {children}
@@ -991,6 +1065,78 @@ function Row({
         </span>
       )}
     </div>
+  );
+}
+
+/** A detail row whose value is arbitrary rich content (not a plain string). */
+function RichRow({ k, children }: { k: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <span className="w-32 shrink-0 text-[11.5px] text-brand-mute">{k}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+/** The referring partner, shown with their profile pic + name, linking through
+ *  to their affiliate record. `compact` is the smaller header-fact variant. */
+function ReferrerLink({
+  referrer,
+  compact = false,
+}: {
+  referrer: LeadReferrer;
+  compact?: boolean;
+}) {
+  const initials = referrer.name.trim().slice(0, 2).toUpperCase();
+  const dim = compact ? "h-5 w-5 text-[8px]" : "h-6 w-6 text-[9px]";
+  const avatar = (
+    <span
+      className={`relative flex ${dim} shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#4F46E5] font-bold text-white`}
+    >
+      {referrer.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={referrer.avatarUrl}
+          alt={referrer.name}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        initials
+      )}
+    </span>
+  );
+
+  if (compact) {
+    return (
+      <a
+        href={`/admin/affiliates/${referrer.affiliateAccountId}`}
+        className="group inline-flex max-w-full items-center gap-1.5"
+        title={`View ${referrer.name}'s affiliate record`}
+      >
+        {avatar}
+        <span className="truncate text-[13px] font-semibold text-brand-primary group-hover:underline">
+          {referrer.name}
+        </span>
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={`/admin/affiliates/${referrer.affiliateAccountId}`}
+      className="group inline-flex max-w-full items-center gap-2 rounded-full border border-[#D7DBFB] bg-[#EEF0FF] py-1 pl-1 pr-2.5 transition hover:border-[#4F46E5] hover:bg-[#E4E7FF]"
+      title={`View ${referrer.name}'s affiliate record`}
+    >
+      {avatar}
+      <span className="truncate text-[13px] font-semibold text-[#4F46E5] group-hover:underline">
+        {referrer.name}
+      </span>
+      {referrer.partnerNumber ? (
+        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[#6366F1]/70">
+          #{referrer.partnerNumber}
+        </span>
+      ) : null}
+    </a>
   );
 }
 

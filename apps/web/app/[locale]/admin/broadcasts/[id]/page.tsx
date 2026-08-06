@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Pencil } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
@@ -23,11 +24,15 @@ type Broadcast = {
   link_url: string | null;
   link_label: string | null;
   requires_ack: boolean;
+  show_banner: boolean;
+  banner_surfaces: string[];
+  banner_dismiss_mode: string;
   starts_at: string;
   ends_at: string | null;
   cancelled_at: string | null;
   email_fanout_completed_at: string | null;
   created_at: string;
+  updated_at: string | null;
   created_by: string;
 };
 
@@ -41,7 +46,7 @@ export default async function BroadcastDetailPage({
   const { data: broadcast } = await service
     .from("broadcast_announcements")
     .select(
-      "id, severity, audience, title, body, link_url, link_label, requires_ack, starts_at, ends_at, cancelled_at, email_fanout_completed_at, created_at, created_by",
+      "id, severity, audience, title, body, link_url, link_label, requires_ack, show_banner, banner_surfaces, banner_dismiss_mode, starts_at, ends_at, cancelled_at, email_fanout_completed_at, created_at, updated_at, created_by",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -145,6 +150,20 @@ export default async function BroadcastDetailPage({
               <Stat label="Link clicks" value={clicks} />
               <Stat label="CTR" value={ctrPct !== null ? `${ctrPct}%` : "—"} />
               <Stat
+                label="Banner"
+                value={
+                  b.show_banner
+                    ? b.banner_surfaces.join(" + ") || "on"
+                    : "bell only"
+                }
+              />
+              {b.show_banner ? (
+                <Stat
+                  label="Dismiss mode"
+                  value={dismissLabel(b.banner_dismiss_mode)}
+                />
+              ) : null}
+              <Stat
                 label="Requires ack"
                 value={b.requires_ack ? "yes" : "no"}
               />
@@ -172,10 +191,27 @@ export default async function BroadcastDetailPage({
                 label="Created"
                 value={new Date(b.created_at).toLocaleString()}
               />
+              {b.updated_at ? (
+                <Stat
+                  label="Edited"
+                  value={new Date(b.updated_at).toLocaleString()}
+                />
+              ) : null}
             </dl>
           </div>
 
-          {!b.cancelled_at ? <CancelButton id={b.id} /> : null}
+          {!b.cancelled_at ? (
+            <div className="space-y-2">
+              <Link
+                href={`/admin/broadcasts/${b.id}/edit`}
+                className="hover:bg-brand-surface flex w-full items-center justify-center gap-1.5 rounded-md border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink shadow-card transition"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit broadcast
+              </Link>
+              <CancelButton id={b.id} />
+            </div>
+          ) : null}
         </aside>
       </div>
     </section>
@@ -189,6 +225,12 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <dd className="text-sm font-medium text-brand-ink">{value}</dd>
     </div>
   );
+}
+
+function dismissLabel(mode: string): string {
+  if (mode === "acknowledge") return "require ack";
+  if (mode === "persistent") return "always show";
+  return "dismissible";
 }
 
 function severityClass(severity: string): string {

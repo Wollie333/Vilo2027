@@ -330,6 +330,13 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     price: "R 599 / month",
   },
 
+  trial_ending: {
+    hostFirstName: "Amara",
+    planName: "Pro",
+    trialEndsLabel: "12 June 2026",
+    ctaUrl: "https://wielo.co.za/dashboard/settings/subscription",
+  },
+
   subscription_failed: {
     hostFirstName: "Amara",
     planName: "Pro",

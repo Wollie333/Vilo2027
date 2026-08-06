@@ -1,11 +1,36 @@
 "use client";
 
-import { Activity, Megaphone, Plus, Search, Zap } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  Eye,
+  Megaphone,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Zap,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 
+import { Link } from "@/i18n/navigation";
+
+import {
+  SegRow,
+  SelectField,
+  TextArea,
+  TextField,
+  ToggleField,
+} from "@/components/dashboard/fields";
+import { modal } from "@/components/ui/modal-host";
 import type { MessageConfig } from "@/lib/notifications/admin-config";
 
-import { createBroadcastAction } from "../../broadcasts/actions";
+import {
+  createBroadcastAction,
+  deleteBroadcastSafe,
+} from "../../broadcasts/actions";
 import type { DeliveryHealth } from "../health";
 import {
   EditDrawer,
@@ -75,13 +100,15 @@ export function CommunicationsHub({
               </span>{" "}
               sent · 24h
             </span>
-            <button
-              type="button"
-              className="btn-pri h-9"
-              onClick={() => setTab("send")}
-            >
-              <Plus className="h-4 w-4" /> New send
-            </button>
+            {tab !== "send" ? (
+              <button
+                type="button"
+                className="btn-pri h-9"
+                onClick={() => setTab("send")}
+              >
+                <Plus className="h-4 w-4" /> New send
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -348,6 +375,8 @@ const AUDIENCES = [
 const SEVERITIES = ["info", "warning", "critical"] as const;
 
 function SendTab({ history }: { history: HistoryRow[] }) {
+  const router = useRouter();
+  const [view, setView] = useState<"list" | "compose">("list");
   const [audience, setAudience] =
     useState<(typeof AUDIENCES)[number]["value"]>("all");
   const [severity, setSeverity] = useState<(typeof SEVERITIES)[number]>("info");
@@ -356,13 +385,53 @@ function SendTab({ history }: { history: HistoryRow[] }) {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
   const [isBanner, setIsBanner] = useState(false);
+  const [surfaces, setSurfaces] = useState<("dashboard" | "public")[]>([
+    "dashboard",
+  ]);
+  const [dismissMode, setDismissMode] = useState<
+    "dismissible" | "acknowledge" | "persistent"
+  >("dismissible");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [sending, startSend] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletePending, startDelete] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function toggleSurface(surface: "dashboard" | "public") {
+    setSurfaces((prev) =>
+      prev.includes(surface)
+        ? prev.filter((s) => s !== surface)
+        : [...prev, surface],
+    );
+  }
+
+  function resetForm() {
+    setAudience("all");
+    setSeverity("info");
+    setTitle("");
+    setBody("");
+    setLinkUrl("");
+    setLinkLabel("");
+    setIsBanner(false);
+    setSurfaces(["dashboard"]);
+    setDismissMode("dismissible");
+    setStartsAt("");
+    setEndsAt("");
+    setMsg(null);
+  }
+
+  function openCompose() {
+    resetForm();
+    setView("compose");
+  }
 
   function send() {
     setMsg(null);
+    if (isBanner && surfaces.length === 0) {
+      setMsg({ ok: false, text: "Pick at least one surface for the banner." });
+      return;
+    }
     startSend(async () => {
       const res = await createBroadcastAction({
         severity,
@@ -374,153 +443,174 @@ function SendTab({ history }: { history: HistoryRow[] }) {
         starts_at: isBanner && startsAt ? startsAt : null,
         ends_at: isBanner && endsAt ? endsAt : null,
         requires_ack: false,
+        show_banner: isBanner,
+        banner_surfaces: isBanner ? surfaces : [],
+        banner_dismiss_mode: dismissMode,
       });
       if (res.ok) {
-        setMsg({ ok: true, text: "Sent." });
-        setTitle("");
-        setBody("");
-        setLinkUrl("");
-        setLinkLabel("");
+        toast.success("Broadcast sent");
+        resetForm();
+        setView("list");
+        router.refresh();
       } else {
         setMsg({ ok: false, text: res.error });
       }
     });
   }
 
-  return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid gap-5">
-        <div className="card p-5">
-          <div className="smallcaps">1 · Audience</div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-4">
-            {AUDIENCES.map((a) => (
-              <button
-                key={a.value}
-                className={`selrow ${audience === a.value ? "on" : ""}`}
-                onClick={() => setAudience(a.value)}
-              >
-                <span className="rad" />
-                <span className="font-semibold">{a.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="fhelp">
-            Sends a platform announcement (in-app + push, and email where the
-            recipient allows it). For specific people, use the Send-to-users
-            tool.
-          </div>
-        </div>
+  async function handleDelete(id: string, rowTitle: string) {
+    const ok = await modal.destructive({
+      title: "Delete broadcast?",
+      description: `"${rowTitle}" will be removed for everyone. This can't be undone.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
+    setDeletingId(id);
+    startDelete(async () => {
+      const res = await deleteBroadcastSafe(id);
+      setDeletingId(null);
+      if (res.ok) {
+        toast.success("Broadcast deleted");
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
 
-        <div className="card p-5">
-          <div className="smallcaps">2 · Delivery</div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button
-              className={`selrow ${!isBanner ? "on" : ""}`}
-              onClick={() => setIsBanner(false)}
-            >
-              <span className="rad" />
-              <div className="text-left">
-                <div className="font-semibold">One-off message</div>
-                <div className="text-[11.5px] text-brand-mute">Sends now</div>
-              </div>
-            </button>
-            <button
-              className={`selrow ${isBanner ? "on" : ""}`}
-              onClick={() => setIsBanner(true)}
-            >
-              <span className="rad" />
-              <div className="text-left">
-                <div className="font-semibold">Standing banner</div>
-                <div className="text-[11.5px] text-brand-mute">
-                  Shows until it expires
-                </div>
-              </div>
-            </button>
-          </div>
-          {isBanner ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="flabel">Starts</label>
-                <input
-                  type="datetime-local"
-                  className="fld"
-                  value={startsAt}
-                  onChange={(e) => setStartsAt(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="flabel">Ends</label>
-                <input
-                  type="datetime-local"
-                  className="fld"
-                  value={endsAt}
-                  onChange={(e) => setEndsAt(e.target.value)}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
+  if (view === "compose") {
+    return (
+      <div className="space-y-5">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-mute transition hover:text-brand-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> Broadcasts
+        </button>
 
-        <div className="card p-5">
-          <div className="smallcaps">3 · Content</div>
-          <div className="mt-3 grid gap-3">
-            <div>
-              <label className="flabel">Title</label>
-              <input
-                className="fld"
+        <div className="mx-auto max-w-2xl space-y-5">
+          {/* Compose */}
+          <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+            <div className="space-y-4">
+              <SelectField
+                label="Audience"
+                value={audience}
+                options={AUDIENCES.map((a) => ({
+                  value: a.value,
+                  label: a.label,
+                }))}
+                onChange={(v) => setAudience(v)}
+                hint="Delivered in-app + push, and email where the recipient allows it. For specific people, use Send-to-users."
+              />
+              <TextField
+                label="Title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={setTitle}
                 placeholder="What's happening"
+                maxLength={120}
               />
-            </div>
-            <div>
-              <label className="flabel">Body</label>
-              <textarea
-                className="fld"
-                rows={4}
+              <TextArea
+                label="Message"
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={setBody}
                 placeholder="The message…"
+                rows={4}
+                maxLength={2000}
               />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="flabel">
-                  Link label{" "}
-                  <span className="font-normal text-brand-mute">optional</span>
-                </label>
-                <input
-                  className="fld"
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextField
+                  label="Link label"
                   value={linkLabel}
-                  onChange={(e) => setLinkLabel(e.target.value)}
+                  onChange={setLinkLabel}
+                  placeholder="Read more"
+                  hint="Optional"
                 />
-              </div>
-              <div>
-                <label className="flabel">Link URL</label>
-                <input
-                  className="fld mono text-[12px]"
+                <TextField
+                  label="Link URL"
+                  type="url"
                   value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onChange={setLinkUrl}
                   placeholder="https://…"
+                  hint="Optional"
                 />
               </div>
-            </div>
-            <div>
-              <label className="flabel">Severity</label>
-              <div className="seg mt-0.5">
-                {SEVERITIES.map((s) => (
-                  <button
-                    key={s}
-                    className={severity === s ? "on" : ""}
-                    onClick={() => setSeverity(s)}
-                  >
-                    {s[0]!.toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </div>
+              <SegRow
+                label="Severity"
+                value={severity}
+                options={SEVERITIES.map((s) => ({
+                  value: s,
+                  label: s[0]!.toUpperCase() + s.slice(1),
+                }))}
+                onChange={(v) => setSeverity(v)}
+                hint="Sets the colour, the bell notification, and (critical only) an email."
+              />
             </div>
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-brand-line pt-4">
+
+          {/* Banner display */}
+          <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+            <div className="space-y-4">
+              <ToggleField
+                label="Show as a banner"
+                hint="Off = bell notification only. On = also pin a banner until it expires."
+                checked={isBanner}
+                onChange={setIsBanner}
+              />
+              {isBanner ? (
+                <div className="space-y-4 border-t border-brand-line pt-4">
+                  <div>
+                    <span className="block text-[13px] font-semibold text-brand-ink">
+                      Show banner on
+                    </span>
+                    <div className="mt-2 space-y-2.5">
+                      <ToggleField
+                        label="Dashboard"
+                        hint="Host & guest app"
+                        checked={surfaces.includes("dashboard")}
+                        onChange={() => toggleSurface("dashboard")}
+                      />
+                      <ToggleField
+                        label="Public site"
+                        hint="Wielo public pages"
+                        checked={surfaces.includes("public")}
+                        onChange={() => toggleSurface("public")}
+                      />
+                    </div>
+                  </div>
+                  <SegRow
+                    label="How viewers close it"
+                    value={dismissMode}
+                    options={[
+                      { value: "dismissible", label: "Dismissible" },
+                      { value: "acknowledge", label: "Require ack" },
+                      { value: "persistent", label: "Always show" },
+                    ]}
+                    onChange={(v) => setDismissMode(v)}
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <TextField
+                      label="Starts"
+                      type="datetime-local"
+                      value={startsAt}
+                      onChange={setStartsAt}
+                      hint="Optional — defaults to now"
+                    />
+                    <TextField
+                      label="Ends"
+                      type="datetime-local"
+                      value={endsAt}
+                      onChange={setEndsAt}
+                      hint="Optional — open-ended"
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Action */}
+          <div className="flex flex-wrap items-center gap-3">
             <button
               className="btn-pri"
               onClick={send}
@@ -540,53 +630,162 @@ function SendTab({ history }: { history: HistoryRow[] }) {
           </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="card overflow-hidden">
-        <div className="border-b border-brand-line px-5 py-3.5">
-          <span className="smallcaps">Recent sends</span>
+  // ── List view — every broadcast, with row actions ──
+  return (
+    <div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 font-display text-[20px] font-extrabold text-brand-ink">
+            <Megaphone className="h-5 w-5 text-brand-primary" /> Broadcasts
+          </h2>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            Site-wide announcements. Audience can be all users, hosts, guests,
+            staff or super admins. Critical broadcasts also email the audience.
+          </p>
         </div>
+        <button type="button" className="btn-pri h-9" onClick={openCompose}>
+          <Plus className="h-4 w-4" /> New broadcast
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
         <div className="thin-scroll overflow-x-auto">
-          <table className="ttable" style={{ minWidth: 280 }}>
-            <thead>
+          <table className="w-full text-sm" style={{ minWidth: 680 }}>
+            <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
               <tr>
-                <th>Message</th>
-                <th>Audience</th>
-                <th>When</th>
+                <th className="px-4 py-2.5">Title</th>
+                <th className="px-4 py-2.5">Severity</th>
+                <th className="px-4 py-2.5">Audience</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Created</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-6 text-center text-brand-mute">
-                    No sends yet.
+                  <td
+                    colSpan={6}
+                    className="px-4 py-12 text-center text-brand-mute"
+                  >
+                    No broadcasts yet — create your first announcement.
                   </td>
                 </tr>
               ) : (
-                history.map((h) => (
-                  <tr key={h.id}>
-                    <td className="font-semibold text-brand-ink">
-                      {h.title}
-                      {h.cancelledAt ? (
-                        <span className="ml-1 text-[11px] text-brand-mute">
-                          (cancelled)
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="capitalize text-brand-mute">{h.audience}</td>
-                    <td className="num text-brand-mute">
-                      {new Date(h.createdAt).toLocaleDateString("en-ZA", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </td>
-                  </tr>
-                ))
+                history.map((h) => {
+                  const status = broadcastStatus(h);
+                  const busy = deletePending && deletingId === h.id;
+                  return (
+                    <tr
+                      key={h.id}
+                      className="border-b border-brand-line/60 last:border-b-0 hover:bg-brand-accent/20"
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/broadcasts/${h.id}`}
+                          className="font-medium text-brand-ink hover:text-brand-primary"
+                        >
+                          {h.title}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <SeverityPill severity={h.severity} />
+                      </td>
+                      <td className="px-4 py-3 capitalize text-brand-mute">
+                        {h.audience}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusPill status={status} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-brand-mute">
+                        {new Date(h.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/admin/broadcasts/${h.id}`}
+                            title="View stats"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-brand-line bg-white text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                          {!h.cancelledAt ? (
+                            <Link
+                              href={`/admin/broadcasts/${h.id}/edit`}
+                              title="Edit"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-brand-line bg-white text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(h.id, h.title)}
+                            disabled={busy}
+                            title="Delete"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-brand-line bg-white text-brand-mute transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
     </div>
+  );
+}
+
+// Status of a broadcast for the list badge.
+function broadcastStatus(
+  h: HistoryRow,
+): "scheduled" | "active" | "ended" | "cancelled" {
+  if (h.cancelledAt) return "cancelled";
+  const now = Date.now();
+  const startsMs = h.startsAt ? new Date(h.startsAt).getTime() : 0;
+  const endsMs = h.endsAt ? new Date(h.endsAt).getTime() : null;
+  if (startsMs > now) return "scheduled";
+  if (endsMs && endsMs < now) return "ended";
+  return "active";
+}
+
+function SeverityPill({ severity }: { severity: string }) {
+  const map: Record<string, { label: string; klass: string }> = {
+    info: { label: "Info", klass: "bg-blue-100 text-blue-800" },
+    warning: { label: "Warning", klass: "bg-amber-100 text-amber-800" },
+    critical: { label: "Critical", klass: "bg-red-100 text-red-800" },
+  };
+  const s = map[severity] ?? { label: severity, klass: "bg-gray-100" };
+  return (
+    <span
+      className={`inline-flex rounded-pill px-2 py-0.5 text-[11px] font-semibold ${s.klass}`}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    active: "bg-emerald-100 text-emerald-800",
+    scheduled: "bg-sky-100 text-sky-800",
+    ended: "bg-gray-100 text-gray-700",
+    cancelled: "bg-zinc-100 text-zinc-700 line-through",
+  };
+  return (
+    <span
+      className={`inline-flex rounded-pill px-2 py-0.5 text-[11px] font-semibold capitalize ${map[status] ?? "bg-gray-100"}`}
+    >
+      {status}
+    </span>
   );
 }
 

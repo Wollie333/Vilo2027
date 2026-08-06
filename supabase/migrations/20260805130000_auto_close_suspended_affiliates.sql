@@ -45,7 +45,9 @@ $$;
 -- Privileged: service-role / cron only. The SECURITY DEFINER owner still runs it
 -- from cron; clients (anon/authenticated) must never call it directly.
 revoke all on function public.close_long_suspended_affiliates() from public;
+
 revoke all on function public.close_long_suspended_affiliates() from anon;
+
 revoke all on function public.close_long_suspended_affiliates() from authenticated;
 
 -- Daily at 03:45 UTC (a free slot). Idempotent: cron.schedule upserts by name.

@@ -73,10 +73,13 @@ end;
 $$;
 
 drop trigger if exists trg_affiliate_partner_number on public.affiliate_accounts;
+
 create trigger trg_affiliate_partner_number
   before insert on public.affiliate_accounts
   for each row execute function public.set_affiliate_partner_number();
 
 revoke all on function public.gen_affiliate_partner_number() from public;
+
 revoke all on function public.gen_affiliate_partner_number() from anon;
+
 revoke all on function public.gen_affiliate_partner_number() from authenticated;

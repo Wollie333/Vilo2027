@@ -7,13 +7,6 @@
 -- After: severity drives ONLY the colour, the bell notification, and the
 -- critical email. Whether a broadcast ALSO appears as a banner — on which
 -- surface, and how a viewer closes it — is explicit and independent of severity.
---
--- NOTE: this migration was authored + applied DIRECTLY to the remote on
--- 2026-08-05 ~12:00 UTC (outside this repo, likely a parallel session). The file
--- was reconstructed from the remote's recorded statements so the repo history is
--- complete. It is already applied on the remote (db push skips it); every
--- statement is guarded (if not exists / drop … if exists) so a fresh rebuild is
--- safe.
 
 alter table public.broadcast_announcements
   add column if not exists show_banner boolean not null default false,
@@ -27,7 +20,6 @@ alter table public.broadcast_announcements
 --   persistent  → no close control; shows for the whole active window.
 alter table public.broadcast_announcements
   drop constraint if exists broadcast_banner_dismiss_mode_check;
-
 alter table public.broadcast_announcements
   add constraint broadcast_banner_dismiss_mode_check
   check (banner_dismiss_mode in ('dismissible', 'acknowledge', 'persistent'));
@@ -36,7 +28,6 @@ alter table public.broadcast_announcements
 -- on must name at least one surface (can't "show a banner" nowhere).
 alter table public.broadcast_announcements
   drop constraint if exists broadcast_banner_surfaces_check;
-
 alter table public.broadcast_announcements
   add constraint broadcast_banner_surfaces_check
   check (
@@ -63,7 +54,6 @@ update public.broadcast_announcements
 -- Only public-surface, active-window banners aimed at everyone/guests are
 -- exposed to anon — never staff/super_admin/host-only broadcasts.
 drop policy if exists broadcast_public_banner_select on public.broadcast_announcements;
-
 create policy broadcast_public_banner_select
   on public.broadcast_announcements
   for select

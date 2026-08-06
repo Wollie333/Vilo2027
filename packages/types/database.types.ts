@@ -7276,6 +7276,7 @@ export type Database = {
         Row: {
           ad_source: string | null
           affiliate_ref: string | null
+          at_risk: boolean
           audience: string
           created_at: string
           funnel_id: string | null
@@ -7296,6 +7297,7 @@ export type Database = {
         Insert: {
           ad_source?: string | null
           affiliate_ref?: string | null
+          at_risk?: boolean
           audience: string
           created_at?: string
           funnel_id?: string | null
@@ -7316,6 +7318,7 @@ export type Database = {
         Update: {
           ad_source?: string | null
           affiliate_ref?: string | null
+          at_risk?: boolean
           audience?: string
           created_at?: string
           funnel_id?: string | null
@@ -7375,6 +7378,7 @@ export type Database = {
           key: string
           label: string
           sort_order: number
+          system_managed: boolean
           updated_at: string
         }
         Insert: {
@@ -7387,6 +7391,7 @@ export type Database = {
           key: string
           label: string
           sort_order?: number
+          system_managed?: boolean
           updated_at?: string
         }
         Update: {
@@ -7399,6 +7404,7 @@ export type Database = {
           key?: string
           label?: string
           sort_order?: number
+          system_managed?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -13782,6 +13788,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      pipeline_user_has_paid: { Args: { p_user_id: string }; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

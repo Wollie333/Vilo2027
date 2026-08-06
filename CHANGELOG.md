@@ -151,6 +151,203 @@ admin session. Plan: `docs/features/SUBSCRIPTION_PRODUCT_ONBOARDING_PLAN.md`.
   paths (no free-text key path — admin only selects from the fixed toggle list). Stale rail hint fixed.
   Verified: created a product with 2 buffered grants → both persisted at create, `limit_value` round-trips;
   test product deleted, catalog clean. Files: `admin/products/actions.ts`, `admin/products/ProductEditor.tsx`.
+## 2026-08-06 — Affiliate transparency on adjusted commissions + admin change-note; surface per-host feature overrides.
+
+Completes the per-user override tooling with affiliate-facing transparency.
+
+- **Affiliate ⓘ tooltip** (`portal/affiliates/page.tsx`): commissions from a host whose subscription price was adjusted
+  by an admin (a `locked_base_amount` that isn't a Founding lock) now show a small ⓘ next to the row →
+  "This host's subscription was adjusted by Wielo — please contact support for any queries related to this transaction."
+  Derived from the sub state (no schema change).
+- **Admin change-note** (`UserRecord.tsx` → `setUserProductAction.reason`): the assign-product modal gains a
+  "Reason / note for this change" field, audited with the change — the reference support gives an affiliate who queries
+  an adjusted commission.
+- **Per-host feature overrides already existed** (`createHostOverrideAction` at `/admin/platform/features`: grant/revoke
+  a single feature for one host, reason-required, audited, read first by `check_feature_permission`). Added a link to it
+  from the user record's catalog section so it's discoverable per-user ("change a single feature rule for this host only").
+
+## 2026-08-06 — Per-user trial (admin + dashboard self-serve), and verified money consolidation.
+
+Extends the per-user product controls. Money-consolidation VERIFIED live: subscription price, affiliate commission,
+and reporting all flow from the ledger charge amount, so a per-user override adjusts all three.
+
+- **Admin per-user trial** (`setUserProductAction` + `UserRecord.tsx`): the assign-product modal gains a "Free trial
+  for this host (days)" field alongside the price override. Setting N days activates the sub as `trialing`
+  (trial_ends_at = now + N, **no charge**), converting to the (possibly overridden) price when they pay after the trial.
+- **Dashboard self-serve trial** (`switchToProductAction`): a first-time subscriber (not already on a paid membership)
+  picking a product with `trial_days>0` now starts a trialing sub via `purchaseProductBySlug` — matching the public
+  `/p/[slug]` flow — instead of charging immediately. Upgraders (existing paid membership) still fall through to paid.
+- **Money consolidation (verified):** commission = `rate × (ledger.amount − VAT − setup)` (`accrue_affiliate_commission`),
+  accrued by explicit `accrueAffiliateAndNotify(led.id)` at activation (setUserProductAction) + renewal
+  (subscription-renewal.ts). Since the ledger amount carries the override, commission auto-follows. **Rollback probe:**
+  a R700 override charge for a referred host → commission **R175** (25% × 700), NOT R249.75 (25% × 999). Subscription
+  side verified live earlier (locked_base_amount=700). Reporting reads the accrued rows, so it reflects the override.
+
+## 2026-08-06 — Per-user price override (admin can set a custom recurring price for one host).
+
+Launch-readiness fix (sweep gap #2, pt32 requirement 3). The admin could free-grant or charge the catalog price but
+not set a bespoke recurring amount for a single host. Now `setUserProductAction` accepts a `customBaseAmount` (ZAR):
+it drives the first charge AND is snapshotted onto the subscription's `locked_base_amount` so **every renewal bills the
+custom base** — reusing the exact lock mechanism the Founding rate uses (`subscription-renewal.ts` already charges
+`locked_base_amount` when set; `is_founding` stays false to mark it an admin override, not a founding lock). `tsc` +
+`pnpm lint` green.
+
+- **`setUserProductAction`** (`admin/users/[id]/actions.ts`): new `customBaseAmount` in the schema + the client
+  wrapper; `effectivePrice = customBaseAmount ?? catalog price` drives the pro-rated/first charge; after immediate
+  activation (charge none/paid) it snapshots `locked_base_amount` + `locked_currency='ZAR'` + `price_locked_at` onto
+  the sub. (Paylink defers activation, so the recurring lock only applies to immediate-activation modes.)
+- **Admin UI** (`UserRecord.tsx`): "Recurring price for this host (optional override, ZAR)" field on the membership
+  activate dialog — blank = catalog price. Verified by mechanism: `locked_base_amount → renewal charge` is already
+  proven live by the seed subs (R50/R123) + the ledger sweep; the write is a typechecked update.
+
+## 2026-08-06 — Wire the real product free-trial (Standard advertised 14 days but charged immediately).
+
+Launch-readiness fix (sweep gap #1). `/p/[slug]` advertised "{trial_days}-day free trial" but the buy flow charged
+on the spot and created no trialing sub — a broken promise. Now a subscription product with `trial_days > 0` starts a
+real **trialing** subscription (no charge) that feeds the already-built expire-trials + trial-ending-warnings crons and
+the on_subscription_trialing pipeline trigger. `tsc` + `pnpm lint` green; **live-verified**: subscribing to Standard
+created a `trialing` sub, trial_ends_at = +14 days, **0 ledger rows, 0 orders**, no founding lock (test reverted).
+
+- **`activateMappedPlan`** (`lib/billing/product-checkout.ts`) gains a `trialEndsAt` param: when set, status='trialing'
+  + trial_ends_at (period = trial window), and it skips the founding-lock + welcome email (both fire on paid conversion).
+- **`fulfilFreeProductBySlug`** now also handles trials (reusing its passwordless-account security gate) with a
+  one-trial-per-product eligibility guard — already on it → sent to dashboard; trial used → must subscribe; never
+  downgrades a paying host.
+- **`purchaseProductBySlug`** routes a paid sub-like product with `trial_days > 0` to the trial path (no charge)
+  instead of a pay-link. Once-off products / credit packs never trial.
+- **`/p/[slug]` + BuyForm**: button reads "Start N-day free trial" with trial progress copy.
+- Conversion: when the host pays (normal buy flow), `activateMappedPlan` (no trialEndsAt) flips them to active +
+  founding lock + welcome. This makes the "trial ending soon" email + expire-trials crons meaningful (they finally
+  have real product trials to act on — the pause-migration note is now actually true).
+
+## 2026-08-06 — Pause the "Founding Race" competition (strategy change: no competition near-term).
+
+Founder decision: no competition runs in the near term. Paused the Founding Race by moving the
+`affiliate_campaigns` row (slug `founding-race`) from `active` → `draft` — the single gate every competition
+surface reads. Migration `20260806160000`; applied to cloud + verified live (both `/competitions/founding-race`
+and `/race` now 404).
+
+- **What turns off** (all gated on `status='active'`): the signup free-trial via a competition-tagged referral
+  (`isCampaignWindowOpen`), `/r?c=` campaign tagging (new referrals fall back to the default per-product affiliate
+  rate), the daily campaign-comms sweep + kickoff/enrollment/standings emails, the public leaderboard + `/race`
+  alias, the partner co-branded "Founding Race is live" banner, and the portal Campaigns tab card.
+- **Chosen `draft` (Pause), not delete/archive**: reversible (one "Launch" click relaunches it) and non-destructive
+  — a hard delete would CASCADE daily scores/enrollments/floors/prize awards and NULL `affiliate_referrals.campaign_id`
+  (un-tagging earned commission). `commission_structure` + `competition` JSONB left intact so any bound referral keeps
+  its snapshotted rate.
+- **Left untouched (verified independent)**: `platform_payment_settings.founding_offers_open` is already `false`;
+  the Founder product keeps its `founding_price` (hidden, per founder); Standard's 14-day product trial still applies
+  (trials never depended on the campaign) — so the new "trial ending" email keeps working.
+
+## 2026-08-06 — Two-product catalog: rename Starter→Standard, Founder→R499, slug follows name, prune the rest.
+
+Founder decision: only two live products — **Standard R999/mo** (was "Starter", slug `pro`) and **Founder R499/mo**
+(competition/founding product). All other products removed. Product `slug` is now always derived from `name`
+(not user-editable). Migration applied to cloud + verified live; `tsc` + `pnpm lint` + 11 pricing tests green.
+
+- **Slug follows name** (`admin/products/actions.ts`): `upsertProductAction` now re-derives `slug = slugify(name)`
+  on every save (create AND edit — it used to preserve the old slug on rename), reusing the shared, unit-tested
+  `@/lib/help/slug` (`slugify` + `uniqueSlug`) and dropping the private duplicate slugify. The form already had no
+  slug input — slug stays read-only and auto-tracks the name.
+- **Rename-proof affiliate lookup** (`portal/affiliates/page.tsx`): replaced a hardcoded `.eq("slug","pro")` with
+  an attribute query (active + visible + host + membership + price>0, cheapest) so it survives product renames.
+- **Migration `20260806150000_two_product_catalog.sql`**: Starter→"Standard" (slug `pro`→`standard`, keeps annual
+  R9,999 + founding R599); Founder → `price=499` + `founding_price=499` (annual R4,999 unchanged); DELETE Beta,
+  Wielo Quotes, StayFlow Web-design, 50 Quote Credits. Money-safe: recurring charge reads `products.price` live at
+  renewal (founding-locked subs bill the snapshotted amount, so no retroactive change); the 2 existing subs keep
+  their exact billing basis (locked 50/123) and now link to "Standard"; removed products had 0 subs/orders/
+  scheduled-changes/coupons (feature rows cascade). Note: removing "50 Quote Credits" leaves no one-off credit
+  top-up SKU, and removing "Beta" drops the free tile from host signup (both intended).
+
+## 2026-08-06 — Automated "trial ending soon" email (~24h before trial expiry), affiliate-aware CTA.
+
+New transactional email that fires ~24h before a free trial expires, prompting the host to subscribe. Net-new
+(the existing `subscription-expiry-warnings` cron keys off `current_period_end`, not `trial_ends_at`, so trial-only
+expiry was uncovered). Built on the proven `notify_subscription_event` → `notification_queue` → `drain-email-queue`
+path (email + in-app + admin feed), so it also surfaces in the Comms **Automated messages** tab with a live preview.
+`pnpm build` + `pnpm lint` + `tsc` + 59 email render tests green; migration applied to cloud + verified live.
+
+- **Template** `emails/templates/TrialEndingSoon.tsx` (+ barrel export). Copy: "Your trial ends in 24 hours →
+  subscribe to keep your listings live. No commission, ever." Subject: "Your Wielo trial ends tomorrow — keep
+  your listings live."
+- **Affiliate-aware CTA** — `trialEndingResolver` (`lib/email/resolvers/misc.ts`) resolves the host's durable
+  referrer from `affiliate_referrals` (by `referred_user_id`; survives guest→host) → active `affiliate_accounts.slug`,
+  then builds the CTA via `referralNextLink(base, slug, "/dashboard/settings/subscription")`: referred → `/r/<slug>?next=…`
+  (credits the affiliate + drops the cookie), not referred → the plain subscribe link.
+- **Wiring** — `EMAIL_REGISTRY.trial_ending` (recipient: host), `NOTIFICATION_REGISTRY.trial_ending`
+  (emailTemplate + push/in-app builders → Comms shows Email/Push/In-app), `MESSAGE_CATALOG` entry (Subscription
+  area, "Trial ending soon", NEW badge), + sample payload for the preview.
+- **Trigger** — migration `20260806140000_trial_ending_email.sql`: adds `trial_ending` to the `notify_subscription_event`
+  whitelist + branch, and a new **hourly** pg_cron `trial-ending-warnings` (`5 * * * *`) scanning a rolling window
+  `trial_ends_at ∈ [now+23h, now+24h]` (fires once per trial ~24h out; per-trial dedupe key). Verified live: cron
+  active, whitelist updated, enqueue proven via a rollback probe (enqueued=1, no persistence, no send — the one real
+  trialing sub is 13 days out so nothing fired).
+
+## 2026-08-05 — Pipeline cleanup: prune dead board `value`/`valueKind` fields; verify lead-delete deny gate.
+
+On `main` (continues the pipeline-cards save point at `eb3d6e66`). No migrations — pure app-layer. `tsc` +
+`pnpm lint` green; pipeline board live-verified rendering identically (KPIs compute, cards/pills/links intact,
+no console errors from the change). See memory `project-savepoint-aug5-pipeline-cards.md`.
+
+- **Pruned superseded board fields** (`lib/pipeline/queries.ts`): removed the write-only `value` + `valueKind`
+  fields from `BoardCard` (superseded by the `ltv`/`subscriptionAmount` pills — nothing rendered them; KPIs are
+  counted from raw leads, not `.value`). Also dropped the now-dead `trialByUser` map (only fed `value`/`valueKind`;
+  `realizedByUser` stays — it feeds `ltv`). Updated two stale prose comments that referenced the removed "value".
+- **Verified the super-admin-only lead-delete deny gate** (code-level): `deleteLeadAction` throws before any
+  deletion when `requireAdmin().roleId !== 'super_admin'`; `roleId` is sourced from the real `platform_staff.role_id`
+  column (non-null string) — a `throw`, not a swallowed return, so no silent no-op. Fails safe for null/other/non-staff.
+  ⚠️ Deny path still NOT live-exercised — only the super_admin staff account exists (environmental blocker, unchanged).
+
+## 2026-08-05 — Admin broadcast banners, Comms/Build-Board polish, confirm-modal sweep, responsive pipeline lifecycle + affiliate nurture.
+
+Branch `feature/admin-broadcast-banners` (sub-branch off main, isolates from a parallel agent). Head `f7d2ba4c`,
+pushed, NOT merged. tsc + `pnpm lint` green each commit; live-verified in the admin session; DB triggers verified
+via rolled-back transactions. See memory `project-savepoint-aug5-pipeline-lifecycle.md` for the full resume map.
+
+- **Broadcast banner controls** (mig `20260805120000`): `show_banner`/`banner_surfaces`/`banner_dismiss_mode`/
+  `updated_at` + anon RLS. Banner decoupled from severity; mounted in the guest portal; public bar rendered
+  INSIDE `SiteHeader` (below the header, never above). Edit-a-sent-broadcast + stats. Fixed an `isExternalUrl`
+  imported from a "use client" module (non-callable server reference).
+- **Communications Send tab → list-first**: Broadcasts table + "New broadcast" (compose) + per-row View/Edit/
+  Delete (audited hard-delete via the app modal).
+- **Shared `components/dashboard/fields.tsx`** (Field/TextField/TextArea/SelectField/SegRow/ToggleField); Comms
+  imports it; admin + public **Build Board** rebuilt on it + app-modal confirms + icon row-actions.
+- **Admin `window.confirm()` sweep** — 9 files → `modal.destructive`/`modal.confirm` (auto-dismissed natively
+  in-app; now consistent + verifiable).
+- **Responsive pipeline lifecycle** (mig `20260805150000`): new **Churned** terminal stage; `on_subscription_
+  churned` trigger (paid→cancel/expire = Churned, trial-lapse = Lost, past_due/paused = at_risk, recovery
+  clears); `on_subscription_trialing` reopens lost/churned (win-back); `on_host_created` → Trial when a trial is
+  active. Board shows Churned + "At risk"; manual drops into Trial/Won/Churned blocked (`system_managed`).
+- **Nurture emails wired to the lifecycle**: CTAs route through the referring partner's `/r/<slug>?next=…` when
+  `affiliate_ref` is set (credit the affiliate), else the plain Wielo link (new `referralNextLink`); conversion/
+  churn cancels the drip.
+- ⚠️ Shared-DB migration hazard: the parallel agent applied migrations `20260805130000`/`140000` without
+  committing them; ours renamed to `20260805150000` and applied via temp placeholders (not committed).
+- **Pipeline lifecycle follow-ups** (resume-here items): wrote `docs/lifecycles/pipeline.md` (full state
+  machine + triggers + nurture interplay) + index row; lead record now surfaces **Churned** (rose tag +
+  callout) and **⚠ At risk** (red badge + callout, "Open · at risk" in Details) — verified live by toggling a
+  test lead through both states then reverting; tidied a misplaced comment above `STEP_CTA` in the nurture worker.
+- **Merged to `main`** (`--no-ff`, `7eaff601`) + **migration hazard fixed**: reconstructed the parallel
+  session's uncommitted `20260805130000`/`140000` verbatim from `schema_migrations.statements` → `db push`
+  fully in sync.
+- **Verified the whole pipeline stage machine live** (rolled-back txns against the real triggers): host
+  created→Signed up, trial→Trial, paid→Won, paid-cancel→Churned, trial-lapse→Lost, past_due→at_risk,
+  recovery→clear, and churned+new-trial→Trial (win-back). All 8 land on the correct stage.
+- **Enriched pipeline board cards with audience context** (`0b35f68a`): host cards show the property
+  (establishment + rooms) + phone; affiliate cards show partner number, region, phone, referral count
+  (+ converted-to-host count) and commission earned. `getBoard` batches the extra reads per audience.
+  Verified live on both boards (real affiliate data; host context via a reverted test lead).
+- **Detailed cards + rich referrer + super-admin-only delete** (`16c8866a`): board cards gained a profile
+  picture and a full pill set — **recurring subscription price computed via the billing SSOT**
+  (`resolveMembershipAmount`: base + per-listing, cycle-aware, founding-lock beats live price; /mo vs /yr),
+  LTV (cumulative settled charges), trial (Nd left), months active, payments missed, referred-by/qty.
+  Recurring price verified against real DB rows (R123/mo trial, R50/mo won, product-less free sub → no pill).
+  Cards are now **drag-only** — opening the record is an explicit **eye button** (top-right), so the body no
+  longer navigates and the email/phone links (`mailto:`/`tel:`) are clickable; roomier spacing. The lead
+  record's **"Referred by"** resolves the slug to the partner's photo + name, linking to
+  `/admin/affiliates/<id>`. **Lead deletion is now super-admin-only** — buttons hidden for other staff and
+  `deleteLeadAction` fails closed server-side (`role_id = 'super_admin'`). All verified live in the admin
+  session; build + tsc + lint green.
 
 ## 2026-08-04 (pt26) — Legal-record correction + multi-competition hardening (F3/F4/F5/F6); all green + live.
 

@@ -21,6 +21,7 @@ import {
   sendProductOfferEmail,
 } from "@/lib/billing/offer-email";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
@@ -39,7 +40,6 @@ import {
   round2,
 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
-import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import {
   applyCredit,
   grantCreditsForOrder,
@@ -860,30 +860,6 @@ function addMonthsIso(n: number): string {
   return d.toISOString();
 }
 
-// Trial end = now + (value × unit). Used by the admin manual-upgrade trial:
-// days/weeks add to the date, months/years to the calendar field.
-function addTrialIso(
-  value: number,
-  unit: "days" | "weeks" | "months" | "years",
-): string {
-  const d = new Date();
-  switch (unit) {
-    case "days":
-      d.setDate(d.getDate() + value);
-      break;
-    case "weeks":
-      d.setDate(d.getDate() + value * 7);
-      break;
-    case "months":
-      d.setMonth(d.getMonth() + value);
-      break;
-    case "years":
-      d.setFullYear(d.getFullYear() + value);
-      break;
-  }
-  return d.toISOString();
-}
-
 // The public base for a pay-link SHARED with a user — never a localhost/dev
 // origin. Prefer the configured app URL; ignore a localhost value and fall back
 // to the brand domain so a link generated locally still resolves for the buyer.
@@ -1319,22 +1295,22 @@ const setProductSchema = z.object({
   // the cycle instead of the product's default credit_quantity. null/omitted =
   // use the product default.
   creditOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  // Optional per-user PRICE override (ZAR): bill THIS recurring base amount for
+  // this host instead of the product's catalog price. Snapshotted onto the
+  // subscription's locked_base_amount so every renewal charges it (the same lock
+  // mechanism the Founding rate uses). Also drives the first charge here.
+  // null/omitted = use the catalog price. Immediate-activation modes only
+  // (none/paid); a paylink defers activation so it can't lock a recurring price.
+  customBaseAmount: z.number().min(0).max(10_000_000).nullable().optional(),
+  // Optional per-user TRIAL: grant this many days of trial. The subscription is
+  // created as 'trialing' with trial_ends_at = now + N days and NOTHING is charged
+  // now (a trial is never a charge); it converts to the (possibly overridden) price
+  // when they pay after the trial. null/0/omitted = a normal (immediate) activation.
+  trialDays: z.number().int().min(0).max(365).nullable().optional(),
   // Whether a "paylink" upgrade offer is ALSO emailed. The inbox card always
   // posts; the email is the admin's choice per offer. Defaults on.
   sendEmail: z.boolean().optional().default(true),
   reason: z.string().optional(),
-  // Per-user PRICE OVERRIDE (ZAR): an arbitrary recurring amount the admin sets
-  // for this user. Persisted as subscriptions.locked_base_amount (the billing
-  // engine reads it via resolveMembershipAmount) AND drives the immediate charge
-  // (effPrice = priceOverride ?? product.price). null/omitted = list price.
-  // Must be > 0 to lock — a R0 "comp" is Phase 4, not this.
-  priceOverride: z.number().min(0).max(10_000_000).nullable().optional(),
-  // TRIAL duration: number + unit. When set, the sub is activated as `trialing`
-  // with trial_ends_at = current_period_end = now + trial, and NO money is
-  // collected now (charge is forced to "none"). The expire-trials cron flips it
-  // to `restricted` when the trial lapses.
-  trialValue: z.number().int().min(1).max(3650).nullable().optional(),
-  trialUnit: z.enum(["days", "weeks", "months", "years"]).nullable().optional(),
 });
 
 export const setUserProductAction = withAdminAudit<
@@ -1353,17 +1329,6 @@ export const setUserProductAction = withAdminAudit<
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
     const { productId, charge } = parsed.data;
-
-    // ── Per-user price override + trial (admin manual upgrade, Phase 3) ──────
-    const priceOverride = parsed.data.priceOverride ?? null;
-    const hasOverride = priceOverride != null && priceOverride > 0;
-    const trialValue = parsed.data.trialValue ?? null;
-    const trialUnit = parsed.data.trialUnit ?? null;
-    const hasTrial = trialValue != null && trialValue > 0 && trialUnit != null;
-    const trialEndIso = hasTrial ? addTrialIso(trialValue, trialUnit) : null;
-    // A trial collects no money now — force the charge off regardless of the mode
-    // the button passed. Every downstream branch below reads effCharge.
-    const effCharge = hasTrial ? "none" : charge;
 
     // Resolve the host — provisioning one from the user (guest → host) if needed
     // so a guest account can be sold a subscription/product.
@@ -1388,10 +1353,6 @@ export const setUserProductAction = withAdminAudit<
     }
     const isMembership = product.product_type === "membership";
     const newPrice = Number(product.price ?? 0);
-    // The effective price the admin is applying — the override when set, else the
-    // product's list price. Drives BOTH the locked recurring amount and the
-    // immediate charge (a trial forces the charge off separately).
-    const effPrice = hasOverride ? round2(priceOverride) : newPrice;
     const currency = product.currency ?? "ZAR";
 
     // Find THIS product's subscription (renew it) rather than assuming one row.
@@ -1505,6 +1466,18 @@ export const setUserProductAction = withAdminAudit<
       }
     }
 
+    // Per-user TRIAL grant → the sub is created as 'trialing' with trial_ends_at
+    // = now + N days and nothing is charged now (the charge block below is skipped
+    // for a trial). It converts to the priced plan (custom base if overridden)
+    // when the host pays after the trial. The trial window IS the period.
+    const trialDays = parsed.data.trialDays ?? 0;
+    const trialEndsAtIso =
+      trialDays > 0
+        ? new Date(
+            new Date(now).getTime() + trialDays * 86_400_000,
+          ).toISOString()
+        : null;
+
     // A mid-cycle membership upgrade (switch) keeps the OLD membership's window; a
     // same-product re-activation keeps its own live window; a fresh activation /
     // service add / ended-period renewal starts a new one.
@@ -1512,31 +1485,22 @@ export const setUserProductAction = withAdminAudit<
       product_id: product.id,
       plan,
       billing_cycle: cycle,
-      status: (hasTrial ? "trialing" : "active") as "trialing" | "active",
-      // A trial ignores any carried/renew window — it runs now → the trial end.
-      current_period_start: hasTrial ? now : (carryStart ?? renewStart ?? now),
-      current_period_end: hasTrial
-        ? (trialEndIso as string)
-        : (carryEnd ?? renewEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1)),
+      status: (trialEndsAtIso ? "trialing" : "active") as "trialing" | "active",
+      current_period_start: carryStart ?? renewStart ?? now,
+      current_period_end:
+        trialEndsAtIso ??
+        carryEnd ??
+        renewEnd ??
+        addMonthsIso(cycle === "annual" ? 12 : 1),
+      ...(trialEndsAtIso ? { trial_ends_at: trialEndsAtIso } : {}),
       updated_at: now,
-      // Trial end drives the expire-trials cron; clear it on a non-trial
-      // activation so converting a trial → active doesn't leave a stale expiry.
-      trial_ends_at: hasTrial ? (trialEndIso as string) : null,
-      // Per-user recurring price lock — the billing engine bills THIS, not list.
-      ...(hasOverride
-        ? {
-            locked_base_amount: effPrice,
-            locked_currency: currency,
-            price_locked_at: now,
-          }
-        : {}),
     };
 
     // "paylink" DEFERS activation: the tier only becomes active once the buyer
     // pays the link (the settle path activates it), so we skip the subscription
     // write here and just create the order + inbox card below. Every other mode
-    // activates immediately. A trial always activates now (effCharge is "none").
-    if (effCharge !== "paylink") {
+    // activates immediately.
+    if (charge !== "paylink") {
       // Activating a membership must respect the one-per-host rule whether we're
       // renewing/reactivating an existing (possibly cancelled) row OR inserting a
       // new one — retire any OTHER active membership first, else the DB trigger
@@ -1567,6 +1531,33 @@ export const setUserProductAction = withAdminAudit<
         periodStart: patch.current_period_start,
         overrideQty: parsed.data.creditOverride ?? null,
       });
+
+      // Per-user PRICE override → snapshot onto the subscription's lock so every
+      // renewal bills the custom base amount (subscription-renewal.ts bills
+      // locked_base_amount when set). Same lock fields the Founding rate uses;
+      // is_founding stays false to mark this an admin override, not a founding lock.
+      if (parsed.data.customBaseAmount != null) {
+        const { data: sub } = await service
+          .from("subscriptions")
+          .select("id")
+          .eq("host_id", hostId)
+          .eq("product_id", product.id)
+          .maybeSingle();
+        if (sub) {
+          const { error: lockErr } = await service
+            .from("subscriptions")
+            .update({
+              is_founding: false,
+              locked_base_amount: round2(parsed.data.customBaseAmount),
+              locked_per_listing_amount: 0,
+              locked_currency: "ZAR",
+              price_locked_at: now,
+              updated_at: now,
+            })
+            .eq("id", sub.id);
+          if (lockErr) throw new Error(lockErr.message);
+        }
+      }
     }
 
     // ─── Auto-ledger: a paid upgrade/add records the money for the pro-rated
@@ -1577,10 +1568,20 @@ export const setUserProductAction = withAdminAudit<
     // custom-amount order that ACTIVATES the plan on payment + drops an upgrade
     // card into the buyer's Wielo inbox with a Pay button.
     let payUrl: string | undefined;
-    if ((effCharge === "paid" || effCharge === "paylink") && effPrice > 0) {
+    // A per-user price override bills the custom base instead of the catalog
+    // price (both the first charge here and — via the lock below — every renewal).
+    const effectivePrice =
+      parsed.data.customBaseAmount != null
+        ? round2(parsed.data.customBaseAmount)
+        : newPrice;
+    if (
+      (charge === "paid" || charge === "paylink") &&
+      effectivePrice > 0 &&
+      !trialEndsAtIso
+    ) {
       const chargeAmount = switchingMembership
-        ? membershipSwitchAmount(effPrice, oldPrice, carryStart, carryEnd)
-        : round2(effPrice);
+        ? membershipSwitchAmount(effectivePrice, oldPrice, carryStart, carryEnd)
+        : round2(effectivePrice);
       if (chargeAmount > 0) {
         const label = switchingMembership
           ? `Pro-rated upgrade to ${product.name}`
@@ -1592,9 +1593,11 @@ export const setUserProductAction = withAdminAudit<
           .maybeSingle();
         const admin = await requirePermission("subscriptions.edit");
 
-        if (effCharge === "paid") {
-          // Tag the current platform env so the charge lands in the right ledger
-          // scope (not the column default 'live') and shows in every window.
+        if (charge === "paid") {
+          // Tag the platform's CURRENT environment (test/live) so this manual
+          // charge isn't dropped by the current-mode revenue filter — the R50 bug
+          // was a manual insert defaulting to 'live'. See lib/billing/environment.ts
+          // + REPORTING_SINGLE_SOURCE_PLAN.md (Domain 1).
           const environment = await resolvePlatformEnvironment(service);
           const { data: led, error: ledErr } = await service
             .from("platform_ledger")
@@ -1606,9 +1609,9 @@ export const setUserProductAction = withAdminAudit<
               status: "completed",
               amount: chargeAmount,
               currency,
-              environment,
               provider: "manual",
               reason: label,
+              environment,
               created_by: admin.userId,
               paid_at: now,
             })
@@ -1875,6 +1878,8 @@ export const sellProductAction = withAdminAudit<
     }
 
     if (price > 0) {
+      // Tag current env (test/live) so a once-off product sale shows in the
+      // current-mode revenue windows — mirrors the activation charge above.
       const environment = await resolvePlatformEnvironment(service);
       const { data: led, error: ledErr } = await service
         .from("platform_ledger")
@@ -1886,9 +1891,9 @@ export const sellProductAction = withAdminAudit<
           status: "completed",
           amount: price,
           currency,
-          environment,
           provider: "manual",
           reason: `Product sale · ${product.name}`,
+          environment,
           created_by: admin.userId,
           paid_at: now,
         })
@@ -2598,11 +2603,10 @@ export async function setUserProduct(input: {
   charge?: "paid" | "paylink" | "none";
   timing?: "now" | "end_of_cycle";
   creditOverride?: number | null;
-  sendEmail?: boolean;
+  customBaseAmount?: number | null;
+  trialDays?: number | null;
   reason?: string;
-  priceOverride?: number | null;
-  trialValue?: number | null;
-  trialUnit?: "days" | "weeks" | "months" | "years";
+  sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
     const r = await setUserProductAction({

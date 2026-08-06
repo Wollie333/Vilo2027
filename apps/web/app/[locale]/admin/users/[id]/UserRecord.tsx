@@ -1566,9 +1566,9 @@ function Dossier({
   const sep = <div className="h-px bg-brand-line" />;
   const eyebrow =
     "text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute";
-  // "Paid to Wielo" = completed CHARGES only (products/subs the user actually paid
-  // for) — NOT positive adjustments or affiliate commission/payout rows on this
-  // user. Same rule as the Overview headline stat so the two never diverge.
+  // "Paid to Wielo" = completed CHARGES only — NOT positive adjustments or
+  // affiliate rows — the SAME rule as the Overview headline stat so the two never
+  // diverge (REPORTING_SINGLE_SOURCE_PLAN.md D1c).
   const paidToWielo = data.wieloLedger
     .filter((t) => t.type === "charge" && t.status === "completed")
     .reduce((s, t) => s + t.amount, 0);
@@ -2256,60 +2256,33 @@ function ProductsPanel({
     const n = Number(t);
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
   };
-  // Phase 3 — admin manual upgrade full control: a reason note (recorded in
-  // History), an arbitrary recurring PRICE OVERRIDE (ZAR), and a TRIAL duration.
-  const [overrideReason, setOverrideReason] = useState("");
-  const [priceOverrideInput, setPriceOverrideInput] = useState("");
-  const [trialValueInput, setTrialValueInput] = useState("");
-  const [trialUnit, setTrialUnit] = useState<
-    "days" | "weeks" | "months" | "years"
-  >("days");
-  const parsedPriceOverride = (): number | null => {
-    const t = priceOverrideInput.trim();
+  // Optional per-user recurring PRICE override in ZAR (blank = catalog price).
+  const [customPrice, setCustomPrice] = useState("");
+  const parsedCustomPrice = (): number | null => {
+    const t = customPrice.trim();
     if (t === "") return null;
     const n = Number(t);
-    return Number.isFinite(n) && n > 0 ? round2(n) : null;
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
   };
-  const parsedTrialValue = (): number | null => {
-    const t = trialValueInput.trim();
+  // Optional per-user TRIAL length in days (blank/0 = no trial, activate now).
+  const [trialDays, setTrialDays] = useState("");
+  const parsedTrialDays = (): number | null => {
+    const t = trialDays.trim();
     if (t === "") return null;
     const n = Number(t);
-    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : null;
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
   };
-  const hasTrialInput = parsedTrialValue() != null;
-  // The immediate charge the server will post, reflecting a live price override.
-  // A trial collects nothing now; otherwise the override (or list) drives it —
-  // pro-rated for a membership switch, full price for a fresh activation.
-  const effChargeAmount = (): number => {
-    if (hasTrialInput) return 0;
-    const ov = parsedPriceOverride();
-    if (ov == null) return charge?.amount ?? 0;
-    if (charge?.isUpgrade && activeMembership) {
-      return membershipSwitchAmount(
-        ov,
-        activeMembership.price ?? 0,
-        activeMembership.currentPeriodStart,
-        activeMembership.currentPeriodEnd,
-      );
-    }
-    return round2(ov);
-  };
-  // The extra manual-upgrade fields passed to every activate/schedule call.
-  const overridePayload = () => ({
-    reason: overrideReason.trim() || undefined,
-    priceOverride: parsedPriceOverride(),
-    trialValue: parsedTrialValue(),
-    trialUnit: hasTrialInput ? trialUnit : undefined,
-  });
+  // Optional note/reason for this change — audited, and the reference support
+  // gives an affiliate who queries a commission adjusted by this change.
+  const [changeNote, setChangeNote] = useState("");
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
     setChargeTiming("now");
     setCreditOverride("");
-    setOverrideReason("");
-    setPriceOverrideInput("");
-    setTrialValueInput("");
-    setTrialUnit("days");
+    setCustomPrice("");
+    setTrialDays("");
+    setChangeNote("");
     setOfferEmail(true);
   };
 
@@ -2388,11 +2361,12 @@ function ProductsPanel({
   function onCatalogClick(p: CatalogProduct) {
     const { amount, isUpgrade, prorated } = previewDelta(p);
     setChargeTiming("now");
-    // Always open the confirm dialog — it's where the admin sets the reason,
-    // an optional price override, and an optional trial (Phase 3 full control),
-    // alongside the charge/timing choice. Even a free/zero non-switch product
-    // routes here so those controls are reachable.
-    setCharge({ product: p, amount, isUpgrade, prorated });
+    // Open the confirm dialog for any membership switch (to offer now vs
+    // end-of-cycle timing — incl. a same-price/cheaper downgrade) or whenever a
+    // charge is due; otherwise (free/zero, non-switch) just activate.
+    if (isUpgrade || amount > 0)
+      setCharge({ product: p, amount, isUpgrade, prorated });
+    else activate(p.id, "none");
   }
 
   // Schedule an upgrade/switch for the current membership's period end.
@@ -2404,7 +2378,6 @@ function ProductsPanel({
         hostId,
         productId,
         timing: "end_of_cycle",
-        reason: overrideReason.trim() || undefined,
       });
       setBusyId(null);
       if (r.ok) {
@@ -2426,17 +2399,17 @@ function ProductsPanel({
         productId,
         charge: mode,
         creditOverride: parsedOverride(),
-        ...overridePayload(),
+        customBaseAmount: parsedCustomPrice(),
+        trialDays: parsedTrialDays(),
+        reason: changeNote.trim() || undefined,
       });
       setBusyId(null);
       if (r.ok) {
         closeCharge();
         toast.success(
-          hasTrialInput
-            ? "Trial started on this account."
-            : mode === "paid"
-              ? "Activated — charge posted to the ledger."
-              : "Product added to this account.",
+          mode === "paid"
+            ? "Activated — charge posted to the ledger."
+            : "Product added to this account.",
         );
         router.refresh();
       } else {
@@ -2456,8 +2429,6 @@ function ProductsPanel({
         productId,
         charge: "paylink",
         sendEmail: offerEmail,
-        reason: overrideReason.trim() || undefined,
-        priceOverride: parsedPriceOverride(),
       });
       setBusyId(null);
       if (r.ok) {
@@ -2821,6 +2792,16 @@ function ProductsPanel({
           Catalog. A host holds one membership + any number of services. Add or
           switch below; edit a product in the Products hub.
         </div>
+        <div className="mb-3 text-[12px] text-brand-mute">
+          Need to change a single feature RULE (a limit or unlock) for this host
+          only — not their whole plan?{" "}
+          <a
+            href="/admin/platform/features"
+            className="font-medium text-brand-primary underline underline-offset-2"
+          >
+            Set a per-host feature override →
+          </a>
+        </div>
         {data.products.length === 0 ? (
           <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
             No subscription products configured yet.
@@ -3055,96 +3036,57 @@ function ProductsPanel({
                 </p>
               </Lbl>
             ) : null}
-            {/* Phase 3 — full-control overrides (hidden while an end-of-cycle
-                switch is selected, and once a pay-link has been generated). */}
-            {!payLink && chargeTiming === "now" ? (
-              <div className="space-y-3 rounded-md border border-brand-line bg-brand-light/30 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                  Manual override
-                </div>
-                <Lbl label="Reason (shown in History)">
-                  <textarea
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    rows={2}
-                    placeholder="Why is this being set manually?"
-                    className="block w-full resize-none rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-                  />
-                </Lbl>
-                {!charge.product.isFree ? (
-                  <Lbl label="Recurring price override (optional)">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-brand-mute">
-                        {charge.product.currency ?? "ZAR"}
-                      </span>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={priceOverrideInput}
-                        onChange={(e) => setPriceOverrideInput(e.target.value)}
-                        placeholder={`List: ${formatMoney(
-                          charge.product.price,
-                          charge.product.currency ?? "ZAR",
-                        )}`}
-                      />
-                    </div>
-                    <p className="mt-1 text-[12px] text-brand-mute">
-                      Sets the recurring amount billed to THIS user (and the
-                      immediate charge). Blank = list price.
-                    </p>
-                  </Lbl>
-                ) : null}
-                <Lbl label="Trial (optional)">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={trialValueInput}
-                      onChange={(e) => setTrialValueInput(e.target.value)}
-                      placeholder="e.g. 14"
-                      className="w-24"
-                    />
-                    <select
-                      value={trialUnit}
-                      onChange={(e) =>
-                        setTrialUnit(
-                          e.target.value as
-                            | "days"
-                            | "weeks"
-                            | "months"
-                            | "years",
-                        )
-                      }
-                      className="block flex-1 rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-                    >
-                      <option value="days">days</option>
-                      <option value="weeks">weeks</option>
-                      <option value="months">months</option>
-                      <option value="years">years</option>
-                    </select>
-                  </div>
-                  <p className="mt-1 text-[12px] text-brand-mute">
-                    {hasTrialInput
-                      ? "Activates as a trial — no money is collected now. Access is restricted when the trial lapses."
-                      : "Blank = activate normally. Set a duration to start a trial (no charge now)."}
-                  </p>
-                </Lbl>
-                {!hasTrialInput && parsedPriceOverride() != null ? (
-                  <p className="text-[12px] font-medium text-brand-ink">
-                    Immediate charge with this override:{" "}
-                    {formatMoney(
-                      effChargeAmount(),
-                      charge.product.currency ?? "ZAR",
-                    )}
-                  </p>
-                ) : null}
-              </div>
+            {charge.product.productType === "membership" &&
+            chargeTiming === "now" ? (
+              <Lbl label="Recurring price for this host (optional override, ZAR)">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  placeholder="Blank = catalog price"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Leave blank to bill the catalog price. Set an amount to lock a
+                  custom recurring base for THIS host — it drives the charge now
+                  and every future renewal.
+                </p>
+              </Lbl>
             ) : null}
-            {!payLink &&
-            charge.amount > 0 &&
-            chargeTiming === "now" &&
-            !hasTrialInput ? (
+            {charge.product.productType === "membership" &&
+            chargeTiming === "now" ? (
+              <Lbl label="Free trial for this host (optional, days)">
+                <Input
+                  type="number"
+                  min={0}
+                  value={trialDays}
+                  onChange={(e) => setTrialDays(e.target.value)}
+                  placeholder="Blank = no trial (activate now)"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Set a number of days to start this host on a free trial (no
+                  charge now — it converts to the price above when they pay
+                  after the trial). Use “Activate without charging”.
+                </p>
+              </Lbl>
+            ) : null}
+            {charge.product.productType === "membership" ? (
+              <Lbl label="Reason / note for this change (optional)">
+                <Input
+                  value={changeNote}
+                  onChange={(e) => setChangeNote(e.target.value)}
+                  placeholder="e.g. Negotiated launch rate — approved by founder"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Audited with the change. If this adjusts the host’s price,
+                  their referring affiliate sees an ⓘ on the affected commission
+                  telling them to contact support — this note is the reason
+                  support gives.
+                </p>
+              </Lbl>
+            ) : null}
+            {!payLink && charge.amount > 0 && chargeTiming === "now" ? (
               <OfferEmailToggle checked={offerEmail} onChange={setOfferEmail} />
             ) : null}
             {payLink ? (
@@ -3188,17 +3130,6 @@ function ProductsPanel({
                 onClick={() => charge && scheduleSwitch(charge.product.id)}
               >
                 {pending ? "Working…" : "Schedule switch"}
-              </Button>
-            </>
-          ) : hasTrialInput ? (
-            // A trial collects no money — one action regardless of list price.
-            <>
-              <FormModalCancel onClick={closeCharge} />
-              <Button
-                disabled={pending || !charge}
-                onClick={() => charge && activate(charge.product.id, "none")}
-              >
-                {pending ? "Working…" : "Start trial"}
               </Button>
             </>
           ) : charge && charge.amount <= 0 ? (

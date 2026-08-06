@@ -51,6 +51,7 @@ import {
   SubscriptionFailed,
   SubscriptionRestricted,
   SubscriptionWelcome,
+  TrialEndingSoon,
   WelcomeHost,
 } from "@vilo/emails";
 
@@ -380,6 +381,13 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
         /\s+/g,
         " ",
       ),
+  },
+
+  trial_ending: {
+    Template: TrialEndingSoon as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `Your ${str(p.brand_name, "Wielo")} trial ends tomorrow — keep your listings live`,
   },
 
   subscription_failed: {

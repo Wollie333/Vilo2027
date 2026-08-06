@@ -110,11 +110,18 @@ export default async function AffiliateOverviewPage() {
       )
       .eq("affiliate_id", account.id)
       .order("created_at", { ascending: false }),
+    // The primary public host membership (what a referred host pays) — resolved by
+    // attributes, not a hardcoded slug, so it survives product renames.
     admin
       .from("products")
       .select("price, name, affiliate_value")
-      .eq("slug", "pro")
       .eq("is_active", true)
+      .eq("is_visible", true)
+      .eq("account_kind", "host")
+      .eq("product_type", "membership")
+      .gt("price", 0)
+      .order("price", { ascending: true })
+      .limit(1)
       .maybeSingle(),
     getAffiliateTier(admin, account.id),
   ]);
@@ -178,11 +185,25 @@ export default async function AffiliateOverviewPage() {
   const { data: subs } = hostIds.length
     ? await admin
         .from("subscriptions")
-        .select("host_id, plan, status")
+        .select("host_id, plan, status, locked_base_amount, is_founding")
         .in("host_id", hostIds)
     : {
-        data: [] as { host_id: string; plan: string | null; status: string }[],
+        data: [] as {
+          host_id: string;
+          plan: string | null;
+          status: string;
+          locked_base_amount: number | null;
+          is_founding: boolean | null;
+        }[],
       };
+  // Hosts whose subscription price was ADJUSTED by an admin (a custom base that
+  // isn't a Founding lock). Their commissions are computed off that adjusted
+  // amount, so the affiliate report flags them with an ⓘ + "contact support".
+  const adjustedHostIds = new Set(
+    (subs ?? [])
+      .filter((s) => s.locked_base_amount != null && !s.is_founding)
+      .map((s) => s.host_id),
+  );
   const payingHostIds = new Set(
     (subs ?? [])
       .filter(
@@ -236,6 +257,8 @@ export default async function AffiliateOverviewPage() {
   const recent = (commissions ?? []).slice(0, 5).map((c, i) => {
     const uid = referralUser.get(c.referral_id);
     const name = uid ? (nameByUser.get(uid) ?? "A host") : "A host";
+    const hid = uid ? hostByUser.get(uid) : undefined;
+    const adjusted = hid ? adjustedHostIds.has(hid) : false;
     const amt = Number(c.commission_amount);
     const reversed =
       c.entry_type !== "accrual" || amt < 0 || c.status === "voided";
@@ -255,6 +278,7 @@ export default async function AffiliateOverviewPage() {
       amount: zarSigned(amt),
       negative: amt < 0,
       tag,
+      adjusted,
     };
   });
 
@@ -683,8 +707,17 @@ export default async function AffiliateOverviewPage() {
                       {r.initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-semibold text-brand-ink">
-                        {r.title}
+                      <div className="flex items-center gap-1 text-[13.5px] font-semibold text-brand-ink">
+                        <span className="truncate">{r.title}</span>
+                        {r.adjusted ? (
+                          <span
+                            title="This host's subscription was adjusted by Wielo — please contact support for any queries related to this transaction."
+                            aria-label="This host's subscription was adjusted by Wielo — contact support for any queries related to this transaction."
+                            className="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-brand-line text-[9px] font-bold leading-none text-brand-mute"
+                          >
+                            i
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-0.5 text-[12px] text-brand-mute">
                         {r.sub}

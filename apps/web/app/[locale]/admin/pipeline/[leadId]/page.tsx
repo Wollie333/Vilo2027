@@ -38,6 +38,7 @@ export default async function LeadRecordPage({
         id: admin.userId,
         name: me?.full_name || admin.email,
       }}
+      canDelete={admin.roleId === "super_admin"}
     />
   );
 }

@@ -11,15 +11,21 @@ import { buyProductAction } from "./actions";
 export function BuyForm({
   slug,
   free,
+  trialDays = 0,
   sessionEmail,
 }: {
   slug: string;
   free: boolean;
+  // > 0 when this subscription offers a free trial: the server starts a trialing
+  // subscription (no charge) instead of taking payment. Copy reflects the trial.
+  trialDays?: number;
   // Set when the buyer is already signed in — the email step is skipped and the
   // button goes straight to payment. The server ignores any client email and
   // uses the session's, so we don't even send this value.
   sessionEmail?: string | null;
 }) {
+  // A trial is a no-charge start, like the free flow (same progress copy family).
+  const noCharge = free || trialDays > 0;
   const [email, setEmail] = useState("");
   // null = idle; otherwise a modal is shown with this phase.
   const [phase, setPhase] = useState<null | "working" | "redirecting">(null);
@@ -76,25 +82,39 @@ export function BuyForm({
         onClick={submit}
         className="inline-flex w-full items-center justify-center rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
       >
-        {free ? "Get access" : "Continue to payment"}
+        {trialDays > 0
+          ? `Start ${trialDays}-day free trial`
+          : free
+            ? "Get access"
+            : "Continue to payment"}
       </button>
 
-      {busy ? <ProgressModal free={free} phase={phase} /> : null}
+      {busy ? (
+        <ProgressModal free={noCharge} trial={trialDays > 0} phase={phase} />
+      ) : null}
     </div>
   );
 }
 
 function ProgressModal({
   free,
+  trial,
   phase,
 }: {
   free: boolean;
+  trial?: boolean;
   phase: "working" | "redirecting";
 }) {
   // Per-flow copy so the user knows exactly what's happening.
-  const steps = free
-    ? ["Setting up your account", "Granting your beta access", "Signing you in"]
-    : ["Confirming your details", "Taking you to secure payment"];
+  const steps = trial
+    ? ["Setting up your account", "Starting your free trial", "Signing you in"]
+    : free
+      ? [
+          "Setting up your account",
+          "Granting your beta access",
+          "Signing you in",
+        ]
+      : ["Confirming your details", "Taking you to secure payment"];
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-6">
