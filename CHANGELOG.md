@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-08-06 — Setup wizard hardening pass (all 8 steps) + pull signup data through.
+
+Walked every step live (zero runtime/console errors) and ran a 3-way code audit of the
+steps + their server actions. Pulled signup-time data through and fixed the real
+correctness/data-loss/consistency gaps found:
+
+- **Profile pulls through what the host already filled at signup** — avatar, bio and
+  languages now fall back to the `user_profiles.*` copy when the mirrored `hosts.*`
+  columns are empty (a host row created by a write-skipping path). Verified: profile went
+  from empty to Done, progress 33%→50%.
+- **Stale listing "from" price after removing the last room** (money-facing):
+  `recomputeListingFromRooms` early-returned on zero active rooms, so a deleted last room
+  left `properties.base_price` / `max_guests` / `bedrooms` / `bathrooms` advertising a
+  room that no longer exists. Now nulls them out.
+- **Silent room-edit data loss:** the room editor's top stepper pills called `setStep()`
+  without saving, so editing Details then clicking the "Amenities" pill dropped the
+  unsaved price/capacity edits. Forward jumps off Details now persist first (and pills
+  disable while saving).
+- **Policies step ↔ publish gate agreement:** the step let a host "Save & continue" on
+  two of four policies while the publish gate requires all four; it now gates on the same
+  resolver-based `policiesComplete` signal.
+- **Avatar button** is disabled during a profile save (no mid-submit swap).
+- **`highlights`** now guarded like `languages_spoken` in `saveProfileAction` — an omitting
+  caller can't silently wipe them.
+- **A11y:** setup form validation errors now render with `role="alert"` so screen readers
+  announce them (shared `_atoms` Field → every step form).
+- Noted but deferred (higher-risk / shared-surface / pre-MVP, no real users yet): photo
+  `sort_order` collision on concurrent upload, server-side photo size/type enforcement,
+  non-atomic amenity/bed delete-then-insert, the shared business-form "saved but can't
+  continue with no name" UX, and the non-atomic auth-email change in `saveProfileAction`.
+
 ## 2026-08-06 — Setup wizard reskin + gate publish nudge on setup completion.
 
 Two host-onboarding polish items, both live-verified in-browser (real host, draft listing).

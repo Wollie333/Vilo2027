@@ -157,6 +157,21 @@ export function RoomEditorSheet({
     if (step === 2) setStep(3);
   }
 
+  // Jump to a step via the top stepper pills. Leaving the Details step FORWARD
+  // must persist the form first — otherwise unsaved price/capacity edits are
+  // silently dropped (the pills used to setStep() blindly). Backward jumps and
+  // moves off steps 2/3 (which self-save) navigate directly.
+  async function goToStep(target: StepId) {
+    if (target === step || saving) return;
+    if (step === 1 && target > 1 && room) {
+      setSaving(true);
+      const ok = await detailsRef.current?.save();
+      setSaving(false);
+      if (!ok) return;
+    }
+    setStep(target);
+  }
+
   return (
     <FormModal
       open={open}
@@ -179,8 +194,8 @@ export function RoomEditorSheet({
             <div key={s.id} className="flex flex-1 items-center gap-1">
               <button
                 type="button"
-                disabled={!reachable}
-                onClick={() => reachable && setStep(s.id)}
+                disabled={!reachable || saving}
+                onClick={() => reachable && void goToStep(s.id)}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-card border px-2 py-2 text-[12px] font-semibold transition ${
                   isCurrent
                     ? "border-brand-primary bg-brand-accent text-brand-secondary"

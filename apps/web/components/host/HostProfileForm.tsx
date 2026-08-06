@@ -166,7 +166,7 @@ export function HostProfileForm({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={uploading}
+            disabled={uploading || pending}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:underline disabled:opacity-60"
           >
             <Camera className="h-3.5 w-3.5" />

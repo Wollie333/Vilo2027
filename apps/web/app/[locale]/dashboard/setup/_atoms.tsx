@@ -46,7 +46,9 @@ export function Field({
         <div className="mt-1.5 text-xs text-brand-mute">{hint}</div>
       ) : null}
       {error ? (
-        <div className="mt-1.5 text-xs text-red-600">{error}</div>
+        <div role="alert" className="mt-1.5 text-xs text-red-600">
+          {error}
+        </div>
       ) : null}
     </div>
   );

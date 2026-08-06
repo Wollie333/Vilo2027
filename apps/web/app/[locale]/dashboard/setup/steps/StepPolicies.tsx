@@ -13,6 +13,9 @@ type Props = {
   policies: PolicyCard[];
   /** The listing-wide policy currently assigned for each kind (or null). */
   assignments: Partial<Record<PolicyType, string | null>>;
+  /** All four host policies RESOLVE for this listing — the SAME resolver-based
+      signal the publish gate uses, so "continue" here can't disagree with it. */
+  policiesComplete: boolean;
   onChanged: () => void;
   onContinue: () => void;
 };
@@ -24,12 +27,14 @@ export function StepPolicies({
   listing,
   policies,
   assignments,
+  policiesComplete,
   onChanged,
   onContinue,
 }: Props) {
-  // A refund policy AND house rules are both required before continuing.
-  const canContinue =
-    assignments.cancellation != null && assignments.house_rules != null;
+  // All four policies must resolve before continuing — the SAME requirement the
+  // publish gate enforces, so this step can't wave a host through on two of four
+  // and then have publish reject them (or nag Policies as incomplete in the rail).
+  const canContinue = policiesComplete;
 
   return (
     <div className="space-y-8">
@@ -98,8 +103,8 @@ export function StepPolicies({
       <div className="flex items-center justify-between border-t border-brand-line pt-5">
         <span className="text-xs text-brand-mute">
           {canContinue
-            ? "Refund terms + house rules set — fine-tune anytime from Policies."
-            : "Attach refund terms and house rules to continue."}
+            ? "All policies set — fine-tune anytime from Policies."
+            : "Set refund terms, check-in/out, house rules and booking terms to continue."}
         </span>
         <button
           type="button"

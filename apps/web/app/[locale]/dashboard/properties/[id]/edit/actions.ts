@@ -1451,7 +1451,21 @@ async function recomputeListingFromRooms(
     .eq("property_id", listingId)
     .is("deleted_at", null)
     .eq("is_active", true);
-  if (!rooms || rooms.length === 0) return;
+  if (!rooms || rooms.length === 0) {
+    // No active rooms left (host deleted / deactivated the last one) → clear the
+    // derived headline. Without this the listing keeps advertising a "from"
+    // price and capacity from the removed room even though nothing is bookable.
+    await supabase
+      .from("properties")
+      .update({
+        base_price: null,
+        max_guests: null,
+        bedrooms: null,
+        bathrooms: null,
+      })
+      .eq("id", listingId);
+    return;
+  }
   // Headline "from" price = cheapest room's effective nightly figure for its
   // pricing mode (per_person rooms quote price_per_person; the rest base_price).
   const prices = rooms

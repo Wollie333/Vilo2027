@@ -122,8 +122,12 @@ export async function saveProfileAction(
     if (d.languages_spoken !== undefined) {
       hostPatch.languages_spoken = d.languages_spoken;
     }
-    // Optional in the schema; treat "unset" as "no highlights".
-    hostPatch.highlights = d.highlights ?? [];
+    // Same guard as languages: only write highlights when the caller actually
+    // sends them, so a form that omits the field can't silently wipe the host's
+    // existing highlights on an unrelated save.
+    if (d.highlights !== undefined) {
+      hostPatch.highlights = d.highlights;
+    }
     const { error: hostErr } = await supabase
       .from("hosts")
       .update(hostPatch)

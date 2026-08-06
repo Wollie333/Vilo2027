@@ -551,6 +551,7 @@ export function SetupWizard(props: Props) {
                     listing={listing}
                     policies={policies}
                     assignments={policyAssignments}
+                    policiesComplete={props.policiesComplete}
                     onChanged={() => refreshWith("Saving your policy…")}
                     onContinue={next}
                   />
