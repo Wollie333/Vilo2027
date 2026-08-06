@@ -1603,6 +1603,28 @@ function Dossier({
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <RolePill role={user.role} />
+              {/* Active membership plan pill — the host's current plan shown right
+                  on the identity card (not just buried in the Products tab), so an
+                  admin sees at a glance what they're on. Membership only (the one
+                  plan a host holds); services live under Products. */}
+              {(() => {
+                const membership = data.subscriptions.find(
+                  (s) =>
+                    s.productType === "membership" &&
+                    ["active", "trialing", "past_due"].includes(s.status),
+                );
+                if (!membership) return null;
+                const label =
+                  membership.productName ?? membership.plan ?? "Plan";
+                const trialing = membership.status === "trialing";
+                return (
+                  <span className="inline-flex items-center gap-1 rounded-pill border border-brand-primary/30 bg-brand-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                    {label}
+                    {trialing ? " · Trial" : ""}
+                  </span>
+                );
+              })()}
               {data.subscriptions.some(
                 (s) => s.productType === "membership" && s.isFounding,
               ) ? (
