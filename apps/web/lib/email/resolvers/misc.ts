@@ -10,6 +10,7 @@ import {
 
 import { signReviewToken } from "../../review-token";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
+import { referralNextLink } from "@/lib/affiliate/links";
 
 import type { AdminClient, EmailResolver } from "./types";
 import { refId } from "./types";
@@ -82,6 +83,71 @@ const subscriptionExpiringResolver: EmailResolver = async (refs, ctx) => {
     planName: planLabel(sub.plan),
     renewalDate: formatDateLong(sub.current_period_end),
     price,
+  };
+};
+
+const trialEndingResolver: EmailResolver = async (refs, ctx) => {
+  const subId = refId(refs, "subscription_id");
+  if (!subId) return {};
+  const { data: sub } = await ctx.supabase
+    .from("subscriptions")
+    .select("plan, host_id, trial_ends_at")
+    .eq("id", subId)
+    .maybeSingle();
+  if (!sub) return {};
+
+  const { data: host } = await ctx.supabase
+    .from("hosts")
+    .select("display_name, user_id")
+    .eq("id", sub.host_id)
+    .maybeSingle();
+
+  const { data: profile } = host?.user_id
+    ? await ctx.supabase
+        .from("user_profiles")
+        .select("full_name")
+        .eq("id", host.user_id)
+        .maybeSingle()
+    : { data: null };
+
+  // Affiliate-aware CTA: if this host's account was permanently bound to an
+  // active affiliate (affiliate_referrals is keyed on the user, so it survives
+  // the guest→host transition), route the subscribe CTA through /r/<slug> so
+  // the conversion is credited to the referrer. Otherwise a plain subscribe
+  // link. referralNextLink handles both cases (null slug → plain link).
+  let affiliateSlug: string | null = null;
+  if (host?.user_id) {
+    const { data: ref } = await ctx.supabase
+      .from("affiliate_referrals")
+      .select("affiliate_id")
+      .eq("referred_user_id", host.user_id)
+      .maybeSingle();
+    if (ref?.affiliate_id) {
+      const { data: acct } = await ctx.supabase
+        .from("affiliate_accounts")
+        .select("slug, status")
+        .eq("id", ref.affiliate_id)
+        .maybeSingle();
+      if (acct?.status === "active" && acct.slug) affiliateSlug = acct.slug;
+    }
+  }
+
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://wielo.co.za"
+  ).replace(/\/+$/, "");
+  const ctaUrl = referralNextLink(
+    baseUrl,
+    affiliateSlug,
+    "/dashboard/settings/subscription",
+  );
+
+  return {
+    hostFirstName: firstName(profile?.full_name ?? host?.display_name),
+    planName: planLabel(sub.plan),
+    trialEndsLabel: formatDateLong(sub.trial_ends_at),
+    ctaUrl,
   };
 };
 
@@ -442,6 +508,7 @@ export const MISC_RESOLVERS: Record<string, EmailResolver> = {
   subscription_expiring: subscriptionExpiringResolver,
   subscription_failed: subscriptionFailedResolver,
   subscription_restricted: subscriptionRestrictedResolver,
+  trial_ending: trialEndingResolver,
   review_request_guest: reviewRequestResolver,
   new_review_host: newReviewHostResolver,
   review_response_guest: reviewResponseGuestResolver,

@@ -192,6 +192,13 @@ export const MESSAGE_CATALOG: CatalogEntry[] = [
     description: "Seven days before renewal → host",
   },
   {
+    kind: "trial_ending",
+    area: "sub",
+    label: "Trial ending soon",
+    description: "24 hours before a free trial expires → host",
+    isNew: true,
+  },
+  {
     kind: "subscription_failed",
     area: "sub",
     label: "Payment failed",

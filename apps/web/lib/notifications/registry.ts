@@ -1061,6 +1061,33 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `subscription_expiring:${r.renewal_date ?? "x"}`,
   } satisfies EventBuilder<SubscriptionRefs>,
 
+  // Fires ~24h before a free trial expires (hourly `trial-ending-warnings`
+  // cron → notify_subscription_event). Email CTA is affiliate-aware
+  // (trialEndingResolver); in-app + admin feed enqueued SQL-side.
+  trial_ending: {
+    category: "subscription",
+    feature: "subscription",
+    severity: "default",
+    emailTemplate: "trial_ending",
+    refKeys: ["subscription_id"],
+    push: (r) => ({
+      title: "Your trial ends in 24 hours",
+      body: clip(
+        `Your ${r.brand_name ?? "Wielo"} ${r.plan_name ?? ""} trial ends soon — subscribe to keep your listings live.`,
+      ),
+      data: link("/dashboard/settings/subscription"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: "Your trial ends in 24 hours",
+      body: r.plan_name
+        ? `Your ${r.plan_name} trial ends soon — subscribe to keep your listings live.`
+        : "Subscribe to keep your listings live.",
+      link: "/dashboard/settings/subscription",
+    }),
+    dedupeKey: (r) => `trial_ending:${r.renewal_date ?? "x"}`,
+  } satisfies EventBuilder<SubscriptionRefs>,
+
   subscription_failed: {
     category: "account_security",
     feature: "subscription",

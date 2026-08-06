@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-08-06 — Automated "trial ending soon" email (~24h before trial expiry), affiliate-aware CTA.
+
+New transactional email that fires ~24h before a free trial expires, prompting the host to subscribe. Net-new
+(the existing `subscription-expiry-warnings` cron keys off `current_period_end`, not `trial_ends_at`, so trial-only
+expiry was uncovered). Built on the proven `notify_subscription_event` → `notification_queue` → `drain-email-queue`
+path (email + in-app + admin feed), so it also surfaces in the Comms **Automated messages** tab with a live preview.
+`pnpm build` + `pnpm lint` + `tsc` + 59 email render tests green; migration applied to cloud + verified live.
+
+- **Template** `emails/templates/TrialEndingSoon.tsx` (+ barrel export). Copy: "Your trial ends in 24 hours →
+  subscribe to keep your listings live. No commission, ever." Subject: "Your Wielo trial ends tomorrow — keep
+  your listings live."
+- **Affiliate-aware CTA** — `trialEndingResolver` (`lib/email/resolvers/misc.ts`) resolves the host's durable
+  referrer from `affiliate_referrals` (by `referred_user_id`; survives guest→host) → active `affiliate_accounts.slug`,
+  then builds the CTA via `referralNextLink(base, slug, "/dashboard/settings/subscription")`: referred → `/r/<slug>?next=…`
+  (credits the affiliate + drops the cookie), not referred → the plain subscribe link.
+- **Wiring** — `EMAIL_REGISTRY.trial_ending` (recipient: host), `NOTIFICATION_REGISTRY.trial_ending`
+  (emailTemplate + push/in-app builders → Comms shows Email/Push/In-app), `MESSAGE_CATALOG` entry (Subscription
+  area, "Trial ending soon", NEW badge), + sample payload for the preview.
+- **Trigger** — migration `20260806140000_trial_ending_email.sql`: adds `trial_ending` to the `notify_subscription_event`
+  whitelist + branch, and a new **hourly** pg_cron `trial-ending-warnings` (`5 * * * *`) scanning a rolling window
+  `trial_ends_at ∈ [now+23h, now+24h]` (fires once per trial ~24h out; per-trial dedupe key). Verified live: cron
+  active, whitelist updated, enqueue proven via a rollback probe (enqueued=1, no persistence, no send — the one real
+  trialing sub is 13 days out so nothing fired).
+
 ## 2026-08-05 — Pipeline cleanup: prune dead board `value`/`valueKind` fields; verify lead-delete deny gate.
 
 On `main` (continues the pipeline-cards save point at `eb3d6e66`). No migrations — pure app-layer. `tsc` +
