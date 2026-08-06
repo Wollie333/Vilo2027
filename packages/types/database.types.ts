@@ -13935,6 +13935,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_directory: {
+        Args: {
+          p_amenities?: string[]
+          p_bathrooms?: number
+          p_bedrooms?: number
+          p_category_ids?: string[]
+          p_checkin?: string
+          p_checkout?: string
+          p_guests?: number
+          p_instant?: boolean
+          p_limit?: number
+          p_max_price?: number
+          p_min_price?: number
+          p_min_rating?: number
+          p_offset?: number
+          p_priority_country?: string
+          p_sort?: string
+          p_type_slug?: string
+          p_verified?: boolean
+          p_where?: string
+        }
+        Returns: {
+          id: string
+          total_count: number
+        }[]
+      }
       send_due_access_cards: { Args: never; Returns: number }
       set_affiliate_status: {
         Args: {

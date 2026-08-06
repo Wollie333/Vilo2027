@@ -52,6 +52,8 @@ export default async function ExplorePage({
             guests={result.guests ?? 0}
             currentType={result.type}
             currentSort={result.sort}
+            checkin={result.checkin ?? ""}
+            checkout={result.checkout ?? ""}
           />
         </div>
       </section>

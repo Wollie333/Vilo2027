@@ -53,6 +53,8 @@ export default async function PortalBrowsePage({
           guests={result.guests ?? 0}
           currentType={result.type}
           currentSort={result.sort}
+          checkin={result.checkin ?? ""}
+          checkout={result.checkout ?? ""}
           basePath="/portal/browse"
         />
       </div>

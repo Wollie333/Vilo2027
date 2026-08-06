@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-08-06 — Front-page availability search + ethical earned-only ranking.
+
+Modernised the home-page search and made directory ranking fair (hosts compete on listing
+optimisation, not spend). All verified on the live DB + browser (canvas + live).
+
+- **Modern search bar** (`app/_components/browse/DirectorySearchBar.tsx`): one branded control —
+  Where (keyword) · Type · Check-in/Check-out · Guests · Search. Uses the branded `DateRangePicker`
+  SSOT and the branded `Select` popover (never native `<select>`/`<input type=date>`). Mobile-first
+  (full-width stacked fields), one clean equal-height row on desktop. Wired into the home `Hero`
+  and `/explore` + `/portal/browse` (via the `SearchBar` adapter; type stays the chips row there).
+  Header untouched.
+- **Real availability filtering**: `checkin`/`checkout` hide stays whose whole-listing is blocked
+  for the range (`blocked_dates` where `room_id IS NULL`). Half-set/invalid ranges = no filter,
+  never "matches nothing".
+- **Weighted full-text relevance** (mig `20260806170000`): `properties.search_vector` recreated
+  weighted — name (A) · location (B) · type (C) · description (D) — so a name match outranks a
+  description match and keyword-stuffing can't win.
+- **Plan boost removed from ranking** (founder decision): `ranking_weights.plan → 0`, redistributed
+  to earned signals (rating .30 · reviews .20 · optimisation/profile .30 · response .20).
+  `recalculate_listing_ranking()` rewritten (no subscription term); all listings recomputed.
+- **`search_directory()` RPC** (mig `20260806180000`): single source of filter truth — FTS relevance
+  blended with earned quality (`search_blend` 0.70/0.30) for keyword queries, else `ranking_score`;
+  applies every filter + availability + priority-country bucketing; returns `(id, total_count)`.
+  `searchListings.ts` now routes through it. Proven on the live DB: a high-relevance free listing
+  outranks a higher-quality-but-weakly-matching one; date-blocked listing excluded.
+- Deferred (documented, not built): host "Listing Strength" panel + public ranking-factors help
+  article; host-diversity interleaving + freshness/exploration. Plan: `docs/features/FRONT_PAGE_SEARCH_PLAN.md`.
+
 ## 2026-08-05 (pt38) — Reporting single source of truth: Domain 2 (host) + Domain 3 (affiliate).
 
 tsc (full) + lint (changed files) + full vitest (490) GREEN. No migration. Founder confirmed

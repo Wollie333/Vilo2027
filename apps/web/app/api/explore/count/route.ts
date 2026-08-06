@@ -20,6 +20,8 @@ const KEYS = [
   "guests",
   "type",
   "sort",
+  "checkin",
+  "checkout",
   "min_price",
   "max_price",
   "bedrooms",
