@@ -2594,6 +2594,7 @@ export async function setUserProduct(input: {
   creditOverride?: number | null;
   customBaseAmount?: number | null;
   trialDays?: number | null;
+  reason?: string;
   sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {

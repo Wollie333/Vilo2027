@@ -2269,6 +2269,9 @@ function ProductsPanel({
     const n = Number(t);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
   };
+  // Optional note/reason for this change — audited, and the reference support
+  // gives an affiliate who queries a commission adjusted by this change.
+  const [changeNote, setChangeNote] = useState("");
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
@@ -2276,6 +2279,7 @@ function ProductsPanel({
     setCreditOverride("");
     setCustomPrice("");
     setTrialDays("");
+    setChangeNote("");
     setOfferEmail(true);
   };
 
@@ -2394,6 +2398,7 @@ function ProductsPanel({
         creditOverride: parsedOverride(),
         customBaseAmount: parsedCustomPrice(),
         trialDays: parsedTrialDays(),
+        reason: changeNote.trim() || undefined,
       });
       setBusyId(null);
       if (r.ok) {
@@ -2784,6 +2789,16 @@ function ProductsPanel({
           Catalog. A host holds one membership + any number of services. Add or
           switch below; edit a product in the Products hub.
         </div>
+        <div className="mb-3 text-[12px] text-brand-mute">
+          Need to change a single feature RULE (a limit or unlock) for this host
+          only — not their whole plan?{" "}
+          <a
+            href="/admin/platform/features"
+            className="font-medium text-brand-primary underline underline-offset-2"
+          >
+            Set a per-host feature override →
+          </a>
+        </div>
         {data.products.length === 0 ? (
           <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
             No subscription products configured yet.
@@ -3050,6 +3065,21 @@ function ProductsPanel({
                   Set a number of days to start this host on a free trial (no
                   charge now — it converts to the price above when they pay
                   after the trial). Use “Activate without charging”.
+                </p>
+              </Lbl>
+            ) : null}
+            {charge.product.productType === "membership" ? (
+              <Lbl label="Reason / note for this change (optional)">
+                <Input
+                  value={changeNote}
+                  onChange={(e) => setChangeNote(e.target.value)}
+                  placeholder="e.g. Negotiated launch rate — approved by founder"
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Audited with the change. If this adjusts the host’s price,
+                  their referring affiliate sees an ⓘ on the affected commission
+                  telling them to contact support — this note is the reason
+                  support gives.
                 </p>
               </Lbl>
             ) : null}

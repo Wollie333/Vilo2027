@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-08-06 — Affiliate transparency on adjusted commissions + admin change-note; surface per-host feature overrides.
+
+Completes the per-user override tooling with affiliate-facing transparency.
+
+- **Affiliate ⓘ tooltip** (`portal/affiliates/page.tsx`): commissions from a host whose subscription price was adjusted
+  by an admin (a `locked_base_amount` that isn't a Founding lock) now show a small ⓘ next to the row →
+  "This host's subscription was adjusted by Wielo — please contact support for any queries related to this transaction."
+  Derived from the sub state (no schema change).
+- **Admin change-note** (`UserRecord.tsx` → `setUserProductAction.reason`): the assign-product modal gains a
+  "Reason / note for this change" field, audited with the change — the reference support gives an affiliate who queries
+  an adjusted commission.
+- **Per-host feature overrides already existed** (`createHostOverrideAction` at `/admin/platform/features`: grant/revoke
+  a single feature for one host, reason-required, audited, read first by `check_feature_permission`). Added a link to it
+  from the user record's catalog section so it's discoverable per-user ("change a single feature rule for this host only").
+
 ## 2026-08-06 — Per-user trial (admin + dashboard self-serve), and verified money consolidation.
 
 Extends the per-user product controls. Money-consolidation VERIFIED live: subscription price, affiliate commission,
