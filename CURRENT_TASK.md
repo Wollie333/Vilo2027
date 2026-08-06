@@ -31,16 +31,19 @@
 5. **Public help article** — mig `20260806190000`: `/help/how-search-ranking-works` in the
    "Listings & photos" category (host audience, published). Live-verified render.
 
-### ⚠️ Known / deferred
-- **0 published accommodation listings in the DB** → end-to-end ranked *results rendering* not shown
-  in-browser (the algorithm is proven at the SQL layer). Offer to temp-seed published stays to demo.
-- **RPC refinements NOT built** (documented as future): host-diversity interleaving + freshness/
-  exploration rotation.
-- 🚨 **`supabase db push` can record a migration WITHOUT running its SQL** ("Remote database is up to
-  date" lie) — verify the actual row, then `migration repair --status reverted <ver>` + re-push.
-  See [[reference-db-push-records-without-running]].
+6. **Fair-search refinements** — mig `20260806200000`: host-diversity round-robin (max 2/host
+   before others interleave; no-op for single-listing hosts) + new-listing grace boost + hourly
+   banded rotation (recommended sort only; knobs `platform_settings.search_fairness`). Diversity
+   PROVEN live in-browser + ranked results rendering confirmed (seeded 5 demos across 2 hosts,
+   screenshotted, then DELETED → 0 published now); freshness proven via rollback.
 
-### ▶️ Likely next
-Ranking refinements (diversity/exploration), OR seed demo listings to see ranked results live, OR
-the older backlog: **Meta CAPI creds + Vault secrets guide** (from the pre-fair-search save point
-[[project-savepoint-aug6-per-user-controls]]).
+### ⚠️ Known / traps
+- **0 published accommodation listings in the DB** (demos removed after verifying) — real results
+  appear once hosts publish. Everything is proven (SQL rollback + live browser).
+- 🚨 **`supabase db push` can record a migration WITHOUT running its SQL** ("up to date" lie) — verify
+  the row, then `migration repair --status reverted <ver>` + re-push. Also: **migration-timestamp
+  collisions** after rebasing over concurrent main work (renamed article `190000`→`191000`).
+
+### ▶️ Likely next (nothing left on fair search)
+Possible nice-to-have: a **listing-strength badge on the properties list card**. Otherwise the older
+backlog: **Meta CAPI creds + Vault secrets guide** ([[project-savepoint-aug6-per-user-controls]]).
