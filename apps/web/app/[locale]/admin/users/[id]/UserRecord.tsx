@@ -2651,6 +2651,21 @@ function ProductsPanel({
                     : "Sell"}
             </Button>
           )}
+          {/* One-click no-charge activation for a PAID plan not on the account —
+              the common "they already paid (card/EFT), just apply it" case. Skips
+              the Sell dialog entirely so an admin never has to hunt for the
+              no-charge option (and can't fat-finger a duplicate charge). Free
+              plans already activate with no charge via the primary button. */}
+          {!onAccount && !p.isFree ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => activate(p.id, "none")}
+            >
+              {busyId === p.id ? "Working…" : "Activate (already paid)"}
+            </Button>
+          ) : null}
           <Link
             href={`/admin/products/${p.id}`}
             className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
@@ -3144,14 +3159,18 @@ function ProductsPanel({
             </>
           ) : (
             <>
-              <button
-                type="button"
-                disabled={pending}
+              {/* Already-paid activation is the safe, common case (the buyer
+                  paid elsewhere / by card / EFT). It used to be greyed caption
+                  text that read like a note, so admins reached for "Mark as paid
+                  now" instead and posted a DUPLICATE charge. It's now a clear
+                  button, and "Mark as paid now" is labelled as what it does. */}
+              <Button
+                variant="outline"
+                disabled={pending || !charge}
                 onClick={() => charge && activate(charge.product.id, "none")}
-                className="text-[13px] font-medium text-brand-mute hover:text-brand-ink disabled:opacity-50"
               >
-                Activate without charging
-              </button>
+                {pending ? "Working…" : "Activate — no charge"}
+              </Button>
               <Button
                 variant="outline"
                 disabled={pending || !charge}
@@ -3163,7 +3182,7 @@ function ProductsPanel({
                 disabled={pending || !charge}
                 onClick={() => charge && activate(charge.product.id, "paid")}
               >
-                {pending ? "Working…" : "Mark as paid now"}
+                {pending ? "Working…" : "Post charge + activate"}
               </Button>
             </>
           )}
