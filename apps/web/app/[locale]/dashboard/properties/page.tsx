@@ -8,6 +8,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Gauge,
   Image as ImageIcon,
   LayoutGrid,
   List as ListIcon,
@@ -867,6 +868,15 @@ function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
             Top performer
           </span>
         ) : null}
+
+        <Link
+          href={`/dashboard/properties/${l.id}/strength`}
+          aria-label="Listing strength"
+          title="Listing strength"
+          className="absolute right-12 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-brand-ink shadow-sm backdrop-blur transition hover:bg-white hover:text-brand-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+        >
+          <Gauge className="h-4 w-4" />
+        </Link>
 
         <ListingCardMenu
           listingId={l.id}

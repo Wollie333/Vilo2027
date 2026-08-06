@@ -5,24 +5,26 @@
 
 ---
 
-## 2026-08-06 — Host "Listing Strength" transparency panel.
+## 2026-08-06 — Host "Listing Strength" transparency page.
 
-Makes the fair ranking visible + coachable. New **Search ranking** tab in the listing editor
-(`dashboard/properties/[id]/edit`, also the admin mirror) showing each listing's live score and
-how to climb — verified in-browser (desktop + mobile, real data, Fix buttons navigate).
+Makes the fair ranking visible + coachable. A **Gauge icon on each property card**
+(`dashboard/properties`) opens a dedicated full page **`/dashboard/properties/[id]/strength`** —
+kept separate from listing *setup* — showing that listing's live score and how to climb. Verified
+in-browser (desktop 2-column + mobile stack, real data on a draft listing, Fix links deep-link into
+the editor). (Started as an editor tab, then moved to a page per founder — cleaner, more room.)
 
 - **`lib/search/listingStrength.ts`** (pure, shared): turns the stored `property_rankings` row +
   raw listing signals into a score band, component bars (rating 30 / reviews 20 / optimisation 30 /
   responsiveness 20), a "quick wins" checklist (mirrors `recalculate_listing_ranking`'s profile
   sub-scores — description, city, 5+ photos, check-in time, 3+ amenities), and a keyword nudge.
-  Headline number = the stored `ranking_score` verbatim, so the host's number can't drift from the
-  algorithm's.
-- **`RankingTab.tsx`**: score ring + "Ranking is earned, not bought — your plan has no effect"
-  banner + component breakdown + quick-wins with per-item **Fix →** (deep-links to the tab that
-  resolves it) + keyword tip. Wired into `Editor.tsx` (new `ranking` tab) via `editorData` loading
-  the ranking row.
-- Deferred: public ranking-factors help article (the tab links to `/help` for now) + a strength
-  badge on the listings list.
+  Headline = the stored `ranking_score` verbatim, so the host's number can't drift from the algorithm.
+- **`lib/search/loadListingStrength.ts`** (server): own-only — proves ownership via the RLS client,
+  then reads the ranking row + counts with the admin client so it works for DRAFT listings too
+  (`public_read_rankings` only covers published ones).
+- **`ListingStrengthCard.tsx`**: 2-column spread — score ring + "Ranking is earned, not bought"
+  banner + component breakdown on the left; per-item **Fix →** quick-wins (deep-link to the editor
+  tab that resolves each) + keyword tip on the right. Rendered by the strength page (breadcrumbs).
+- Deferred: public ranking-factors help article (page links to `/help` for now).
 
 ## 2026-08-06 — Front-page availability search + ethical earned-only ranking.
 
