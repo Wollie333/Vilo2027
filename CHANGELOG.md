@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-08-06 — Fair-search refinements: host diversity + freshness/exploration.
+
+Completes the fair ranking. `search_directory` RPC (mig `20260806200000`) gains, for the
+**recommended sort only** (explicit price/rating/newest stay strict):
+
+- **Host diversity** — round-robin by each host's own best→worst (`row_number` per host →
+  bucket of `diversity_group`=2), so a host shows at most 2 listings before others interleave.
+  No-op for single-listing hosts. **Proven live in-browser** (seeded 2 hosts, then removed): a
+  host's 3rd listing (score .80) correctly ranked *below* another host's .70 and .65 listings.
+- **Freshness** — a decaying new-listing grace boost (`grace_boost`=0.10 over `grace_days`=30)
+  gives newcomers a head start to earn first reviews. **Proven** (rollback): a raw-.15 new
+  listing outranked a raw-.22 established one; modest enough not to overtake genuinely strong
+  listings.
+- **Exploration** — stable-per-hour rotation (`hashtext(id||hour)`) within fine quality bands
+  (`band_width`=0.02) so near-equal listings take turns; deterministic → pagination never
+  reshuffles mid-session.
+- Knobs live in `platform_settings.search_fairness` (per-key COALESCE fallback — a missing row
+  can't break search). Also closed the last gap: **ranked results rendering verified in-browser**
+  (seeded published demos across 2 hosts, screenshotted the fair order, then deleted them).
+- ⚠️ Migration hygiene: a concurrent `20260806190000_platform_ledger_order_link.sql` (from
+  rebased main) collided with the help-article migration's timestamp; renamed the article to
+  `20260806191000` to resolve. Watch for timestamp collisions after rebasing over concurrent work.
+
 ## 2026-08-06 — Host "Listing Strength" transparency page.
 
 Makes the fair ranking visible + coachable. A **Gauge icon on each property card**
