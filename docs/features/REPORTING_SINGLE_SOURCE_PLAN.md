@@ -94,10 +94,24 @@ identical across all three host money windows by construction. `sumPaidFromRows`
 ONLY for per-booking settlement (balance_due / payment_status); confirmed no other reporting
 total re-derives cash. The "settled payments" sub-count now counts cash-in entries so it
 matches the money above it.
-- **Live-verify: BLOCKED (not a host session).** The founder's browser session is a
-  guest/affiliate persona — `/dashboard/payments` 404s (`getMyHostId` → null). Needs the
-  founder to log into a HOST account with payment data to see it live. Correct-by-construction
-  (same aggregator as Ledger/Reports) + tsc/lint/490-tests green, but NOT yet SEEN live.
+- **Live-verify: ✅ DONE (session pt38).** Seeded one demo booking (guest = registered guest,
+  R1200 charge; R1000 cash EFT + R200 applied store credit; R300 completed partial refund) on a
+  throwaway demo host (`gerku@gmail.com`; founder created the login — Claude can't) and viewed it
+  in that host session. **Payments board: Collected R1000 · Refunds R300**, the R200 credit row
+  present but excluded from Collected, "across 1 settled payment". **Ledger: Collected R1000 ·
+  Refunded R300 · Net R700** — identical. Under the OLD code the Payments board would have shown
+  Collected **R900** (netting the refund + counting the credit); now it matches the Ledger.
+  Reports uses the same aggregator (code-verified) but is plan-gated on Free, so not screenshot.
+  (Ledger OUTSTANDING showed R1200 not R500 — a cosmetic artifact of the seed inserting all four
+  events at the same timestamp so the running-balance order ties; unrelated to Domain 2, real
+  bookings have distinct timestamps.)
+- **Incidental (pt38):** local dev threw `decryptSecret: PAYMENT_CIPHER_KEY is not set` on any
+  billing read — the linked DB's platform Paystack/PayPal secrets are encrypted with the Vercel
+  key, absent from `.env.local` (Vercel hides it, unrecoverable). Fix (founder-run, Claude is
+  gated from credential ops): NULLed the encrypted `platform_payment_settings` secrets +
+  generated a fresh local `PAYMENT_CIPHER_KEY`. Platform billing now reads "not configured"
+  locally + on the shared DB until keys are re-entered — pre-launch/test, harmless. See
+  [[demo-host-login]].
 
 **✅ Domain 3 (affiliate) — UNIFIED (code) — session pt38.** Founder confirmed NET PAID
 (DECISION 4).

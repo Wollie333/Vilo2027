@@ -23,9 +23,14 @@ Domain 2 (host "Collected") — unified in code:
   "settled payments" sub-count now counts cash-in entries so it matches the money above it.
   `sumPaidFromRows` stays the per-booking settlement rule only (balance_due / payment_status);
   verified no other reporting total re-derives cash. (AGENT_RULES §4.7.)
-- Live-verify BLOCKED: the founder's browser session is a guest/affiliate persona, so
-  `/dashboard/payments` 404s (`getMyHostId`→null). Correct-by-construction + green, but needs a
-  real HOST login to be SEEN live.
+- Live-verified (pt38): seeded a demo booking (R1200 charge; R1000 cash EFT + R200 applied credit;
+  R300 partial refund) on a throwaway demo host and viewed it in that host session — **Payments
+  board = Ledger: Collected R1000 · Refunds R300 · Net R700**, the R200 credit present but excluded
+  from Collected. Under the old code the board would have shown Collected R900; the divergence is
+  gone. (Reports uses the same aggregator but is plan-gated on Free.) Incidental: fixed a local
+  `PAYMENT_CIPHER_KEY not set` decrypt crash (encrypted platform gateway secrets, key hidden in
+  Vercel) by NULLing the unreadable secrets + adding a fresh local key — founder-run, since the
+  harness gates Claude from credential/secret operations.
 
 Domain 3 (affiliate) — unified in code + render-verified:
 - `portal/affiliates/payouts/page.tsx` (D3a): "Paid out to date" = Σ `affiliate_payouts.net_amount`

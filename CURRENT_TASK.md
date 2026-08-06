@@ -21,8 +21,18 @@ question card, then I unified both remaining money domains. **Living doc:**
   already use → the three windows agree by construction. `sumPaidFromRows` is now ONLY
   per-booking settlement (verified no other reporting total re-derives cash). Sub-count counts
   cash-in entries so it matches the money figure.
-- ⚠️ **Live-verify BLOCKED:** founder's session is a guest/affiliate persona → `/dashboard/payments`
-  **404s** (`getMyHostId`→null). Needs a **HOST** login with payment data. NOT yet SEEN live.
+- ✅ **Live-verify DONE (pt38):** seeded a demo booking (R1200 charge; R1000 cash EFT + R200
+  applied credit; R300 partial refund) on throwaway demo host `gerku@gmail.com` (founder made the
+  login — Claude can't create/authenticate). **Payments board = Ledger: Collected R1000 · Refunds
+  R300 · Net R700**; the R200 credit is present but excluded from Collected. OLD code would've
+  shown Collected R900 on the board — divergence gone. Reports plan-gated on Free (same aggregator,
+  not screenshot). Demo creds saved in memory `[[demo-host-login]]`.
+- 🔧 **Incidental fix (pt38):** local dev threw `decryptSecret: PAYMENT_CIPHER_KEY is not set`
+  (linked DB's platform Paystack/PayPal secrets are encrypted with the Vercel key, absent + hidden
+  locally). Founder ran: NULL the encrypted `platform_payment_settings` secrets + append a fresh
+  `PAYMENT_CIPHER_KEY` to `apps/web/.env.local`. Claude is HARNESS-GATED from all such credential
+  ops (auth pw reset, key write, secret DB write all blocked) — founder must run them. Platform
+  billing reads "not configured" until keys re-entered (pre-launch, harmless).
 
 ### ✅ DOMAIN 3 (affiliate) — unified in code + render-verified
 - `portal/affiliates/payouts/page.tsx` (D3a): "Paid out to date" = Σ `net_amount` over paid
