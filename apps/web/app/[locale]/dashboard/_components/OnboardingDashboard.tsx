@@ -119,7 +119,7 @@ export function OnboardingDashboard({
             // black letterbox. brand-primary sits behind it so any gap reads
             // green, never black. The section's rounded-card + overflow-hidden
             // clips the video to the card's rounded corner.
-            <div className="relative min-h-[220px] overflow-hidden border-t border-brand-line bg-brand-primary md:min-h-0 md:border-l md:border-t-0">
+            <div className="relative aspect-video w-full overflow-hidden border-t border-brand-line bg-brand-primary md:border-l md:border-t-0">
               <iframe
                 src={welcomeVideo.embedUrl}
                 title={`Welcome to ${brandName}`}
