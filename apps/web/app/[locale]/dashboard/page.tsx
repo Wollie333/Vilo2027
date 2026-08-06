@@ -4,8 +4,10 @@ import { Link } from "@/i18n/navigation";
 
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { reconcilePaidProductActivations } from "@/lib/billing/product-checkout";
 import { fetchGettingStartedState } from "@/lib/help/queries";
 import { fetchOnboardingWelcomeVideo } from "@/lib/help/onboardingVideo";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnError, throwOnErrorWithCount } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -74,6 +76,19 @@ export default async function DashboardPage({
       data: { user },
     },
   ] = await Promise.all([getBrandName(), supabase.auth.getUser()]);
+
+  // Self-heal: if a payment settled but a settle path flipped the order to `paid`
+  // WITHOUT activating the plan (webhook error after the flip, etc.), assign it
+  // now — BEFORE reading the host's subscription-derived state below, so this
+  // render already reflects the paid plan. Best-effort; a reconcile hiccup must
+  // never break the dashboard.
+  if (user) {
+    try {
+      await reconcilePaidProductActivations(createAdminClient(), user.id);
+    } catch {
+      // non-fatal
+    }
+  }
 
   // The host row and the getting-started state both depend only on user.id
   // and are independent of each other — fetch them in one wave.

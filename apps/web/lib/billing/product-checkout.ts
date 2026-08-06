@@ -7,6 +7,7 @@ import {
   countHostListings,
   resolveMembershipAmount,
 } from "@/lib/billing/membershipAmount";
+import { resolvePlatformEnvironment } from "@/lib/billing/environment";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { resolvePlatformCoupon } from "@/lib/billing/platform-coupons";
 import { isFoundingOffersOpen } from "@/lib/billing/recurring";
@@ -1098,7 +1099,11 @@ export async function recordProductEftIntent(
     }
   }
 
-  const environment = order.environment ?? "test";
+  // Tag the platform's CURRENT mode (test/live) so an EFT-seeded charge lands in
+  // the same env bucket the revenue windows read — a bare 'live'/'test' default
+  // is exactly what hid the R50 charge (REPORTING_SINGLE_SOURCE_PLAN.md Domain 1).
+  const environment =
+    order.environment ?? (await resolvePlatformEnvironment(admin));
   const ref = `eft_${order.id}`;
   const { data: existing } = await admin
     .from("platform_ledger")
@@ -1296,7 +1301,7 @@ async function activateMappedPlan(
   const isTrial = trialEndsAt instanceof Date;
   const { data: product } = await admin
     .from("products")
-    .select("product_type, slug, billing_cycle, plan_key, founding_price")
+    .select("product_type, slug, billing_cycle, plan_key, founding_price, name")
     .eq("id", productId)
     .maybeSingle();
   // Only subscription-like products (membership | service) become subscriptions;
@@ -1465,6 +1470,72 @@ async function activateMappedPlan(
     } catch {
       // non-fatal — activation must not fail because a welcome email didn't send
     }
+    // Tell staff a host just activated a paid plan. The settle paths never
+    // notified admins of a new subscription (payment gap); notifyAdmins is
+    // itself non-fatal. First activation only (gated on !wasActive) so a monthly
+    // renewal never re-pings the feed.
+    await notifyAdmins(admin, {
+      category: "finance",
+      kind: "subscription_activated",
+      title: "New subscription",
+      body: `${product.name ?? plan} · activated for a host`,
+      userId: payerUserId,
+      hostId: host.id,
+      href: `/admin/users/${payerUserId}`,
+    });
+  }
+}
+
+/**
+ * Backstop: assign a host their paid plan when a settle path flipped the order to
+ * `paid` but never activated the subscription (e.g. a webhook that errored after
+ * the flip), leaving the host stuck on the free baseline despite paying. For each
+ * PAID membership/service order NOT yet reflected in an active subscription, runs
+ * the idempotent {@link activateMappedPlan}. Safe on every dashboard load: it
+ * returns fast when there's nothing to reconcile, never touches a product the
+ * host is already active on (which would wrongly extend the period), and uses the
+ * order's paid date as the period anchor so a delayed heal doesn't shift billing.
+ */
+export async function reconcilePaidProductActivations(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<void> {
+  const { data: host } = await admin
+    .from("hosts")
+    .select("id")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!host) return;
+
+  const { data: orders } = await admin
+    .from("product_orders")
+    .select("id, product_id, billing_cycle, paid_at")
+    .eq("payer_user_id", userId)
+    .eq("status", "paid")
+    .neq("activate_on_pay", false)
+    .order("paid_at", { ascending: true });
+  if (!orders || orders.length === 0) return;
+
+  const { data: subs } = await admin
+    .from("subscriptions")
+    .select("product_id")
+    .eq("host_id", host.id)
+    .in("status", ["active", "trialing", "past_due"]);
+  const activeProducts = new Set(
+    (subs ?? []).map((s) => s.product_id).filter((x): x is string => !!x),
+  );
+
+  for (const o of orders) {
+    if (!o.product_id || activeProducts.has(o.product_id)) continue;
+    await activateMappedPlan(
+      admin,
+      userId,
+      o.product_id,
+      o.paid_at ? new Date(o.paid_at) : new Date(),
+      (o.billing_cycle as "monthly" | "annual" | null) ?? null,
+    );
+    activeProducts.add(o.product_id);
   }
 }
 
