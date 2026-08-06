@@ -2,7 +2,95 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-05 pt38) — **REPORTING SINGLE SOURCE: DOMAIN 2 + 3 UNIFIED (code); LIVE-VERIFY PENDING** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-06 pt39) — **CONSOLIDATION + VIDEO SHIPPED; SUBSCRIPTION-ACTIVATION FIX; MANY THREADS OPEN** ⬅ START HERE
+
+Long multi-thread session. Founder rapidly switched between: reporting single-source
+(Domain 2/3), a big branch consolidation, a welcome-video feature, a Paystack outage, and a
+subscription-activation bug. **All code is committed; `main` is 1 commit ahead of `origin/main`
+(only the subscription fix `10c7f9b` is UNPUSHED).** tsc + lint + full vitest (491) GREEN.
+
+### ✅ DONE + SHIPPED this session (pushed to origin/main → deploying)
+1. **Reporting single source Domain 2 + 3** (`69885c6`, `3858b48`) — host **Collected = gross cash**
+   (`txnFlows`) on Payments board == Ledger == Reports; affiliate **"Paid out to date" = net**.
+   Domain 2 LIVE-VERIFIED (seeded demo booking on host `gerku@gmail.com`: Collected R1000 / Refunds
+   R300 == Ledger). Plan: `docs/features/REPORTING_SINGLE_SOURCE_PLAN.md` (DECISIONS 3 & 4 confirmed).
+2. **BIG CONSOLIDATION MERGE** (`c78a6b2`) — merged the OTHER agent's 21 origin/main commits
+   (two-product catalog Starter/Standard, per-user trial + price-override, pipeline lifecycle +
+   churn/trial automation, broadcast banners, front-page search) with my 24. **Resolved conflicts:
+   THEIR money-feature won on overlap; re-applied MY two reporting fixes on top** (env-tagging on the
+   admin charge inserts + "Paid to Wielo" charge-only single definition). Green. Front-page-search
+   (`47ec2a8`) later merged by someone else too — now on main.
+3. **Business Principle #17** (`8c695d1`) — a referred user is the affiliate's forever: EVERY system
+   email CTA routes through the partner's `/r/<slug>` link for attribution. In `BUSINESS_PRINCIPLES.md`.
+4. **Welcome VIDEO feature** (`248f034`,`fe917df`,`34365d5`) — admin sets a YouTube/Vimeo URL under
+   **admin → Communications → new "Onboarding" tab** (help_settings KV `onboarding_welcome_video`, no
+   migration); host **onboarding overview hero** plays it full-bleed 16:9, else the progress ring.
+   LIVE-VERIFIED end-to-end (admin control + host render). Files: `lib/help/onboardingVideo.ts`,
+   `admin/communications/_components/WelcomeVideoControl.tsx` + hub/page, `OnboardingDashboard.tsx`,
+   `admin/help/settings/actions.ts` (`saveOnboardingVideo`), `dashboard/page.tsx`.
+5. **Signup "I want to send quotes" card** — was ALREADY removed in code (`595cdaf`, hidden operators
+   card); the live site was just stale. Now DEPLOYED via the push → live shows only Guest + Host.
+
+### 🔧 Paystack outage (RESOLVED on live; local still broken)
+- **Cause (self-inflicted, flagged at the time):** to stop the local `decryptSecret: PAYMENT_CIPHER_KEY
+  not set` crash we (a) NULLed the platform Paystack/PayPal secrets in the SHARED DB, (b) added a FRESH
+  local `PAYMENT_CIPHER_KEY` to `apps/web/.env.local` that does NOT match Vercel's. → "Card payments
+  aren't configured".
+- **Live fix:** founder re-saved the Paystack test key on `wielo.co.za/admin/products/payments` — Vercel
+  encrypts+decrypts with its own key → **live card payments work again.**
+- **⚠️ LOCAL dev billing is BROKEN** — the DB key is now encrypted with Vercel's key; local's mismatched
+  fresh key can't decrypt it (and the env fallback won't help because the DB key is non-null → decrypt
+  throws first). To fix local: align keys — set the SAME `PAYMENT_CIPHER_KEY` in BOTH Vercel + `.env.local`
+  (overwrite Vercel with a known value, re-save the Paystack key), OR just test billing on live. Founder's call.
+
+### 🐛 Subscription-activation bug — FIX COMMITTED, NOT PUSHED (`10c7f9b`)
+- **Symptom:** host `pmakoena@gmail.com` (Petrus) PAID R499 for Starter (charge completed, order `paid`)
+  but the sub stayed `free`/product_id=NULL; no admin notification; MRR/reporting read the free sub.
+- **Root cause:** a settle path flipped the order to `paid` WITHOUT running `activateMappedPlan` (host +
+  free baseline existed at settle time — NOT buy-first; likely the deployed webhook edge fn errored after
+  the flip; the return-path then saw it already-paid and no-op'd). Not fully pinned (needs edge-fn logs).
+- **Fix (durable backstop, `lib/billing/product-checkout.ts` + `dashboard/page.tsx`):**
+  `reconcilePaidProductActivations()` runs on host dashboard load → activates any PAID membership/service
+  order not reflected in an active sub (idempotent; anchors period to `paid_at`). `activateMappedPlan`
+  now `notifyAdmins("New subscription")` on first activation. EFT-seeded charge tags env via
+  `resolvePlatformEnvironment` (kills the stray `env=live` pending row).
+- **Petrus self-heals on his next `/dashboard` load** once deployed (or locally if he loads it). NOT yet
+  verified live (needs Petrus's session). **Root-cause of the webhook miss still open** if we want it nailed.
+
+### ⭐ OPEN / QUEUED (next session)
+1. **Push `10c7f9b`** (subscription fix) → `git push origin main` (founder-driven; Claude's push is
+   sometimes classifier-gated). Then verify Petrus heals.
+2. **Setup/publish wizard unification** (founder priority, MAPPED not built) — "Publish my listing"
+   (`_components/PublishListingReminder.tsx` → property edit) + "Finish setting up"
+   (`OnboardingDashboard`/`FirstLoginHero`/sidebar → `/dashboard/setup`) + the "6 steps" overview
+   vs the real `setup/SetupWizard.tsx` (more sections) must ALL funnel into ONE wizard covering every
+   go-live field (policies, specials, rooms, seasonal…); "Publish" requires completing it.
+3. **Pipeline email sequences** — IMPLEMENT the plan (`docs/features/PIPELINE_EMAIL_SEQUENCES_PLAN.md`):
+   decouple nurture from competitions, activate the affiliate sequence (0 steps today), 6 new templates,
+   enrolment + worker exits. Base is now merged (was blocked). Founder chose "balanced" cadence + "plan
+   doc then implement".
+4. **Pricing page** — `/pricing` nav+footer keys DONE (`adbbbc1`); the PAGE itself not built. Full map in
+   the pt38 notes + the explore findings (getSubscriptionProducts + FEATURE_BY_KEY compare table, SiteHeader
+   `NAV` + SiteFooter `HOSTS`, launch-page comparison-table pattern, `/signup/host?plan=<slug>` CTA).
+5. **Local cipher-key alignment** (optional) so local billing works again.
+
+### 🚫 HARD EXCLUDE (founder directive)
+- **ALL website features/code** — `feature/website-cms-10min-wizard` is a SEPARATE track; never merge/touch it.
+- `feature/front-page-search` — leave the branch alone (already on main via someone's merge).
+
+### 🧷 Env / accounts / harness notes
+- Demo host `gerku@gmail.com` / `Amin123#321!!` (memory `[[demo-host-login]]`) — reporting demo booking here.
+- `gerku@` upgraded to **Standard** (plan `pro`); the reporting demo booking + a draft "Reporting Test
+  Cottage" listing live on it. Throwaway; wipe pre-launch.
+- **Claude is HARNESS-GATED** from: auth-password resets, writing cipher keys, DB writes to
+  `platform_payment_settings`/`auth.users`, and (sometimes) `git push`. Founder must run those.
+- tsc needs `NODE_OPTIONS=--max-old-space-size=4096` (default heap OOMs post-merge; machine ~8 GB — never exceed).
+- Dev server `web-dev` on :3000. Founder drives logins (super admin `wollie@manamarketing`; host workspace
+  "Wollie Steenkamp" wollie-steenkamp; Petrus `pmakoena@gmail.com`).
+
+---
+
+## 🟢 SAVE POINT (2026-08-05 pt38) — **REPORTING SINGLE SOURCE: DOMAIN 2 + 3 UNIFIED (code); LIVE-VERIFY PENDING**
 
 Continues pt37 (same session group). Founder confirmed the two open definitions via the
 question card, then I unified both remaining money domains. **Living doc:**
