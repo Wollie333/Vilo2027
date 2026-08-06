@@ -508,7 +508,7 @@ export async function purchaseProductBySlug(
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
-    .select("id, price, is_active")
+    .select("id, price, is_active, product_type, trial_days")
     .eq("slug", slug)
     .maybeSingle();
   if (!product || !product.is_active) {
@@ -520,6 +520,24 @@ export async function purchaseProductBySlug(
       email,
       origin,
       signedInUserId,
+    );
+    return r.ok ? { ok: true, url: r.loginUrl, free: true } : r;
+  }
+  // Paid subscription-like product that offers a free trial → start the trial
+  // (trialing sub, no charge) instead of taking payment now. Eligibility (one
+  // trial per product) is enforced inside fulfilFreeProductBySlug. Once-off
+  // products and credit packs never trial.
+  const subLike =
+    product.product_type === "membership" || product.product_type === "service";
+  const trialDays = Number(product.trial_days ?? 0);
+  if (subLike && trialDays > 0) {
+    const trialEndsAt = addDays(new Date(), trialDays);
+    const r = await fulfilFreeProductBySlug(
+      slug,
+      email,
+      origin,
+      signedInUserId,
+      trialEndsAt,
     );
     return r.ok ? { ok: true, url: r.loginUrl, free: true } : r;
   }
@@ -546,8 +564,13 @@ export async function fulfilFreeProductBySlug(
   email: string,
   origin: string,
   signedInUserId: string | null = null,
+  // When set, this is a TRIAL start (not a free product): the buyer is put on a
+  // 'trialing' subscription that ends on this date — no charge — instead of an
+  // active free grant. Same passwordless-account security gate applies.
+  trialEndsAt: Date | null = null,
 ): Promise<FreeFulfilResult> {
   const admin = createAdminClient();
+  const isTrialStart = trialEndsAt instanceof Date;
   const { data: product } = await admin
     .from("products")
     .select("id, name, price, currency, is_active")
@@ -556,7 +579,7 @@ export async function fulfilFreeProductBySlug(
   if (!product || !product.is_active) {
     return { ok: false, error: "This product isn't available." };
   }
-  if (Number(product.price) !== 0) {
+  if (!isTrialStart && Number(product.price) !== 0) {
     return { ok: false, error: "This product isn't free." };
   }
   if (await isProductSoldOut(admin, product.id)) {
@@ -637,22 +660,62 @@ export async function fulfilFreeProductBySlug(
     }
   }
 
-  // 3) Grant the product's plan/features (same path as a paid activation).
-  await activateMappedPlan(admin, userId, product.id, new Date());
+  // Trial eligibility: a host may trial a given product only ONCE. If they already
+  // hold or previously held a subscription for THIS product, don't (re-)start a
+  // trial — either they're already on it (send them in) or they've used it (must
+  // subscribe). Prevents trial farming and never downgrades a paying host to trial.
+  if (isTrialStart) {
+    const { data: host } = await admin
+      .from("hosts")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const { data: prior } = host
+      ? await admin
+          .from("subscriptions")
+          .select("id, status")
+          .eq("host_id", host.id)
+          .eq("product_id", product.id)
+          .maybeSingle()
+      : { data: null };
+    if (prior) {
+      return prior.status === "active" || prior.status === "trialing"
+        ? { ok: true, loginUrl: `${origin}/dashboard` }
+        : {
+            ok: false,
+            error:
+              "Your free trial for this plan has already been used — please subscribe to continue.",
+          };
+    }
+  }
 
-  // 4) Record an R0 order for the books (method left null — it's not a charge).
-  await admin.from("product_orders").insert({
-    product_id: product.id,
-    product_name: product.name,
-    payer_email: cleanEmail,
-    payer_user_id: userId,
-    amount: 0,
-    currency: product.currency,
-    status: "paid",
-    paid_at: new Date().toISOString(),
-    pay_token: token(),
-    created_by: null,
-  });
+  // 3) Grant the product's plan/features. Trial → a 'trialing' subscription that
+  //    ends on trialEndsAt (no charge); free product → an active grant.
+  await activateMappedPlan(
+    admin,
+    userId,
+    product.id,
+    new Date(),
+    null,
+    trialEndsAt,
+  );
+
+  // 4) Record an R0 order for the books (free grants only — a trial isn't a
+  //    purchase; its trialing subscription is the record). Method left null.
+  if (!isTrialStart) {
+    await admin.from("product_orders").insert({
+      product_id: product.id,
+      product_name: product.name,
+      payer_email: cleanEmail,
+      payer_user_id: userId,
+      amount: 0,
+      currency: product.currency,
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      pay_token: token(),
+      created_by: null,
+    });
+  }
 
   // 5) Where they go next.
   // An already-signed-in buyer has a session — just send them to the dashboard.
@@ -1197,6 +1260,12 @@ function addMonths(d: Date, n: number): string {
   return x.toISOString();
 }
 
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x;
+}
+
 // Activate the buyer's subscription when the purchased product is any
 // subscription product (not just the seeded plan-mapped ones). The PRODUCT is
 // authoritative for gating/scopes — we record it on subscriptions.product_id so
@@ -1216,8 +1285,15 @@ async function activateMappedPlan(
   // monthly by default still grants a full year when bought annually. Null falls
   // back to the product's billing_cycle (free grants, legacy orders).
   cycleOverride?: "monthly" | "annual" | null,
+  // When set, the subscription is created as a free TRIAL: status 'trialing',
+  // trial_ends_at = this date, NO charge, NO founding lock, NO welcome (the
+  // welcome fires when they convert to paid). The expire-trials + trial-ending
+  // crons and the on_subscription_trialing pipeline trigger act on it. Omit for
+  // a normal paid/free activation.
+  trialEndsAt?: Date | null,
 ): Promise<void> {
   if (!payerUserId || !productId) return;
+  const isTrial = trialEndsAt instanceof Date;
   const { data: product } = await admin
     .from("products")
     .select("product_type, slug, billing_cycle, plan_key, founding_price")
@@ -1280,9 +1356,12 @@ async function activateMappedPlan(
     product_id: productId,
     plan,
     billing_cycle: cycle,
-    status: "active" as const,
+    status: isTrial ? ("trialing" as const) : ("active" as const),
     current_period_start: now.toISOString(),
-    current_period_end: periodEnd,
+    // A trial's "period" IS the trial window (drives the expire-trials cron via
+    // trial_ends_at); a paid activation gets a full monthly/annual period.
+    current_period_end: isTrial ? trialEndsAt!.toISOString() : periodEnd,
+    ...(isTrial ? { trial_ends_at: trialEndsAt!.toISOString() } : {}),
   };
 
   // A host may hold only one active membership — retire any OTHER active
@@ -1351,7 +1430,7 @@ async function activateMappedPlan(
   // WS-5: during the Founding-offers window, a host converting to the paid plan
   // locks in the Founding price for life. Snapshots the product's founding_* onto
   // the (now active) sub. No-op once the founder closes the window (beta ends).
-  if (isMembership && product.founding_price != null) {
+  if (!isTrial && isMembership && product.founding_price != null) {
     if (await isFoundingOffersOpen()) {
       const { data: activeSub } = await admin
         .from("subscriptions")
@@ -1376,7 +1455,7 @@ async function activateMappedPlan(
   // plan was silently activated (pt94 payment-gap #1). Membership-only (services
   // don't warrant a "welcome to your plan" email) and gated on !wasActive so a
   // renewal (status stays 'active') never re-fires it. Non-fatal.
-  if (isMembership && !wasActive && subId) {
+  if (isMembership && !wasActive && subId && !isTrial) {
     try {
       await dispatchEvent({
         kind: "subscription_welcome",

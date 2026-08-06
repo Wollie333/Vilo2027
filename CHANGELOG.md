@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-08-06 — Wire the real product free-trial (Standard advertised 14 days but charged immediately).
+
+Launch-readiness fix (sweep gap #1). `/p/[slug]` advertised "{trial_days}-day free trial" but the buy flow charged
+on the spot and created no trialing sub — a broken promise. Now a subscription product with `trial_days > 0` starts a
+real **trialing** subscription (no charge) that feeds the already-built expire-trials + trial-ending-warnings crons and
+the on_subscription_trialing pipeline trigger. `tsc` + `pnpm lint` green; **live-verified**: subscribing to Standard
+created a `trialing` sub, trial_ends_at = +14 days, **0 ledger rows, 0 orders**, no founding lock (test reverted).
+
+- **`activateMappedPlan`** (`lib/billing/product-checkout.ts`) gains a `trialEndsAt` param: when set, status='trialing'
+  + trial_ends_at (period = trial window), and it skips the founding-lock + welcome email (both fire on paid conversion).
+- **`fulfilFreeProductBySlug`** now also handles trials (reusing its passwordless-account security gate) with a
+  one-trial-per-product eligibility guard — already on it → sent to dashboard; trial used → must subscribe; never
+  downgrades a paying host.
+- **`purchaseProductBySlug`** routes a paid sub-like product with `trial_days > 0` to the trial path (no charge)
+  instead of a pay-link. Once-off products / credit packs never trial.
+- **`/p/[slug]` + BuyForm**: button reads "Start N-day free trial" with trial progress copy.
+- Conversion: when the host pays (normal buy flow), `activateMappedPlan` (no trialEndsAt) flips them to active +
+  founding lock + welcome. This makes the "trial ending soon" email + expire-trials crons meaningful (they finally
+  have real product trials to act on — the pause-migration note is now actually true).
+
 ## 2026-08-06 — Pause the "Founding Race" competition (strategy change: no competition near-term).
 
 Founder decision: no competition runs in the near term. Paused the Founding Race by moving the

@@ -104,6 +104,7 @@ export default async function ProductLandingPage({
             <BuyForm
               slug={params.slug}
               free={Number(p.price) === 0}
+              trialDays={isSub && p.trial_days > 0 ? p.trial_days : 0}
               sessionEmail={sessionEmail}
             />
           ) : (
