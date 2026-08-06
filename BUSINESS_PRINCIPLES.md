@@ -885,3 +885,63 @@ comparison and belongs in the table or nowhere.
   and testimonials are the usual offenders. Swap to the category before it ships.
 - **Unsure whether it's copy or function?** Ask what the reader is doing. Deciding
   whether to buy → copy, no names. Completing a task → functional, name it.
+
+---
+
+## Principle #17 — A referred user is the affiliate's forever: every system email keeps their link
+
+### The principle
+
+**When a user is referred by an affiliate, that affiliate gets the credit — and
+our own automated emails carry that affiliate's referral link so attribution
+survives every step of the journey.** The nurture drip, the nudges and the
+lifecycle emails are the SAME standardised sequence for everyone (the goal is
+always to get the user subscribed / to their first action) — but for a referred
+lead, every CTA in those emails routes through that partner's `/r/<slug>` link,
+never the plain link. If our email is what finally converts them, the affiliate
+who brought them in is the one who earns.
+
+This is not competition-specific. It is the default, for **every** affiliate and
+**every** referred user, whether or not a campaign is involved.
+
+### Why this matters
+
+1. **We promised the partner the referral, so we protect it.** A partner sends a
+   host to Wielo; if that host later clicks a link in *our* welcome or trial email
+   and it drops the referral, we've quietly taken the partner's earned commission.
+   That breaks the core promise of the programme.
+2. **Attribution has to survive the whole funnel, not just the first click.** Most
+   conversions happen days later, often FROM a system email — so the emails are
+   exactly where attribution is most likely to leak. Baking the partner's link into
+   every CTA closes that leak.
+3. **One standard sequence, personalised attribution.** We don't build a separate
+   flow per affiliate or per campaign — everyone gets the same best-practice
+   nurture. The only thing that changes for a referred user is *which link the
+   buttons carry*. Simple to run, correct on attribution.
+
+### The rules (what must always be true)
+
+1. **Referred lead → affiliate link in every email CTA.** If a
+   `pipeline_leads`/lead row carries an `affiliate_ref`, every outbound CTA in the
+   nurture + lifecycle emails is built via `referralNextLink(base, affiliateRef, path)`
+   (`lib/affiliate/links.ts`), producing a `/r/<slug>?next=<path>` link — never the
+   bare path.
+2. **No unattributed CTA in an automated email to a referred user.** A new email
+   template or a changed CTA must go through the same link builder; a hardcoded
+   `/signup` or `/dashboard` href in a referred user's email is a bug.
+3. **The sequence is the same for competition and non-competition referrals.**
+   Competition emails may layer ON TOP, but they never replace the standard
+   sequence, and never strip the affiliate link (see the pipeline-email plan).
+4. **Commission accrues on every payment a referred host makes**, for as long as
+   they stay — the email link is what keeps that chain of credit intact.
+
+### How to apply it
+
+- **Adding/editing any automated email:** ask "could a referred user receive
+  this?" If yes, the CTA MUST resolve through `referralNextLink` with the lead's
+  `affiliate_ref`. Never ship a plain link in a persuasive/automated email.
+- **Reviewing a nurture step or template:** check the button href — it should be
+  `/r/<slug>?next=…` for referred recipients, the plain path only for organic ones.
+- **Building the sequences (`PIPELINE_EMAIL_SEQUENCES_PLAN.md`):** enrolment carries
+  the `affiliate_ref` through; the worker already routes CTAs via the referral link
+  — keep it that way and test a referred lead end-to-end.
