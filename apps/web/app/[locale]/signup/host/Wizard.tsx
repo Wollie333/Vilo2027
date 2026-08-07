@@ -253,12 +253,12 @@ const SIDE_RAIL: Record<
   listing: {
     eyebrow: "Step by step",
     title: "Let's set up your first place.",
-    body: "We seed your first listing here. You can add more listings from your dashboard, and finish photos, pricing and amenities in the listing editor.",
+    body: "Just the basics so your business and location are set up. You'll create your first listing — photos, pricing, rooms and policies — from your dashboard right after.",
   },
   plan: {
-    eyebrow: "Currently free",
-    title: "Every host starts on Free.",
-    body: "Paid tiers are coming — you'll be able to upgrade from settings once payments ship. No card needed today.",
+    eyebrow: "Choose your plan",
+    title: "Start with a free trial.",
+    body: "Pick the plan that fits your hosting. Your free trial starts the moment you choose it — no card needed today. You'll only add payment details when the trial ends.",
   },
   welcome: {
     eyebrow: "You're live",
@@ -382,8 +382,15 @@ export function Wizard({
       leadEmail,
       leadCity,
     });
-    // Default the toolkit selection to the first product (sorted; Free is first).
-    base.productSlug = products[0]?.slug ?? null;
+    // Default to NO paid selection. The free Wielo account is minted the moment
+    // signup starts, so "Free" is not a selectable plan card — it's the baseline
+    // every host already has. Leaving the plan unselected lets a host finish on
+    // that free tier (the CTA reads "Start free" and finalize writes the free
+    // subscription); selecting a paid card is an opt-in upgrade that then goes to
+    // checkout. (Previously this pre-selected products[0] assuming a Free product
+    // was first; the catalog no longer has one, so that forced every new host
+    // onto the paid Standard checkout.)
+    base.productSlug = null;
     // Prefill the referral code from the cookie partner (cosmetic — the cookie
     // itself binds; the field only matters as a manual fallback when absent).
     base.referredBy = prefilledReferredBy?.slug ?? "";
@@ -635,15 +642,19 @@ export function Wizard({
     const chosen = purchasedOrderToken
       ? null
       : (products.find((p) => p.slug === data.productSlug) ?? null);
-    // A competition trial takes no payment now — finalize creates a trialing sub
-    // for the competition product regardless of any picker state.
-    const isPaid = !trialOffer && !!chosen && !chosen.isFree;
+    // A chosen product that offers a trial starts a TRIALING sub in finalize —
+    // no card, instant dashboard access — so it is NOT a "pay now" pick. Only a
+    // no-trial product goes to checkout. A competition trial likewise takes no
+    // payment. (There is no free host tier: the plan step forces a selection.)
+    const chosenHasTrial = !!chosen && chosen.trialDays > 0;
+    const isPaid = !trialOffer && !!chosen && !chosen.isFree && !chosenHasTrial;
 
-    // Always finalize first (writes host + a Free subscription baseline). Only
-    // then, for a paid pick, send them to checkout — the webhook upgrades their
-    // subscription to the product's plan once payment succeeds.
+    // Always finalize first. For a trial pick finalize writes a trialing sub and
+    // we go straight to the welcome/dashboard; for a no-trial paid pick finalize
+    // writes a Free baseline and we then hand off to checkout, where the webhook
+    // upgrades the subscription once payment succeeds.
     setWorking(
-      isPaid ? "Taking you to secure checkout…" : "Finalising your account…",
+      isPaid ? "Taking you to secure checkout…" : "Setting up your account…",
     );
     const started = Date.now();
     startFinalize(async () => {
@@ -670,6 +681,7 @@ export function Wizard({
         longitude: data.longitude,
         plan: data.plan,
         billing_cycle: data.billingCycle,
+        product_slug: chosen?.slug ?? undefined,
         purchased_order_token: purchasedOrderToken ?? undefined,
       });
       if (!result.ok) {
@@ -745,11 +757,22 @@ export function Wizard({
             ? "Start my access"
             : purchasedProductName
               ? "Finish setup"
-              : chosenProduct && !chosenProduct.isFree
-                ? "Continue to payment"
-                : "Start free"
+              : !chosenProduct
+                ? "Select a plan"
+                : chosenProduct.trialDays > 0
+                  ? "Start free trial"
+                  : "Continue to payment"
         : "Continue";
-  const nextDisabled = createPending || finalizePending;
+  // The plan step forces a selection — there is no free host tier, so with no
+  // product chosen (and not on a competition-trial / buy-first path) the host
+  // cannot continue.
+  const planStepNeedsSelection =
+    current.key === "plan" &&
+    !trialOffer &&
+    !purchasedProductName &&
+    !chosenProduct;
+  const nextDisabled =
+    createPending || finalizePending || planStepNeedsSelection;
 
   const stepBody = (() => {
     switch (current.key) {
@@ -1680,7 +1703,7 @@ function StepListing({
       <StepHeading
         stepIndex={stepIndex}
         title="Tell us about your first listing"
-        subtitle="The basics now — name, type, and address. Photos, amenities, and pricing come in the listing editor right after."
+        subtitle="The basics now — name, type, and address. You'll build the full listing (photos, pricing, amenities) from your dashboard right after."
       />
 
       <div className="mt-7 space-y-6">
@@ -1818,13 +1841,13 @@ function StepListing({
 
         <div className="rounded-card border border-brand-line bg-brand-light/40 p-4 text-xs text-brand-mute">
           <p className="font-medium text-brand-ink">
-            Capacity, pricing, photos &amp; the rest — added next.
+            Capacity, pricing, photos &amp; the rest — from your dashboard next.
           </p>
           <p className="mt-1">
-            We seed your listing as a{" "}
-            <span className="font-semibold">draft</span>. Once onboarding
-            finishes you&rsquo;ll land in the listing editor where you add cover
-            photos, set your rate, capacity / duration, cancellation policy,
+            Once onboarding finishes you&rsquo;ll land in your{" "}
+            <span className="font-semibold">dashboard</span>, where
+            &ldquo;Create your first listing&rdquo; walks you through cover
+            photos, your rate, capacity / duration, cancellation policy,
             amenities and house rules — and publish when you&rsquo;re ready.
           </p>
         </div>
@@ -2022,7 +2045,7 @@ function StepPlan({
       <StepHeading
         stepIndex={stepIndex}
         title="Choose your plan"
-        subtitle="Start free or jump onto a paid tier — you can change it anytime from settings."
+        subtitle="Pick a plan to unlock your host dashboard. Every plan starts with a free trial — no card needed today."
       />
 
       {/* Monthly / annual toggle — only when some plan offers an annual price. */}
@@ -2179,8 +2202,9 @@ function StepPlan({
           <ShieldCheck className="h-4 w-4" />
         </div>
         <div className="text-xs leading-relaxed text-brand-mute">
-          Paid plans take you to secure checkout next. Free starts right away —
-          your data, listings and bookings carry over if you upgrade later.
+          Your free trial starts immediately — no card needed. We only ask for
+          payment when the trial ends, and your data, listings and bookings all
+          carry over.
         </div>
       </div>
     </div>

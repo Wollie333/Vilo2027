@@ -591,6 +591,52 @@ export async function finalizeOnboardingAction(
     }
   }
 
+  // 3d. Product free-trial chosen at the plan step. There is no free HOST tier —
+  //     every host selects a subscription product. When that product offers a
+  //     trial, start them on a TRIALING subscription for it: no card, instant
+  //     dashboard access (they only pay when the trial ends). Server-authoritative
+  //     — the trial length + product are resolved from the DB by slug, never
+  //     trusted from the client. A buy-first order (3b) or a competition trial
+  //     (3c) takes precedence over the plan-step selection.
+  let productTrial: { productId: string; trialEndsAt: string } | null = null;
+  let productTrialPlan: typeof resolvedPlan = resolvedPlan;
+  if (!d.purchased_order_token && !trialOffer && d.product_slug) {
+    const { data: prod } = await admin
+      .from("products")
+      .select("id, plan_key, slug, trial_days, product_type, is_active")
+      .eq("slug", d.product_slug)
+      .maybeSingle();
+    const subLike =
+      prod?.product_type === "membership" || prod?.product_type === "service";
+    const trialDays = Number(prod?.trial_days ?? 0);
+    if (prod?.is_active && subLike && trialDays > 0) {
+      productTrial = {
+        productId: prod.id,
+        trialEndsAt: new Date(
+          Date.now() + trialDays * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+      };
+      // Keep `plan` a valid plans.key (FK) for the legacy fallback + display;
+      // gating itself resolves from the product's product_features.
+      const key = prod.plan_key ?? prod.slug ?? null;
+      if (key) {
+        const { data: planRow } = await admin
+          .from("plans")
+          .select("key")
+          .eq("key", key)
+          .maybeSingle();
+        if (planRow) productTrialPlan = planRow.key as typeof resolvedPlan;
+      }
+    }
+  }
+
+  // A competition trial (3c) wins over a plain product trial (3d); both create a
+  // trialing subscription for their product. `effectiveTrial` is whichever applies.
+  const effectiveTrial = trialOffer
+    ? { productId: trialOffer.productId, trialEndsAt: trialOffer.trialEndsAt }
+    : productTrial;
+  const effectiveTrialPlan = trialOffer ? trialPlan : productTrialPlan;
+
   // 4. Subscription — Free unless a purchased product maps to a paid plan, or a
   //    competition trial places them on a trialing sub for its product.
   //    product_id records the exact catalog product (drives gating). Payment
@@ -614,13 +660,13 @@ export async function finalizeOnboardingAction(
       status: "active" | "trialing";
       trial_ends_at?: string;
       billing_cycle?: string;
-    } = trialOffer
+    } = effectiveTrial
       ? {
           host_id: host.id,
-          plan: trialPlan,
-          product_id: trialOffer.productId,
+          plan: effectiveTrialPlan,
+          product_id: effectiveTrial.productId,
           status: "trialing",
-          trial_ends_at: trialOffer.trialEndsAt,
+          trial_ends_at: effectiveTrial.trialEndsAt,
           billing_cycle: "monthly",
         }
       : {
@@ -633,7 +679,7 @@ export async function finalizeOnboardingAction(
     if (subErr) {
       console.error("[signup:host] subscription insert failed", {
         hostId: host.id,
-        trialing: Boolean(trialOffer),
+        trialing: Boolean(effectiveTrial),
         error: subErr.message,
       });
     }
@@ -647,7 +693,7 @@ export async function finalizeOnboardingAction(
   // per host, so a re-run can't double-send.
   //    A competition-trial host is NOT a free-tier prospect — they already have
   //    full access on the trial — so they skip this paid-plan nurture.
-  if (resolvedPlan === "free" && !resolvedProductId && !trialOffer) {
+  if (resolvedPlan === "free" && !resolvedProductId && !effectiveTrial) {
     try {
       await dispatchEvent({
         kind: "host_offer_welcome",
@@ -666,7 +712,11 @@ export async function finalizeOnboardingAction(
     kind: "user_signup",
     title: "New host signed up",
     body: `${d.full_name} completed host onboarding${
-      resolvedProductId ? " on a paid plan" : " on the free plan"
+      effectiveTrial
+        ? " on a free trial"
+        : resolvedProductId
+          ? " on a paid plan"
+          : " on the free plan"
     }.`,
     userId: user.id,
     hostId: host.id,
@@ -681,7 +731,11 @@ export async function finalizeOnboardingAction(
     data: {
       host_id: host.id,
       handle: host.handle,
-      plan: d.purchased_order_token ? resolvedPlan : d.plan,
+      plan: d.purchased_order_token
+        ? resolvedPlan
+        : effectiveTrial
+          ? effectiveTrialPlan
+          : d.plan,
       billing_cycle: d.billing_cycle,
     },
   };

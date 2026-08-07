@@ -227,10 +227,19 @@ export const finalizeOnboardingSchema = z
     latitude: z.number().min(-90).max(90).nullable().optional(),
     longitude: z.number().min(-180).max(180).nullable().optional(),
 
-    // Plan — accepted but always forced to "free" server-side for now
-    // (payment wiring lands later). Surfaced for visibility only.
+    // Plan — the plan key of the selected product (display + FK fallback). The
+    // authoritative product is `product_slug` below; the subscription's plan and
+    // product_id are resolved server-side from it.
     plan: z.enum(["free", "basic", "pro", "business"]),
     billing_cycle: z.enum(["monthly", "annual"]),
+
+    // The catalog product the host selected on the plan step. Every host must
+    // pick one (there is no free host tier). Finalize resolves it server-side: a
+    // product with a trial period starts a TRIALING subscription (no card, instant
+    // dashboard access); a no-trial product finalizes a Free baseline that the
+    // wizard then sends to checkout to upgrade. Optional in the schema so the
+    // buy-first (purchased_order_token) and competition-trial paths still validate.
+    product_slug: z.string().trim().max(120).optional(),
 
     // When the user paid for a product first (/p/[slug] → pay → signup), the
     // paid order's pay_token is threaded here so finalize links the purchase to
