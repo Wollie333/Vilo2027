@@ -98,17 +98,11 @@ export default async function InvoiceDetailPage({
     .maybeSingle();
 
   const lines = invoice.line_items as InvoiceLines;
-  // VAT = the gap between the ex-VAT net (subtotal − discount) and the stored
-  // VAT-inclusive total (the booking trigger grossed it up).
-  const docDiscount = Number(
-    (lines as { discount_amount?: number }).discount_amount ?? 0,
-  );
-  const docVat =
-    Math.round(
-      (Number(invoice.total_amount) -
-        (Number(invoice.subtotal) - docDiscount)) *
-        100,
-    ) / 100;
+  // Read the AUTHORITATIVE stored VAT — never re-derive it from totals. The old
+  // `total − (subtotal − discount)` double-counted the discount (subtotal is
+  // already net of it), overstating VAT by the discount on any coupon booking.
+  // Every other invoice surface reads this column directly.
+  const docVat = Number(invoice.vat_amount ?? 0);
   const host = invoice.host_snapshot as Snap;
   const guest = invoice.guest_snapshot as GuestSnap;
   const status = invoice.status as InvoiceStatus;

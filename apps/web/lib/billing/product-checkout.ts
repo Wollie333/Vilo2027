@@ -1383,7 +1383,12 @@ async function activateMappedPlan(
   const wasActive = existing?.status === "active";
 
   // Keep `plan` a valid plans.key: prefer the product's explicit plan_key (the
-  // feature tier it grants), else its slug when that's a plan key, else preserve.
+  // feature tier it grants), else its slug when that's a plan key. When neither
+  // resolves for a MEMBERSHIP product, fall back to the paid 'pro' tier — NEVER
+  // leave a paying host on 'free' (which mislabels them across the sidebar,
+  // subscription emails and admin revenue buckets) — and log it so the product's
+  // plan_key gets corrected. This is the guard for the catalogue-rename bug where
+  // a paid product's slug stopped matching a seeded plan key.
   let plan = existing?.plan ?? "free";
   const desiredKey = product.plan_key ?? product.slug;
   if (desiredKey) {
@@ -1392,7 +1397,14 @@ async function activateMappedPlan(
       .select("key")
       .eq("key", desiredKey)
       .maybeSingle();
-    if (planRow) plan = planRow.key;
+    if (planRow) {
+      plan = planRow.key;
+    } else if (product.product_type === "membership") {
+      console.error(
+        `[billing] product ${productId} (${product.slug}) has no valid plan_key ('${desiredKey}' is not a plans.key); defaulting subscription plan to 'pro'. Set this product's plan_key in the Product manager.`,
+      );
+      plan = "pro";
+    }
   }
 
   // The buyer's chosen cycle wins; otherwise the product's base cycle.

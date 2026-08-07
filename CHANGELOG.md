@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-08-06 — Fix paid-subscription plan staleness + wire VAT onto the platform ledger.
+
+Two crucial money/functionality paths, both verified against the live DB.
+
+**1. Paid subscriptions stuck on `plan = 'free'` (root data bug).** Every activation
+path derives the plan as `product.plan_key ?? slug` but can only WRITE it if that value
+exists in `plans` (FK). The catalogue rename left the paid membership products with
+`plan_key = NULL` and slugs (starter/standard/founder) that aren't plan keys, so activation
+silently fell back to 'free' — mislabelling paying hosts across the sidebar, subscription
+emails and admin revenue (and, before the product_id fix, the affiliate counts).
+- Migration `20260806250000`: give every paid membership product a valid `plan_key` ('pro',
+  the tier they belong to) and backfill live subscriptions frozen on 'free'. Fixes ALL
+  activation entry points at once because they all read plan_key first. Verified: 3 products
+  now `plan_key='pro'`; every active/paid sub now `plan='pro'`; 0 stale rows.
+- Code guard (`activateMappedPlan`): a membership product whose plan_key doesn't resolve now
+  falls back to the paid 'pro' tier + logs, instead of silently downgrading to 'free'.
+
+**2. VAT now computed + stored + shown on the Wielo ledger (both modes).** The Wielo→host
+charge grosses at checkout/renewal (`applyWieloVatToCharge`) and the invoice trigger already
+backed VAT out correctly for both inclusive + exclusive — but `platform_ledger.vat_amount`
+was left NULL, so VAT never showed on the ledger and affiliate commission accrued on the
+gross.
+- Migration `20260806260000`: the `mint_wielo_invoice_on_ledger_complete` trigger now writes
+  `vat_amount = v_vat` back onto the ledger row it invoices — byte-for-byte the invoice's VAT,
+  so ledger + invoice reconcile by construction and commission (`amount − vat_amount`) accrues
+  on the true ex-VAT net in both modes.
+- **Verified live** (temporary config, test charge, then reverted + cleaned up): registered @
+  15% → charge R115 gives `ledger.vat_amount 15`, invoice `subtotal 100 / vat 15 / total 115`;
+  not registered → `vat_amount 0`, no VAT split. Config restored to empty vat_number.
+- Host-side display bug: the dashboard invoice page re-derived VAT (`total − (subtotal −
+  discount)`, double-counting the discount on coupon bookings); now reads the stored
+  `vat_amount` column like every other surface.
+- Host→guest booking VAT was already correctly wired (per-listing VAT number → DB trigger,
+  frozen per booking, read from the real column) — left as-is.
+- The purchase + renewal charge rails already gross for exclusive mode; a follow-up will
+  extend grossing to the secondary rails (admin manual charge, native checkout, PayPal
+  recurring) — each needs a per-provider test charge to verify (grossing must happen exactly
+  once), so they're not rushed here.
+
 ## 2026-08-06 — Affiliate "paying" now keyed on product_id + Metrics-tab funnel fixed.
 
 Follow-up to the allowlist fix — a live DB probe of the founder's referred host
