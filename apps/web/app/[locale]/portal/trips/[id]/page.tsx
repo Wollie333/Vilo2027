@@ -75,6 +75,7 @@ import {
   type PendingRequest,
 } from "./ManageBookingRequests";
 import { CounterOfferCard, type CounterOffer } from "./CounterOfferCard";
+import { UpdateRequestCard } from "./UpdateRequestCard";
 import { MessageHostButton } from "./MessageHostButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
@@ -1103,6 +1104,16 @@ export default async function PortalTripDetailPage({
       {counterOffer ? (
         <div className="mt-5">
           <CounterOfferCard hostName={hostFirstName} offer={counterOffer} />
+        </div>
+      ) : null}
+
+      {/* ===== BOOKING UPDATE (requested / quoted → accept or decline) ===== */}
+      {pendingChangeRequests.length > 0 ? (
+        <div className="mt-5">
+          <UpdateRequestCard
+            hostName={hostFirstName}
+            requests={pendingChangeRequests}
+          />
         </div>
       ) : null}
 

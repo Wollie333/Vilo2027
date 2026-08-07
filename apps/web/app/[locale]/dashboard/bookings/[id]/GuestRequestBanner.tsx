@@ -17,10 +17,14 @@ import { toast } from "sonner";
 import { formatMoney } from "@/lib/format";
 
 import {
-  approveBookingChangeAction,
   counterBookingChangeAction,
   declineBookingChangeAction,
+  quoteBookingChangeAction,
 } from "./guest-request-actions";
+
+type Settlement = "refund" | "credit" | "none";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export type OpenChangeRequest = {
   id: string;
@@ -28,6 +32,15 @@ export type OpenChangeRequest = {
   payload: Record<string, unknown> | null;
   guestMessage: string | null;
   createdAt: string;
+  /** A quote has already been sent — awaiting the guest's accept/decline. */
+  hasQuote: boolean;
+  /** Seasonal suggested total for the change (host may override). */
+  suggestedTotal: number | null;
+  /** Net already paid — the settlement basis. */
+  netPaid: number;
+  /** suggestedTotal − netPaid: >0 guest owes more, <0 a refund/credit is due. */
+  delta: number | null;
+  currency: string;
 };
 
 export type OpenRefundRequest = {
@@ -59,15 +72,37 @@ export function GuestRequestBanner({
   const [cOut, setCOut] = React.useState("");
   const [pending, start] = React.useTransition();
 
+  // Quote panel state.
+  const [quoting, setQuoting] = React.useState<string | null>(null);
+  const [qTotal, setQTotal] = React.useState("");
+  const [qSettlement, setQSettlement] = React.useState<Settlement>("refund");
+
   if (changeRequests.length === 0 && refundRequests.length === 0) return null;
 
-  function approve(id: string) {
-    setBusyId(id);
+  function openQuote(r: OpenChangeRequest) {
+    setQuoting(r.id);
+    setDeclining(null);
+    setQTotal(r.suggestedTotal != null ? String(round2(r.suggestedTotal)) : "");
+    setQSettlement("refund");
+  }
+
+  function sendQuote(r: OpenChangeRequest) {
+    const total = Number(qTotal);
+    if (!Number.isFinite(total) || total < 0) {
+      toast.error("Enter a valid price.");
+      return;
+    }
+    const isReduction = round2(total - r.netPaid) < 0;
+    setBusyId(r.id);
     start(async () => {
-      const res = await approveBookingChangeAction(id);
+      const res = await quoteBookingChangeAction(r.id, {
+        total: round2(total),
+        settlement: isReduction ? qSettlement : "charge",
+      });
       setBusyId(null);
       if (res.ok) {
-        toast.success("Request approved — the guest has been notified.");
+        toast.success("Quote sent — the guest can accept or decline.");
+        setQuoting(null);
         router.refresh();
       } else {
         toast.error(res.error);
@@ -247,34 +282,174 @@ export function GuestRequestBanner({
                     </button>
                   </div>
                 </div>
+              ) : r.hasQuote ? (
+                <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-white px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                  <Loader2 className="h-3 w-3" /> Quote sent — awaiting the
+                  guest
+                </div>
+              ) : quoting === r.id ? (
+                <div className="mt-3 space-y-2.5 rounded-[10px] border border-brand-line bg-white p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Confirm the price
+                  </div>
+                  {r.suggestedTotal != null ? (
+                    <div className="text-[12px] text-brand-mute">
+                      Seasonal suggested total{" "}
+                      <span className="font-semibold text-brand-ink">
+                        {formatMoney(r.suggestedTotal, r.currency)}
+                      </span>{" "}
+                      · already paid {formatMoney(r.netPaid, r.currency)}
+                    </div>
+                  ) : null}
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                      New total ({r.currency})
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={qTotal}
+                      onChange={(e) => setQTotal(e.target.value)}
+                      className="mt-1 block w-40 rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
+                    />
+                  </label>
+                  {(() => {
+                    const t = Number(qTotal);
+                    const d = Number.isFinite(t) ? round2(t - r.netPaid) : null;
+                    if (d == null || qTotal === "") return null;
+                    if (d > 0.009)
+                      return (
+                        <div className="text-[12px] text-brand-ink">
+                          Guest pays an extra{" "}
+                          <span className="font-semibold">
+                            {formatMoney(d, r.currency)}
+                          </span>{" "}
+                          on accept.
+                        </div>
+                      );
+                    if (d < -0.009)
+                      return (
+                        <div className="space-y-1.5">
+                          <div className="text-[12px] text-brand-ink">
+                            <span className="font-semibold">
+                              {formatMoney(-d, r.currency)}
+                            </span>{" "}
+                            back to the guest — how?
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {(["refund", "credit", "none"] as Settlement[]).map(
+                              (s) => (
+                                <label
+                                  key={s}
+                                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[11.5px] font-medium ${
+                                    qSettlement === s
+                                      ? "border-brand-primary bg-brand-accent text-brand-primary"
+                                      : "border-brand-line bg-white text-brand-mute"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`stl-${r.id}`}
+                                    checked={qSettlement === s}
+                                    onChange={() => setQSettlement(s)}
+                                    className="sr-only"
+                                  />
+                                  {s === "refund"
+                                    ? "Refund"
+                                    : s === "credit"
+                                      ? "Credit"
+                                      : "No change"}
+                                </label>
+                              ),
+                            )}
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-brand-mute">
+                            Refund is sent by you from your own account. Credit
+                            is store credit for this guest. No change keeps the
+                            full amount.
+                          </p>
+                        </div>
+                      );
+                    return (
+                      <div className="text-[12px] text-brand-mute">
+                        No price change.
+                      </div>
+                    );
+                  })()}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setQuoting(null)}
+                      disabled={pending}
+                      className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendQuote(r)}
+                      disabled={pending || qTotal === ""}
+                      className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+                    >
+                      {busyId === r.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      Send quote
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => approve(r.id)}
-                    disabled={pending}
-                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-status-confirmed px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
-                  >
-                    {busyId === r.id && pending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Check className="h-3.5 w-3.5" />
-                    )}
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeclining(r.id);
-                      setReason("");
-                      setCIn("");
-                      setCOut("");
-                    }}
-                    disabled={pending}
-                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"
-                  >
-                    <X className="h-3.5 w-3.5" /> Decline
-                  </button>
+                <div className="mt-3">
+                  {r.type === "date_change" && r.delta != null ? (
+                    <div className="mb-2 text-[12px] text-brand-mute">
+                      New total{" "}
+                      {r.suggestedTotal != null ? (
+                        <span className="font-semibold text-brand-ink">
+                          {formatMoney(r.suggestedTotal, r.currency)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                      {Math.abs(r.delta) >= 0.01 ? (
+                        <>
+                          {" · "}
+                          {r.delta > 0 ? "guest pays" : "back to guest"}{" "}
+                          <span className="font-semibold text-brand-ink">
+                            {formatMoney(Math.abs(r.delta), r.currency)}
+                          </span>
+                        </>
+                      ) : (
+                        " · no change"
+                      )}
+                    </div>
+                  ) : null}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openQuote(r)}
+                      disabled={pending}
+                      className="inline-flex items-center gap-1.5 rounded-[10px] bg-status-confirmed px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Review &amp; quote
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeclining(r.id);
+                        setReason("");
+                        setCIn("");
+                        setCOut("");
+                      }}
+                      disabled={pending}
+                      className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"
+                    >
+                      <X className="h-3.5 w-3.5" /> Decline
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

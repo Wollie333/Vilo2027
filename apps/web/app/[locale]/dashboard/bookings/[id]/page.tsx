@@ -7,6 +7,7 @@ import {
   type TemplateItem,
 } from "@/components/messages/GuestMessagesPanel";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
+import { previewBookingUpdateCore } from "@/lib/bookings/change-dates-core";
 import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
@@ -718,13 +719,46 @@ export default async function BookingDetailPage({
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
     ]);
-  const guestChangeRequests = (openChangeRows ?? []).map((r) => ({
-    id: r.id,
-    type: r.type,
-    payload: (r.payload ?? null) as Record<string, unknown> | null,
-    guestMessage: r.guest_message,
-    createdAt: r.created_at,
-  }));
+  const guestChangeRequests = await Promise.all(
+    (openChangeRows ?? []).map(async (r) => {
+      const payload = (r.payload ?? null) as Record<string, unknown> | null;
+      const quote =
+        (payload?.quote as Record<string, unknown> | undefined) ?? null;
+      // Price the change server-side so the host sees the seasonal suggested
+      // total + delta and can quote (or override) in place.
+      let suggestedTotal: number | null = null;
+      let netPaid = 0;
+      let delta: number | null = null;
+      if (r.type === "date_change") {
+        const p = await previewBookingUpdateCore(
+          admin,
+          booking.id,
+          booking.host_id,
+          {
+            checkIn: String(payload?.check_in ?? ""),
+            checkOut: String(payload?.check_out ?? ""),
+          },
+        );
+        if (p.ok) {
+          suggestedTotal = p.newTotal;
+          netPaid = p.netPaid;
+          delta = p.delta;
+        }
+      }
+      return {
+        id: r.id,
+        type: r.type,
+        payload,
+        guestMessage: r.guest_message,
+        createdAt: r.created_at,
+        hasQuote: !!quote,
+        suggestedTotal,
+        netPaid,
+        delta,
+        currency: booking.currency ?? "ZAR",
+      };
+    }),
+  );
   const openRefundRequests = (openRefundRows ?? []).map((r) => ({
     id: r.id,
     amount: Number(r.requested_amount),

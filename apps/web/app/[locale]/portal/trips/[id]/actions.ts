@@ -10,9 +10,11 @@ import {
 } from "@/lib/bookings/cancel";
 import {
   applyBookingDateChange,
+  applyBookingUpdate,
   previewBookingUpdateCore,
   previewDateChangeCore,
   type BookingUpdatePreview,
+  type UpdateSettlement,
 } from "@/lib/bookings/change-dates-core";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -336,6 +338,90 @@ export async function previewGuestUpdateAction(input: {
     checkOut: input.checkOut,
     guestsCount: input.guestsCount,
   });
+}
+
+// Guest ACCEPTS or DECLINES the host's quote (payload.quote) for a booking change.
+// Accept applies the change + settles the delta via the shared money core; decline
+// leaves the booking exactly as it was. Ownership-gated to the booking's guest.
+export async function respondToUpdateQuoteAction(
+  requestId: string,
+  decision: "accept" | "decline",
+): Promise<Result> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: req } = await admin
+    .from("booking_requests")
+    .select("id, booking_id, host_id, guest_id, type, status, payload")
+    .eq("id", requestId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!req || req.guest_id !== user.id) {
+    return { ok: false, error: "Request not found." };
+  }
+  if (req.status !== "pending") {
+    return { ok: false, error: "This request has already been actioned." };
+  }
+  const payload = (req.payload ?? {}) as Record<string, unknown>;
+  const quote = payload.quote as
+    | {
+        check_in?: string;
+        check_out?: string;
+        guests_count?: number;
+        quoted_total?: number;
+        settlement?: string;
+      }
+    | undefined;
+  if (!quote) {
+    return { ok: false, error: "There's no quote to respond to yet." };
+  }
+
+  if (decision === "decline") {
+    await admin
+      .from("booking_requests")
+      .update({
+        status: "declined",
+        actioned_at: new Date().toISOString(),
+        actioned_by: user.id,
+      })
+      .eq("id", req.id);
+    revalidatePath(`/portal/trips/${req.booking_id}`);
+    revalidatePath(`/dashboard/bookings/${req.booking_id}`);
+    return { ok: true };
+  }
+
+  // Accept → apply the change + settle. The quote was set by the host (host-gated
+  // action), so applying with host authority on the guest's acceptance is correct.
+  const applied = await applyBookingUpdate(admin, {
+    bookingId: req.booking_id,
+    hostId: req.host_id,
+    patch: {
+      checkIn: quote.check_in,
+      checkOut: quote.check_out,
+      guestsCount: quote.guests_count,
+    },
+    total: Number(quote.quoted_total ?? 0),
+    settlement: (quote.settlement as UpdateSettlement) ?? "charge",
+    actorId: user.id,
+  });
+  if (!applied.ok) return applied;
+
+  await admin
+    .from("booking_requests")
+    .update({
+      status: "approved",
+      actioned_at: new Date().toISOString(),
+      actioned_by: user.id,
+    })
+    .eq("id", req.id);
+
+  revalidatePath(`/portal/trips/${req.booking_id}`);
+  revalidatePath(`/dashboard/bookings/${req.booking_id}`);
+  return { ok: true };
 }
 
 export async function requestBookingChangeAction(

@@ -7,12 +7,18 @@ import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { previewDateChangeCore } from "@/lib/bookings/change-dates-core";
+import {
+  previewBookingUpdateCore,
+  previewDateChangeCore,
+  type UpdateSettlement,
+} from "@/lib/bookings/change-dates-core";
 
 import {
   changeBookingDatesAction,
   previewChangeDatesAction,
 } from "./change-dates-actions";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -179,6 +185,85 @@ export async function approveBookingChangeAction(
         req.booking_id,
       );
     }
+  }
+
+  revalidatePath(`/dashboard/bookings/${req.booking_id}`);
+  revalidatePath(`/portal/trips/${req.booking_id}`);
+  return { ok: true };
+}
+
+// Host CONFIRMS a guest's update request and sends a price QUOTE. The whole flow
+// lives on the booking: we price the change (seasonal, host-overridable `total`),
+// store it in payload.quote and leave the request 'pending' — the guest sees the
+// quote on their trip and accepts or declines. `settlement` decides how a
+// reduction is returned (refund / credit / none); an increase is always 'charge'.
+export async function quoteBookingChangeAction(
+  requestId: string,
+  input: { total: number; settlement: UpdateSettlement },
+): Promise<Result> {
+  const loaded = await loadOpenRequest(requestId);
+  if (!loaded.ok) return loaded;
+  const { req, admin } = loaded;
+
+  const patch =
+    req.type === "date_change"
+      ? {
+          checkIn: String(req.payload?.check_in ?? ""),
+          checkOut: String(req.payload?.check_out ?? ""),
+        }
+      : {
+          guestsCount: Number(req.payload?.guests_count ?? 0) || undefined,
+        };
+
+  const preview = await previewBookingUpdateCore(
+    admin,
+    req.booking_id,
+    req.host_id,
+    patch,
+  );
+  if (!preview.ok) return { ok: false, error: preview.error };
+  if (!preview.available) {
+    return {
+      ok: false,
+      error:
+        "Those dates are no longer available — decline and suggest others.",
+    };
+  }
+
+  const total = round2(Number(input.total));
+  if (!(total >= 0)) return { ok: false, error: "Enter a valid price." };
+  const delta = round2(total - preview.netPaid);
+  // A reduction needs a settlement choice; an increase / no-change is a 'charge'.
+  const settlement: UpdateSettlement = delta < 0 ? input.settlement : "charge";
+
+  const quote = {
+    ...(patch.checkIn
+      ? { check_in: patch.checkIn, check_out: patch.checkOut }
+      : {}),
+    ...(patch.guestsCount ? { guests_count: patch.guestsCount } : {}),
+    quoted_total: total,
+    net_paid: preview.netPaid,
+    delta,
+    settlement,
+    currency: preview.currency,
+    priced_at: new Date().toISOString(),
+  };
+  const newPayload = { ...(req.payload ?? {}), quote };
+
+  const { error } = await admin
+    .from("booking_requests")
+    .update({ payload: newPayload, updated_at: new Date().toISOString() })
+    .eq("id", req.id);
+  if (error) return { ok: false, error: "Couldn't send the quote." };
+
+  const booking = await cardBooking(admin, req.booking_id);
+  if (booking) {
+    await postGuestSystemCard(admin, booking, {
+      systemEvent: "booking_change_quoted",
+      body: `💬 Your host sent a quote for your change to ${booking.reference}. Review and accept or decline from your trip.`,
+      readByGuest: false,
+      readByHost: true,
+    });
   }
 
   revalidatePath(`/dashboard/bookings/${req.booking_id}`);
