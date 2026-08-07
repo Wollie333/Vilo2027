@@ -103,6 +103,9 @@ export type VerifyResponse = {
   currency: string;
   paid_at: string | null;
   customer: { email: string };
+  /** The rail used — card | eft | bank | bank_transfer | ussd | qr | mobile_money.
+   *  Present in Paystack's verify payload; drives the payment-channel reporting. */
+  channel?: string | null;
 };
 
 export async function verifyTransaction(

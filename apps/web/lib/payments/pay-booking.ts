@@ -404,6 +404,20 @@ export async function confirmHostCardPaymentByReference(opts: {
       .eq("status", "pending");
   }
 
+  // Record which Paystack rail was actually used (card vs eft/Ozow vs bank …) for
+  // host reporting. Deliberately a SEPARATE, best-effort update AFTER the status
+  // flip: the `channel` column is optional, so if it doesn't exist yet the write
+  // just no-ops (PostgREST returns an error we ignore) and can never leave the
+  // payment stuck unconfirmed.
+  if (verification.channel) {
+    // `channel` is a new column not yet in the generated DB types (regenerate
+    // after the 20260807130000 migration is applied). Cast until then.
+    await admin
+      .from("payments")
+      .update({ channel: verification.channel } as never)
+      .eq("id", payRow.id);
+  }
+
   // Ledger owns balance_due + payment_status.
   await recomputeBookingPaymentState(admin, opts.bookingId);
   // Flip the booking invoice(s) issued → paid once fully settled. Parity with
