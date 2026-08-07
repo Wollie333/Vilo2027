@@ -82,10 +82,11 @@ export function PdfPaper(p: PdfPaperProps) {
         <View fixed style={s.pageFooter}>
           <View style={s.pageFooterRow}>
             <Text style={s.pfLeft}>{p.runningFooter.left}</Text>
-            <View style={s.pfRight}>
-              <WieloRoundel size={11} idPrefix="wf" />
-              <Text style={s.pfRightText}>{p.runningFooter.right}</Text>
-            </View>
+            {/* Footer attribution is text-only — a logo mark this small can't
+                render crisply in @react-pdf, so per founder we drop it rather
+                than show a low-quality roundel. The header keeps the full-size
+                mark for Wielo-issued docs. */}
+            <Text style={s.pfRightText}>{p.runningFooter.right}</Text>
           </View>
           {p.legalLine ? <Text style={s.pfLegal}>{p.legalLine}</Text> : null}
         </View>
@@ -399,13 +400,14 @@ const s = StyleSheet.create({
   docMeta: { alignItems: "flex-end", width: 250 },
   docTitle: {
     fontSize: 21,
+    lineHeight: 1.2,
     fontFamily: "Helvetica-Bold",
     color: BRAND.ink,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     textAlign: "right",
   },
-  docSub: { fontSize: 9, color: BRAND.mute, marginTop: 4, textAlign: "right" },
+  docSub: { fontSize: 9, color: BRAND.mute, marginTop: 10, textAlign: "right" },
   balanceBox: {
     marginTop: 9,
     flexDirection: "row",
