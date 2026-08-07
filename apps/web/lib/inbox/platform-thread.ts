@@ -362,6 +362,7 @@ export async function setPayCardStatus(
       .from("hosts")
       .select("id")
       .eq("user_id", args.userId)
+      .is("deleted_at", null)
       .maybeSingle();
     if (!host) return;
     const { data: conv } = await admin

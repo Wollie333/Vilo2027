@@ -18,6 +18,7 @@ export async function ensureHostForUser(
     .from("hosts")
     .select("id")
     .eq("user_id", userId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (existing?.id) return existing.id as string;
 

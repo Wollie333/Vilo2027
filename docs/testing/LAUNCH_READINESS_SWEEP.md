@@ -91,20 +91,27 @@ Verified: `pnpm build` + `pnpm lint` green; policies / seasonal-pricing / staff 
 reviews render real host-scoped data live (getMyHostId resolves correctly on the happy path);
 zero server errors.
 
-**Flagged, NOT touched — `lib/billing/**` (15 sites), per founder (other session just hardened
-this area):** `platform-billing.ts:70`, `paypal-subscription.ts:277/433/621/953`,
-`subscription-renewal.ts:187`, `platform-report.ts:328`, `product-checkout.ts:160/661/668/674/687/708/1366/1562`.
-Most billing sites are `.eq("id", hostId)` lookups (legit). The **5 genuine money-path `user_id`
-resolves missing `deleted_at`** are `product-checkout.ts:160, 661, 687, 708, 1366` (`:1562` already
-filters). Owner should route these through `getMyHostId` when convenient.
+**Money-path billing resolves — FIXED (2026-08-07, founder-authorised follow-up).** The 5 genuine
+`user_id` resolves in `lib/billing/product-checkout.ts` (`:160, 661, 687, 708, 1366`) now filter
+`.is("deleted_at", null)`, matching `:1562` which the VAT session already filtered. Rationale beyond
+consistency: since the RLS `get_my_host_id()` fix now excludes soft-deleted hosts, a resolve-or-create
+flow that returned a soft-deleted host would attach a **paid subscription to a host the buyer can no
+longer access** — filtering makes checkout use/create a LIVE host. The other `lib/billing/**` sites
+are `.eq("id", hostId)` lookups off a known subscription/order row (not "my host by user_id") and are
+correctly left unfiltered; `platform-report.ts:328` already filters.
 
-**Left unfiltered BY DESIGN (do not "fix"):**
-- `dashboard/settings/data/actions.ts:148` — account/GDPR purge scoping. A soft-deleted host's data
-  **must still be purged**, so filtering `deleted_at` here would leave orphaned rows. Correct as-is.
-- `lib/hosts/ensureHost.ts:18` — host provisioning idempotency. Whether to reuse a soft-deleted host
-  vs. create fresh interacts with the `hosts.user_id` unique constraint — needs a deliberate
-  decision, not a blind filter.
-- `lib/inbox/platform-thread.ts:362` — best-effort pay-card status; non-gating.
+**Ground-truth correction — the two "by design" items were also FIXED (my earlier call was wrong):**
+- `hosts.user_id` is a plain **non-unique index** (`idx_hosts_user_id`), not a unique constraint — so
+  a user can hold a soft-deleted + a live host row, and any un-filtered `user_id` `.maybeSingle()`
+  **throws** on such a pair.
+- `dashboard/settings/data/actions.ts:148` — this is a **soft close** (retains rows for the 30-day
+  hold; an admin hard-purges later), NOT a hard purge. `hostId` only scopes the active-booking/refund
+  **safety gate**. Filtering `deleted_at` loses no data and fixes the two-row crash → **fixed**.
+- `lib/hosts/ensureHost.ts:18` — provisioning create path is a plain `.insert` (no unique constraint),
+  and returning a soft-deleted host would attach an admin-sold subscription to a dead host → **fixed**
+  (filter → use/create a live host).
+- `lib/inbox/platform-thread.ts:362` — best-effort pay-card status → **fixed** for consistency + crash
+  safety.
 
 ---
 

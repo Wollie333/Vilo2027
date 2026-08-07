@@ -143,11 +143,16 @@ export async function deleteAccountAction(input: {
   const admin = createAdminClient();
 
   // Resolve the host record (if this user is a host) so we can scope the
-  // safety check + purge to their listings as well as their guest bookings.
+  // safety check to their live listings as well as their guest bookings. Filter
+  // deleted_at: this is a SOFT close (rows are retained for the 30-day hold and
+  // hard-purged by an admin later — see softDeleteUserAccount), so an
+  // already-soft-deleted host is out of scope here, and a user holding both a
+  // live and a stale host row would otherwise make `.maybeSingle()` throw.
   const { data: hostRow } = await admin
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   const hostId = (hostRow?.id as string | undefined) ?? null;
 

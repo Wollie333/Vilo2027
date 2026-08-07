@@ -160,6 +160,7 @@ export async function createProductOrder(
       .from("hosts")
       .select("id")
       .eq("user_id", payerUserId)
+      .is("deleted_at", null)
       .maybeSingle();
     hostId = host?.id ?? null;
   }
@@ -661,6 +662,7 @@ export async function fulfilFreeProductBySlug(
     .from("hosts")
     .select("id")
     .eq("user_id", userId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!existingHost) {
     const base = slugify(name) || "host";
@@ -687,6 +689,7 @@ export async function fulfilFreeProductBySlug(
       .from("hosts")
       .select("id")
       .eq("user_id", userId)
+      .is("deleted_at", null)
       .maybeSingle();
     if (newHost?.id) {
       try {
@@ -708,6 +711,7 @@ export async function fulfilFreeProductBySlug(
       .from("hosts")
       .select("id")
       .eq("user_id", userId)
+      .is("deleted_at", null)
       .maybeSingle();
     const { data: prior } = host
       ? await admin
@@ -1366,6 +1370,7 @@ async function activateMappedPlan(
     .from("hosts")
     .select("id")
     .eq("user_id", payerUserId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return;
 
