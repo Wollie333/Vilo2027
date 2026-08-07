@@ -5,6 +5,47 @@
 
 ---
 
+
+## 2026-08-07 — Dedicated mobile checkout wizard (one decision per viewport).
+
+The guest checkout (`BookingForm.tsx`, used by BOTH the directory `/property/[slug]/book`
+and deal `/deal/[slug]/book`) crammed dates + rooms + guests onto one screen on a phone —
+"way too busy, the user gets confused." Rebuilt the mobile (< `lg`) experience as a
+**dedicated, app-style, full-viewport flow**, one decision per screen:
+**Dates → Rooms → Add-ons → Guests → Your details → Payment → Confirm & accept** (add-ons
+appears only when the host offers eligible add-ons; the last screen is the legal acceptance
++ Pay). 5 of 7 steps fit one viewport with no scroll; only Details + Confirm scroll inside
+their own content area (never the page).
+
+- **Mobile-only, additive, zero logic/backend change.** Desktop's two-column three-step
+  layout is untouched (gated `hidden lg:block`). The mobile flow (`fixed inset-0` flex column,
+  `lg:hidden`) reuses every existing state value, handler, pricing/availability computation and
+  `pay()` submit — it only re-presents them. Deal mode drops the rooms + add-ons screens and
+  shows the locked deal on the Dates screen with a party-size select.
+- **Dedicated shell:** the marketing `SiteHeader`/`SiteFooter` are hidden on phones (both book
+  pages); a **persistent host header** (property + host/type · city, avatar, Instant badge)
+  stays on every step; the footer is CTA-only; a **"Powered by Wielo"** mark (the `VLogo`,
+  linking to `/signup`) sits at the bottom of each step's content. No top step-indicator rail.
+- **Full-bleed calendar:** `CheckoutDateEditor` gained a `bare` variant (no card chrome / no
+  320px cap / no inner label) so the Dates step's calendar fills the content width; desktop
+  keeps the card.
+- **Availability semantics (as specified):** whole-listing blocked dates render **light-yellow
+  + struck-through + unselectable** on the calendar (existing `blocked_dates` where
+  `room_id IS NULL` — manual blocks, whole-place holds, iCal/OTA). A date booked for only SOME
+  rooms is NOT locked on the calendar; instead that room's card is unselectable and reads
+  **"Full · Full for these dates · <check-in> – <check-out>"**, so a partly-available night
+  stays bookable via a free room.
+- The price-details bottom sheet (tap the total) uses inline transform/opacity so its slide-up
+  is immune to Tailwind transform-var composition quirks.
+- **Verified live (mobile 375px):** full directory flow (7 steps) — Lion's Head shows "Full for
+  these dates 14–17 Aug" while Camps Bay stays bookable, pricing R4 300 = 3×R1 350 + cleaning,
+  validation gating, details fill, EFT, ack-gated Reserve, price sheet; deal flow (5 steps) —
+  locked deal + calendar, R2 250, party select; back nav; no page scroll; **desktop unchanged**
+  at 1280px. `pnpm build` + `tsc` + `next lint` all green.
+
+---
+
+
 ## 2026-08-07 — Launch-readiness sweep of the 4 core features; 7 fixes shipped to production.
 
 Swept **signup · booking engine (+ every sub-feature) · affiliate · pipeline** — every PASS

@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { VLogo } from "@/app/_components/home/VLogo";
 import { LegalDocModalLink } from "@/components/legal/LegalDocModalLink";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { FxEstimateMark } from "@/components/currency/FxEstimateMark";
@@ -423,6 +424,29 @@ export function BookingForm({
       <>{label}</>
     );
 
+  // Same as `policyLink`, but styled for a LIGHT surface (the mobile confirm
+  // screen sits on white, where the dark card's emerald-300 links wash out).
+  const policyLinkLight = (
+    data: PolicyDialogData | null | undefined,
+    label: string,
+  ) =>
+    data ? (
+      <PolicyDialog
+        data={data}
+        trigger={
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="font-medium text-brand-primary underline underline-offset-2"
+          >
+            {label}
+          </button>
+        }
+      />
+    ) : (
+      <>{label}</>
+    );
+
   // ── Display currency ──────────────────────────────────────────
   // Every price in this form is a HOST-currency (settlement) amount; `formatMoney`
   // is shadowed to route through formatFrom, converting from the host currency
@@ -440,7 +464,17 @@ export function BookingForm({
   // 0 = Rooms (dates/guests/room selection), 1 = Details (contact/add-ons),
   // 2 = Payment. Confirmation is the post-redirect success page
   // (/booking/[id]/success), so it isn't rendered in-form.
+  //
+  // DESKTOP uses `step` (the two-column layout below `lg`). MOBILE (< lg) runs
+  // its own finer wizard, keyed on `mIndex` into the derived `mSteps` sequence
+  // (dates → rooms → add-ons → guests → details → payment → confirm), so a
+  // phone shows exactly one decision per screen. Both drive the SAME state,
+  // pricing, validation and submit — the mobile path adds no logic, only a
+  // re-sequenced presentation. See `mSteps`/`mobileWizard` further down.
   const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [mIndex, setMIndex] = useState(0);
+  // The mobile "tap the total → price details" bottom sheet.
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // ── Dates ─────────────────────────────────────────────────────
   const [dates, setDates] = useState({ from: checkIn, to: checkOut });
@@ -608,9 +642,14 @@ export function BookingForm({
     const el = barRef.current;
     if (!el) return;
     const root = document.documentElement;
-    const ro = new ResizeObserver(() =>
-      root.style.setProperty("--wielo-book-bar-h", `${el.offsetHeight}px`),
-    );
+    const publish = () =>
+      root.style.setProperty("--wielo-book-bar-h", `${el.offsetHeight}px`);
+    // Publish synchronously up front, not only from the ResizeObserver's async
+    // first callback — under React StrictMode's mount→unmount→mount the cleanup
+    // removed the var before that async callback ran, leaving the page with no
+    // reserved footer space. The immediate call guarantees the var is set.
+    publish();
+    const ro = new ResizeObserver(publish);
     ro.observe(el);
     return () => {
       ro.disconnect();
@@ -1347,6 +1386,163 @@ export function BookingForm({
     (scope === "rooms" && selectedRooms.length === 0);
   const canPay =
     !noPriceableStay && paymentMethods.length > 0 && !dealDateError;
+
+  // ── Mobile wizard model (< lg) ────────────────────────────────
+  // A pure mirror of validateDetails() (no toasts) so the mobile Continue can
+  // enable/disable live. Same rules the submit re-checks.
+  const detailsValid = (() => {
+    if (!isAuthenticated) {
+      if (
+        contact.fullName.trim().length < 2 ||
+        !contact.email.includes("@") ||
+        contact.password.length < 8
+      )
+        return false;
+    } else if (contact.fullName.trim().length < 2) {
+      return false;
+    }
+    return !party.some((g) => {
+      const hasName = g.name.trim().length > 0;
+      const hasEmail = /\S+@\S+\.\S+/.test(g.email.trim());
+      return (hasName || g.email.trim().length > 0) && !(hasName && hasEmail);
+    });
+  })();
+
+  // The finer mobile sequence, derived from the same context the desktop steps
+  // use. A deal locks the room (no "rooms" screen); the add-ons screen only
+  // appears when the host actually offers eligible add-ons. Every screen reuses
+  // the desktop state + handlers — nothing here is a second source of truth.
+  type MStepKey =
+    | "dates"
+    | "rooms"
+    | "addons"
+    | "guests"
+    | "details"
+    | "pay"
+    | "confirm";
+  const mSteps: MStepKey[] = [
+    "dates",
+    ...(deal ? [] : (["rooms"] as MStepKey[])),
+    ...(eligibleAddons.length > 0 ? (["addons"] as MStepKey[]) : []),
+    "guests",
+    "details",
+    "pay",
+    "confirm",
+  ];
+  // Keep mIndex in range if the sequence shrinks (e.g. add-ons drop out when the
+  // lead time changes). Clamped in render — cheap, and avoids an out-of-range
+  // read below.
+  const mClamped = Math.min(mIndex, mSteps.length - 1);
+  const mKey = mSteps[mClamped];
+  const mMeta: Record<MStepKey, { title: string; q: string; sub: string }> = {
+    dates: {
+      title: "Dates",
+      q: "When are you coming?",
+      sub: "Pick your check-in and check-out. Prices update as you choose.",
+    },
+    rooms: {
+      title: roomsMode ? "Rooms" : "Your place",
+      q: roomsMode ? "Which rooms do you want?" : "Your place",
+      sub: roomsMode
+        ? "Book one, a few, or the whole place — each has its own rate."
+        : "You’re booking the whole place for your dates.",
+    },
+    addons: {
+      title: "Add-ons",
+      q: "Make it extra-special",
+      sub: "Optional extras offered by your host. Skip any you don’t want.",
+    },
+    guests: {
+      title: "Guests",
+      q: "Who’s coming along?",
+      sub: deal
+        ? "Set your party size."
+        : "Set your party. Infants and pets don’t count toward capacity.",
+    },
+    details: {
+      title: "Your details",
+      q: "Where do we send it?",
+      sub: "Your host uses this to send check-in info and reach you on the day.",
+    },
+    pay: {
+      title: "Payment",
+      q: "How would you like to pay?",
+      sub: `${brandName} charges no booking fee — you pay the price you see.`,
+    },
+    confirm: {
+      title: "Confirm",
+      q: "Almost there — just confirm",
+      sub: "Check your trip, then accept the policies to book.",
+    },
+  };
+  // Whether the current mobile screen can advance, and (when not) a plain-language
+  // reason shown under the CTA — mirrors the desktop step0Reason wording.
+  function mBlocked(key: MStepKey): boolean {
+    switch (key) {
+      case "dates":
+        return !datesValid || !!dealDateError;
+      case "rooms":
+        return !deal && (needsRoom || (isWhole && !wholeAvailable));
+      case "guests":
+        return effectiveGuests <= 0;
+      case "details":
+        return !detailsValid;
+      case "pay":
+        return !canPay;
+      case "confirm":
+        return !ack || !canPay || policiesBlocked;
+      default:
+        return false;
+    }
+  }
+  function mReason(key: MStepKey): string | null {
+    if (key === "dates") {
+      if (dealDateError) return dealDateError;
+      if (!datesValid) return S_datesReason();
+      return null;
+    }
+    if (key === "rooms") {
+      if (isWhole && !wholeAvailable)
+        return "The whole place is booked for these dates — pick other dates or an available room.";
+      if (needsRoom)
+        return anyRoomAvailable
+          ? "Select an available room to continue."
+          : "No rooms are available for these dates — try different dates.";
+      return null;
+    }
+    if (key === "details")
+      return !detailsValid
+        ? isAuthenticated
+          ? "Add the name for the booking (and complete any guest you started)."
+          : "Add your name, email and a password (8+ characters)."
+        : null;
+    if (key === "confirm") {
+      if (policiesBlocked)
+        return "This listing isn’t taking bookings yet — the host still needs to publish all of its policies.";
+      if (!ack) return "Accept the house rules and terms to book.";
+      if (!canPay)
+        return "Your total is R0 — go back and pick available dates or a room.";
+      return null;
+    }
+    return null;
+  }
+  function S_datesReason(): string {
+    return effectiveMinNights > 1
+      ? `Choose dates of at least ${effectiveMinNights} nights to continue.`
+      : "Choose your check-in and check-out dates to continue.";
+  }
+  function mNext() {
+    if (mClamped < mSteps.length - 1) {
+      setMIndex(mClamped + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+  function mBack() {
+    if (mClamped > 0) {
+      setMIndex(mClamped - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
 
   /* ── Step 1 · Rooms (dates, guests, room selection) ────────── */
   const roomsBody = (
@@ -2665,6 +2861,1382 @@ export function BookingForm({
     </div>
   ) : null;
 
+  /* ══════════════════════════════════════════════════════════════════════
+     MOBILE WIZARD (< lg) — one decision per screen
+     ---------------------------------------------------------------------
+     A phone-first re-sequencing of the SAME checkout. Every control below is
+     wired to the identical state/handlers the desktop layout uses (dates,
+     rooms, guests, add-ons, contact, payment, acceptance) and submits through
+     the same pay(). It renders only under `lg`; desktop is untouched.
+     ═════════════════════════════════════════════════════════════════════ */
+  const mCard = "rounded-card border border-brand-line bg-white";
+  const mStepBtn =
+    "flex h-11 w-11 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30";
+
+  const mTick = (on: boolean, round = false) => (
+    <span
+      className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 transition ${
+        round ? "rounded-pill" : "rounded-md"
+      } ${
+        on
+          ? "border-brand-primary bg-brand-primary text-white"
+          : "border-brand-line bg-white"
+      }`}
+    >
+      {on ? <Check className="h-3.5 w-3.5" /> : null}
+    </span>
+  );
+
+  // Shared price-breakdown rows (light surface) — reused by the price sheet and
+  // the confirm review. Reads the same derived totals the dark card shows.
+  const mPriceLines = (
+    <div className="space-y-2 text-[13px]">
+      {deal ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-mute">
+            {deal.roomName ?? listingName}
+            {deal.priceMode === "per_night" && nights > 0
+              ? ` · ${nights}n`
+              : ""}
+          </span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(gv(subtotal), currency)}
+          </span>
+        </div>
+      ) : (
+        selectedRooms.map((r) => (
+          <div key={r.id} className="flex justify-between gap-3">
+            <span className="min-w-0 truncate pr-2 text-brand-mute">
+              {r.name} · {nights}n
+            </span>
+            <span className="font-medium text-brand-ink">
+              {formatMoney(gv(roomNightly(r) * nights), currency)}
+            </span>
+          </div>
+        ))
+      )}
+      {!deal && isWhole ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-mute">
+            {listingName}
+            {nights > 0 ? ` · ${nights}n` : ""}
+          </span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(gv(subtotal), currency)}
+          </span>
+        </div>
+      ) : null}
+      {ageExtras.lines.map((l, i) => (
+        <div key={`age-${i}`} className="flex justify-between gap-3">
+          <span className="text-brand-mute">{l.label}</span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(gv(l.subtotal), currency)}
+          </span>
+        </div>
+      ))}
+      {selectedAddonLines.map((line) => (
+        <div key={line.id} className="flex justify-between gap-3">
+          <span className="min-w-0 truncate pr-2 text-brand-mute">
+            {line.name}
+          </span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(gv(line.subtotal), currency)}
+          </span>
+        </div>
+      ))}
+      {cleaningTotal > 0 ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-mute">
+            {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
+          </span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(gv(cleaningTotal), currency)}
+          </span>
+        </div>
+      ) : null}
+      {discountTotal > 0 ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-primary">Discount</span>
+          <span className="font-medium text-brand-primary">
+            −{formatMoney(gv(discountTotal), currency)}
+          </span>
+        </div>
+      ) : null}
+      {couponDiscount > 0 && appliedCoupon ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-primary">
+            Coupon · {appliedCoupon.code}
+          </span>
+          <span className="font-medium text-brand-primary">
+            −{formatMoney(gv(couponDiscount), currency)}
+          </span>
+        </div>
+      ) : null}
+      <div className="flex justify-between gap-3">
+        <span className="text-brand-mute">{brandName} service fee</span>
+        <span className="font-medium text-brand-primary">FREE</span>
+      </div>
+      {vatRate > 0 ? (
+        <div className="flex justify-between gap-3">
+          <span className="text-brand-mute">VAT ({vatRate}%)</span>
+          <span className="font-medium text-brand-ink">
+            {formatMoney(vatOf(total, vatRate), currency)}
+          </span>
+        </div>
+      ) : null}
+      <div className="mt-1 flex items-end justify-between gap-3 border-t border-brand-line pt-3">
+        <span className="font-display text-base font-bold text-brand-ink">
+          Total · {currency}
+        </span>
+        <span className="font-display text-xl font-extrabold text-brand-ink">
+          {formatMoney(gv(total), currency)}
+        </span>
+      </div>
+    </div>
+  );
+
+  function renderMobileScreen() {
+    switch (mKey) {
+      /* ── Dates ─────────────────────────────────────────────── */
+      case "dates":
+        return (
+          <div className="space-y-4">
+            {deal ? (
+              <section className={mCard}>
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                    {deal.roomId ? (
+                      <BedDouble className="h-5 w-5" />
+                    ) : (
+                      <Home className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-display font-semibold text-brand-ink">
+                      {deal.title}
+                    </div>
+                    <div className="text-xs text-brand-mute">
+                      {deal.priceMode === "flat"
+                        ? `${formatMoney(gv(deal.flatTotal ?? 0), currency)} package`
+                        : `${formatMoney(gv(deal.perNightPrice ?? 0), currency)} / night`}
+                    </div>
+                  </div>
+                  {deal.savingsPct ? (
+                    <span className="shrink-0 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+                      Save {deal.savingsPct}%
+                    </span>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {deal && deal.dateMode === "fixed" ? (
+              <section className={`${mCard} p-4`}>
+                <div className="mb-1.5 text-xs font-medium text-brand-mute">
+                  Your dates · fixed by this deal
+                </div>
+                <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-4 py-3 text-sm text-brand-ink">
+                  <CalendarDays className="h-4 w-4 text-brand-primary" />
+                  <span className="font-medium">
+                    {fmtDate(dates.from)} → {fmtDate(dates.to)}
+                  </span>
+                  <span className="text-[11px] font-normal text-brand-mute">
+                    · {nights} {nights === 1 ? "night" : "nights"}
+                  </span>
+                </div>
+              </section>
+            ) : (
+              <CheckoutDateEditor
+                bare
+                from={dates.from}
+                to={dates.to}
+                minNights={effectiveMinNights}
+                minDate={deal ? deal.windowStart : undefined}
+                maxDate={
+                  deal ? (deal.isEvergreen ? null : deal.windowEnd) : undefined
+                }
+                maxNights={deal ? deal.maxNights : undefined}
+                onChange={(from, to) => setDates({ from, to })}
+                unavailable={unavailableDates}
+              />
+            )}
+
+            {nights > 0 ? (
+              <div className="flex items-center gap-2 rounded-card border border-brand-line bg-brand-light/50 px-3 py-2 text-[12px] leading-snug text-brand-secondary">
+                <Zap className="h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                <div>
+                  {instantBooking ? "Instant Book" : "Selected"} — {nights}{" "}
+                  {nights === 1 ? "night" : "nights"}
+                  {checkingAvail ? " · checking…" : ""}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        );
+
+      /* ── Rooms / whole place ───────────────────────────────── */
+      case "rooms":
+        return (
+          <div className="space-y-3">
+            {roomsMode && bookingMode !== "rooms_only" && basePrice > 0 ? (
+              <button
+                type="button"
+                onClick={() => setWholeListing((v) => !v)}
+                disabled={isPending || (!wholeListing && !wholeAvailable)}
+                aria-pressed={wholeListing}
+                className={`flex w-full items-center gap-3 rounded-card border p-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  wholeListing
+                    ? "ck-selected border-brand-primary bg-brand-light/50"
+                    : "border-brand-line bg-white"
+                }`}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-secondary">
+                  <Home className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display font-semibold text-brand-ink">
+                    Book the whole place
+                  </div>
+                  <div className="text-xs text-brand-mute">
+                    All {allRooms.length}{" "}
+                    {allRooms.length === 1 ? "room" : "rooms"}
+                    {wholeListingDiscountPct && wholeListingDiscountPct > 0 ? (
+                      <span className="font-semibold text-brand-primary">
+                        {" "}
+                        · save {wholeListingDiscountPct}%
+                      </span>
+                    ) : null}
+                    {!wholeAvailable ? " · unavailable for these dates" : ""}
+                  </div>
+                </div>
+                {mTick(wholeListing, true)}
+              </button>
+            ) : null}
+
+            {!roomsMode || wholeListing ? (
+              <section className={mCard}>
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                    <Home className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-brand-ink">
+                      {listingName}
+                    </div>
+                    <div className="text-xs text-brand-mute">
+                      {formatMoney(gv(basePrice), currency)} / night
+                      {cleaningFee > 0
+                        ? ` · ${formatMoney(gv(cleaningFee), currency)} cleaning`
+                        : ""}
+                    </div>
+                  </div>
+                  {instantBooking ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+                      <Zap className="h-3 w-3" /> Instant
+                    </span>
+                  ) : null}
+                </div>
+                {datesValid && roomsMode && !wholeAvailable ? (
+                  <div className="mx-4 mb-4 inline-flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                    <Info className="h-4 w-4" />{" "}
+                    {anyRoomAvailable
+                      ? "Whole place is taken — pick a room instead."
+                      : "Not available for these dates."}
+                  </div>
+                ) : null}
+              </section>
+            ) : (
+              <>
+                {needsRoom ? (
+                  <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                    <Info className="h-4 w-4" /> Select at least one room.
+                  </div>
+                ) : null}
+                {allRooms.map((r) => {
+                  const selected = selectedRoomIds.includes(r.id);
+                  const available = roomAvailable(r.id);
+                  const g = guestsForRoom(r);
+                  const nightly = roomNightly(r);
+                  return (
+                    <div
+                      key={r.id}
+                      className={`overflow-hidden rounded-card border bg-white transition ${
+                        !available
+                          ? "border-brand-line opacity-60"
+                          : selected
+                            ? "ck-selected border-brand-primary"
+                            : "border-brand-line"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleRoom(r.id)}
+                        disabled={isPending || !available}
+                        className="flex w-full items-start gap-3 p-3 text-left"
+                      >
+                        {r.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.photoUrl}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                            <BedDouble className="h-6 w-6" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate font-display font-semibold text-brand-ink">
+                                {r.name}
+                              </div>
+                              <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                                {r.bedsLabel || "Room"} · Sleeps {r.maxGuests}
+                              </div>
+                            </div>
+                            {available ? (
+                              mTick(selected)
+                            ) : (
+                              <span className="shrink-0 rounded-pill bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-status-cancelled">
+                                Full
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 text-[12px]">
+                            <span className="font-semibold text-brand-ink">
+                              {formatMoney(
+                                gv(roomFromNightly(toPricing(r))),
+                                currency,
+                              )}
+                            </span>{" "}
+                            <span className="text-brand-mute">
+                              / night
+                              {r.cleaningFee > 0
+                                ? ` · ${formatMoney(gv(r.cleaningFee), currency)} cleaning`
+                                : ""}
+                            </span>
+                          </div>
+                          {selected && nights > 0 ? (
+                            <div className="mt-1 font-mono text-[11px] font-semibold text-brand-secondary">
+                              {nights}n ={" "}
+                              {formatMoney(
+                                gv(nightly * nights + r.cleaningFee),
+                                currency,
+                              )}
+                            </div>
+                          ) : null}
+                          {!available ? (
+                            <div className="mt-1 text-[11px] font-medium text-status-cancelled">
+                              Full for these dates
+                              {dates.from && dates.to
+                                ? ` · ${fmtDate(dates.from)} – ${fmtDate(dates.to)}`
+                                : ""}
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
+                      {selected ? (
+                        <div className="flex items-center justify-between gap-3 border-t border-brand-line/70 px-3 py-2.5">
+                          <div className="text-xs font-medium text-brand-ink">
+                            Guests in this room
+                            <span className="ml-1 font-normal text-brand-mute">
+                              · max {r.maxGuests}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => setRoomGuestCount(r, g - 1)}
+                              disabled={isPending || g <= r.minGuests}
+                              aria-label="Fewer guests"
+                              className={mStepBtn}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <span className="w-5 text-center text-sm font-semibold tabular-nums text-brand-ink">
+                              {g}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setRoomGuestCount(r, g + 1)}
+                              disabled={isPending || g >= r.maxGuests}
+                              aria-label="More guests"
+                              className={mStepBtn}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        );
+
+      /* ── Add-ons ───────────────────────────────────────────── */
+      case "addons":
+        return (
+          <div className="space-y-2.5">
+            {eligibleAddons.map((a) => {
+              const qty = addonQty.get(a.id) ?? 0;
+              const checked = qty > 0;
+              const lineTotal = checked
+                ? computeAddonSubtotal(
+                    a.pricingModel,
+                    a.unitPrice,
+                    qty,
+                    effectiveGuests,
+                  )
+                : 0;
+              const stock = a.stockQuantity;
+              const soldOut = stock != null && stock <= 0;
+              const perNight = isPerNightModel(a.pricingModel);
+              const clampOpts = {
+                minQuantity: a.minQuantity,
+                maxQuantity: a.maxQuantity,
+                nights,
+                stock: a.stockQuantity,
+                allowCustom: a.allowCustomQuantity,
+              };
+              const canDec =
+                clampAddonQuantity(a.pricingModel, qty - 1, clampOpts) < qty;
+              const canInc =
+                clampAddonQuantity(a.pricingModel, qty + 1, clampOpts) > qty;
+              const showStepper = checked && a.allowCustomQuantity;
+              return (
+                <div
+                  key={a.id}
+                  className={`overflow-hidden rounded-card border transition ${
+                    checked
+                      ? "ck-selected border-brand-primary"
+                      : "border-brand-line bg-white"
+                  } ${soldOut ? "opacity-60" : ""}`}
+                >
+                  <button
+                    type="button"
+                    disabled={a.isRequired || isPending || soldOut}
+                    onClick={() => toggleAddon(a.id)}
+                    className={`flex w-full gap-3 p-3.5 text-left ${
+                      a.isRequired || soldOut ? "cursor-default" : ""
+                    }`}
+                  >
+                    {a.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={a.imageUrl}
+                        alt=""
+                        className="h-11 w-11 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md ${
+                          checked
+                            ? "bg-brand-primary text-white"
+                            : "bg-brand-accent text-brand-primary"
+                        }`}
+                      >
+                        <PackagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-semibold leading-tight text-brand-ink">
+                          {a.name}
+                        </div>
+                        {a.isRequired ? (
+                          <span className="shrink-0 rounded-pill bg-brand-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                            Required
+                          </span>
+                        ) : (
+                          mTick(checked)
+                        )}
+                      </div>
+                      {a.description ? (
+                        <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-brand-mute">
+                          {a.description}
+                        </div>
+                      ) : null}
+                      <div className="mt-2 flex items-baseline justify-between gap-3">
+                        <div className="text-xs">
+                          <span className="font-semibold text-brand-ink">
+                            {formatMoney(gv(a.unitPrice), currency)}
+                          </span>
+                          <span className="text-brand-mute">
+                            {" "}
+                            · {PRICING_LABEL[a.pricingModel]}
+                          </span>
+                        </div>
+                        {checked && lineTotal > 0 ? (
+                          <div className="font-mono text-[11px] text-brand-secondary">
+                            = {formatMoney(gv(lineTotal), currency)}
+                          </div>
+                        ) : soldOut ? (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-status-cancelled">
+                            Sold out
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </button>
+                  {showStepper ? (
+                    <div className="flex items-center justify-between gap-3 border-t border-brand-primary/20 px-3.5 py-2.5">
+                      <span className="text-[11px] font-medium text-brand-ink">
+                        {perNight ? "For how many nights?" : "Quantity"}
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setAddonQuantity(a.id, qty - 1)}
+                          disabled={!canDec || isPending}
+                          aria-label="Fewer"
+                          className={mStepBtn}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="min-w-[3rem] text-center text-sm font-semibold tabular-nums text-brand-ink">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAddonQuantity(a.id, qty + 1)}
+                          disabled={!canInc || isPending}
+                          aria-label="More"
+                          className={mStepBtn}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+            <p className="px-1 pt-1 text-center text-[12px] text-brand-mute">
+              Add-ons are optional — continue to skip them.
+            </p>
+          </div>
+        );
+
+      /* ── Guests ────────────────────────────────────────────── */
+      case "guests": {
+        const wholeSelect = deal || isWhole;
+        const maxSel = deal ? deal.maxGuests : maxGuestsWhole;
+        const cip = (
+          [
+            [
+              "Children",
+              "Ages 2–12 · count toward capacity",
+              childrenCount,
+              setChildrenCount,
+              allow.children,
+              childrenRemaining <= 0,
+            ],
+            [
+              "Infants",
+              "Under 2 · don’t count",
+              infantsCount,
+              setInfantsCount,
+              allow.infants,
+              false,
+            ],
+            [
+              "Pets",
+              "Assistance animals always welcome",
+              petsCount,
+              setPetsCount,
+              allow.pets,
+              false,
+            ],
+          ] as const
+        ).filter(([, , , , allowed]) => allowed);
+        return (
+          <div className="space-y-3">
+            {wholeSelect ? (
+              <div
+                className={`${mCard} flex items-center justify-between gap-3 p-4`}
+              >
+                <div>
+                  <div className="text-sm font-medium text-brand-ink">
+                    Adults
+                  </div>
+                  <div className="text-[11.5px] text-brand-mute">
+                    Guests in your booking
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-3 py-2">
+                  <Users className="h-4 w-4 text-brand-primary" />
+                  <select
+                    value={guestCount}
+                    onChange={(e) =>
+                      setGuestCount(parseInt(e.target.value, 10))
+                    }
+                    disabled={isPending}
+                    className="bg-transparent text-sm font-semibold text-brand-ink outline-none"
+                  >
+                    {Array.from(
+                      { length: Math.max(1, maxSel) },
+                      (_, i) => i + 1,
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`${mCard} flex items-center justify-between gap-3 p-4`}
+              >
+                <div>
+                  <div className="text-sm font-medium text-brand-ink">
+                    {effectiveGuests}{" "}
+                    {effectiveGuests === 1 ? "adult" : "adults"}
+                  </div>
+                  <div className="text-[11.5px] text-brand-mute">
+                    Set per room on the Rooms step
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMIndex(Math.max(0, mSteps.indexOf("rooms")))
+                  }
+                  className="text-[12.5px] font-medium text-brand-primary"
+                >
+                  Edit rooms
+                </button>
+              </div>
+            )}
+
+            {!deal && cip.length > 0 ? (
+              <div className={mCard}>
+                {cip.map(([label, subLabel, value, setter, , atMax], idx) => (
+                  <div
+                    key={label}
+                    className={`flex items-center justify-between gap-3 px-4 py-3 ${
+                      idx > 0 ? "border-t border-brand-line" : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-brand-ink">
+                        {label}
+                      </div>
+                      <div className="text-[11.5px] text-brand-mute">
+                        {subLabel}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setter(Math.max(0, value - 1))}
+                        disabled={isPending || value <= 0}
+                        aria-label={`Fewer ${label.toLowerCase()}`}
+                        className={mStepBtn}
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="w-5 text-center text-sm font-semibold tabular-nums text-brand-ink">
+                        {value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => !atMax && setter(value + 1)}
+                        disabled={isPending || atMax}
+                        aria-label={`More ${label.toLowerCase()}`}
+                        className={mStepBtn}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-brand-light/50 p-3 text-[12.5px] leading-relaxed text-brand-secondary">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+              <div>
+                {capacityLimit !== Infinity
+                  ? `Sleeps up to ${capacityLimit} (adults + children). Infants and pets don’t count.`
+                  : "Infants and pets don’t count toward capacity."}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ── Details ───────────────────────────────────────────── */
+      case "details":
+        return (
+          <div className="space-y-4">
+            <section className={`${mCard} p-4`}>
+              <div className="mb-3 font-display font-semibold text-brand-ink">
+                {isAuthenticated
+                  ? "Contact details"
+                  : "Create your Wielo account"}
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+                    Full name
+                  </label>
+                  <input
+                    value={contact.fullName}
+                    onChange={(e) =>
+                      setContact((s) => ({ ...s, fullName: e.target.value }))
+                    }
+                    placeholder="Amara Okafor"
+                    autoComplete="name"
+                    className="w-full rounded border border-brand-line bg-white px-3.5 py-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+                    Email
+                  </label>
+                  {isAuthenticated ? (
+                    <div className="flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3.5 py-3 text-sm">
+                      <UserIcon className="h-4 w-4 shrink-0 text-brand-primary" />
+                      <span className="min-w-0 flex-1 truncate font-mono text-brand-ink">
+                        {guestEmail}
+                      </span>
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      value={contact.email}
+                      onChange={(e) =>
+                        setContact((s) => ({ ...s, email: e.target.value }))
+                      }
+                      placeholder="amara@example.com"
+                      autoComplete="email"
+                      className="w-full rounded border border-brand-line bg-white px-3.5 py-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+                    Phone{" "}
+                    <span className="font-normal text-brand-mute">
+                      (optional)
+                    </span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={contact.phone}
+                    onChange={(e) =>
+                      setContact((s) => ({ ...s, phone: e.target.value }))
+                    }
+                    placeholder="+27 82 000 0000"
+                    autoComplete="tel"
+                    className="w-full rounded border border-brand-line bg-white px-3.5 py-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                  />
+                </div>
+                {!isAuthenticated ? (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+                      Create a password
+                    </label>
+                    <input
+                      type="password"
+                      value={contact.password}
+                      onChange={(e) =>
+                        setContact((s) => ({ ...s, password: e.target.value }))
+                      }
+                      placeholder="At least 8 characters"
+                      autoComplete="new-password"
+                      className="w-full rounded border border-brand-line bg-white px-3.5 py-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                    />
+                  </div>
+                ) : null}
+                {isAuthenticated ? (
+                  <p className="text-xs text-brand-mute">
+                    Booking as{" "}
+                    <span className="font-mono text-brand-ink">
+                      {guestEmail}
+                    </span>
+                    .{" "}
+                    <button
+                      type="button"
+                      onClick={logOut}
+                      disabled={loggingOut}
+                      className="font-medium text-brand-primary hover:underline disabled:opacity-50"
+                    >
+                      {loggingOut ? "Logging out…" : "Not you? Log out"}
+                    </button>
+                  </p>
+                ) : (
+                  <p className="text-xs text-brand-mute">
+                    Already have an account?{" "}
+                    <a
+                      href={`/login?next=${encodeURIComponent(
+                        deal ? deal.bookUrl : `/property/${listingSlug}/book`,
+                      )}`}
+                      className="font-medium text-brand-primary hover:underline"
+                    >
+                      Sign in
+                    </a>{" "}
+                    to book faster.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            {effectiveGuests > 1 ? (
+              <section className={`${mCard} p-4`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-display font-semibold text-brand-ink">
+                      Who’s coming?{" "}
+                      <span className="text-xs font-normal text-brand-mute">
+                        (optional)
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-xs text-brand-mute">
+                      Up to {effectiveGuests - 1} other guest
+                      {effectiveGuests - 1 === 1 ? "" : "s"} — each needs a name
+                      &amp; email.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addGuest}
+                    disabled={party.length >= effectiveGuests - 1}
+                    aria-label="Add guest"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink disabled:opacity-50"
+                  >
+                    <UserPlus className="h-4 w-4" /> Add
+                  </button>
+                </div>
+                {party.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {party.map((g, i) => (
+                      <div
+                        key={i}
+                        className="rounded-card border border-brand-line bg-brand-light/40 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                            Guest {i + 2}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeGuest(i)}
+                            aria-label="Remove guest"
+                            className="flex h-9 w-9 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          <input
+                            value={g.name}
+                            onChange={(e) =>
+                              updateGuest(i, { name: e.target.value })
+                            }
+                            placeholder="Full name"
+                            maxLength={120}
+                            className="w-full rounded border border-brand-line bg-white px-3 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                          />
+                          <input
+                            value={g.email}
+                            onChange={(e) =>
+                              updateGuest(i, { email: e.target.value })
+                            }
+                            type="email"
+                            placeholder="Email"
+                            maxLength={160}
+                            className="w-full rounded border border-brand-line bg-white px-3 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            <section className={`${mCard} p-4`}>
+              <div className="mb-1 font-display font-semibold text-brand-ink">
+                Message to host{" "}
+                <span className="text-xs font-normal text-brand-mute">
+                  (optional)
+                </span>
+              </div>
+              <div className="mb-2.5 text-xs text-brand-mute">
+                Early check-in, dietary needs, anything your host should know.
+              </div>
+              <textarea
+                value={contact.message}
+                onChange={(e) =>
+                  setContact((s) => ({
+                    ...s,
+                    message: e.target.value.slice(0, 1000),
+                  }))
+                }
+                rows={3}
+                maxLength={1000}
+                placeholder="Hi! We land around 3pm — could we drop bags early?"
+                className="w-full resize-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+              />
+            </section>
+          </div>
+        );
+
+      /* ── Payment ───────────────────────────────────────────── */
+      case "pay":
+        return (
+          <div className="space-y-3">
+            {!canPay ? (
+              <div className="flex items-start gap-2.5 rounded-card border border-amber-200 bg-amber-50 p-4 text-[13px] leading-relaxed text-amber-800">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <div>
+                  {paymentMethods.length === 0
+                    ? "This host hasn’t set up a way to take payment yet."
+                    : "Your total is R0 — the room may no longer be available. Nothing has been booked."}
+                </div>
+              </div>
+            ) : null}
+            {paymentMethods.map((m) => {
+              const on = method === m.id;
+              const Icon = m.Icon;
+              return (
+                <button
+                  type="button"
+                  key={m.id}
+                  onClick={() => {
+                    setMethod(m.id);
+                    if (!apiFiredRef.current) {
+                      apiFiredRef.current = true;
+                      firePixelEvent("AddPaymentInfo", {
+                        ...commerceParams({
+                          contentIds: [listingId],
+                          contentName: listingName,
+                          currency,
+                          ...(total > 0 ? { value: total } : {}),
+                        }),
+                        payment_method: m.id,
+                      });
+                    }
+                  }}
+                  disabled={isPending}
+                  className={`flex w-full items-center gap-3 rounded-card border bg-white p-3.5 text-left transition ${
+                    on
+                      ? "ck-selected border-brand-primary"
+                      : "border-brand-line"
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-pill border-2 ${
+                      on
+                        ? "border-brand-primary bg-brand-primary text-white"
+                        : "border-brand-line"
+                    }`}
+                  >
+                    {on ? (
+                      <span className="h-2 w-2 rounded-pill bg-white" />
+                    ) : null}
+                  </span>
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+                      on
+                        ? "bg-brand-accent text-brand-primary"
+                        : "bg-brand-light text-brand-mute"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium text-brand-ink">
+                      {m.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-brand-mute">
+                      {m.sub}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-brand-light/50 p-3 text-[12.5px] leading-relaxed text-brand-secondary">
+              {method === "eft" ? (
+                <>
+                  <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                  <div>
+                    Reserve first — we’ll show the host’s banking details and
+                    your reference on the next screen. Your dates are held while
+                    you pay.
+                  </div>
+                </>
+              ) : method === "paypal" ? (
+                <>
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                  <div>
+                    You’ll finish on PayPal (charged in USD at today’s rate).{" "}
+                    {brandName} never sees your card, and there’s no booking
+                    fee.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                  <div>
+                    You’ll finish on Paystack’s secure page. {brandName} never
+                    sees or stores your card number, and there’s no booking fee.
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-4 pt-1 text-[11px] text-brand-mute">
+              <span className="inline-flex items-center gap-1">
+                <Lock className="h-3.5 w-3.5" /> Secure
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Percent className="h-3.5 w-3.5" /> No booking fee
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" /> Buyer protection
+              </span>
+            </div>
+          </div>
+        );
+
+      /* ── Confirm & accept ──────────────────────────────────── */
+      case "confirm":
+        return (
+          <div className="space-y-4">
+            <section className={`${mCard} p-4`}>
+              {hostName ? (
+                <div className="mb-3 flex items-center gap-2.5 border-b border-brand-line pb-3">
+                  {hostAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={hostAvatarUrl}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-pill object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-[12px] font-bold text-brand-secondary">
+                      {hostName.trim().charAt(0).toUpperCase() || "H"}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                      You’re booking with
+                    </div>
+                    <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+                      {hostName}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-card border border-brand-line bg-brand-light/40 p-3">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                    Check-in
+                  </div>
+                  <div className="mt-0.5 font-display font-bold text-brand-ink">
+                    {fmtDate(dates.from)}
+                  </div>
+                </div>
+                <div className="flex flex-col items-center px-1 text-brand-primary">
+                  <Moon className="h-4 w-4" />
+                  <div className="mt-0.5 text-[11px] font-semibold">
+                    {nights}n
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                    Check-out
+                  </div>
+                  <div className="mt-0.5 font-display font-bold text-brand-ink">
+                    {fmtDate(dates.to)}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-[13px] text-brand-mute">
+                <Users className="h-4 w-4 text-brand-primary" />
+                {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
+                {childrenCount > 0
+                  ? ` · ${childrenCount} child${childrenCount === 1 ? "" : "ren"}`
+                  : ""}
+                {infantsCount > 0
+                  ? ` · ${infantsCount} infant${infantsCount === 1 ? "" : "s"}`
+                  : ""}
+                {petsCount > 0
+                  ? ` · ${petsCount} pet${petsCount === 1 ? "" : "s"}`
+                  : ""}{" "}
+                · paid by{" "}
+                {method === "eft"
+                  ? "EFT"
+                  : method === "paypal"
+                    ? "PayPal"
+                    : "card"}
+              </div>
+              <div className="mt-3 border-t border-brand-line pt-3">
+                {mPriceLines}
+                {/* Renders nothing unless the display currency differs from the
+                    host's settlement currency (safe to drop in). */}
+                <div className="mt-1.5 text-right">
+                  <FxEstimateMark
+                    amount={gv(total)}
+                    settlementCurrency={currency}
+                    align="right"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {policyBlock ? <div>{policyBlock}</div> : null}
+
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-card border border-brand-line bg-brand-light/40 p-3.5 text-[12.5px] leading-relaxed text-brand-ink">
+              <input
+                type="checkbox"
+                checked={ack}
+                onChange={(e) => setAck(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary"
+              />
+              <span>
+                I&apos;ve read and agree to {hostName}&rsquo;s{" "}
+                {policyLinkLight(
+                  policyLinks?.cancellation,
+                  "cancellation policy",
+                )}
+                ,{" "}
+                {policyLinkLight(
+                  policyLinks?.checkInOut,
+                  "check-in & check-out",
+                )}
+                , {policyLinkLight(policyLinks?.houseRules, "house rules")} and{" "}
+                {policyLinkLight(policyLinks?.bookingTerms, "booking terms")},
+                plus {brandName}&rsquo;s{" "}
+                <LegalDocModalLink
+                  docKey="terms"
+                  label="terms"
+                  className="font-medium text-brand-primary underline underline-offset-2"
+                />{" "}
+                and{" "}
+                <LegalDocModalLink
+                  docKey="privacy"
+                  label="privacy policy"
+                  className="font-medium text-brand-primary underline underline-offset-2"
+                />
+                .
+              </span>
+            </label>
+
+            <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-brand-mute">
+              <ShieldCheck className="h-3.5 w-3.5 text-brand-primary" />
+              {cancellation?.note ??
+                CANCELLATION_BULLETS[cancellationPolicy][0].text}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  }
+
+  const mBlockedNow = mBlocked(mKey);
+  const mReasonNow = mReason(mKey);
+  const mIsLast = mKey === "confirm";
+
+  const mobileWizard = (
+    // A DEDICATED, full-viewport checkout on phones — the marketing site
+    // header/footer are hidden (page.tsx) and this fixed flex column owns the
+    // screen: a persistent host header, a flexible middle that only scrolls when
+    // a step (details/confirm) genuinely can't fit, and a compact footer with the
+    // CTA + Wielo mark. No page scroll, no step-indicator rail (by request); the
+    // goal is to keep each step inside one viewport wherever the content allows.
+    <div className="fixed inset-0 z-40 flex flex-col bg-white lg:hidden">
+      {/* Persistent host header — the same on every step */}
+      <header className="flex flex-none items-center gap-2.5 border-b border-brand-line px-3 pb-2.5 pt-[max(10px,env(safe-area-inset-top))]">
+        <button
+          type="button"
+          onClick={mClamped === 0 ? () => router.back() : mBack}
+          aria-label={mClamped === 0 ? "Exit checkout" : "Back"}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-brand-ink transition hover:bg-brand-light"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        {hostAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hostAvatarUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-pill object-cover ring-1 ring-brand-line"
+          />
+        ) : coverImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverImageUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-md object-cover"
+          />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-[13px] font-bold text-brand-secondary">
+            {(hostName ?? listingName).trim().charAt(0).toUpperCase() || "W"}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-display text-[15px] font-bold leading-tight text-brand-ink">
+            {listingName}
+          </div>
+          <div className="truncate text-[11px] text-brand-mute">
+            {hostName && hostName !== listingName
+              ? `Hosted by ${hostName}`
+              : listingTypeLabel}
+            {listingCity ? ` · ${listingCity}` : ""}
+          </div>
+        </div>
+        {instantBooking ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold text-brand-secondary">
+            <Zap className="h-3 w-3" /> Instant
+          </span>
+        ) : null}
+      </header>
+
+      {/* Step content — fills the remaining height, scrolls internally only when
+          a step's content exceeds the viewport (details/confirm on short screens). */}
+      <div
+        key={mKey}
+        className="ck-step min-h-0 flex-1 overflow-y-auto px-4 py-3.5"
+      >
+        <h2 className="font-display text-lg font-extrabold leading-tight tracking-tight text-brand-ink">
+          {mMeta[mKey].q}
+        </h2>
+        <p className="mb-3.5 mt-1 text-[12.5px] leading-snug text-brand-mute">
+          {mMeta[mKey].sub}
+        </p>
+        {renderMobileScreen()}
+        {/* Wielo mark — sits at the bottom of each step's content (not the action
+            bar), links to sign-up, and scrolls with the content. */}
+        <a
+          href="/signup"
+          className="mt-5 flex items-center justify-center gap-1.5 pb-1 text-[11px] font-medium text-brand-mute transition-colors hover:text-brand-ink"
+        >
+          <VLogo size={14} gradientId="ck-foot" />
+          Powered by {brandName}
+        </a>
+      </div>
+
+      {/* Footer — CTA + Wielo mark (the only branding down here, by request) */}
+      <footer
+        ref={barRef}
+        className="flex-none border-t border-brand-line bg-white px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-2.5"
+      >
+        {mBlockedNow && mReasonNow ? (
+          <div className="mb-2 flex items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] leading-snug text-amber-800">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+            {mReasonNow}
+          </div>
+        ) : null}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="min-w-0 text-left"
+          >
+            <div className="font-display text-base font-bold text-brand-ink">
+              {formatMoney(gv(total), currency)}
+              {vatRate > 0 ? (
+                <span className="ml-1 text-[10px] font-normal text-brand-mute">
+                  incl. VAT
+                </span>
+              ) : null}
+            </div>
+            <div className="inline-flex items-center gap-1 truncate text-[11px] text-brand-mute">
+              {nights ? (
+                <>
+                  {nights} {nights === 1 ? "night" : "nights"} ·{" "}
+                  {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
+                </>
+              ) : (
+                "Add dates"
+              )}
+              <ArrowRight className="h-3 w-3 rotate-[-90deg]" />
+            </div>
+          </button>
+          {mIsLast ? (
+            <button
+              type="button"
+              onClick={pay}
+              disabled={isPending || mBlockedNow}
+              className="ml-auto inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Lock className="h-4 w-4" />
+              )}
+              {isPending
+                ? "Working…"
+                : method === "eft"
+                  ? "Reserve"
+                  : `Pay ${formatMoney(gv(total), currency)}`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={mNext}
+              disabled={mBlockedNow}
+              className="ml-auto inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Continue <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </footer>
+
+      {/* Price-details bottom sheet. Transform + opacity are set inline (not via
+          Tailwind translate utilities) so the slide-up is immune to transform-var
+          composition quirks — the sheet must reliably clear the viewport bottom. */}
+      <div
+        className="fixed inset-0 z-50 bg-brand-dark/40 transition-opacity"
+        style={{
+          opacity: sheetOpen ? 1 : 0,
+          pointerEvents: sheetOpen ? "auto" : "none",
+        }}
+        onClick={() => setSheetOpen(false)}
+      />
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[80%] overflow-y-auto rounded-t-[22px] bg-white pb-[max(20px,env(safe-area-inset-bottom))] shadow-peek transition-transform"
+        style={{ transform: sheetOpen ? "translateY(0)" : "translateY(101%)" }}
+      >
+        <div className="mx-auto mb-1 mt-2.5 h-1 w-9 rounded-pill bg-brand-line" />
+        <div className="px-5 py-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-display text-base font-extrabold text-brand-ink">
+              Price details
+            </h3>
+            <button
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              className="text-[12.5px] font-medium text-brand-mute"
+            >
+              Close
+            </button>
+          </div>
+          {mPriceLines}
+          <div className="mt-3 flex items-start gap-2 rounded-card bg-brand-light/60 p-3 text-[12px] leading-relaxed text-brand-secondary">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+            <div>
+              Incl. all fees · no booking fee.{" "}
+              {cancellation?.note ??
+                CANCELLATION_BULLETS[cancellationPolicy][0].text}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       <style
@@ -2690,8 +4262,8 @@ export function BookingForm({
         }}
         className="grid items-start gap-5 lg:grid-cols-[1fr_380px] lg:gap-7"
       >
-        {/* ── Left column: the current step ───────────────────────── */}
-        <section className="min-w-0 pb-24 lg:pb-0">
+        {/* ── Left column: the current step (DESKTOP ≥ lg only) ───── */}
+        <section className="hidden min-w-0 pb-24 lg:block lg:pb-0">
           {step === 0
             ? deal
               ? dealRoomsBody
@@ -2733,8 +4305,8 @@ export function BookingForm({
           ) : null}
         </section>
 
-        {/* ── Right column: sticky summary ────────────────────────── */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+        {/* ── Right column: sticky summary (DESKTOP ≥ lg only) ────── */}
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
           <div className="relative overflow-hidden rounded-card bg-brand-gradient-dark text-white shadow-peek">
             {/* ambient glow */}
             <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-pill bg-brand-primary/25 blur-3xl" />
@@ -3206,69 +4778,10 @@ export function BookingForm({
           </div>
         </aside>
 
-        {/* ── Mobile sticky action bar ──────────────────────────────
-            pb keeps the CTA clear of the iOS home indicator / Android gesture
-            bar once anything sets viewport-fit=cover (matches MobileBottomNav).
-            */}
-        <div
-          ref={barRef}
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-line bg-white/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden"
-        >
-          {step === 0 && step0Reason ? (
-            <div className="mx-auto mb-2 flex max-w-3xl items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] leading-snug text-amber-800">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-              {step0Reason}
-            </div>
-          ) : null}
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-display text-base font-bold text-brand-ink">
-                {formatMoney(gv(total), currency)}
-                {step === 2 ? (
-                  <FxEstimateMark
-                    amount={gv(total)}
-                    settlementCurrency={currency}
-                    align="left"
-                    className="ml-0.5"
-                  />
-                ) : null}
-                {vatRate > 0 ? (
-                  <span className="ml-1 text-[10px] font-normal text-brand-mute">
-                    incl. VAT
-                  </span>
-                ) : null}
-              </div>
-              <div className="truncate text-[11px] text-brand-mute">
-                {nights} {nights === 1 ? "night" : "nights"} · {effectiveGuests}{" "}
-                {effectiveGuests === 1 ? "guest" : "guests"}
-              </div>
-            </div>
-            {step === 2 ? (
-              <button
-                type="button"
-                onClick={pay}
-                disabled={isPending || !canPay}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Lock className="h-4 w-4" />
-                )}
-                {isPending ? "Working…" : method === "eft" ? "Reserve" : "Pay"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={goNext}
-                disabled={step === 0 && step0Blocked}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue <ArrowRight className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        {/* ── Mobile wizard (< lg) — one decision per screen ────────
+            Replaces the old single mobile action bar. Owns the fixed footer
+            (barRef → --wielo-book-bar-h) so the page still reserves its height. */}
+        {mobileWizard}
       </form>
     </div>
   );

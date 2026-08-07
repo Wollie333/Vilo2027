@@ -375,7 +375,11 @@ export default async function SpecialBookingPage({
 
   return (
     <div className="bg-white text-brand-ink">
-      <SiteHeader />
+      {/* Hidden on phones — the mobile deal checkout is a dedicated full-viewport
+          flow with its own host header. Desktop keeps the site chrome. */}
+      <div className="hidden lg:block">
+        <SiteHeader />
+      </div>
       {/* Meta InitiateCheckout — DIRECTORY (Wielo) side → fires the Wielo pixel.
           A deal has a known price, so we can send a real value. */}
       <FirePixelEvent
@@ -458,7 +462,9 @@ export default async function SpecialBookingPage({
           />
         )}
       </main>
-      <SiteFooter />
+      <div className="hidden lg:block">
+        <SiteFooter />
+      </div>
     </div>
   );
 }
