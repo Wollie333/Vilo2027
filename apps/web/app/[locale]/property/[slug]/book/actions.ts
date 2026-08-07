@@ -137,7 +137,16 @@ export async function createCheckoutGuestAccountAction(
   if (newUser) {
     await supabase
       .from("user_profiles")
-      .update({ full_name, role: "guest" })
+      .update({
+        full_name,
+        role: "guest",
+        // Checkout REQUIRES accepting the terms (the booking's `ack` gate +
+        // stored accepted_terms_version), so stamp platform-terms acceptance
+        // here too. The three /signup/* paths already do this; this one didn't,
+        // so a guest who only ever booked had a null terms_accepted_at and was
+        // later wrongly blocked by gates that read it (e.g. affiliate activation).
+        terms_accepted_at: new Date().toISOString(),
+      })
       .eq("id", newUser.id);
 
     // GoTrue auto-confirms (see lib/auth/verifyEmail), so this email is the only

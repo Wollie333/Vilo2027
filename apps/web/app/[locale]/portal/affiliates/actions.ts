@@ -29,6 +29,44 @@ export type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 /**
+ * Accept the platform terms for the signed-in user, straight from the affiliate
+ * activation checklist. A guest who only ever booked (never used /signup) has a
+ * null `terms_accepted_at` even though checkout REQUIRED accepting the terms — so
+ * the platform-terms gate wrongly blocks them. This lets them clear it in place.
+ * Idempotent (never overwrites an earlier acceptance), and re-runs activation so
+ * a now-complete partner goes live immediately.
+ */
+export async function acceptPlatformTermsAction(): Promise<ActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in." };
+
+  const admin = createAdminClient();
+  const { data: prof } = await admin
+    .from("user_profiles")
+    .select("terms_accepted_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!prof?.terms_accepted_at) {
+    const { error } = await admin
+      .from("user_profiles")
+      .update({ terms_accepted_at: new Date().toISOString() })
+      .eq("id", user.id);
+    if (error) return { ok: false, error: "Could not record your acceptance." };
+  }
+
+  // If they're a pending affiliate and this was the last gate, go live now.
+  const acct = await getAffiliateForUser(admin, user.id);
+  if (acct) await activateAffiliateIfReady(admin, acct.id);
+
+  revalidatePath("/portal/affiliates");
+  revalidatePath("/dashboard/affiliates");
+  return { ok: true };
+}
+
+/**
  * Re-send the confirmation email for the signed-in user — the last activation
  * gate for a partner who signed up through the public form.
  *

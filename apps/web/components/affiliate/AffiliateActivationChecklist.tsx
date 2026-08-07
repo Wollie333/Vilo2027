@@ -1,7 +1,8 @@
-import { Check, Clock, Mail } from "lucide-react";
+import { Check, Clock, Mail, ScrollText } from "lucide-react";
 
 import type { ActivationChecklist } from "@/lib/affiliate/activation";
 
+import { AcceptPlatformTermsButton } from "./AcceptPlatformTermsButton";
 import { ResendVerificationButton } from "./ResendVerificationButton";
 
 // What a pending partner sees instead of the portal: exactly which steps are
@@ -23,7 +24,9 @@ export function AffiliateActivationChecklist({
     {
       done: checklist.platformTermsAccepted,
       label: "Platform terms accepted",
-      hint: "Recorded when you signed up.",
+      hint: checklist.platformTermsAccepted
+        ? "Recorded when you signed up."
+        : "Read and accept below to continue.",
     },
     ...(checklist.campaignId
       ? [
@@ -90,6 +93,22 @@ export function AffiliateActivationChecklist({
           </li>
         ))}
       </ul>
+
+      {!checklist.platformTermsAccepted ? (
+        <div className="rounded-input mt-6 border border-brand-line bg-brand-light/40 p-4">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
+            <ScrollText className="h-4 w-4 shrink-0 text-brand-primary" />
+            Accept the platform terms
+          </div>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-brand-mute">
+            You agreed to these when you signed up or booked. If it&apos;s still
+            showing as pending, read and accept them here to go live.
+          </p>
+          <div className="mt-3">
+            <AcceptPlatformTermsButton />
+          </div>
+        </div>
+      ) : null}
 
       {!checklist.emailConfirmed ? (
         <div className="rounded-input mt-6 flex flex-wrap items-center gap-3 border border-brand-line bg-brand-light/40 p-4">
