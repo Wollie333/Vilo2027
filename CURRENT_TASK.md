@@ -2,48 +2,52 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-06) — **FRONT-PAGE FAIR SEARCH + LISTING STRENGTH — SHIPPED & LIVE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-06) — **BILLING VAT + AFFILIATE PAYING + ACTIVATION PLAN — SHIPPED & LIVE** ⬅ START HERE
 
-**`main` == `origin/main` == `0329ddb4`** (pushed, Vercel deploying). `pnpm build` + `pnpm lint` +
-`tsc` all GREEN. Branch `feature/front-page-search` merged. Plan/SoT:
-`docs/features/FRONT_PAGE_SEARCH_PLAN.md`. Memory: [[project-savepoint-aug6-fair-search]].
+**`main` == `origin/main` == `e640c58`** (pushed, Vercel READY on prod). `tsc` + `pnpm lint` GREEN
+throughout. Migrations `20260806210000` … `20260806260000` applied to the linked cloud DB. Founder
+logged in as admin for live verification.
 
-### ✅ Done this session (all live-verified, canvas + live)
-1. **Modern front-page search bar** (`app/_components/browse/DirectorySearchBar.tsx`) — Where
-   (keyword) · Type · Check-in/Check-out · Guests · Search. Branded `Select` popovers +
-   `DateRangePicker` SSOT (never native controls). Mobile-first, equal-height desktop row. On the
-   home `Hero` + `/explore` & `/portal/browse` (via `SearchBar` adapter; type = chips there). Header
-   untouched.
-2. **Real availability filtering** — `checkin`/`checkout` hide stays whose whole-listing is blocked
-   for the range (`blocked_dates` `room_id IS NULL`). Half-set range = no filter.
-3. **Ethical earned-only ranking** — mig `20260806170000`: weighted `search_vector` (name A ·
-   location B · type C · description D); **plan boost REMOVED** (`ranking_weights.plan → 0`),
-   `recalculate_listing_ranking()` rewritten. Mig `20260806180000`: **`search_directory()` RPC** =
-   single filter+order SoT (FTS relevance × earned quality via `search_blend`, else `ranking_score`;
-   all filters + availability + priority-country; returns `(id, total_count)`). `searchListings.ts`
-   routes through it. PROVEN on live DB (rollback test): high-relevance free listing beats
-   higher-quality weak-match; date-blocked listing excluded.
-4. **Host "Listing Strength" page** — Gauge icon on each property card →
-   `/dashboard/properties/[id]/strength` (breadcrumbs, 2-col spread), SEPARATE from listing setup.
-   `lib/search/listingStrength.ts` (pure) + `lib/search/loadListingStrength.ts` (own-only: RLS
-   ownership check THEN admin read, so drafts work) + `ListingStrengthCard.tsx` ("earned not bought"
-   banner, component bars, quick-wins with **Fix →** deep-links to the editor tab).
-5. **Public help article** — mig `20260806190000`: `/help/how-search-ranking-works` in the
-   "Listings & photos" category (host audience, published). Live-verified render.
+### ✅ Done this session (all live-verified against the cloud DB / logged-in UI)
+1. **Setup wizard reskin + hardening** — matched the Add-ons/Specials shell (no width cap, identity
+   bar, 288px ProgressRing rail, icon-tile nav); mobile rail = vertical stack; publish banner gated on
+   setup completion; pulled signup avatar/bio/languages through; step/gate + data-loss fixes; photo
+   `sort_order` trigger, replace-restore atomicity, business `requireName`, non-atomic auth-email fix.
+2. **Affiliate "paying" correctness** — root cause was TWO bugs: a stale plan allowlist AND the
+   `subscriptions.plan` column reading `'free'` on a paid host. `lib/affiliate/paying.ts`
+   `isPayingSubscription` now keys on **`product_id`** (free tier = null), threaded into all 4
+   surfaces; Metrics funnels (`campaign_funnel`/`program_affiliate_funnel`, migs `230000`+`240000`)
+   count paying off the same product_id signal. VERIFIED: admin PAID CUSTOMERS 0→1 (Petrus = Starter),
+   portal ACTIVE REFERRED HOSTS 0→1. Also hardened silent click-log + `bindAffiliateReferral` swallows.
+3. **Paid-sub `plan='free'` root fix** — activation derives plan from `product.plan_key ?? slug` but
+   the FK to `plans()` only allows free/basic/pro/business; the catalogue rename left paid products
+   `plan_key NULL` + non-key slugs → silent 'free'. Mig `250000`: set `plan_key='pro'` on every paid
+   membership + backfill live subs; `activateMappedPlan` now falls back to 'pro' (+logs) for an
+   unresolvable membership key, never 'free'. VERIFIED: all paid subs now `plan='pro'`, 0 stale.
+4. **VAT wired onto the platform ledger (both modes)** — the mint-invoice trigger already computed VAT
+   correctly for inclusive + exclusive but left `platform_ledger.vat_amount` NULL. Mig `260000`: the
+   trigger now writes `vat_amount = v_vat` back onto the ledger row (reconciled with the invoice by
+   construction; commission = `amount − vat_amount` = ex-VAT net in both modes). Host dashboard invoice
+   page now reads the stored `vat_amount` (was re-deriving + double-counting the discount). Charge
+   GROSSING (adds VAT on top in exclusive) confirmed on the live paths: `createProductOrder` (purchase),
+   `subscription-renewal` (renewals), and admin manual charges (catalog price only — overrides never
+   grossed). VERIFIED live (temp config + test charge, reverted + cleaned up): registered@15% R115 →
+   `vat_amount 15` (sub 100/total 115); unregistered → 0. Wielo VAT currently: `vat_number ''` (off),
+   `vat_mode 'exclusive'`, rate 15.
 
-6. **Fair-search refinements** — mig `20260806200000`: host-diversity round-robin (max 2/host
-   before others interleave; no-op for single-listing hosts) + new-listing grace boost + hourly
-   banded rotation (recommended sort only; knobs `platform_settings.search_fairness`). Diversity
-   PROVEN live in-browser + ranked results rendering confirmed (seeded 5 demos across 2 hosts,
-   screenshotted, then DELETED → 0 published now); freshness proven via rollback.
+### ⚠️ Known / remaining (money paths — DO with live provider test charges, do not guess)
+- **Secondary charge rails not yet grossed**: native `plans`-based checkout (`startSubscriptionCheckout`
+  — likely legacy, superseded by product flow), **PayPal recurring**, **Paystack webhook auto-renewal**
+  (likely dead if renewals are the app-driven `subscription-renewal` cron). Each needs a Paystack/PayPal
+  **test-mode** charge to confirm the webhook preserves the grossed amount before grossing. The LIVE
+  purchase/renewal/admin/booking paths already gross.
+- Both live membership products (Starter + Standard) now map to `plan='pro'` (per-product features come
+  from `product_features`, so this is only the tier label). If they must be distinct feature TIERS,
+  create real `plans` rows + `plan_features` instead of aliasing to 'pro'.
+- Host booking VAT keys off the **listing's** `vat_number` (Pricing tab), NOT the business/account VAT
+  number — confirm that's the intended field if a host expects an account-level toggle.
 
-### ⚠️ Known / traps
-- **0 published accommodation listings in the DB** (demos removed after verifying) — real results
-  appear once hosts publish. Everything is proven (SQL rollback + live browser).
-- 🚨 **`supabase db push` can record a migration WITHOUT running its SQL** ("up to date" lie) — verify
-  the row, then `migration repair --status reverted <ver>` + re-push. Also: **migration-timestamp
-  collisions** after rebasing over concurrent main work (renamed article `190000`→`191000`).
-
-### ▶️ Likely next (nothing left on fair search)
-Possible nice-to-have: a **listing-strength badge on the properties list card**. Otherwise the older
-backlog: **Meta CAPI creds + Vault secrets guide** ([[project-savepoint-aug6-per-user-controls]]).
+### ▶️ Likely next
+Run the collaborative VAT provider-rail test (Paystack/PayPal test mode → one membership purchase with
+VAT enabled → verify webhook grosses + `vat_amount` end-to-end), then gross/retire the 3 secondary
+rails. Optionally fix activation to set `plan` per-product if distinct tiers are wanted.
