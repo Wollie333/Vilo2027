@@ -10,7 +10,9 @@ import {
 } from "@/lib/bookings/cancel";
 import {
   applyBookingDateChange,
+  previewBookingUpdateCore,
   previewDateChangeCore,
+  type BookingUpdatePreview,
 } from "@/lib/bookings/change-dates-core";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -302,6 +304,39 @@ const bookingChangeSchema = z.discriminatedUnion("type", [
 ]);
 
 export type BookingChangeInput = z.infer<typeof bookingChangeSchema>;
+
+// Guest-facing live ESTIMATE for a proposed update (new dates and/or headcount).
+// Read-only: prices the change through the shared seasonal core and returns the
+// new total + delta vs what's paid, so the modal can show "estimated new total —
+// your host will confirm". Ownership-gated to the booking's own guest.
+export async function previewGuestUpdateAction(input: {
+  bookingId: string;
+  checkIn?: string;
+  checkOut?: string;
+  guestsCount?: number;
+}): Promise<BookingUpdatePreview> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id, guest_id")
+    .eq("id", input.bookingId)
+    .maybeSingle();
+  if (!booking || booking.guest_id !== user.id) {
+    return { ok: false, error: "Booking not found." };
+  }
+
+  return previewBookingUpdateCore(admin, input.bookingId, booking.host_id, {
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guestsCount: input.guestsCount,
+  });
+}
 
 export async function requestBookingChangeAction(
   input: BookingChangeInput,
