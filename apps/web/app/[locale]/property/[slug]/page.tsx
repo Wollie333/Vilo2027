@@ -666,6 +666,15 @@ export default async function ListingDetailPage({
                   prefillPhone={guest.phone}
                   triggerLabel={t("quoteShort")}
                   triggerClassName="inline-flex shrink-0 items-center gap-1.5 rounded border border-brand-line px-3 py-3 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
+                  // Mobile: open the dedicated full-viewport quote wizard
+                  // (checkout look & feel) instead of the desktop modal.
+                  fullscreen
+                  hostName={listing.host.display_name}
+                  hostAvatarUrl={listing.host.avatar_url}
+                  listingTypeLabel={typeLabel(listing)}
+                  listingCity={listing.city}
+                  coverImageUrl={photos[0]?.url ?? null}
+                  unavailableDates={unavailableDates}
                 />
               }
             />

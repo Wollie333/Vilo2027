@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-08-07 — Mobile "Request a quote" wizard (matches the checkout flow).
+
+On a phone the listing page's **Quote** button opened a cramped `FormModal`. Rebuilt it
+(`RequestQuoteButton.tsx`) so that, **on mobile only**, it opens a dedicated full-viewport
+wizard that looks and behaves exactly like the new mobile checkout: persistent host header,
+one decision per screen (Dates → Guests → Room → Message → Your details → Send), a "Powered
+by Wielo" mark (→ /signup) at the bottom of each step, and a single CTA footer. Desktop keeps
+the existing `FormModal` — completely unchanged.
+
+- **Same code, re-presented.** A new `fullscreen` prop (set only on the mobile-bar instance in
+  `page.tsx`) switches rendering; all state, validation and the `submitQuote()` → `/api/enquiry`
+  path are shared with the desktop modal (extracted from `onSubmit`), so the request, the
+  in-place thank-you and the create-account prompt are identical. Booked-date blocking reuses the
+  **same bare `CheckoutDateEditor`** as checkout (`unavailable={unavailableDates}` — whole-listing
+  holds greyed light-yellow + unselectable), so a guest can't request a quote for taken dates.
+- **Hardening:** `role="dialog"` + `aria-modal` + label; body-scroll lock while open (no scroll
+  bleed behind the overlay); Escape steps back / closes; back button on the header; send disabled
+  until each step is valid; honeypot preserved; no submit possible mid-send.
+- **Verified live (mobile 375px):** full flow Dates→Guests→Room→Message→Contact, per-step gating
+  (room required for a rooms-only listing, message required, valid email required), "Send request"
+  enables when valid, scroll locked; **desktop `FormModal` still opens with the original form**.
+  `tsc` + `next lint` green.
 
 ## 2026-08-07 — Dedicated mobile checkout wizard (one decision per viewport).
 
