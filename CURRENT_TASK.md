@@ -2,52 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT (2026-08-06) — **BILLING VAT + AFFILIATE PAYING + ACTIVATION PLAN — SHIPPED & LIVE** ⬅ START HERE
+## 🟢 SAVE POINT (2026-08-07) — **LAUNCH-READINESS SWEEP — 7 FIXES SHIPPED TO PRODUCTION** ⬅ START HERE
 
-**`main` == `origin/main` == `e640c58`** (pushed, Vercel READY on prod). `tsc` + `pnpm lint` GREEN
-throughout. Migrations `20260806210000` … `20260806260000` applied to the linked cloud DB. Founder
-logged in as admin for live verification.
+**`main` == `origin/main` == `63c3bd65`** (fast-forwarded, pushed, **Vercel READY on wielo.co.za**).
+`pnpm build` + `tsc` + `lint` all GREEN. Fixes were built on branch `test/launch-readiness-sweep`
+(also pushed), rebased cleanly onto the previous save point's VAT/wizard work (`f9aadc43`), then
+fast-forwarded into `main`. Full evidence report: **`docs/testing/LAUNCH_READINESS_SWEEP.md`**.
+Memory: [[project-savepoint-aug7-launch-sweep]].
 
-### ✅ Done this session (all live-verified against the cloud DB / logged-in UI)
-1. **Setup wizard reskin + hardening** — matched the Add-ons/Specials shell (no width cap, identity
-   bar, 288px ProgressRing rail, icon-tile nav); mobile rail = vertical stack; publish banner gated on
-   setup completion; pulled signup avatar/bio/languages through; step/gate + data-loss fixes; photo
-   `sort_order` trigger, replace-restore atomicity, business `requireName`, non-atomic auth-email fix.
-2. **Affiliate "paying" correctness** — root cause was TWO bugs: a stale plan allowlist AND the
-   `subscriptions.plan` column reading `'free'` on a paid host. `lib/affiliate/paying.ts`
-   `isPayingSubscription` now keys on **`product_id`** (free tier = null), threaded into all 4
-   surfaces; Metrics funnels (`campaign_funnel`/`program_affiliate_funnel`, migs `230000`+`240000`)
-   count paying off the same product_id signal. VERIFIED: admin PAID CUSTOMERS 0→1 (Petrus = Starter),
-   portal ACTIVE REFERRED HOSTS 0→1. Also hardened silent click-log + `bindAffiliateReferral` swallows.
-3. **Paid-sub `plan='free'` root fix** — activation derives plan from `product.plan_key ?? slug` but
-   the FK to `plans()` only allows free/basic/pro/business; the catalogue rename left paid products
-   `plan_key NULL` + non-key slugs → silent 'free'. Mig `250000`: set `plan_key='pro'` on every paid
-   membership + backfill live subs; `activateMappedPlan` now falls back to 'pro' (+logs) for an
-   unresolvable membership key, never 'free'. VERIFIED: all paid subs now `plan='pro'`, 0 stale.
-4. **VAT wired onto the platform ledger (both modes)** — the mint-invoice trigger already computed VAT
-   correctly for inclusive + exclusive but left `platform_ledger.vat_amount` NULL. Mig `260000`: the
-   trigger now writes `vat_amount = v_vat` back onto the ledger row (reconciled with the invoice by
-   construction; commission = `amount − vat_amount` = ex-VAT net in both modes). Host dashboard invoice
-   page now reads the stored `vat_amount` (was re-deriving + double-counting the discount). Charge
-   GROSSING (adds VAT on top in exclusive) confirmed on the live paths: `createProductOrder` (purchase),
-   `subscription-renewal` (renewals), and admin manual charges (catalog price only — overrides never
-   grossed). VERIFIED live (temp config + test charge, reverted + cleaned up): registered@15% R115 →
-   `vat_amount 15` (sub 100/total 115); unregistered → 0. Wielo VAT currently: `vat_number ''` (off),
-   `vat_mode 'exclusive'`, rate 15.
+### ✅ Done this session — swept the 4 core features, each verified in-browser AND against the DB
+Signup · booking engine (+ every sub-feature) · affiliate · pipeline — all PASS. **7 bugs fixed:**
+1. `fix(seed)` — seed falls back to an active membership when `beta` is gone.
+2. **`fix(signup)`** — no free host tier; plan REQUIRED; a product with a trial starts a TRIALING
+   sub (no card, instant dashboard). `signup/host/{Wizard,actions,schemas}`. + Step-3 copy fix.
+3. `fix(seed)` — reset password for existing starter accounts (they weren't on `WieloStarter123!`).
+4. **`fix(rls)`** — `get_my_host_id()` excludes soft-deleted hosts (soft-delete now revokes RLS;
+   was hiding a host's own bookings). Mig `20260807120000` — applied DIRECTLY to live DB (idempotent).
+5. **`fix(dashboard)`** — 13 inline host resolvers now filter `deleted_at` (false onboarding gate).
+6. **`fix(calendar-sync)`** — surfaced the iCal export URL (was a dead link + token unreachable);
+   valid feed, VEVENT on confirm, no PII. New `ExportUrlList.tsx`.
 
-### ⚠️ Known / remaining (money paths — DO with live provider test charges, do not guess)
-- **Secondary charge rails not yet grossed**: native `plans`-based checkout (`startSubscriptionCheckout`
-  — likely legacy, superseded by product flow), **PayPal recurring**, **Paystack webhook auto-renewal**
-  (likely dead if renewals are the app-driven `subscription-renewal` cron). Each needs a Paystack/PayPal
-  **test-mode** charge to confirm the webhook preserves the grossed amount before grossing. The LIVE
-  purchase/renewal/admin/booking paths already gross.
-- Both live membership products (Starter + Standard) now map to `plan='pro'` (per-product features come
-  from `product_features`, so this is only the tier label). If they must be distinct feature TIERS,
-  create real `plans` rows + `plan_features` instead of aliasing to 'pro'.
-- Host booking VAT keys off the **listing's** `vat_number` (Pricing tab), NOT the business/account VAT
-  number — confirm that's the intended field if a host expects an account-level toggle.
+### 🧹 Cleanup done (founder: keep config, remove accounts+bookings)
+Removed the 4 `sweep.*@wielotest.com` accounts + test bookings (`purge_test_booking` RPC). KEPT on
+host1: coupon `SWEEP20`, special `sweep-winter-special`, add-on `Airport Shuttle` (counters 0). Seed
+world intact (host1/host2/guest@wielostarter.com / `WieloStarter123!`, 2 published props).
+
+### ⚠️ Known / traps (this session)
+- **NO Paystack keys anywhere** in `.env.local` → only EFT at booking checkout; card path untestable
+  by the agent. Founder to connect test keys on host1 `/dashboard/settings/banking` + test the card.
+- **Finding F2**: unfiltered `hosts…maybeSingle()` is **37 sites** — fixed 13 dashboard; ~24 remain
+  incl. **5 in money-path `lib/billing/product-checkout.ts`** + admin/GDPR. Do a SHARED-helper sweep
+  (route through `lib/host/current.ts`), NOT piecemeal. Latent (fresh host = 1 row), not a blocker.
+- Browser automation: submit-clicks flaky → `requestSubmit()`; Radix modals need real clicks; booking
+  payment form is inline (Payments tab → Record a payment → Full → Save). iCal feed cached 300s
+  (cache-bust). `genlink.mjs` mangles the `/next` arg in Git Bash. `db push` unusable (behind remote
+  migration history) → apply DDL directly via single-quoted heredoc.
 
 ### ▶️ Likely next
-Run the collaborative VAT provider-rail test (Paystack/PayPal test mode → one membership purchase with
-VAT enabled → verify webhook grosses + `vat_amount` end-to-end), then gross/retire the 3 secondary
-rails. Optionally fix activation to set `plan` per-product if distinct tiers are wanted.
+Founder: LIVE Paystack card test. Then: **F2 shared-helper refactor** (~24 resolvers), pipeline
+nice-to-haves (drag / delete-deny / task add), host review reply, full `/r`→commission E2E.

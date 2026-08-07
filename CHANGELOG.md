@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-08-07 — Launch-readiness sweep of the 4 core features; 7 fixes shipped to production.
+
+Swept **signup · booking engine (+ every sub-feature) · affiliate · pipeline** — every PASS
+backed by a browser check AND a DB read (quote == charge == DB throughout). Found + fixed 7 bugs,
+merged to `main` (fast-forward, no conflicts) and deployed live to `wielo.co.za` (`main=63c3bd65`).
+Full evidence report: `docs/testing/LAUNCH_READINESS_SWEEP.md`.
+
+**Fixes:**
+1. `fix(seed)` — seed-starter falls back to an active membership when the `beta` product is gone.
+2. `fix(signup)` — no free host tier; plan selection required; a product with a trial starts a
+   TRIALING subscription (no card, instant dashboard); no-trial → checkout. Server resolves the
+   trial length from the DB, never the client. Also corrected the false Step-3 "we seed your
+   listing" copy.
+3. `fix(seed)` — `ensureAuthUser` resets the password for existing accounts (starter accounts
+   weren't on the documented `WieloStarter123!`).
+4. `fix(rls)` — `get_my_host_id()` (behind every host RLS policy) now filters `deleted_at` — a
+   soft-deleted host no longer resolves, so soft-delete actually revokes access, and a host with a
+   stale soft-deleted duplicate no longer sees zero of their own bookings. Migration
+   `20260807120000` (applied directly to the live DB; idempotent).
+5. `fix(dashboard)` — added the `deleted_at` filter to 13 inline host resolvers that showed a false
+   "finish onboarding / set up host profile" gate for the same soft-delete reason.
+6. `fix(calendar-sync)` — the iCal export URL was completely unreachable (dead link; the feed token
+   was never surfaced). Each listing now renders its signed export URL with a copy button; verified
+   valid RFC-5545 feed, VEVENT on a confirmed booking, no guest PII.
+
+**Cleanup:** removed the throwaway sweep accounts + test bookings; kept host1's coupon/special/
+add-on config for live testing; seed world intact.
+
+**Open:** founder to test live Paystack card checkout (no gateway keys configured); Finding F2 —
+the unfiltered-host-resolver pattern is 37 sites total, ~24 remain (incl. 5 in money-path
+`product-checkout`) → best fixed via one shared `getMyHostId` helper.
+
+---
+
 ## 2026-08-06 — Fix paid-subscription plan staleness + wire VAT onto the platform ledger.
 
 Two crucial money/functionality paths, both verified against the live DB.
