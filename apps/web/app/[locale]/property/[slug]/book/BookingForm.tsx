@@ -48,6 +48,7 @@ import {
   PolicyDialog,
   type PolicyDialogData,
 } from "@/components/policy/PolicyDialog";
+import { busy } from "@/components/ui/busy-host";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { grossVat, vatOf } from "@/lib/pricing/vat";
 import { createClient } from "@/lib/supabase/client";
@@ -1182,6 +1183,23 @@ export function BookingForm({
       return;
     }
 
+    // Labeled full-screen busy overlay for the slow submit → redirect beat, so
+    // the guest sees clear progress instead of a frozen page while we create the
+    // booking and hand off to the payment provider. `showNav` clears itself on
+    // the redirect (to the gateway, or the EFT success page); on an error we hide
+    // it explicitly below. App-wide standard — see components/ui/busy-host.tsx.
+    const busyOpts = {
+      title:
+        method === "eft" ? "Reserving your stay" : "Securing your reservation",
+      message: !isAuthenticated
+        ? "Setting up your account…"
+        : method === "eft"
+          ? "Locking in your dates…"
+          : method === "paypal"
+            ? "Taking you to PayPal's secure checkout…"
+            : "Taking you to Paystack's secure checkout…",
+    };
+
     // Party manifest payload shared by both submit paths — drop fully-empty rows;
     // the server keeps only complete (name + email) rows as guest records.
     const partyOut = party
@@ -1198,6 +1216,7 @@ export function BookingForm({
     // deal's cancellation override — so we send only the guest's choices.
     if (deal) {
       start(async () => {
+        const busyId = busy.showNav(busyOpts);
         if (!isAuthenticated) {
           const acc = await createCheckoutGuestAccountAction({
             full_name: contact.fullName.trim(),
@@ -1205,6 +1224,7 @@ export function BookingForm({
             password: contact.password,
           });
           if (!acc.ok) {
+            busy.hide(busyId);
             toast.error(acc.error);
             return;
           }
@@ -1231,12 +1251,16 @@ export function BookingForm({
           policy_acknowledged: ack,
         });
         // A successful action redirects server-side; only an error returns here.
-        if (res && !res.ok) toast.error(res.error);
+        if (res && !res.ok) {
+          busy.hide(busyId);
+          toast.error(res.error);
+        }
       });
       return;
     }
 
     start(async () => {
+      const busyId = busy.showNav(busyOpts);
       if (!isAuthenticated) {
         const acc = await createCheckoutGuestAccountAction({
           full_name: contact.fullName.trim(),
@@ -1244,6 +1268,7 @@ export function BookingForm({
           password: contact.password,
         });
         if (!acc.ok) {
+          busy.hide(busyId);
           toast.error(acc.error);
           return;
         }
@@ -1287,6 +1312,7 @@ export function BookingForm({
         additional_guests: partyOut,
       });
       if (result && !result.ok) {
+        busy.hide(busyId);
         toast.error(result.error);
       }
     });
