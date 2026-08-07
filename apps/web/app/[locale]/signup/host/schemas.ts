@@ -189,66 +189,61 @@ export type PlanInput = z.infer<typeof planSchema>;
 
 // Full payload sent to finalizeOnboardingAction. The Account step is its
 // own action (creates auth user); finalize collects everything else and
-// creates the host profile + first listing + free subscription.
+// creates the host profile + a Free/trialing subscription.
 //
-// No `offering` field — that step was removed; we go straight from About
-// to the Listing step where the host seeds their FIRST accommodation
-// listing. More listings can be added from the dashboard.
-export const finalizeOnboardingSchema = z
-  .object({
-    // Profile (from Account + About steps) — all persisted on user_profiles
-    full_name: z.string().trim().min(2).max(120),
-    phone: z
-      .string()
-      .trim()
-      .min(6, "Phone is required.")
-      .max(40, "Phone is too long."),
-    country: z.string().trim().min(2).max(60),
-    // ISO-3166 alpha-2 of the host's country + their chosen settlement currency
-    // (Model 2 — the currency of record for this host's listings/bookings).
-    country_iso: z.string().trim().length(2).toUpperCase().default("ZA"),
-    settlement_currency: z.enum(["ZAR", "USD", "EUR", "GBP"]).default("ZAR"),
-    bio: z.string().trim().max(240).optional(),
-    languages: z.array(z.string().min(1).max(40)).max(20).default([]),
-    avatar_url: z.string().url().optional().or(z.literal("")),
+// The mobile wizard flow is Account(mint) → Contact → Profile → Toolkit →
+// Welcome. There is NO listing step: the host creates their first listing —
+// and captures their business address — later from /dashboard/setup. The
+// address fields below are therefore optional; when omitted, the auto-created
+// default business simply keeps a blank address until setup fills it in.
+export const finalizeOnboardingSchema = z.object({
+  // Profile (from Account + Contact + Profile steps) — persisted on user_profiles
+  full_name: z.string().trim().min(2).max(120),
+  phone: z
+    .string()
+    .trim()
+    .min(6, "Phone is required.")
+    .max(40, "Phone is too long."),
+  country: z.string().trim().min(2).max(60),
+  // ISO-3166 alpha-2 of the host's country + their chosen settlement currency
+  // (Model 2 — the currency of record for this host's listings/bookings).
+  country_iso: z.string().trim().length(2).toUpperCase().default("ZA"),
+  settlement_currency: z.enum(["ZAR", "USD", "EUR", "GBP"]).default("ZAR"),
+  bio: z.string().trim().max(240).optional(),
+  languages: z.array(z.string().min(1).max(40)).max(20).default([]),
+  avatar_url: z.string().url().optional().or(z.literal("")),
 
-    // Listing — only the bare minimum to seed a draft. Capacity, pricing,
-    // duration, photos etc. live in the listing editor post-onboarding.
-    listing_name: z.string().trim().min(2).max(200),
-    listing_kind: z.literal("accommodation"),
-    category_id: z.string().uuid().nullable().optional(),
-    accommodation_type: z.string().optional(),
-    business_name: z.string().trim().max(160).optional().or(z.literal("")),
-    address_line1: z.string().trim().min(3).max(200),
-    address_line2: z.string().trim().max(200).optional().or(z.literal("")),
-    city: z.string().trim().min(2).max(120),
-    region: z.string().trim().min(2).max(80),
-    postal_code: z.string().trim().min(3).max(20),
-    latitude: z.number().min(-90).max(90).nullable().optional(),
-    longitude: z.number().min(-180).max(180).nullable().optional(),
+  // Business — all OPTIONAL. The mobile wizard drops the listing step, so a
+  // host finishes signup with no address; /dashboard/setup captures it before
+  // they publish. `businesses` address columns are nullable, so a blank default
+  // business is valid. Kept in the schema so a future/partner-prefilled address
+  // still flows through if present.
+  business_name: z.string().trim().max(160).optional().or(z.literal("")),
+  address_line1: z.string().trim().max(200).optional().or(z.literal("")),
+  address_line2: z.string().trim().max(200).optional().or(z.literal("")),
+  city: z.string().trim().max(120).optional().or(z.literal("")),
+  region: z.string().trim().max(80).optional().or(z.literal("")),
+  postal_code: z.string().trim().max(20).optional().or(z.literal("")),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
 
-    // Plan — the plan key of the selected product (display + FK fallback). The
-    // authoritative product is `product_slug` below; the subscription's plan and
-    // product_id are resolved server-side from it.
-    plan: z.enum(["free", "basic", "pro", "business"]),
-    billing_cycle: z.enum(["monthly", "annual"]),
+  // Plan — the plan key of the selected product (display + FK fallback). The
+  // authoritative product is `product_slug` below; the subscription's plan and
+  // product_id are resolved server-side from it.
+  plan: z.enum(["free", "basic", "pro", "business"]),
+  billing_cycle: z.enum(["monthly", "annual"]),
 
-    // The catalog product the host selected on the plan step. Every host must
-    // pick one (there is no free host tier). Finalize resolves it server-side: a
-    // product with a trial period starts a TRIALING subscription (no card, instant
-    // dashboard access); a no-trial product finalizes a Free baseline that the
-    // wizard then sends to checkout to upgrade. Optional in the schema so the
-    // buy-first (purchased_order_token) and competition-trial paths still validate.
-    product_slug: z.string().trim().max(120).optional(),
+  // The catalog product the host selected on the plan step. Finalize resolves it
+  // server-side: a product with a trial period starts a TRIALING subscription (no
+  // card, instant dashboard access); a no-trial product finalizes a Free baseline
+  // that the wizard then sends to checkout to upgrade. Optional so the buy-first
+  // (purchased_order_token) and competition-trial paths still validate.
+  product_slug: z.string().trim().max(120).optional(),
 
-    // When the user paid for a product first (/p/[slug] → pay → signup), the
-    // paid order's pay_token is threaded here so finalize links the purchase to
-    // the new account (and sets the plan if the product maps to one).
-    purchased_order_token: z.string().trim().max(64).optional(),
-  })
-  .refine((d) => !!d.category_id, {
-    path: ["category_id"],
-    message: "Pick a category.",
-  });
+  // When the user paid for a product first (/p/[slug] → pay → signup), the
+  // paid order's pay_token is threaded here so finalize links the purchase to
+  // the new account (and sets the plan if the product maps to one).
+  purchased_order_token: z.string().trim().max(64).optional(),
+});
 
 export type FinalizeOnboardingInput = z.infer<typeof finalizeOnboardingSchema>;

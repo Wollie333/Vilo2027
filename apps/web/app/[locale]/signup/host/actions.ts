@@ -476,8 +476,15 @@ export async function finalizeOnboardingAction(
 
   // 3. Enrich the auto-created default business (made by the
   // on_host_created_default_business trigger when the host row was inserted)
-  // with the captured business name + this listing's address, so the host's
-  // first business — and every document for this listing — is properly named.
+  // with the business name, country + settlement currency. The mobile wizard
+  // has no listing/address step, so the address fields are usually blank here —
+  // the host captures them later in /dashboard/setup before publishing. The
+  // `businesses` address columns are nullable, so a blank default business is
+  // valid; we still write any address that a partner-prefill or future step
+  // supplied. `null` blanks preserve whatever the trigger seeded rather than
+  // overwriting with empty strings.
+  const blankToNull = (v?: string | null) =>
+    v && v.trim().length > 0 ? v.trim() : null;
   await admin
     .from("businesses")
     .update({
@@ -487,15 +494,14 @@ export async function finalizeOnboardingAction(
           : d.full_name,
       // Country + settlement currency (Model 2). The default business is the
       // SSOT for currency; new listings inherit default_currency via the
-      // trg_property_currency trigger, so this runs BEFORE the listing insert.
+      // trg_property_currency trigger.
       country: d.country_iso,
       default_currency: d.settlement_currency,
-      address_line1: d.address_line1,
-      address_line2:
-        d.address_line2 && d.address_line2.length > 0 ? d.address_line2 : null,
-      city: d.city,
-      province: d.region,
-      postal_code: d.postal_code,
+      address_line1: blankToNull(d.address_line1),
+      address_line2: blankToNull(d.address_line2),
+      city: blankToNull(d.city),
+      province: blankToNull(d.region),
+      postal_code: blankToNull(d.postal_code),
       latitude: d.latitude ?? null,
       longitude: d.longitude ?? null,
     })
@@ -503,10 +509,9 @@ export async function finalizeOnboardingAction(
     .eq("is_default", true);
 
   // NOTE: we deliberately do NOT auto-create a draft listing here. Every host
-  // creates their own listing from the dashboard ("Create your first listing"),
-  // so nobody lands with placeholder/draft content they didn't make. The wizard
-  // still collects the address above purely to name + locate the default
-  // business. (Founder directive — clean onboarding.)
+  // creates their own listing — and captures their business address — from
+  // /dashboard/setup after onboarding, so nobody lands with placeholder content
+  // they didn't make. (Founder directive — clean onboarding.)
 
   // 3b. If they paid for a product before signing up, link that paid order to
   //     the new account so the purchase shows in their billing / the Wielo

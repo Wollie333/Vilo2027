@@ -6,7 +6,6 @@ import {
   ArrowUpRight,
   Camera,
   Check,
-  ChevronDown,
   Eye,
   EyeOff,
   Loader2,
@@ -41,7 +40,6 @@ import { firePurchase } from "@/lib/analytics/purchase";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
-import { LocationPicker } from "@/components/location/LocationPicker";
 import {
   ensureTurnstileToken,
   TurnstileWidget,
@@ -58,14 +56,7 @@ import {
 } from "@/lib/phone/dialCodes";
 import { combineName, splitName } from "@/lib/profile/name";
 
-import {
-  LANGUAGE_OPTIONS,
-  PLANS,
-  SA_REGIONS,
-  accountSchema,
-  aboutSchema,
-  listingSchema,
-} from "./schemas";
+import { LANGUAGE_OPTIONS, PLANS, accountSchema, aboutSchema } from "./schemas";
 import type { CatalogProduct } from "@/lib/products/getProducts";
 
 import {
@@ -80,12 +71,16 @@ import { SignupPromoField, type AppliedPromo } from "./SignupPromoField";
 
 // ─── Step machinery ───────────────────────────────────────────────
 
-// 5-step host onboarding. The old "What you offer" step was removed.
-// MVP lists accommodation only — experiences/tour guides ship later.
+// 5-step mobile-first host onboarding — one decision per screen:
+//   Account (mints the auth user) → Contact → Profile → Toolkit → Welcome.
+// The account is minted on step 1 (createAccountAction); the rest is client
+// state until the Toolkit step fires finalizeOnboardingAction. There is NO
+// listing step — the host creates their first listing, and captures their
+// business address, from /dashboard/setup right after onboarding.
 const STEPS = [
   { key: "account", label: "Account", short: "Account" },
-  { key: "about", label: "About you", short: "Profile" },
-  { key: "listing", label: "First listing", short: "Listing" },
+  { key: "contact", label: "Contact", short: "Contact" },
+  { key: "profile", label: "Profile", short: "Profile" },
   { key: "plan", label: "Your toolkit", short: "Toolkit" },
   { key: "welcome", label: "Welcome", short: "Done" },
 ] as const;
@@ -245,15 +240,15 @@ const SIDE_RAIL: Record<
       initials: "LM",
     },
   },
-  about: {
+  contact: {
+    eyebrow: "How we reach you",
+    title: "Booking-critical, never spam.",
+    body: "Your number is used for booking-critical SMS only — never marketing. Your payout currency sets the money of record for your listings.",
+  },
+  profile: {
     eyebrow: "Why this matters",
     title: "A profile guests trust.",
-    body: "Hosts with a photo and bio get 2.3× more enquiries on average. It takes 60 seconds.",
-  },
-  listing: {
-    eyebrow: "Step by step",
-    title: "Let's set up your first place.",
-    body: "Just the basics so your business and location are set up. You'll create your first listing — photos, pricing, rooms and policies — from your dashboard right after.",
+    body: "Hosts with a photo and bio get 2.3× more enquiries on average. It takes 60 seconds — and it's all optional.",
   },
   plan: {
     eyebrow: "Choose your plan",
@@ -302,7 +297,6 @@ export function Wizard({
   prefilledCountry = null,
   leadEmail = null,
   leadCity = null,
-  categoryLeaves = [],
   products = [],
   trialOffer = null,
   purchasedProductName = null,
@@ -324,13 +318,6 @@ export function Wizard({
   /** Values a visitor typed on a partner landing page — never proof of consent. */
   leadEmail?: string | null;
   leadCity?: string | null;
-  categoryLeaves?: Array<{
-    id: string;
-    label: string;
-    slug: string;
-    kind: "accommodation";
-    description: string | null;
-  }>;
   // Real subscription products to choose from in the toolkit step.
   products?: CatalogProduct[];
   // Set when the host arrived via a partner link during an active competition
@@ -597,7 +584,10 @@ export function Wizard({
     });
   }
 
-  function handleAboutNext() {
+  // Contact step — phone + country are the only required fields (currency has a
+  // default). Reuses aboutSchema; bio/languages/avatar it also lists are all
+  // optional there, so they never block this step (they're on the Profile step).
+  function handleContactNext() {
     const parsed = aboutSchema.safeParse({
       phone: data.phone,
       country: data.country,
@@ -610,30 +600,14 @@ export function Wizard({
       return;
     }
     setErrors({});
-    paceAdvance("Saving your profile…");
+    paceAdvance("Saving your contact details…");
   }
 
-  function handleListingNext() {
-    const parsed = listingSchema.safeParse({
-      listing_name: data.listingName,
-      listing_kind: data.listingKind,
-      category_id: data.categoryId,
-      accommodation_type: data.accommodationType || undefined,
-      business_name: data.businessName,
-      address_line1: data.addressLine1,
-      address_line2: data.addressLine2,
-      city: data.city,
-      region: data.region,
-      postal_code: data.postalCode,
-      latitude: data.latitude,
-      longitude: data.longitude,
-    });
-    if (!parsed.success) {
-      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
-      return;
-    }
+  // Profile step — photo, bio and languages are ALL optional, so there is
+  // nothing to validate; the host can skip straight through.
+  function handleProfileNext() {
     setErrors({});
-    paceAdvance("Setting up your first listing…");
+    paceAdvance("Saving your profile…");
   }
 
   function handlePlanNext() {
@@ -667,18 +641,10 @@ export function Wizard({
         bio: data.bio,
         languages: data.languages,
         avatar_url: data.avatarUrl,
-        listing_name: data.listingName,
-        listing_kind: data.listingKind,
-        category_id: data.categoryId,
-        accommodation_type: data.accommodationType || undefined,
-        business_name: data.businessName,
-        address_line1: data.addressLine1,
-        address_line2: data.addressLine2,
-        city: data.city,
-        region: data.region,
-        postal_code: data.postalCode,
-        latitude: data.latitude,
-        longitude: data.longitude,
+        // No listing/address step in the mobile wizard — the host captures their
+        // business address + first listing later in /dashboard/setup. The default
+        // business is created (by the on_host_created trigger) with a blank
+        // address, which setup fills in. See docs/features/MOBILE_SIGNUP_WIZARD.md.
         plan: data.plan,
         billing_cycle: data.billingCycle,
         product_slug: chosen?.slug ?? undefined,
@@ -731,11 +697,11 @@ export function Wizard({
       case "account":
         handleAccountNext();
         break;
-      case "about":
-        handleAboutNext();
+      case "contact":
+        handleContactNext();
         break;
-      case "listing":
-        handleListingNext();
+      case "profile":
+        handleProfileNext();
         break;
       case "plan":
         handlePlanNext();
@@ -791,23 +757,22 @@ export function Wizard({
             prefilledReferredBy={prefilledReferredBy}
           />
         );
-      case "about":
+      case "contact":
         return (
-          <StepAbout
+          <StepContact
             data={data}
             patch={patch}
             errors={errors}
             stepIndex={currentIndex}
           />
         );
-      case "listing":
+      case "profile":
         return (
-          <StepListing
+          <StepProfile
             data={data}
             patch={patch}
             errors={errors}
             stepIndex={currentIndex}
-            categoryLeaves={categoryLeaves}
           />
         );
       case "plan":
@@ -1430,7 +1395,8 @@ function StepAccount({
                 label="Privacy Policy"
                 className="text-brand-primary hover:underline"
               />
-              .
+              , and consent to {brandName} processing my personal information
+              under POPIA.
             </span>
           </label>
           {errors.terms ? (
@@ -1462,9 +1428,103 @@ function StepAccount({
   );
 }
 
-// ─── Step 2: About you ─────────────────────────────────────────────
+// ─── Step 2: Contact ───────────────────────────────────────────────
+//
+// How we reach the host + their money-of-record. Phone + country are the only
+// required fields here (currency defaults from country). One decision per
+// screen: contact details on this step, the public profile on the next.
 
-function StepAbout({
+function StepContact({
+  data,
+  patch,
+  errors,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  errors: Record<string, string>;
+  stepIndex: number;
+}) {
+  return (
+    <div className="wielo-step-enter">
+      <StepHeading
+        stepIndex={stepIndex}
+        title="How do we reach you?"
+        subtitle="Your number is used for booking-critical SMS only — never marketing."
+      />
+
+      <div className="mt-7 space-y-5">
+        <FormField
+          label="Phone number"
+          hint="Required — used for booking-critical SMS."
+          error={errors.phone}
+        >
+          <div className="flex">
+            <CountryDialCodeSelect
+              iso2={data.phoneCountry}
+              onChange={(iso2) => patch({ phoneCountry: iso2 })}
+            />
+            <TextInput
+              value={data.phone}
+              onChange={(e) => patch({ phone: e.target.value })}
+              placeholder="82 123 4567"
+              className="rounded-l-none"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </div>
+        </FormField>
+
+        <FormField label="Country" error={errors.country}>
+          <CountrySelect
+            iso2={data.countryIso}
+            onChange={(iso2) =>
+              patch({
+                countryIso: iso2,
+                country: countryByIso(iso2)?.name ?? data.country,
+                // Pre-fill the currency from the country unless the host has
+                // already chosen one themselves.
+                ...(data.currencyTouched
+                  ? {}
+                  : {
+                      settlementCurrency: countryToSettlementCurrency(iso2),
+                    }),
+              })
+            }
+          />
+        </FormField>
+
+        <FormField
+          label="Payout currency"
+          hint="The currency you're paid in — your prices, invoices and payouts all use it. Pre-filled from your country; change it if you bill guests in another currency."
+        >
+          <CurrencySelect
+            value={data.settlementCurrency}
+            onChange={(c) =>
+              patch({ settlementCurrency: c, currencyTouched: true })
+            }
+          />
+        </FormField>
+
+        <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-brand-light/40 p-3.5 text-xs leading-relaxed text-brand-mute">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+          <span>
+            Your payout always equals exactly what the guest pays. Wielo takes
+            no commission and no cut.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: Profile ───────────────────────────────────────────────
+//
+// The host's public profile — photo, bio, languages. All OPTIONAL: a host can
+// skip straight through. Nothing here blocks account creation (the account was
+// already minted on step 1).
+
+function StepProfile({
   data,
   patch,
   errors,
@@ -1517,7 +1577,7 @@ function StepAbout({
       <StepHeading
         stepIndex={stepIndex}
         title="A bit about you"
-        subtitle="Guests see this on your public profile. A photo and short bio earn trust."
+        subtitle="Guests see this on your public profile. A photo and short bio earn trust — but it's all optional, add it now or later."
       />
 
       <div className="mt-7 space-y-5">
@@ -1574,58 +1634,6 @@ function StepAbout({
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            label="Phone number"
-            hint="Required — used for booking-critical SMS."
-            error={errors.phone}
-          >
-            <div className="flex">
-              <CountryDialCodeSelect
-                iso2={data.phoneCountry}
-                onChange={(iso2) => patch({ phoneCountry: iso2 })}
-              />
-              <TextInput
-                value={data.phone}
-                onChange={(e) => patch({ phone: e.target.value })}
-                placeholder="82 123 4567"
-                className="rounded-l-none"
-              />
-            </div>
-          </FormField>
-
-          <FormField label="Country">
-            <CountrySelect
-              iso2={data.countryIso}
-              onChange={(iso2) =>
-                patch({
-                  countryIso: iso2,
-                  country: countryByIso(iso2)?.name ?? data.country,
-                  // Pre-fill the currency from the country unless the host has
-                  // already chosen one themselves.
-                  ...(data.currencyTouched
-                    ? {}
-                    : {
-                        settlementCurrency: countryToSettlementCurrency(iso2),
-                      }),
-                })
-              }
-            />
-          </FormField>
-
-          <FormField
-            label="Payout currency"
-            hint="The currency you're paid in — your prices, invoices and payouts all use it. Pre-filled from your country; change it if you bill guests in another currency."
-          >
-            <CurrencySelect
-              value={data.settlementCurrency}
-              onChange={(c) =>
-                patch({ settlementCurrency: c, currencyTouched: true })
-              }
-            />
-          </FormField>
-        </div>
-
         <FormField
           label="Short bio"
           optional
@@ -1672,191 +1680,20 @@ function StepAbout({
             })}
           </div>
         </FormField>
-      </div>
-    </div>
-  );
-}
 
-// ─── Step 3: First listing ─────────────────────────────────────────
-
-function StepListing({
-  data,
-  patch,
-  errors,
-  stepIndex,
-  categoryLeaves,
-}: {
-  data: WizardData;
-  patch: (p: Partial<WizardData>) => void;
-  errors: Record<string, string>;
-  stepIndex: number;
-  categoryLeaves: Array<{
-    id: string;
-    label: string;
-    slug: string;
-    kind: "accommodation";
-    description: string | null;
-  }>;
-}) {
-  return (
-    <div className="wielo-step-enter">
-      <StepHeading
-        stepIndex={stepIndex}
-        title="Tell us about your first listing"
-        subtitle="The basics now — name, type, and address. You'll build the full listing (photos, pricing, amenities) from your dashboard right after."
-      />
-
-      <div className="mt-7 space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField label="Listing name" required error={errors.listingName}>
-            <TextInput
-              value={data.listingName}
-              onChange={(e) => patch({ listingName: e.target.value })}
-              placeholder="Cape Town Boutique B&B"
-            />
-          </FormField>
-
-          <FormField label="Property type" required error={errors.category_id}>
-            <SelectInput
-              value={data.categoryId ?? ""}
-              onChange={(e) => {
-                const id = e.target.value;
-                const leaf = categoryLeaves.find((l) => l.id === id);
-                if (!leaf) {
-                  patch({ categoryId: null });
-                  return;
-                }
-                patch({
-                  categoryId: leaf.id,
-                  // Mirror onto the legacy column so the listings INSERT
-                  // keeps it populated.
-                  accommodationType: leaf.slug,
-                });
-              }}
-            >
-              <option value="">Pick a category…</option>
-              {categoryLeaves.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.label}
-                </option>
-              ))}
-            </SelectInput>
-          </FormField>
-        </div>
-
-        <FormField
-          label="Business name"
-          error={errors.business_name}
-          hint="Your trading name for invoices & quotes. Leave blank to use your own name — you can add more businesses later in Settings."
-        >
-          <TextInput
-            value={data.businessName}
-            onChange={(e) => patch({ businessName: e.target.value })}
-            placeholder="Cape Town Boutique Stays"
-          />
-        </FormField>
-
-        {/* Address block */}
-        <div className="space-y-3 rounded-card border border-brand-line bg-white p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-brand-mute">
-            Property address
-          </div>
-
-          <LocationPicker
-            latitude={data.latitude}
-            longitude={data.longitude}
-            onSelect={(s) => {
-              const p: Partial<WizardData> = {
-                latitude: s.latitude,
-                longitude: s.longitude,
-              };
-              if (s.address_line1) p.addressLine1 = s.address_line1;
-              if (s.city) p.city = s.city;
-              if (s.province) p.region = s.province;
-              if (s.postal_code) p.postalCode = s.postal_code;
-              patch(p);
-            }}
-          />
-
-          <FormField
-            label="Street address"
-            required
-            error={errors.addressLine1}
-          >
-            <TextInput
-              value={data.addressLine1}
-              onChange={(e) => patch({ addressLine1: e.target.value })}
-              placeholder="12 Main Road"
-            />
-          </FormField>
-
-          <FormField
-            label="Suite / unit / building (optional)"
-            error={errors.addressLine2}
-          >
-            <TextInput
-              value={data.addressLine2}
-              onChange={(e) => patch({ addressLine2: e.target.value })}
-              placeholder="Unit 3 / The Oak Cottage / Building B"
-            />
-          </FormField>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="City / town" required error={errors.city}>
-              <TextInput
-                value={data.city}
-                onChange={(e) => patch({ city: e.target.value })}
-                placeholder="Cape Town"
-              />
-            </FormField>
-
-            <FormField label="Province / region">
-              <SelectInput
-                value={data.region}
-                onChange={(e) => patch({ region: e.target.value })}
-              >
-                {SA_REGIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </SelectInput>
-            </FormField>
-
-            <FormField label="Postal code" required error={errors.postalCode}>
-              <TextInput
-                value={data.postalCode}
-                onChange={(e) => patch({ postalCode: e.target.value })}
-                placeholder="8001"
-                inputMode="numeric"
-              />
-            </FormField>
-          </div>
-
-          <p className="text-[11px] text-brand-mute">
-            Only the city &amp; region are shown publicly. The full address is
-            shared with confirmed guests after booking.
-          </p>
-        </div>
-
-        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4 text-xs text-brand-mute">
-          <p className="font-medium text-brand-ink">
-            Capacity, pricing, photos &amp; the rest — from your dashboard next.
-          </p>
-          <p className="mt-1">
-            Once onboarding finishes you&rsquo;ll land in your{" "}
-            <span className="font-semibold">dashboard</span>, where
-            &ldquo;Create your first listing&rdquo; walks you through cover
-            photos, your rate, capacity / duration, cancellation policy,
-            amenities and house rules — and publish when you&rsquo;re ready.
-          </p>
+        <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-brand-light/40 p-3.5 text-xs leading-relaxed text-brand-mute">
+          <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />
+          <span>
+            Hosts with a photo and bio get <b>2.3× more enquiries</b> on
+            average. It takes 60 seconds.
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Step 5: Subscription ──────────────────────────────────────────
+// ─── Step 4: Your toolkit (subscription) ───────────────────────────
 
 function StepPlan({
   stepIndex,
@@ -2211,7 +2048,7 @@ function StepPlan({
   );
 }
 
-// ─── Step 6: Welcome ───────────────────────────────────────────────
+// ─── Step 5: Welcome ───────────────────────────────────────────────
 
 function Confetti() {
   const pieces = useMemo(() => {
@@ -2549,23 +2386,6 @@ function TextAreaInput(
   );
 }
 
-function SelectInput({
-  children,
-  ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <div className="relative">
-      <select
-        {...rest}
-        className="w-full appearance-none rounded border border-brand-line bg-white px-3.5 py-2.5 pr-9 text-sm text-brand-ink transition focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
-    </div>
-  );
-}
-
 function StepHeading({
   stepIndex,
   title,
@@ -2578,7 +2398,7 @@ function StepHeading({
   return (
     <div>
       <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-        Step {stepIndex + 1} of {STEPS.length - 1}
+        Step {stepIndex + 1} of {STEPS.length}
       </div>
       <h2 className="mt-1.5 font-display text-2xl font-bold text-brand-ink md:text-3xl">
         {title}

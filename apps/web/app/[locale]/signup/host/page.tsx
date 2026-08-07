@@ -10,7 +10,6 @@ import { getMyHostId } from "@/lib/host/current";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
-import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
 import { Wizard } from "./Wizard";
 
@@ -219,19 +218,6 @@ export default async function HostSignupPage({
   // server-side from the bound referral before creating the trialing sub.
   const trialOffer = await getCompetitionTrialOffer();
 
-  // Flatten the category tree to accommodation leaves only (skip the
-  // Accommodation root). MVP lists accommodation only.
-  const tree = await getCategoryTree();
-  const categoryLeaves = tree.accommodation.flatMap((root) =>
-    root.children.map((c) => ({
-      id: c.id,
-      label: c.label,
-      slug: c.slug,
-      kind: c.kind,
-      description: c.description,
-    })),
-  );
-
   // Unsigned users can land here directly — Step 1 (Account) creates the
   // auth user. If a signed-in user (no host row yet) comes back to finish,
   // we skip Step 1 and seed every About-step field we already have.
@@ -247,7 +233,6 @@ export default async function HostSignupPage({
       prefilledCountry={prefilledCountry}
       leadEmail={lead.email}
       leadCity={lead.town}
-      categoryLeaves={categoryLeaves}
       products={products}
       trialOffer={trialOffer}
       purchasedProductName={purchasedProductName}

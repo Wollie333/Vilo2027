@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-08-08 — Rebuilt host signup as a mobile-first 5-step wizard (branch `mobile-signup-wizard`).
+
+Re-sequenced `/signup/host` from `account → about → listing → plan → welcome` into a mobile-first,
+one-decision-per-screen flow: **`Account (mint) → Contact → Profile → Toolkit → Welcome`**.
+
+- **Split** the old "about" step into **Contact** (phone / country / payout currency) and **Profile**
+  (photo / bio / languages — all optional).
+- **Dropped the listing step entirely.** The host no longer captures a listing name, property type,
+  or **business address** at signup — that moves to `/dashboard/setup`. The default business is now
+  created with a blank address.
+- **Account still mints on step 1** (`createAccountAction`) the moment the **single collapsed consent
+  checkbox** (ToS + Privacy + POPIA) is ticked. Referral field kept on step 1 with full functionality
+  (live resolve, cookie precedence, bind). OAuth omitted (not wired anywhere in the codebase).
+- Toolkit renders the **live product catalog** (Standard R999 / Starter R499), not the old hardcoded
+  Free/Basic/Pro/Business mirror.
+
+**Backend (contained, no migration):** `finalizeOnboardingSchema` made the listing/address fields
+optional (dropped the `category_id` refine); `finalizeOnboardingAction` writes address fields via
+`blankToNull()`. Safe because `businesses` address columns are nullable (`country` defaults `'ZA'`).
+
+**Verified live:** full flow walked logged-out with a throwaway account → account minted, all 5 steps
+rendered, finalize created `hosts` + a **blank-address default business** + a **trialing** subscription
+(DB-confirmed). `tsc --noEmit` and `eslint` on changed files both clean.
+
+**Files:** `signup/host/Wizard.tsx` (re-sequence, split StepAbout→StepContact+StepProfile, delete
+StepListing/SelectInput, one consent checkbox), `signup/host/schemas.ts` + `actions.ts` (relax
+finalize), `signup/host/page.tsx` (drop categoryLeaves). **Doc:** `docs/features/MOBILE_SIGNUP_WIZARD.md`
+(flow, DB writes, and the `/dashboard/setup` handoff spec for the later setup-wizard update).
+
+---
+
 ## 2026-08-07 — Launch-readiness sweep of the 4 core features; 7 fixes shipped to production.
 
 Swept **signup · booking engine (+ every sub-feature) · affiliate · pipeline** — every PASS
