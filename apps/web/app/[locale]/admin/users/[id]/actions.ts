@@ -22,6 +22,10 @@ import {
 } from "@/lib/billing/offer-email";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { resolvePlatformEnvironment } from "@/lib/billing/environment";
+import {
+  applyWieloVatToCharge,
+  getWieloBusinessProfile,
+} from "@/lib/billing/wielo-invoice";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { resolveAffiliateTerms } from "@/lib/affiliate/programTerms";
@@ -1579,9 +1583,23 @@ export const setUserProductAction = withAdminAudit<
       effectivePrice > 0 &&
       !trialEndsAtIso
     ) {
-      const chargeAmount = switchingMembership
+      let chargeAmount = switchingMembership
         ? membershipSwitchAmount(effectivePrice, oldPrice, carryStart, carryEnd)
         : round2(effectivePrice);
+      // A VAT-exclusive Wielo grosses a CATALOG-priced admin charge (adds VAT on
+      // top), exactly like self-serve checkout + renewal, so an admin-activated
+      // host pays the same as a self-serve one. A per-user override
+      // (customBaseAmount) is the EXACT figure the admin intends and is NEVER
+      // grossed — matching createProductOrder's isOverride rule. Grossing here is
+      // grossed exactly once: the paid branch uses it directly, and the paylink
+      // branch passes it to createProductOrder as an amountOverride (which does
+      // not re-gross).
+      if (parsed.data.customBaseAmount == null && chargeAmount > 0) {
+        chargeAmount = applyWieloVatToCharge(
+          chargeAmount,
+          await getWieloBusinessProfile(),
+        );
+      }
       if (chargeAmount > 0) {
         const label = switchingMembership
           ? `Pro-rated upgrade to ${product.name}`
@@ -1846,7 +1864,15 @@ export const sellProductAction = withAdminAudit<
       };
     }
 
-    // mode "paid": record a completed sale.
+    // mode "paid": record a completed sale. A VAT-exclusive Wielo grosses the
+    // catalog price (adds VAT on top) like every other charge — the amount is
+    // always the product's catalog price (no override) — and the invoice trigger
+    // + ledger writeback split the VAT back out. Inclusive / unregistered → price
+    // unchanged. The paylink variant above already grosses via createProductOrder.
+    const saleAmount = applyWieloVatToCharge(
+      price,
+      await getWieloBusinessProfile(),
+    );
     const token = crypto.randomUUID().replace(/-/g, "");
     const { data: ord, error: ordErr } = await service
       .from("product_orders")
@@ -1855,7 +1881,7 @@ export const sellProductAction = withAdminAudit<
         product_name: product.name,
         payer_email: email,
         payer_user_id: userId,
-        amount: price,
+        amount: saleAmount,
         currency,
         status: "paid",
         paid_at: now,
@@ -1877,7 +1903,7 @@ export const sellProductAction = withAdminAudit<
       });
     }
 
-    if (price > 0) {
+    if (saleAmount > 0) {
       // Tag current env (test/live) so a once-off product sale shows in the
       // current-mode revenue windows — mirrors the activation charge above.
       const environment = await resolvePlatformEnvironment(service);
@@ -1889,7 +1915,7 @@ export const sellProductAction = withAdminAudit<
           product_id: product.id,
           type: "charge",
           status: "completed",
-          amount: price,
+          amount: saleAmount,
           currency,
           provider: "manual",
           reason: `Product sale · ${product.name}`,
