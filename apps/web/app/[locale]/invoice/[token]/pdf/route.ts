@@ -153,13 +153,35 @@ export async function GET(
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, issued_at, paid_at, currency, subtotal, vat_amount, total_amount, host_id, host_snapshot, guest_snapshot, line_items",
+      "invoice_number, status, issued_at, paid_at, currency, subtotal, vat_amount, total_amount, host_id, host_snapshot, guest_snapshot, line_items, booking_id, payment_id",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
 
   if (!invoice) {
     return new NextResponse("Not found", { status: 404 });
+  }
+
+  // The settling payment's tracking id — printed on the doc so the host can
+  // reconcile it against the gateway (Paystack/PayPal `provider_reference`) or,
+  // for a manual EFT with no gateway ref, the internal payment id. Prefer the
+  // invoice's own linked payment (add-on invoices), else the booking's latest
+  // completed inbound payment. Same field for every method, so it's traceable.
+  let paymentRef: string | null = null;
+  if (invoice.payment_id || invoice.booking_id) {
+    let payQ = supabase
+      .from("payments")
+      .select("id, provider_reference, created_at")
+      .in("status", ["completed", "partially_refunded", "refunded"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    payQ = invoice.payment_id
+      ? payQ.eq("id", invoice.payment_id as string)
+      : payQ.eq("booking_id", invoice.booking_id as string);
+    const { data: pay } = await payQ.maybeSingle();
+    if (pay)
+      paymentRef =
+        (pay.provider_reference as string | null) ?? (pay.id as string);
   }
 
   const logoUrl = await hostLogoDataUri(invoice.host_id);
@@ -252,6 +274,7 @@ export async function GET(
     ...(host.booking_ref
       ? [{ label: "Booking ref", value: host.booking_ref }]
       : []),
+    ...(paymentRef ? [{ label: "Payment ID", value: paymentRef }] : []),
   ];
 
   const buffer = await renderInvoicePdf({
