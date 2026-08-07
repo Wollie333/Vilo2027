@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-08-06 — Affiliate "paying" now keyed on product_id + Metrics-tab funnel fixed.
+
+Follow-up to the allowlist fix — a live DB probe of the founder's referred host
+(Petrus) revealed the real root cause was deeper than a stale plan allowlist:
+
+- **The `subscriptions.plan` COLUMN is unreliable.** Petrus's ACTIVE subscription
+  reads `plan = 'free'` while its `product_id` points to the paid **Starter**
+  product (activation set the product but left the plan column 'free'). So ANY
+  plan-string check — even the denylist from the previous commit — still mislabels
+  him. Repointed `isPayingSubscription` at `product_id` as the primary signal (a
+  paid membership carries one; the free tier is `product_id = null`), with a
+  non-free plan as a legacy fallback. Threaded `product_id` into all four page
+  queries, and the admin per-affiliate + user-record pages now label the plan from
+  the real **product name** ("Starter") instead of the 'free' column.
+- **Metrics-tab funnels fixed** (migrations `20260806230000` then `…240000`):
+  `campaign_funnel` / `program_affiliate_funnel` required `subscription_id IS NOT
+  NULL` on a completed charge — which the FIRST charge never sets — so a first-month
+  payer showed 0 until renewal. Rewrote the `paying` CTE to the same
+  product_id-based live-subscription signal the pages use, so admin Metrics, the
+  admin per-affiliate page and the portal all agree.
+- **Verified live** (founder logged in): admin PAID CUSTOMERS 0→**1** with Petrus
+  shown as **Starter**; portal ACTIVE REFERRED HOSTS 0→**1**, "1 paying".
+- **Flagged, not changed — a real data bug:** activation leaves `subscriptions.plan
+  = 'free'` on a paid product subscriber. Commission + feature-gating read
+  `product_id` so they work, but the plan column is wrong; worth a dedicated fix.
+- **VAT (deliberately deferred):** commission uses `amount − vat_amount` but
+  `platform_ledger.vat_amount` is never written. It's CORRECT today (the default
+  Wielo profile isn't VAT-exclusive, so `amount` = net). The proper fix populates
+  `vat_amount` at every charge insert across Paystack/PayPal/EFT/renewal with the
+  inclusive-vs-exclusive edge cases — money-critical and unverifiable without real
+  transactions in each path, so it needs its own test-backed pass, not a rushed one.
+
 ## 2026-08-06 — Harden the default affiliate program: fix the "0 paying" drift.
 
 Founder hit two symptoms: the portal showed "0 paying" and the admin affiliate page

@@ -1044,8 +1044,13 @@ async function loadReferrals(
     const hostId = hostByUser.get(r.referred_user_id);
     const sub = hostId ? subByHost.get(hostId) : undefined;
     const isPaid = !!sub && isPayingSubscription(sub);
+    // Label from the real product (the `plan` column reads "free" even on a
+    // paid product), falling back to a capitalised non-free plan, else "Paid".
     const plan = isPaid
-      ? sub!.plan!.charAt(0).toUpperCase() + sub!.plan!.slice(1)
+      ? ((sub!.product_id ? productNameById.get(sub!.product_id) : null) ??
+        (sub!.plan && sub!.plan.toLowerCase() !== "free"
+          ? sub!.plan.charAt(0).toUpperCase() + sub!.plan.slice(1)
+          : "Paid"))
       : hostId
         ? "Free"
         : "Guest";

@@ -141,13 +141,33 @@ export default async function AdminAffiliateFunnelPage({
   const { data: subs } = hostIds.length
     ? await service
         .from("subscriptions")
-        .select("host_id, plan, status")
+        .select("host_id, plan, status, product_id")
         .in("host_id", hostIds)
     : {
-        data: [] as { host_id: string; plan: string | null; status: string }[],
+        data: [] as {
+          host_id: string;
+          plan: string | null;
+          status: string;
+          product_id: string | null;
+        }[],
       };
   const planByHost = new Map(
-    (subs ?? []).map((s) => [s.host_id, { plan: s.plan, status: s.status }]),
+    (subs ?? []).map((s) => [
+      s.host_id,
+      { plan: s.plan, status: s.status, product_id: s.product_id },
+    ]),
+  );
+  // Resolve the paid membership's real product NAME for display — the `plan`
+  // column is unreliable (reads "free" on a host who is actually on a paid
+  // product, so it must never drive the label).
+  const subProductIds = Array.from(
+    new Set((subs ?? []).map((s) => s.product_id).filter(Boolean)),
+  ) as string[];
+  const { data: subProductRows } = subProductIds.length
+    ? await service.from("products").select("id, name").in("id", subProductIds)
+    : { data: [] as { id: string; name: string }[] };
+  const subProductName = new Map(
+    (subProductRows ?? []).map((p) => [p.id, p.name]),
   );
 
   const commByReferral = new Map<string, number>();
@@ -169,7 +189,13 @@ export default async function AdminAffiliateFunnelPage({
       name: profile?.full_name || "Unnamed",
       email: profile?.email ?? null,
       paid: isPaid,
-      plan: isPaid ? (sub!.plan as string) : hostId ? "free" : "guest",
+      plan: isPaid
+        ? sub!.product_id
+          ? (subProductName.get(sub!.product_id) ?? "Paid")
+          : (sub!.plan ?? "Paid")
+        : hostId
+          ? "free"
+          : "guest",
       joined: r.bound_at,
       commission: commByReferral.get(r.id) ?? 0,
       // 30-day admin correction window (SoT §3.2 rule 5).

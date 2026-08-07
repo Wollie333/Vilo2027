@@ -185,13 +185,16 @@ export default async function AffiliateOverviewPage() {
   const { data: subs } = hostIds.length
     ? await admin
         .from("subscriptions")
-        .select("host_id, plan, status, locked_base_amount, is_founding")
+        .select(
+          "host_id, plan, status, product_id, locked_base_amount, is_founding",
+        )
         .in("host_id", hostIds)
     : {
         data: [] as {
           host_id: string;
           plan: string | null;
           status: string;
+          product_id: string | null;
           locked_base_amount: number | null;
           is_founding: boolean | null;
         }[],

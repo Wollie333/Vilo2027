@@ -112,10 +112,15 @@ export default async function AffiliateLinksPage() {
   const { data: subs } = hostIds.length
     ? await admin
         .from("subscriptions")
-        .select("host_id, plan, status")
+        .select("host_id, plan, status, product_id")
         .in("host_id", hostIds)
     : {
-        data: [] as { host_id: string; plan: string | null; status: string }[],
+        data: [] as {
+          host_id: string;
+          plan: string | null;
+          status: string;
+          product_id: string | null;
+        }[],
       };
   const payingHosts = new Set(
     (subs ?? []).filter(isPayingSubscription).map((s) => s.host_id),
