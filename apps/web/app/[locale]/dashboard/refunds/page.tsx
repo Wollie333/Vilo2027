@@ -89,6 +89,7 @@ export default async function RefundsPage({
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host)
     return (

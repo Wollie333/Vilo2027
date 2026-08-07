@@ -97,6 +97,7 @@ export async function voidTransactionAction(input: {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return { ok: false, error: "No host profile." };
 

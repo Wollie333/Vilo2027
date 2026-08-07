@@ -27,6 +27,7 @@ export default async function AddonsPage() {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!host) {

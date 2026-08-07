@@ -30,6 +30,7 @@ export async function sendDocumentLinkAction(input: {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return { ok: false, error: "No host profile." };
 
@@ -105,6 +106,7 @@ export async function sendPaymentLinkToThreadAction(input: {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return { ok: false, error: "No host profile." };
 
@@ -194,6 +196,7 @@ export async function emailDocumentToGuestAction(input: {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return { ok: false, error: "No host profile." };
 

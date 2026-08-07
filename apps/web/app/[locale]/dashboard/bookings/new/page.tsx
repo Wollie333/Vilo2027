@@ -45,6 +45,7 @@ export default async function NewBookingPage({
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   // Manual booking entry is shaped for stays (check-in / check-out / nights).

@@ -43,6 +43,7 @@ export default async function NewCouponPage() {
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) redirect("/dashboard/coupons");
 
