@@ -120,7 +120,23 @@ async function ensureAuthUser(email, password) {
   });
   if (!error) return data.user;
   const existing = await findUserByEmail(email);
-  if (existing) return existing;
+  if (existing) {
+    // The account already exists (e.g. a prior seed run, or created via the app).
+    // createUser never touches an existing user, so the documented starter
+    // password (WieloStarter123!) would silently NOT apply — leaving the seed
+    // account unloggable with the password the docs promise. Reset it here so a
+    // re-seed always yields accounts you can sign into with the known password.
+    const { error: pwErr } = await admin.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+    });
+    if (pwErr) {
+      throw new Error(
+        `Found ${email} but could not reset its password: ${pwErr.message}`,
+      );
+    }
+    return existing;
+  }
   throw new Error(
     `Could not create or find auth user ${email}: ${error.message}`,
   );
