@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-08-08 — Quote room step: whole listing / not sure / multi-room + capacity.
+
+Reworked the "Which room(s)?" step of the quote request (`RequestQuoteButton.tsx`), guest +
+host mapped end to end:
+
+- **Three intents** (`RoomIntent`): **whole listing** → enquiry `scope=whole_listing`; **not
+  sure** → `scope=whole_listing` too, but a "Not sure which room — please recommend the best
+  fit for my party of N" note is prepended to the host thread so the host picks the room when
+  finalising (no DB change); **rooms** → `scope=rooms` + the chosen `room_ids`. `createEnquiry`
+  already maps these to `quotes.scope` + `quote_rooms` + the first thread message.
+- **Multi-select rooms with capacity.** Each room card shows "Sleeps N" (`max_guests`, now
+  passed through from `page.tsx`). On the mobile wizard the fewest rooms that cover the party
+  (adults + children) are auto-selected — e.g. 4 guests → a 3-bed + a 2-bed picked by default;
+  the guest can add/remove. A room too small is NOT disabled (combining is allowed, per the
+  chosen rule); if the picked rooms sleep fewer than the party a non-blocking amber note says
+  "sleep X — add a room for your Y guests".
+- **Both surfaces:** the mobile full-viewport wizard gets card-based whole/not-sure/multi-room;
+  the desktop `FormModal` gets the same options in its dropdown (single-select) mapped to the
+  same `roomIntent`. The unsure note is clamped to the 2000-char enquiry schema cap.
+- **Verified live (375px + desktop):** auto-fit (party 4 → two rooms, "Sleeps 5 · fits your 4"),
+  capacity warning on under-fill, and the exact `/api/enquiry` payloads for all three intents
+  (rooms → scope=rooms + 2 room_ids; whole → scope=whole_listing + []; not-sure → whole_listing
+  + [] + the prepended note). Desktop dropdown shows all options and maps correctly. `tsc` +
+  `next lint` green.
+
 ## 2026-08-07 — Mobile "Request a quote" wizard (matches the checkout flow).
 
 On a phone the listing page's **Quote** button opened a cramped `FormModal`. Rebuilt it

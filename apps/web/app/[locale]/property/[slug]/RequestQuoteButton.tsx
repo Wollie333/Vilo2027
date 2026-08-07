@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  HelpCircle,
   Home,
   Loader2,
   Lock,
@@ -40,11 +41,19 @@ import {
 
 import { CheckoutDateEditor } from "./book/CheckoutDateEditor";
 
-// Radix Select forbids an empty-string value, so use a sentinel for the
-// "no specific room / whole place" choice (flexible listings only).
+// Radix Select forbids an empty-string value, so use sentinels for the
+// "whole listing" and "not sure — host to recommend" choices.
 const WHOLE_PLACE = "__whole__";
+const UNSURE = "__unsure__";
 
-type RoomOption = { id: string; name: string };
+type RoomOption = { id: string; name: string; maxGuests: number };
+
+// Room-selection intent for the quote. Maps to the enquiry scope:
+//   rooms  → scope "rooms" + the chosen room_ids
+//   whole  → scope "whole_listing" (the host quote pre-selects the whole place)
+//   unsure → scope "whole_listing" too, but a "please pick the room" flag is
+//            prepended to the host thread so the host chooses when finalising.
+type RoomIntent = "rooms" | "whole" | "unsure";
 
 export function RequestQuoteButton({
   listingId,
@@ -147,6 +156,62 @@ export function RequestQuoteButton({
   const [phone, setPhone] = useState(prefillPhone);
   const [hp, setHp] = useState(""); // honeypot
 
+  // Room-selection intent. Default: a flexible listing quotes the whole place
+  // (its historical default); a rooms-only listing starts on room selection.
+  const [roomIntent, setRoomIntent] = useState<RoomIntent>(() =>
+    roomsPickable ? (bookingMode === "flexible" ? "whole" : "rooms") : "whole",
+  );
+  // Whether the guest has touched the room selection — once they have, the
+  // party-size auto-fit stops overriding their choice.
+  const [roomsTouched, setRoomsTouched] = useState(false);
+
+  const partySize = adults + children;
+  // Fewest rooms (largest first) whose combined capacity covers the party.
+  function autoFitRoomIds(party: number): string[] {
+    const sorted = [...rooms].sort((a, b) => b.maxGuests - a.maxGuests);
+    const pick: string[] = [];
+    let cap = 0;
+    for (const r of sorted) {
+      if (cap >= party) break;
+      pick.push(r.id);
+      cap += Math.max(1, r.maxGuests);
+    }
+    if (pick.length === 0 && sorted[0]) pick.push(sorted[0].id);
+    return pick;
+  }
+  // MOBILE wizard only: when on "rooms" intent and the guest hasn't manually
+  // picked, keep the selection sized to the party (e.g. 4 guests → two 2-bed
+  // rooms selected by default). Desktop keeps its single-select dropdown.
+  useEffect(() => {
+    if (!fullscreen || !open) return;
+    if (roomIntent !== "rooms" || roomsTouched) return;
+    setSelectedRooms(autoFitRoomIds(partySize));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullscreen, open, roomIntent, roomsTouched, partySize]);
+
+  const selectedCapacity = rooms
+    .filter((r) => selectedRooms.includes(r.id))
+    .reduce((s, r) => s + Math.max(1, r.maxGuests), 0);
+  // Picked rooms sleep fewer than the party — a warning, not a hard block.
+  const roomShort =
+    roomIntent === "rooms" &&
+    selectedRooms.length > 0 &&
+    selectedCapacity < partySize;
+
+  // Tap a room card: switch to room intent and toggle it (start fresh if the
+  // guest was on whole-listing / not-sure).
+  function toggleRoomCard(id: string) {
+    setRoomsTouched(true);
+    if (roomIntent !== "rooms") {
+      setRoomIntent("rooms");
+      setSelectedRooms([id]);
+      return;
+    }
+    setSelectedRooms((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   function reset() {
     setDone(false);
     setNavigating(false);
@@ -159,6 +224,14 @@ export function RequestQuoteButton({
     setInfants(0);
     setPets(0);
     setSelectedRooms([]);
+    setRoomIntent(
+      roomsPickable
+        ? bookingMode === "flexible"
+          ? "whole"
+          : "rooms"
+        : "whole",
+    );
+    setRoomsTouched(false);
     setMessage("");
     setName(prefillName);
     setEmail(prefillEmail);
@@ -177,11 +250,18 @@ export function RequestQuoteButton({
       toast.error("Pick valid check-in and check-out dates.");
       return;
     }
-    if (bookingMode === "rooms_only" && selectedRooms.length === 0) {
-      toast.error("Pick at least one room.");
+    if (roomIntent === "rooms" && selectedRooms.length === 0) {
+      toast.error("Pick at least one room, the whole listing, or “Not sure”.");
       return;
     }
-    const scope = selectedRooms.length > 0 ? "rooms" : "whole_listing";
+    // Map the room intent to the enquiry scope. "Not sure" pins no rooms
+    // (scope whole_listing) but flags the thread so the host picks the room.
+    const scope = roomIntent === "rooms" ? "rooms" : "whole_listing";
+    const messageOut = (
+      roomIntent === "unsure"
+        ? `Not sure which room — please recommend the best fit for my party of ${partySize}.\n\n${message.trim()}`.trim()
+        : message.trim()
+    ).slice(0, 2000); // stay within the enquiry schema's message cap
     setPending(true);
     try {
       const res = await fetch("/api/enquiry", {
@@ -194,7 +274,7 @@ export function RequestQuoteButton({
           check_in: checkIn,
           check_out: checkOut,
           guests_breakdown: { adults, children, infants, pets },
-          message: message.trim(),
+          message: messageOut,
           guest_name: name.trim(),
           guest_email: email.trim(),
           guest_phone: phone.trim() || "",
@@ -293,11 +373,8 @@ export function RequestQuoteButton({
       sub: "Helps the host price your quote right.",
     },
     room: {
-      q:
-        bookingMode === "flexible"
-          ? "Which room — or the whole place?"
-          : "Which room?",
-      sub: "Pick what you’d like the host to quote.",
+      q: "Which room(s)?",
+      sub: `Pick one or more rooms, the whole listing, or “Not sure”. We’ve pre-picked enough to sleep your ${partySize} guest${partySize === 1 ? "" : "s"}.`,
     },
     message: {
       q: "Tell the host what you need",
@@ -313,7 +390,7 @@ export function RequestQuoteButton({
       case "dates":
         return !(checkIn && checkOut && checkOut > checkIn);
       case "room":
-        return bookingMode === "rooms_only" && selectedRooms.length === 0;
+        return roomIntent === "rooms" && selectedRooms.length === 0;
       case "message":
         return message.trim().length === 0;
       case "contact":
@@ -330,7 +407,7 @@ export function RequestQuoteButton({
           ? "Now choose your check-out date."
           : "Choose your check-in and check-out dates.";
       case "room":
-        return "Pick a room to continue.";
+        return "Pick a room, the whole listing, or “Not sure”.";
       case "message":
         return "Add a short message for the host.";
       case "contact":
@@ -371,6 +448,24 @@ export function RequestQuoteButton({
   const qCard = "rounded-card border border-brand-line bg-white";
   const qStepBtn =
     "flex h-10 w-10 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30";
+  const intentCardCls = (on: boolean) =>
+    `flex w-full items-center gap-3 rounded-card border p-3.5 text-left transition ${
+      on
+        ? "ck-selected border-brand-primary bg-brand-light/50"
+        : "border-brand-line bg-white"
+    }`;
+  // Round selector for the single-choice intent cards (whole / not-sure).
+  const qRadio = (on: boolean) => (
+    <span
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill border-2 ${
+        on
+          ? "border-brand-primary bg-brand-primary text-white"
+          : "border-brand-line"
+      }`}
+    >
+      {on ? <Check className="h-3.5 w-3.5" /> : null}
+    </span>
+  );
 
   const trigger = (
     <button
@@ -592,42 +687,67 @@ export function RequestQuoteButton({
 
                   {qKey === "room" ? (
                     <div className="space-y-2.5">
-                      {bookingMode === "flexible" ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRooms([])}
-                          className={`flex w-full items-center gap-3 rounded-card border p-3.5 text-left transition ${
-                            selectedRooms.length === 0
-                              ? "ck-selected border-brand-primary bg-brand-light/50"
-                              : "border-brand-line bg-white"
-                          }`}
-                        >
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-secondary">
-                            <Home className="h-5 w-5" />
+                      {/* Whole listing */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoomsTouched(true);
+                          setRoomIntent("whole");
+                        }}
+                        className={intentCardCls(roomIntent === "whole")}
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-secondary">
+                          <Home className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-display font-semibold text-brand-ink">
+                            The whole listing
                           </span>
-                          <span className="min-w-0 flex-1 font-display font-semibold text-brand-ink">
-                            The whole place
+                          <span className="block text-[11.5px] text-brand-mute">
+                            Quote the entire place
                           </span>
-                          <span
-                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill border-2 ${
-                              selectedRooms.length === 0
-                                ? "border-brand-primary bg-brand-primary text-white"
-                                : "border-brand-line"
-                            }`}
-                          >
-                            {selectedRooms.length === 0 ? (
-                              <Check className="h-3.5 w-3.5" />
-                            ) : null}
+                        </span>
+                        {qRadio(roomIntent === "whole")}
+                      </button>
+
+                      {/* Not sure — host recommends */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoomsTouched(true);
+                          setRoomIntent("unsure");
+                        }}
+                        className={intentCardCls(roomIntent === "unsure")}
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-secondary">
+                          <HelpCircle className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-display font-semibold text-brand-ink">
+                            Not sure yet
                           </span>
-                        </button>
-                      ) : null}
+                          <span className="block text-[11.5px] text-brand-mute">
+                            The host recommends the best room
+                          </span>
+                        </span>
+                        {qRadio(roomIntent === "unsure")}
+                      </button>
+
+                      <div className="flex items-center gap-2 pb-0.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                        <span className="h-px flex-1 bg-brand-line" />
+                        Or pick room(s)
+                        <span className="h-px flex-1 bg-brand-line" />
+                      </div>
+
                       {rooms.map((r) => {
-                        const on = selectedRooms[0] === r.id;
+                        const on =
+                          roomIntent === "rooms" &&
+                          selectedRooms.includes(r.id);
                         return (
                           <button
                             key={r.id}
                             type="button"
-                            onClick={() => setSelectedRooms([r.id])}
+                            onClick={() => toggleRoomCard(r.id)}
                             className={`flex w-full items-center gap-3 rounded-card border p-3.5 text-left transition ${
                               on
                                 ? "ck-selected border-brand-primary bg-brand-light/50"
@@ -637,11 +757,17 @@ export function RequestQuoteButton({
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
                               <BedDouble className="h-5 w-5" />
                             </span>
-                            <span className="min-w-0 flex-1 font-display font-semibold text-brand-ink">
-                              {r.name}
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-display font-semibold text-brand-ink">
+                                {r.name}
+                              </span>
+                              <span className="block text-[11.5px] text-brand-mute">
+                                Sleeps {r.maxGuests}
+                              </span>
                             </span>
+                            {/* Square = multi-select */}
                             <span
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill border-2 ${
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${
                                 on
                                   ? "border-brand-primary bg-brand-primary text-white"
                                   : "border-brand-line"
@@ -652,6 +778,23 @@ export function RequestQuoteButton({
                           </button>
                         );
                       })}
+
+                      {roomIntent === "rooms" && selectedRooms.length > 0 ? (
+                        <div
+                          className={`flex items-start gap-2 rounded-card border p-3 text-[12px] leading-snug ${
+                            roomShort
+                              ? "border-amber-200 bg-amber-50 text-amber-800"
+                              : "border-brand-line bg-brand-light/50 text-brand-secondary"
+                          }`}
+                        >
+                          <Users className="mt-0.5 h-4 w-4 shrink-0" />
+                          <div>
+                            {roomShort
+                              ? `These rooms sleep ${selectedCapacity} — add a room for your ${partySize} guest${partySize === 1 ? "" : "s"}.`
+                              : `Sleeps ${selectedCapacity} · fits your ${partySize} guest${partySize === 1 ? "" : "s"}.`}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -893,34 +1036,54 @@ export function RequestQuoteButton({
               <section className="space-y-2.5">
                 <SectionHead
                   icon={BedDouble}
-                  title={`Room${bookingMode === "flexible" ? " (optional)" : ""}`}
-                  hint="Which room would you like quoted?"
+                  title="Room"
+                  hint="Which room(s) would you like quoted?"
                 />
                 <Select
                   value={
-                    selectedRooms[0] ??
-                    (bookingMode === "flexible" ? WHOLE_PLACE : "")
+                    roomIntent === "whole"
+                      ? WHOLE_PLACE
+                      : roomIntent === "unsure"
+                        ? UNSURE
+                        : (selectedRooms[0] ?? "")
                   }
-                  onValueChange={(v) =>
-                    setSelectedRooms(v === WHOLE_PLACE ? [] : [v])
-                  }
+                  onValueChange={(v) => {
+                    setRoomsTouched(true);
+                    if (v === WHOLE_PLACE) {
+                      setRoomIntent("whole");
+                      setSelectedRooms([]);
+                    } else if (v === UNSURE) {
+                      setRoomIntent("unsure");
+                      setSelectedRooms([]);
+                    } else {
+                      setRoomIntent("rooms");
+                      setSelectedRooms([v]);
+                    }
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a room" />
+                    <SelectValue placeholder="Choose an option" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bookingMode === "flexible" ? (
-                      <SelectItem value={WHOLE_PLACE}>
-                        The whole place
-                      </SelectItem>
-                    ) : null}
+                    <SelectItem value={WHOLE_PLACE}>
+                      The whole listing
+                    </SelectItem>
+                    <SelectItem value={UNSURE}>
+                      Not sure — the host recommends
+                    </SelectItem>
                     {rooms.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
-                        {r.name}
+                        {r.name} · sleeps {r.maxGuests}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {roomShort ? (
+                  <p className="text-[12px] text-amber-700">
+                    That room sleeps {selectedCapacity} — your party is{" "}
+                    {partySize}. The host can suggest more rooms.
+                  </p>
+                ) : null}
               </section>
             ) : null}
 

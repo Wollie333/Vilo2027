@@ -645,7 +645,11 @@ export default async function ListingDetailPage({
                   listingId={listing.id}
                   listingName={listing.name}
                   bookingMode={listing.booking_mode}
-                  rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                  rooms={rooms.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    maxGuests: r.max_guests,
+                  }))}
                   isAuthed={guest.isAuthed}
                   prefillName={guest.name}
                   prefillEmail={guest.email}
@@ -659,7 +663,11 @@ export default async function ListingDetailPage({
                   listingId={listing.id}
                   listingName={listing.name}
                   bookingMode={listing.booking_mode}
-                  rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                  rooms={rooms.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    maxGuests: r.max_guests,
+                  }))}
                   isAuthed={guest.isAuthed}
                   prefillName={guest.name}
                   prefillEmail={guest.email}
@@ -684,7 +692,11 @@ export default async function ListingDetailPage({
               listingId={listing.id}
               listingName={listing.name}
               bookingMode={listing.booking_mode}
-              rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+              rooms={rooms.map((r) => ({
+                id: r.id,
+                name: r.name,
+                maxGuests: r.max_guests,
+              }))}
               isAuthed={guest.isAuthed}
               prefillName={guest.name}
               prefillEmail={guest.email}
