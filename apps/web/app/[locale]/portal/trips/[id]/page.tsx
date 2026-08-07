@@ -1947,7 +1947,7 @@ export default async function PortalTripDetailPage({
                 </div>
               </div>
               <div className="p-6">
-                <EventTimeline events={timeline} />
+                <EventTimeline events={timeline} sort={false} />
               </div>
             </section>
           ) : null}

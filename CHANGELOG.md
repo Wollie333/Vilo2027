@@ -92,6 +92,75 @@ their own content area (never the page).
 
 ---
 
+## 2026-08-07 — Enriched the host "Review & quote" panel for booking-update requests.
+
+The amber "Guest requests awaiting you" banner's quote flow gave the host no context and no
+control — just a blind "New total" box. It now expands (inline, compact) into a full editor for
+both date-change and add-a-guest requests:
+
+- **Current → New summary** — existing dates/guests/rooms struck through next to the requested/
+  edited ones (changed values highlighted).
+- **Editable dates** (brand `DatePicker`), **guests** stepper, and a **rooms checklist** (add/drop
+  rooms on rooms-scoped listings, each chip showing its base price).
+- **Live seasonal reprice** — every edit calls a new pure-read `previewBookingUpdateAction`; the
+  "New total" auto-fills from the seasonal suggestion (overridable, with "reset to seasonal"),
+  alongside "already paid", the delta, and the refund/credit/none settlement chooser.
+
+Closed a real wiring gap: the host could not edit the request before quoting, and the stored quote
+never carried `room_ids`, so an added room would silently never apply on guest accept. The quote
+action now accepts host overrides (re-validated + re-priced server-side; client never trusted for
+money) and stores the full patch; the guest-accept path passes `room_ids` through to the tested
+`applyBookingUpdate` core.
+
+**Files:** `lib/bookings/change-dates-core.ts` (expose seasonal breakdown), `dashboard/bookings/[id]/
+guest-request-actions.ts` (+`previewBookingUpdateAction`, host-editable `quoteBookingChangeAction`),
+`portal/trips/[id]/actions.ts` (room_ids pass-through), `dashboard/bookings/[id]/page.tsx` (feed
+rooms + current context), `dashboard/bookings/[id]/GuestRequestBanner.tsx` (the editor). No migration.
+
+Also overhauled the **activity timelines** (`lib/bookings/activity.ts`, the derived aggregator feeding
+both the host booking Activity and the guest trip timeline) so every step is recorded in the true
+order it happened. Everything stays **derived** — no hardcoded sequence; each booking renders exactly
+what its real rows + timestamps say. Changes:
+- New events: **Quote sent** (host), **Quote accepted / Suggested dates accepted** (guest — the
+  explicit click, distinct from the "Dates changed" effect), **Quote declined / Suggested dates
+  declined** (guest) vs **… declined** (host), and **Store credit issued/applied** sourced from
+  `guest_credit_ledger` (previously unsourced → credit settlements were invisible).
+- **Every payment** now shows (was first-only) so a balance top-up after a change ("paid the
+  outstanding amount") appears as its own "Payment received".
+- Correct **guest** attribution on accept/decline (was mis-attributed to the host).
+- **Chronological order (oldest→newest)** with a logical-rank (`seq`) tie-break at whole-second
+  granularity, so the several DB writes of one atomic action (accept applies the change AND settles
+  the refund/credit) read in lifecycle order, not raw-millisecond order. The two rail surfaces pass
+  `sort={false}`; the cross-booking Guest-Record keeps its own newest-first sort.
+- Source fix in `respondToUpdateQuoteAction`: stamp the acceptance time **before** applying, so
+  "accepted / dates changed" precede the refund/credit they trigger. Refund "approved" is clamped to
+  `max(created_at, actioned_at)` so a host-asserted instant refund never shows "approved before
+  requested".
+
+Live-verified order (disposable bookings, deleted): accept flow reads **Booking requested → confirmed
+→ Payment +R4 600 → Date change requested → Quote sent → Quote accepted → Dates changed → Refund
+requested → Refund approved**; decline flow reads **… → Quote sent → Quote declined (guest)** with the
+booking left unchanged.
+
+**Verified — full live money round-trip on disposable bookings** (BK-TST-A/B/C/D under
+host1@wielostarter.com, seed guest, then deleted):
+- Host editor + live seasonal reprice (adding a room moved 3150 → 6100; date-change showed
+  28–30 Aug → 17–21 Nov, R6 050, 4 nights, Available).
+- **Charge** (add a room via host UI → guest accept): dates + `guests_count` applied, 2nd
+  `booking_rooms` row added, total 11 700, balance_due 7 100, `partial`, 8 calendar blocks. The
+  quote stored `room_ids` and they applied end-to-end.
+- **Refund**: total 2 900, `refund_requests` completed R1 700, `payments.refunded_amount` 1 700
+  (trigger), `partially_refunded`, balance 0.
+- **Credit**: total 2 900, `guest_credit_ledger` +R1 700, payment untouched, balance 0.
+- **Timelines**: guest trip + host booking both show Quote sent (host) → Dates changed (guest) →
+  Store credit issued (host, −R1 700), alongside the original request/confirm/payment events.
+- **Financials/ledger/reporting reconcile on every path.** Revenue KPI (`fetch_primary_kpis`) =
+  `SUM(total_amount)` for confirmed/checked-in/completed → always the live booking value, never
+  over/understated. Invoice updated in step (2 900). Identity holds: cash-in 4 600 = revenue 2 900 +
+  store credit 1 700 (credit path) / = revenue 2 900 + refund 1 700 (refund path). Model 2 →
+  `platform_ledger` correctly untouched (0% commission on bookings). No credit_note is issued on the
+  credit path *by design* — the invoice is reduced in place, so a credit_note would double-count;
+  store credit is tracked in `guest_credit_ledger` per the existing overpayment convention.
 
 ## 2026-08-07 — Launch-readiness sweep of the 4 core features; 7 fixes shipped to production.
 

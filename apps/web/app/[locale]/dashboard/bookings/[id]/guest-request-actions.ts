@@ -10,6 +10,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   previewBookingUpdateCore,
   previewDateChangeCore,
+  type BookingUpdatePatch,
+  type BookingUpdatePreview,
   type UpdateSettlement,
 } from "@/lib/bookings/change-dates-core";
 
@@ -192,28 +194,76 @@ export async function approveBookingChangeAction(
   return { ok: true };
 }
 
+// The host's edits to the request before quoting — any of the dates, headcount or
+// room set. Omitted fields fall back to the guest's original request (and then, in
+// the core, to the booking's current values). All are re-validated + re-priced
+// server-side; the client is never trusted for the money.
+export type HostUpdateOverrides = {
+  checkIn?: string;
+  checkOut?: string;
+  guestsCount?: number;
+  roomIds?: string[];
+};
+
+// Build the reprice/apply patch for a request, layering the host's overrides over
+// the guest's original request. For a date_change the guest's requested dates are
+// the default; for add_guest the dates default to the booking's current (patch
+// omits them) unless the host explicitly changes them.
+function patchFromRequest(
+  req: ReqRow,
+  o: HostUpdateOverrides = {},
+): BookingUpdatePatch {
+  const payload = req.payload ?? {};
+  const patch: BookingUpdatePatch = {};
+  const checkIn = o.checkIn ?? (payload.check_in as string | undefined);
+  const checkOut = o.checkOut ?? (payload.check_out as string | undefined);
+  if (checkIn && ISO.test(checkIn)) patch.checkIn = checkIn;
+  if (checkOut && ISO.test(checkOut)) patch.checkOut = checkOut;
+  const guests = o.guestsCount ?? (Number(payload.guests_count) || undefined);
+  if (guests && guests >= 1) patch.guestsCount = Math.floor(guests);
+  if (o.roomIds && o.roomIds.length > 0) patch.roomIds = o.roomIds;
+  return patch;
+}
+
+// Live seasonal reprice for the host's in-progress edits — powers the estimate in
+// the Review & quote panel. Pure read (never mutates); host-gated via the request.
+export async function previewBookingUpdateAction(
+  requestId: string,
+  overrides: HostUpdateOverrides = {},
+): Promise<BookingUpdatePreview> {
+  const loaded = await loadOpenRequest(requestId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  const { req, admin } = loaded;
+  return previewBookingUpdateCore(
+    admin,
+    req.booking_id,
+    req.host_id,
+    patchFromRequest(req, overrides),
+  );
+}
+
 // Host CONFIRMS a guest's update request and sends a price QUOTE. The whole flow
 // lives on the booking: we price the change (seasonal, host-overridable `total`),
 // store it in payload.quote and leave the request 'pending' — the guest sees the
 // quote on their trip and accepts or declines. `settlement` decides how a
 // reduction is returned (refund / credit / none); an increase is always 'charge'.
+// The host may edit the dates / headcount / rooms before quoting (`overrides`);
+// the confirmed patch is stored in the quote so the guest's accept applies exactly
+// what was quoted.
 export async function quoteBookingChangeAction(
   requestId: string,
-  input: { total: number; settlement: UpdateSettlement },
+  input: { total: number; settlement: UpdateSettlement } & HostUpdateOverrides,
 ): Promise<Result> {
   const loaded = await loadOpenRequest(requestId);
   if (!loaded.ok) return loaded;
   const { req, admin } = loaded;
 
-  const patch =
-    req.type === "date_change"
-      ? {
-          checkIn: String(req.payload?.check_in ?? ""),
-          checkOut: String(req.payload?.check_out ?? ""),
-        }
-      : {
-          guestsCount: Number(req.payload?.guests_count ?? 0) || undefined,
-        };
+  const patch = patchFromRequest(req, {
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guestsCount: input.guestsCount,
+    roomIds: input.roomIds,
+  });
 
   const preview = await previewBookingUpdateCore(
     admin,
@@ -229,6 +279,15 @@ export async function quoteBookingChangeAction(
         "Those dates are no longer available — decline and suggest others.",
     };
   }
+  // newTotal is null when the edited stay can't be priced (e.g. a room that isn't
+  // a real active room of this property, or a per-person mismatch) — reject rather
+  // than quote a blind number the accept path couldn't reproduce.
+  if (preview.newTotal == null) {
+    return {
+      ok: false,
+      error: "Couldn't price that combination — check the rooms and guests.",
+    };
+  }
 
   const total = round2(Number(input.total));
   if (!(total >= 0)) return { ok: false, error: "Enter a valid price." };
@@ -241,6 +300,7 @@ export async function quoteBookingChangeAction(
       ? { check_in: patch.checkIn, check_out: patch.checkOut }
       : {}),
     ...(patch.guestsCount ? { guests_count: patch.guestsCount } : {}),
+    ...(patch.roomIds ? { room_ids: patch.roomIds } : {}),
     quoted_total: total,
     net_paid: preview.netPaid,
     delta,
