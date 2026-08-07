@@ -228,6 +228,11 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
             <span className="h-1.5 w-1.5 rounded-pill bg-brand-primary" /> Next
             trip
           </span>
+          {/* Booking total — top-right badge on mobile (desktop shows it in the
+              detail header, the card's real top-right corner). */}
+          <span className="absolute right-4 top-4 rounded-pill bg-white/95 px-3 py-1 text-xs font-bold text-brand-ink shadow-card backdrop-blur md:hidden">
+            {formatZAR(trip.total)}
+          </span>
           <div className="absolute bottom-4 left-4 right-4 md:hidden">
             <div className="text-[11px] font-medium uppercase tracking-wider text-white/80">
               {trip.typeLabel}
@@ -241,15 +246,25 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
 
         {/* Detail */}
         <div className="flex flex-col p-5 sm:p-6">
-          <div className="hidden md:block">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-              <MapPin className="h-3 w-3" /> {trip.typeLabel}
-              {trip.city ? ` · ${trip.city}` : ""}
-              {trip.region ? `, ${trip.region}` : ""}
+          <div className="hidden md:flex md:items-start md:justify-between md:gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+                <MapPin className="h-3 w-3" /> {trip.typeLabel}
+                {trip.city ? ` · ${trip.city}` : ""}
+                {trip.region ? `, ${trip.region}` : ""}
+              </div>
+              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink">
+                {trip.name}
+              </h2>
             </div>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink">
-              {trip.name}
-            </h2>
+            <div className="shrink-0 text-right">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                Total
+              </div>
+              <div className="font-display text-lg font-bold text-brand-ink">
+                {formatZAR(trip.total)}
+              </div>
+            </div>
           </div>
 
           {/* Countdown */}
