@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { round2 } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { BookingsBoard, type BookingRow, type Kpis } from "./BookingsBoard";
@@ -137,6 +138,22 @@ export default async function BookingsListPage() {
     }
   }
 
+  // Bookings with a PENDING change request (date change / add guest) — drives the
+  // little amber "update requested" marker in the table. bookingIds are already
+  // the host's own rows, so reading their requests via admin is ownership-safe.
+  const pendingUpdateBookings = new Set<string>();
+  if (bookingIds.length > 0) {
+    const { data: reqRows } = await createAdminClient()
+      .from("booking_requests")
+      .select("booking_id")
+      .in("booking_id", bookingIds)
+      .eq("status", "pending")
+      .is("deleted_at", null);
+    for (const r of reqRows ?? []) {
+      pendingUpdateBookings.add(r.booking_id as string);
+    }
+  }
+
   // Per-guest stay index (1-based) — count bookings oldest → newest.
   const stayCounter = new Map<string, number>();
   const stayIndex = new Map<string, number>();
@@ -164,6 +181,7 @@ export default async function BookingsListPage() {
     return {
       id: b.id,
       reference: b.reference,
+      hasPendingUpdate: pendingUpdateBookings.has(b.id),
       status: b.status,
       paymentStatus: b.payment_status,
       paymentMethod: b.payment_method,

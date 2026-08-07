@@ -41,6 +41,8 @@ import { formatMoney } from "@/lib/format";
 export type BookingRow = {
   id: string;
   reference: string;
+  /** A guest date-change / add-guest request is pending on this booking. */
+  hasPendingUpdate: boolean;
   status: string;
   paymentStatus: string;
   paymentMethod: string | null;
@@ -1206,8 +1208,18 @@ function BookingRowItem({
 
         {/* guests */}
         <div className="text-[12.5px]">
-          <div className="font-semibold tabular-nums text-brand-ink">
-            {gc.main}
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold tabular-nums text-brand-ink">
+              {gc.main}
+            </span>
+            {row.hasPendingUpdate ? (
+              <span
+                title="Change request awaiting you"
+                className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 ring-1 ring-amber-300"
+              >
+                <CalendarClock className="h-3 w-3" />
+              </span>
+            ) : null}
           </div>
           {!compact && gc.sub ? (
             <div className="mt-0.5 text-[11px] text-brand-mute">{gc.sub}</div>
@@ -1286,6 +1298,14 @@ function BookingRowItem({
               </span>
               {row.stayIndex >= 3 ? (
                 <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
+              ) : null}
+              {row.hasPendingUpdate ? (
+                <span
+                  title="Change request awaiting you"
+                  className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 ring-1 ring-amber-300"
+                >
+                  <CalendarClock className="h-3 w-3" />
+                </span>
               ) : null}
             </div>
             <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
