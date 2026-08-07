@@ -8,6 +8,7 @@ import { resolvePartyGuests } from "@/lib/bookings/party";
 import { getBrandName } from "@/lib/brand";
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { sendCapiPurchase } from "@/lib/integrations/meta-capi";
+import { getGuestInvoicePath } from "@/lib/payments/guest-invoice";
 import { getHostPayPal } from "@/lib/payments/host-paypal";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import {
@@ -385,6 +386,11 @@ export default async function BookingSuccessPage({
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(directionsQuery)}`
     : null;
 
+  // Guest-facing ledger invoice — only once the booking is confirmed + paid in full.
+  const invoicePath = isConfirmed
+    ? await getGuestInvoicePath(supabase, booking.id)
+    : null;
+
   let calendarUrl: string | null = null;
   if (isConfirmed) {
     const calTitle = encodeURIComponent(`${brandName} · ${listing.name}`);
@@ -698,6 +704,7 @@ export default async function BookingSuccessPage({
     cancellationDeadlineLabel: null,
     calendarUrl,
     directionsUrl,
+    invoiceUrl: invoicePath,
     purchase,
     celebrateFirstBooking,
   };

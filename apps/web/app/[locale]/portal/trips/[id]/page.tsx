@@ -11,6 +11,7 @@ import {
   Coffee,
   Compass,
   DoorOpen,
+  FileText,
   Flame,
   KeyRound,
   Languages,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/bookings/activity";
 import { resolvePartyGuests } from "@/lib/bookings/party";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
+import { getGuestInvoicePath } from "@/lib/payments/guest-invoice";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
 import {
   EventTimeline,
@@ -529,6 +531,12 @@ export default async function PortalTripDetailPage({
     (booking.payment_status === "completed" ||
       booking.payment_status === "captured");
 
+  // Guest-facing ledger invoice — only once the booking is confirmed + paid in full.
+  const invoicePath =
+    booking.status === "confirmed" && isPaidInFull
+      ? await getGuestInvoicePath(supabase, booking.id)
+      : null;
+
   // Add-ons already on the booking + the host's catalogue still on offer for it.
   const { data: bookingAddons } = await supabase
     .from("booking_addons")
@@ -947,6 +955,16 @@ export default async function PortalTripDetailPage({
               pending={pendingChangeRequests}
               variant="toolbar"
             />
+          ) : null}
+          {invoicePath ? (
+            <a
+              href={invoicePath}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
+            >
+              <FileText className="h-3.5 w-3.5 text-brand-primary" /> Invoice
+            </a>
           ) : null}
           {canRequestRefund ? (
             <RequestRefundButton

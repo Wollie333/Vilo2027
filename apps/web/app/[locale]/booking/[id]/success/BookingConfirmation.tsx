@@ -13,6 +13,7 @@ import {
   Clock,
   Copy,
   CreditCard,
+  FileText,
   KeyRound,
   MapPin,
   Mail,
@@ -152,6 +153,8 @@ export type ConfirmationData = {
   cancellationDeadlineLabel: string | null;
   calendarUrl: string | null;
   directionsUrl: string | null;
+  /** Guest invoice PDF path — present ONLY when confirmed + paid in full. */
+  invoiceUrl: string | null;
   /** Present ONLY when the booking is paid — drives the analytics purchase event. */
   purchase: {
     transactionId: string;
@@ -465,6 +468,7 @@ function QuickActions({ data }: { data: ConfirmationData }) {
     icon: typeof CalendarPlus;
     label: string;
     href?: string;
+    newTab?: boolean;
     onClick?: () => void;
   }> = [];
   if (data.calendarUrl)
@@ -481,12 +485,24 @@ function QuickActions({ data }: { data: ConfirmationData }) {
       label: "Get directions",
       href: data.directionsUrl,
     });
-  actions.push({
-    key: "print",
-    icon: Printer,
-    label: "Print",
-    onClick: () => window.print(),
-  });
+  // Once the booking is confirmed + paid in full its ledger invoice exists — offer
+  // the guest-facing PDF download in place of the browser Print action.
+  if (data.invoiceUrl) {
+    actions.push({
+      key: "invoice",
+      icon: FileText,
+      label: "Invoice",
+      href: data.invoiceUrl,
+      newTab: true,
+    });
+  } else {
+    actions.push({
+      key: "print",
+      icon: Printer,
+      label: "Print",
+      onClick: () => window.print(),
+    });
+  }
   actions.push({
     key: "trips",
     icon: CalendarClock,
@@ -513,8 +529,12 @@ function QuickActions({ data }: { data: ConfirmationData }) {
           <a
             key={a.key}
             href={a.href}
-            target={a.href.startsWith("http") ? "_blank" : undefined}
-            rel={a.href.startsWith("http") ? "noreferrer" : undefined}
+            target={
+              a.newTab || a.href.startsWith("http") ? "_blank" : undefined
+            }
+            rel={
+              a.newTab || a.href.startsWith("http") ? "noreferrer" : undefined
+            }
             className={cls}
           >
             {inner}
