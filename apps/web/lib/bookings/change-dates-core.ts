@@ -3,7 +3,10 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 
 import { dispatchEvent } from "@/lib/notifications/dispatch";
-import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
+import {
+  recomputeBookingPaymentState,
+  sumCompletedPaid,
+} from "@/lib/payments/ledger";
 import { nightsBetween } from "@/lib/pricing";
 import { computeStayPricing } from "@/lib/pricing/quote";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -104,19 +107,21 @@ async function hasConflict(
   return (count ?? 0) > 0;
 }
 
-// Accommodation total (ex-VAT) for the new dates via the canonical pricer, plus
-// the booking's existing add-ons, grossed up by VAT — the SUGGESTED total. The
-// host can override it before applying.
-async function suggestTotal(
+// Accommodation total (ex-VAT) for the new dates/guests/rooms via the canonical
+// pricer, plus the booking's existing add-ons, grossed up by VAT — the SUGGESTED
+// total. Seasonal-aware (computeStayPricing loads real property_seasonal_pricing).
+// The host can override it before applying.
+async function suggestTotalFor(
   admin: Admin,
   b: BookingForEdit,
   checkIn: string,
   checkOut: string,
+  guestsCount: number,
+  roomIds: string[],
 ): Promise<number | null> {
-  const roomIds = b.rooms.map((r) => r.room_id);
   const perRoomGuests = Math.max(
     1,
-    Math.round(b.guests_count / Math.max(1, roomIds.length)),
+    Math.round(guestsCount / Math.max(1, roomIds.length)),
   );
   const priced = await computeStayPricing(
     admin,
@@ -125,7 +130,7 @@ async function suggestTotal(
       check_in: checkIn,
       check_out: checkOut,
       scope: b.scope === "rooms" ? "rooms" : "whole_listing",
-      guests: b.guests_count,
+      guests: guestsCount,
       rooms: roomIds.map((room_id) => ({ room_id, guests: perRoomGuests })),
     },
     b.host_id,
@@ -134,6 +139,23 @@ async function suggestTotal(
   const exVat = priced.data.total + b.addonsTotal;
   const rate = b.vat_rate ?? 0;
   return rate > 0 ? Math.round(exVat * (1 + rate / 100) * 100) / 100 : exVat;
+}
+
+// Same, keeping the booking's current guests + rooms (date-only change).
+async function suggestTotal(
+  admin: Admin,
+  b: BookingForEdit,
+  checkIn: string,
+  checkOut: string,
+): Promise<number | null> {
+  return suggestTotalFor(
+    admin,
+    b,
+    checkIn,
+    checkOut,
+    b.guests_count,
+    b.rooms.map((r) => r.room_id),
+  );
 }
 
 export type ChangeDatesPreview =
@@ -171,6 +193,84 @@ export async function previewDateChangeCore(
     available: !conflict,
     nights: nightsBetween(checkIn, checkOut),
     suggestedTotal,
+    currency: b.currency,
+  };
+}
+
+// A booking "update" request can move dates, change the headcount and/or add
+// rooms — all repriced through the one seasonal engine. `roomIds` (when given)
+// is the FULL desired room set for a rooms-scoped booking (so the host can add a
+// room for extra capacity); omit to keep the current rooms.
+export type BookingUpdatePatch = {
+  checkIn?: string;
+  checkOut?: string;
+  guestsCount?: number;
+  roomIds?: string[];
+};
+
+export type BookingUpdatePreview =
+  | {
+      ok: true;
+      available: boolean;
+      nights: number;
+      /** VAT-inclusive total for the whole updated stay, or null if unavailable. */
+      newTotal: number | null;
+      /** Net already paid (captured − refunded). */
+      netPaid: number;
+      /** newTotal − netPaid: >0 the guest owes more, <0 a refund/credit is due. */
+      delta: number | null;
+      currency: string;
+    }
+  | { ok: false; error: string };
+
+// Price an update (dates/guests/rooms) for a booking and compare it to what's
+// already been paid — the basis for the guest's live estimate AND the host's
+// quote. Pure: reads + prices only, never mutates. `hostId` scopes the load.
+export async function previewBookingUpdateCore(
+  admin: Admin,
+  bookingId: string,
+  hostId: string,
+  patch: BookingUpdatePatch,
+): Promise<BookingUpdatePreview> {
+  const b = await loadBooking(admin, bookingId, hostId);
+  if ("error" in b) return { ok: false, error: b.error };
+
+  const checkIn = patch.checkIn ?? b.check_in;
+  const checkOut = patch.checkOut ?? b.check_out;
+  if (!checkIn || !checkOut)
+    return { ok: false, error: "This booking has no dates to change." };
+  if (nightsBetween(checkIn, checkOut) <= 0)
+    return { ok: false, error: "Check-out must be after check-in." };
+
+  const guestsCount = patch.guestsCount ?? b.guests_count;
+  const roomIds =
+    patch.roomIds && patch.roomIds.length > 0
+      ? patch.roomIds
+      : b.rooms.map((r) => r.room_id);
+
+  // Availability for the (possibly enlarged) room set + window, ignoring this
+  // booking's own blocks.
+  const conflict = await hasConflict(
+    admin,
+    { ...b, rooms: roomIds.map((room_id) => ({ room_id })) },
+    checkIn,
+    checkOut,
+  );
+
+  const netPaid = await sumCompletedPaid(admin, bookingId);
+  const newTotal = conflict
+    ? null
+    : await suggestTotalFor(admin, b, checkIn, checkOut, guestsCount, roomIds);
+  const delta =
+    newTotal == null ? null : Math.round((newTotal - netPaid) * 100) / 100;
+
+  return {
+    ok: true,
+    available: !conflict,
+    nights: nightsBetween(checkIn, checkOut),
+    newTotal,
+    netPaid,
+    delta,
     currency: b.currency,
   };
 }
