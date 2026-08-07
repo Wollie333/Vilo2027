@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Link } from "@/i18n/navigation";
-import { ExternalLink, RotateCw } from "lucide-react";
+import { RotateCw } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";
+import { signListingToken } from "@/lib/ical";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { ExportUrlList, type ExportUrl } from "./ExportUrlList";
 import { FeedManager, type Feed } from "./FeedManager";
 
 export const metadata: Metadata = {
@@ -73,6 +76,26 @@ export default async function CalendarSyncPage() {
 
   const listingList = listings ?? [];
 
+  // Build each listing's signed iCal export URL so the host can actually copy it
+  // (the token is derived from ICAL_TOKEN_SECRET — signListingToken throws if it's
+  // unset, in which case we show none rather than crash the page).
+  const hdrs = headers();
+  const proto = hdrs.get("x-forwarded-proto") ?? "http";
+  const hostHeader = hdrs.get("host");
+  const origin = hostHeader
+    ? `${proto}://${hostHeader}`
+    : (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  let exportUrls: ExportUrl[] = [];
+  try {
+    exportUrls = listingList.map((l) => ({
+      listingId: l.id,
+      listingName: l.name,
+      url: `${origin}/ical/${l.id}/${signListingToken(l.id)}`,
+    }));
+  } catch {
+    exportUrls = [];
+  }
+
   // Rooms per listing — a feed can optionally block just one room (per-room OTA
   // calendars). Whole-listing feeds (no room) stay the default.
   const { data: roomsRaw } = await supabase
@@ -124,13 +147,7 @@ export default async function CalendarSyncPage() {
               Every listing has a per-listing iCal URL. Paste it into the
               calendar tool you want to keep in sync.
             </p>
-            <Link
-              href="/dashboard/calendar"
-              className="mt-3 inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink hover:bg-brand-light"
-            >
-              Get my export URL
-              <ExternalLink className="h-3 w-3" />
-            </Link>
+            <ExportUrlList items={exportUrls} />
           </div>
         </div>
       </section>
