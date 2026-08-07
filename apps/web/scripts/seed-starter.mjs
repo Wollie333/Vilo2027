@@ -404,17 +404,35 @@ const HOSTS = [
 async function main() {
   console.log(`Seeding starter accounts into ${URL}\n`);
 
-  // Read Beta from the catalog. plan comes from the product's plan_key, exactly
-  // like switchToProductAction does — the plan FK must stay valid.
-  const { data: beta, error: betaErr } = await admin
+  // Read the membership product to attach. Prefer 'beta' (historical), but the
+  // live catalog is curated and 'beta' may be gone — fall back to the cheapest
+  // ACTIVE membership with a valid plan_key. plan comes from the product's
+  // plan_key, exactly like switchToProductAction does — the plan FK must stay
+  // valid, so a null-plan_key product (e.g. 'starter') is not eligible.
+  let { data: beta, error: betaErr } = await admin
     .from("products")
-    .select("id, plan_key, billing_cycle, price, is_active")
+    .select("id, slug, plan_key, billing_cycle, price, is_active")
     .eq("slug", BETA_SLUG)
     .maybeSingle();
   if (betaErr) throw new Error(`read Beta product: ${betaErr.message}`);
-  if (!beta)
-    throw new Error(`No product with slug '${BETA_SLUG}' on this project.`);
-  if (!beta.is_active) throw new Error("The Beta product is not active.");
+  if (!beta || !beta.is_active) {
+    const { data: fallback, error: fbErr } = await admin
+      .from("products")
+      .select("id, slug, plan_key, billing_cycle, price, is_active")
+      .eq("is_active", true)
+      .eq("product_type", "membership")
+      .not("plan_key", "is", null)
+      .order("price", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (fbErr) throw new Error(`read fallback product: ${fbErr.message}`);
+    if (!fallback)
+      throw new Error(
+        `No product with slug '${BETA_SLUG}' and no active membership fallback on this project.`,
+      );
+    beta = fallback;
+    console.log(`  (no 'beta' product — using '${beta.slug}' instead)`);
+  }
   const betaPaid = Number(beta.price) > 0;
   console.log(
     `  Beta → plan '${beta.plan_key}', ${betaPaid ? "paid" : "R0"}, ${beta.billing_cycle}`,
