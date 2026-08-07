@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { CalendarRange, Crown, Plus } from "lucide-react";
 
+import { getMyHostId } from "@/lib/host/current";
 import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -26,13 +27,9 @@ export default async function SeasonalPricingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/seasonal-pricing");
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const hostId = await getMyHostId(supabase);
 
-  if (!host) {
+  if (!hostId) {
     return (
       <div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
@@ -57,7 +54,7 @@ export default async function SeasonalPricingPage() {
   // remove it. (Same fix as the rooms/listings pages.)
   const [{ data: featureRaw }, { data: listingsRaw }] = await Promise.all([
     supabase.rpc("check_feature_permission", {
-      p_host_id: host.id,
+      p_host_id: hostId,
       p_feature_key: "seasonal_pricing",
     }),
     supabase
@@ -65,7 +62,7 @@ export default async function SeasonalPricingPage() {
       .select(
         "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:property_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
       )
-      .eq("host_id", host.id)
+      .eq("host_id", hostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
   ]);

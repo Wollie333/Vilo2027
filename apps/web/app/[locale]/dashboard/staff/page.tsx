@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Users } from "lucide-react";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { StaffManager } from "./StaffManager";
@@ -22,13 +23,9 @@ export default async function StaffPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/staff");
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const hostId = await getMyHostId(supabase);
 
-  if (!host) {
+  if (!hostId) {
     return (
       <div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
@@ -53,16 +50,16 @@ export default async function StaffPage() {
         .select(
           "id, role, created_at, user:user_profiles!staff_members_user_id_fkey ( id, full_name, email, avatar_url )",
         )
-        .eq("host_id", host.id)
+        .eq("host_id", hostId)
         .order("created_at", { ascending: true }),
       supabase
         .from("staff_invites")
         .select("id, email, role, expires_at, accepted_at, created_at, token")
-        .eq("host_id", host.id)
+        .eq("host_id", hostId)
         .is("accepted_at", null)
         .order("created_at", { ascending: false }),
       supabase.rpc("check_feature_permission", {
-        p_host_id: host.id,
+        p_host_id: hostId,
         p_feature_key: "staff_seats",
       }),
     ]);

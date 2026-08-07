@@ -63,22 +63,48 @@ The plan step pre-selected a paid plan and had no free path, contradicting "no c
 copy. Resolved per founder spec: paid subscription required, trial products start a trialing
 sub with no card. See fix #2.
 
-### F2 — Pervasive unfiltered host resolvers (37 sites) — **needs a shared-helper fix**
-`from("hosts").eq("user_id", …).maybeSingle()` **without** `.is("deleted_at", null)` appears in
-**37 call sites app-wide**. `.maybeSingle()` errors on >1 row, so any user with a soft-deleted
-host row (hosts are soft-deleted, never hard-deleted) hits a false "set up your host profile /
-finish onboarding" gate, and a lone soft-deleted host resolves as the caller's host (soft-delete
-doesn't revoke access). Fixed the 13 dashboard `.select("id")` cases (fix #5) + the RLS function
-(fix #4). **Remaining ~23** include money-path `lib/billing/product-checkout.ts` (×5, just
-hardened by another session) and admin/GDPR paths where non-filtering may be intentional —
-these should be swept via a single shared resolver (e.g. route everything through
-`lib/host/current.ts` `getMyHostId`/`requireHost`, which already filter `deleted_at`) rather than
-piecemeal edits. A fresh production host has exactly one row, so this is a latent robustness bug,
-not a common-path launch blocker.
+### F2 — Pervasive unfiltered host resolvers — **RESOLVED (2026-08-07 sweep)**
+`from("hosts").eq("user_id", …).maybeSingle()` **without** `.is("deleted_at", null)`. A user with a
+soft-deleted host row (hosts are soft-deleted, never hard-deleted) hits a false "set up your host
+profile / finish onboarding" gate, and a lone soft-deleted host resolves as the caller's host
+(soft-delete doesn't revoke access). Prior session fixed 13 dashboard cases (fix #5) + the RLS
+`get_my_host_id()` function (fix #4).
 
-Representative remaining sites: `lib/billing/product-checkout.ts:160/661/687/708/1366`,
-`lib/inbox/platform-thread.ts:362`, `lib/hosts/ensureHost.ts:18`, `admin/users/[id]/*`,
-`dashboard/{inbox,reviews,policies,settings,setup,staff,quotes,looking-for}`.
+**Full audit (2026-08-07):** classified all 205 `.from("hosts")` call sites app-wide (4 parallel
+auditors over dashboard / admin / lib / rest). Most are NOT the bug — `.eq("id", hostId)`
+notify/display lookups are legitimately unfiltered; scripts and bulk/admin ops are out of scope.
+The genuine "resolve the CURRENT user's own host by `user_id`, missing `deleted_at`, gates access"
+class = **18 sites**, all now fixed:
+
+- **Routed through the shared `getMyHostId(supabase)` helper (10 sites, `.select("id")`-only
+  resolvers):** `dashboard/settings/subscription`, `dashboard/policies`, `dashboard/seasonal-pricing`,
+  `dashboard/quotes/new`, `dashboard/quotes/[id]/edit`, `dashboard/properties/new`, `dashboard/staff`,
+  `dashboard/reviews/actions.ts` (×2), `signup/host/page.tsx`.
+- **Inline `.is("deleted_at", null)` (8 sites — multi-column reads or admin-client, can't return via
+  the id-only helper):** `dashboard/page.tsx`, `dashboard/inbox`, `dashboard/reviews/page.tsx`,
+  `dashboard/settings/banking`, `dashboard/setup`, `dashboard/settings/notifications`,
+  `signup/host/actions.ts` (admin idempotency guard), `lib/help/queries.ts` (non-gating checklist).
+- **Plus 2 non-gating cousins filtered for consistency:** `dashboard/settings/page.tsx` (avatar
+  fallback), `dashboard/settings/actions.ts` (profile-mirror select + update).
+
+Verified: `pnpm build` + `pnpm lint` green; policies / seasonal-pricing / staff / quotes-new /
+reviews render real host-scoped data live (getMyHostId resolves correctly on the happy path);
+zero server errors.
+
+**Flagged, NOT touched — `lib/billing/**` (15 sites), per founder (other session just hardened
+this area):** `platform-billing.ts:70`, `paypal-subscription.ts:277/433/621/953`,
+`subscription-renewal.ts:187`, `platform-report.ts:328`, `product-checkout.ts:160/661/668/674/687/708/1366/1562`.
+Most billing sites are `.eq("id", hostId)` lookups (legit). The **5 genuine money-path `user_id`
+resolves missing `deleted_at`** are `product-checkout.ts:160, 661, 687, 708, 1366` (`:1562` already
+filters). Owner should route these through `getMyHostId` when convenient.
+
+**Left unfiltered BY DESIGN (do not "fix"):**
+- `dashboard/settings/data/actions.ts:148` — account/GDPR purge scoping. A soft-deleted host's data
+  **must still be purged**, so filtering `deleted_at` here would leave orphaned rows. Correct as-is.
+- `lib/hosts/ensureHost.ts:18` — host provisioning idempotency. Whether to reuse a soft-deleted host
+  vs. create fresh interacts with the `hosts.user_id` unique constraint — needs a deliberate
+  decision, not a blind filter.
+- `lib/inbox/platform-thread.ts:362` — best-effort pay-card status; non-gating.
 
 ---
 

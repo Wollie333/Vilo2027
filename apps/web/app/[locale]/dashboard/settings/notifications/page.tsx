@@ -55,6 +55,7 @@ async function HostAwayAutoReply() {
     .from("hosts")
     .select("enquiry_auto_reply")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) return null;
   return <AwayAutoReplyCard initial={host.enquiry_auto_reply ?? null} />;

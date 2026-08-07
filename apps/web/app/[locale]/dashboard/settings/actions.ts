@@ -84,6 +84,7 @@ export async function saveProfileAction(
     .from("hosts")
     .select("id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (hostRow) {
@@ -112,7 +113,8 @@ export async function saveProfileAction(
     const { error: hostErr } = await supabase
       .from("hosts")
       .update(hostPatch)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .is("deleted_at", null);
     if (hostErr) {
       return { ok: false, error: "Could not save your host page." };
     }

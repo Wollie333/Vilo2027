@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ShieldCheck } from "lucide-react";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -22,13 +23,9 @@ export default async function PoliciesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/policies");
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const hostId = await getMyHostId(supabase);
 
-  if (!host) {
+  if (!hostId) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
@@ -47,21 +44,21 @@ export default async function PoliciesPage() {
   // Materialise the locked refund presets for this host (idempotent). Seed one
   // editable default Terms & Conditions doc too (privacy stays platform-wide).
   // Seeder RPCs are service_role-only (they bypass RLS to write for a host);
-  // host.id is the caller's own host, so running them via admin is safe.
+  // hostId is the caller's own host, so running them via admin is safe.
   const seed = createAdminClient();
-  await seed.rpc("ensure_host_policy_presets", { p_host_id: host.id });
-  await seed.rpc("ensure_host_booking_terms", { p_host_id: host.id });
+  await seed.rpc("ensure_host_policy_presets", { p_host_id: hostId });
+  await seed.rpc("ensure_host_booking_terms", { p_host_id: hostId });
   // Guarantee a default per type exists (cancellation prefers the Moderate
   // preset) so every listing without an explicit assignment still resolves a
   // policy — and refunds are enforceable. Idempotent.
-  await seed.rpc("ensure_host_default_policies", { p_host_id: host.id });
+  await seed.rpc("ensure_host_default_policies", { p_host_id: hostId });
 
   const { data: policies } = await supabase
     .from("policies")
     .select(
       "id, type, name, summary, preset, status, is_default, is_non_refundable, check_in_time, check_out_time, check_in_method, pets_allowed, smoking_allowed, parties_allowed, children_welcome, quiet_hours_start, quiet_hours_end, version, updated_at",
     )
-    .eq("host_id", host.id)
+    .eq("host_id", hostId)
     .is("deleted_at", null)
     .in("status", ["active", "draft"])
     .in("type", [
@@ -95,7 +92,7 @@ export default async function PoliciesPage() {
       supabase
         .from("properties")
         .select("id, name")
-        .eq("host_id", host.id)
+        .eq("host_id", hostId)
         .is("deleted_at", null)
         .order("name", { ascending: true }),
     ]);

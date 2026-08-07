@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
 import { loadFormDraft } from "@/lib/drafts/store";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../QuoteForm";
@@ -21,13 +22,9 @@ export default async function NewQuotePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/quotes/new");
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const hostId = await getMyHostId(supabase);
 
-  const list = host ? await loadQuoteFormListings(supabase, host.id) : [];
+  const list = hostId ? await loadQuoteFormListings(supabase, hostId) : [];
 
   if (list.length === 0) {
     return (

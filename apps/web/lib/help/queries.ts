@@ -339,6 +339,7 @@ export async function fetchGettingStartedState(
       .from("hosts")
       .select("id, bio, avatar_url, languages_spoken")
       .eq("user_id", userId)
+      .is("deleted_at", null)
       .maybeSingle(),
   ]);
 

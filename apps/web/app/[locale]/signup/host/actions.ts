@@ -415,6 +415,7 @@ export async function finalizeOnboardingAction(
     .from("hosts")
     .select("id, handle")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (existingHost) {
     const eh = existingHost as { id: string; handle: string };

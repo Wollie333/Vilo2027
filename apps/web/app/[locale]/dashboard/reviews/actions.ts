@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { getMyHostId } from "@/lib/host/current";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { sendReviewRequest } from "@/lib/reviews/request";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,19 +37,15 @@ export async function requestReviewsAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in first." };
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
+  const hostId = await getMyHostId(supabase);
+  if (!hostId) return { ok: false, error: "No host profile." };
 
   // Only act on bookings this host owns (RLS-scoped read + explicit host_id).
   const { data: owned } = await supabase
     .from("bookings")
     .select("id, guest_id")
     .in("id", bookingIds)
-    .eq("host_id", host.id);
+    .eq("host_id", hostId);
   const ownedGuest = new Map(
     (owned ?? []).map((b) => [b.id, b.guest_id as string | null]),
   );
@@ -102,12 +99,8 @@ export async function toggleFeaturedReviewAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in first." };
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
+  const hostId = await getMyHostId(supabase);
+  if (!hostId) return { ok: false, error: "No host profile." };
 
   // RLS host_read_own_reviews → only the owning host gets a row back.
   const { data: review } = await supabase
@@ -124,7 +117,7 @@ export async function toggleFeaturedReviewAction(
     .from("properties")
     .update({ featured_review_id: featured ? reviewId : null })
     .eq("id", review.property_id)
-    .eq("host_id", host.id);
+    .eq("host_id", hostId);
   // Unpin only if THIS review is the current featured one (don't clear another).
   if (!featured) update = update.eq("featured_review_id", reviewId);
 

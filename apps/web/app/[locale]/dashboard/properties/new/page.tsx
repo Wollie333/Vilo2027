@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
@@ -20,12 +21,8 @@ export default async function NewListingPage() {
   }
 
   // If the user hasn't finished onboarding, send them there first.
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) {
+  const hostId = await getMyHostId(supabase);
+  if (!hostId) {
     redirect("/signup/host");
   }
 

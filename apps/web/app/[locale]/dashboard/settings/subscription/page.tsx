@@ -10,6 +10,7 @@ import {
 import { Link } from "@/i18n/navigation";
 
 import { CONTACT_EMAIL } from "@/lib/contact";
+import { getMyHostId } from "@/lib/host/current";
 import { getPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
@@ -73,13 +74,9 @@ export default async function SettingsSubscriptionPage() {
     );
   }
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const hostId = await getMyHostId(supabase);
 
-  if (!host) {
+  if (!hostId) {
     return (
       <EmptyState
         title="Create your host profile first"
@@ -105,14 +102,14 @@ export default async function SettingsSubscriptionPage() {
       .select(
         "id, plan, product_id, billing_cycle, status, created_at, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason, product:products ( product_type )",
       )
-      .eq("host_id", host.id)
+      .eq("host_id", hostId)
       .order("created_at", { ascending: true }),
     supabase
       .from("subscription_history")
       .select(
         "id, event, from_plan, to_plan, from_status, to_status, notes, created_at",
       )
-      .eq("host_id", host.id)
+      .eq("host_id", hostId)
       .order("created_at", { ascending: false })
       .limit(10),
     getPlans(),

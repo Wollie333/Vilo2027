@@ -97,6 +97,7 @@ export default async function DashboardPage({
       .from("hosts")
       .select("id, handle, display_name, avg_rating, total_reviews")
       .eq("user_id", user!.id)
+      .is("deleted_at", null)
       .maybeSingle(),
     supabase
       .from("user_profiles")

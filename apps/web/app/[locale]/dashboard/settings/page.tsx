@@ -33,6 +33,7 @@ export default async function SettingsProfilePage() {
         "display_name, handle, bio, website_url, is_verified, avatar_url, languages_spoken, highlights",
       )
       .eq("user_id", user!.id)
+      .is("deleted_at", null)
       .maybeSingle(),
   ]);
 

@@ -56,6 +56,7 @@ export default async function SetupPage({
       "id, handle, display_name, bio, avatar_url, languages_spoken, highlights, website_url",
     )
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) redirect("/signup/host");
 

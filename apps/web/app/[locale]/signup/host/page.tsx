@@ -6,6 +6,7 @@ import { getCompetitionTrialOffer } from "@/lib/affiliate/trialOffer";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { getBrandName } from "@/lib/brand";
+import { getMyHostId } from "@/lib/host/current";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -181,12 +182,8 @@ export default async function HostSignupPage({
 
   // If they're already a host, send them home — no point re-onboarding.
   if (user) {
-    const { data: existingHost } = await supabase
-      .from("hosts")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (existingHost && !paidReceipt) {
+    const existingHostId = await getMyHostId(supabase);
+    if (existingHostId && !paidReceipt) {
       // Already a host — honour the pending intent (e.g. a quote) if present.
       // Exception: a paid-signup return renders the wizard's Welcome step below.
       redirect(nextPath ?? "/dashboard");

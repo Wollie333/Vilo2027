@@ -84,6 +84,7 @@ export default async function ReviewsPage({
     .from("hosts")
     .select("id, display_name")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) {
     return (

@@ -64,6 +64,7 @@ export default async function InboxPage({
     .from("hosts")
     .select("id, display_name, avatar_url")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!host) {

@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 
 import { loadFormDraft } from "@/lib/drafts/store";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../../QuoteForm";
@@ -29,12 +30,8 @@ export default async function EditQuotePage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/quotes/${params.id}/edit`);
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) notFound();
+  const hostId = await getMyHostId(supabase);
+  if (!hostId) notFound();
 
   const { data: quote } = await supabase
     .from("quotes")
@@ -61,7 +58,7 @@ export default async function EditQuotePage({
       .order("sort_order"),
   ]);
 
-  const list = await loadQuoteFormListings(supabase, host.id, quote.id);
+  const list = await loadQuoteFormListings(supabase, hostId, quote.id);
 
   // If this quote came from a guest's public "Request a quote" enquiry (only
   // those carry a conversation_id), surface what they originally asked for —
@@ -97,7 +94,7 @@ export default async function EditQuotePage({
         ? supabase
             .from("bookings")
             .select("check_out, status")
-            .eq("host_id", host.id)
+            .eq("host_id", hostId)
             .or(guestMatch)
             .not(
               "status",

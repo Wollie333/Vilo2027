@@ -35,6 +35,7 @@ export default async function CardPaymentsSettingsPage() {
     .from("hosts")
     .select("id, default_currency")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (!host) redirect("/dashboard/settings");
 
