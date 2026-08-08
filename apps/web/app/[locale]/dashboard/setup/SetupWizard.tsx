@@ -151,6 +151,7 @@ type Props = {
   bankAccounts: Account[];
   businessDefaults: BusinessDetailsInput;
   businessNameSet: boolean;
+  businessAddressSet: boolean;
   photos: Photo[];
   rooms: Room[];
   categoryLeaves: CategoryPickerLeaf[];
@@ -199,6 +200,7 @@ export function SetupWizard(props: Props) {
       computeSetupCompletion({
         host,
         businessNameSet: props.businessNameSet,
+        businessAddressSet: props.businessAddressSet,
         hasBankAccount: bankAccounts.length > 0,
         listing,
         photoCount: photos.length,
@@ -211,6 +213,7 @@ export function SetupWizard(props: Props) {
     [
       host,
       props.businessNameSet,
+      props.businessAddressSet,
       bankAccounts,
       listing,
       photos,
@@ -505,6 +508,7 @@ export function SetupWizard(props: Props) {
                   <StepBusiness
                     businessDefaults={businessDefaults}
                     nameSet={props.businessNameSet}
+                    addressSet={props.businessAddressSet}
                     onChanged={() => refreshWith("Saving your business…")}
                     onContinue={next}
                   />

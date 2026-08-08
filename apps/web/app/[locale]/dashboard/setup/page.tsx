@@ -14,6 +14,7 @@ import type {
   ListingGroup,
   SeasonalRule as SeasonalRuleView,
 } from "../seasonal-pricing/SeasonalPricingManager";
+import { CreateFirstListing } from "./CreateFirstListing";
 import { SetupWizard } from "./SetupWizard";
 
 // eft_banking_details stores account_number encrypted at rest. The shared
@@ -68,8 +69,24 @@ export default async function SetupPage({
     .eq("id", user.id)
     .maybeSingle();
 
-  // Primary listing — oldest one, the one seeded during onboarding. If a
-  // host somehow has zero listings, we send them through /listings/new.
+  // Accommodation category leaves (skip the root) — drives the category picker
+  // in both the create-first-listing gate below and the wizard's Listing step.
+  const categoryLeavesAll = await getCategoriesForKind("accommodation");
+  const categoryLeaves = categoryLeavesAll
+    .filter((c) => c.parent_id !== null)
+    .map((c) => ({
+      id: c.id,
+      label: c.label,
+      description: c.description,
+      slug: c.slug,
+      kind: c.kind,
+    }));
+
+  // Primary listing — oldest one. A host coming from the leaner signup has NO
+  // listing yet (signup no longer seeds one), so instead of bouncing them to
+  // the standalone create flow we render the wizard's create-your-listing gate
+  // in place; saving it creates the draft and this page re-runs into the full
+  // wizard.
   const { data: listing } = await supabase
     .from("properties")
     .select(
@@ -80,7 +97,14 @@ export default async function SetupPage({
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (!listing) redirect("/dashboard/properties/new");
+  if (!listing) {
+    return (
+      <CreateFirstListing
+        displayName={(host.display_name ?? "").split(" ")[0] ?? ""}
+        categoryLeaves={categoryLeaves}
+      />
+    );
+  }
 
   // Banking + business — both nullable; the wizard handles "no row yet".
   // No deleted_at on this table — soft delete is via is_archived.
@@ -150,18 +174,6 @@ export default async function SetupPage({
       .select("id, amenity_key, room_id")
       .eq("property_id", listing.id),
   ]);
-
-  // Accommodation category leaves (skip the root) — drives the picker.
-  const categoryLeavesAll = await getCategoriesForKind("accommodation");
-  const categoryLeaves = categoryLeavesAll
-    .filter((c) => c.parent_id !== null)
-    .map((c) => ({
-      id: c.id,
-      label: c.label,
-      description: c.description,
-      slug: c.slug,
-      kind: c.kind,
-    }));
 
   // Policies — the same `policies` table /dashboard/policies reads, so anything
   // created here shows up there too. Guarantee the host has an editable default
@@ -427,6 +439,13 @@ export default async function SetupPage({
       businessNameSet={Boolean(
         ((businessDetails?.trading_name as string | null) ?? "").trim() ||
         ((businessDetails?.legal_name as string | null) ?? "").trim(),
+      )}
+      businessAddressSet={Boolean(
+        (
+          (businessDetails?.billing_address_line1 as string | null) ?? ""
+        ).trim() &&
+        ((businessDetails?.billing_city as string | null) ?? "").trim() &&
+        ((businessDetails?.billing_postcode as string | null) ?? "").trim(),
       )}
       photos={(photos ?? []).map((p) => ({
         id: p.id as string,

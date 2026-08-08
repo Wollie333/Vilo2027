@@ -1128,11 +1128,12 @@ export async function togglePublishAction(
       .select("bio, avatar_url, languages_spoken")
       .eq("id", listing.host_id)
       .maybeSingle(),
-    // The default business must be named (trading or legal) — it's the identity
-    // on invoices, quotes and EFT instructions, and a required setup step.
+    // The default business must be named (trading or legal) AND have a billing
+    // address — the identity + address on invoices, quotes and EFT instructions,
+    // and a required setup step (the leaner signup no longer captures either).
     supabase
       .from("businesses")
-      .select("trading_name, legal_name")
+      .select("trading_name, legal_name, address_line1, city, postal_code")
       .eq("host_id", listing.host_id)
       .eq("is_default", true)
       .eq("is_archived", false)
@@ -1158,6 +1159,11 @@ export async function togglePublishAction(
     businessNameSet: Boolean(
       (bizRow?.trading_name ?? "").trim() || (bizRow?.legal_name ?? "").trim(),
     ),
+    businessAddressSet: Boolean(
+      (bizRow?.address_line1 ?? "").trim() &&
+      (bizRow?.city ?? "").trim() &&
+      (bizRow?.postal_code ?? "").trim(),
+    ),
     hasBankAccount,
     listing,
     photoCount: photoCount ?? 0,
@@ -1169,7 +1175,7 @@ export async function togglePublishAction(
 
   const LABELS: Record<string, string> = {
     profile: "your host profile",
-    business: "your business name",
+    business: "your business name & address",
     banking: "a payout bank account",
     listing: "listing photos",
     rooms: "at least one room",

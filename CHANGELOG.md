@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-08-08 — Finish-setup wizard Phase 1: create-in-wizard + required business address (branch `mobile-signup-wizard`).
+
+Reconciles the finish-setup wizard (`/dashboard/setup`) with the leaner signup, which no longer
+seeds a listing or captures a business address.
+
+- **Create the first listing inside the wizard.** A host with zero listings previously got redirected
+  out to `/dashboard/properties/new`; `setup/page.tsx` now renders a create-your-listing gate
+  (`CreateFirstListing`: name + type) that creates the draft via a new non-redirecting
+  `createSetupListingAction`, then re-runs into the full (untouched) wizard. No placeholder is created
+  until the host saves what they typed.
+- **Require the business address.** `BusinessDetailsForm` gains `requireAddress` (street/city/postcode
+  required + auto-opens when missing); the Business step gates Continue on name **and** address;
+  `computeSetupCompletion` gains a `businessAddressSet` predicate; and the publish gate
+  (`togglePublishAction`) enforces it. Needed because the default business is now created blank.
+
+Verified live on a blank-slate host: create-gate → "Wizard Test Cottage" created (DB-confirmed) →
+full wizard; Business step shows required address + disabled Continue. Note surfaced in testing:
+creating/publishing a listing requires a **verified email** (`assertFullHost`) — an existing
+host-action gate, so a new host must verify before setup lets them create/publish. `tsc` + `eslint`
+green. Files: `setup/actions.ts` (new), `setup/CreateFirstListing.tsx` (new), `setup/page.tsx`,
+`setup/SetupWizard.tsx`, `setup/steps/StepBusiness.tsx`, `lib/setup/completion.ts`,
+`settings/banking/_components/BusinessDetailsForm.tsx`, `properties/[id]/edit/actions.ts`. Phase 2
+(mobile one-step-per-screen redesign) is next.
+
+---
+
 ## 2026-08-08 — Rebuilt host signup as a mobile-first 5-step wizard (branch `mobile-signup-wizard`).
 
 Re-sequenced `/signup/host` from `account → about → listing → plan → welcome` into a mobile-first,

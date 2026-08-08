@@ -16,6 +16,7 @@ export function BusinessDetailsForm({
   defaults,
   logoUrl,
   requireName = false,
+  requireAddress = false,
   onSaved,
 }: {
   defaults: BusinessDetailsInput;
@@ -24,6 +25,10 @@ export function BusinessDetailsForm({
       so block a nameless "save" that would collapse to a success the host can't
       continue past. Settings leaves it off — individuals may save with no name. */
   requireName?: boolean;
+  /** Setup passes this too: the billing address (line 1 + city + postcode) is
+      mandatory since the leaner signup no longer captures it — it's the address
+      on invoices, quotes and EFT instructions. Settings leaves it off. */
+  requireAddress?: boolean;
   onSaved?: () => void;
 }) {
   const [pending, start] = useTransition();
@@ -37,7 +42,18 @@ export function BusinessDetailsForm({
     saved.billing_address_line1 ||
     saved.billing_city,
   );
-  const [editing, setEditing] = useState(!hasData);
+  // When an address is required (setup) but incomplete, open the form straight
+  // away — a host arriving with a name-but-no-address business (the leaner
+  // signup seeds the name only) would otherwise see a collapsed summary and have
+  // to hunt for "Edit" to add the address the step is blocking on.
+  const addressComplete = Boolean(
+    saved.billing_address_line1?.trim() &&
+    saved.billing_city?.trim() &&
+    saved.billing_postcode?.trim(),
+  );
+  const [editing, setEditing] = useState(
+    !hasData || (requireAddress && !addressComplete),
+  );
 
   const {
     register,
@@ -55,6 +71,17 @@ export function BusinessDetailsForm({
       !values.legal_name?.trim()
     ) {
       toast.error("Add your business name (trading or legal) to continue.");
+      return;
+    }
+    if (
+      requireAddress &&
+      (!values.billing_address_line1?.trim() ||
+        !values.billing_city?.trim() ||
+        !values.billing_postcode?.trim())
+    ) {
+      toast.error(
+        "Add your business address (street, city and postcode) to continue.",
+      );
       return;
     }
     start(async () => {
@@ -181,7 +208,11 @@ export function BusinessDetailsForm({
             </Field>
           </div>
 
-          <Field label="Address line 1" optional>
+          <Field
+            label="Address line 1"
+            optional={!requireAddress}
+            required={requireAddress}
+          >
             <TextInput
               placeholder="42 Long Street"
               {...register("billing_address_line1")}
@@ -195,13 +226,21 @@ export function BusinessDetailsForm({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="City" optional>
+            <Field
+              label="City"
+              optional={!requireAddress}
+              required={requireAddress}
+            >
               <TextInput
                 placeholder="Cape Town"
                 {...register("billing_city")}
               />
             </Field>
-            <Field label="Postcode" optional>
+            <Field
+              label="Postcode"
+              optional={!requireAddress}
+              required={requireAddress}
+            >
               <TextInput placeholder="8001" {...register("billing_postcode")} />
             </Field>
             <Field label="Country" optional hint="ISO 2-letter code.">

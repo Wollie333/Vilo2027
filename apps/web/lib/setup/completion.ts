@@ -25,6 +25,14 @@ export type SetupCompletionInput = {
   } | null;
   /** The host's default business has a trading or legal name set. */
   businessNameSet?: boolean;
+  /**
+   * The host's default business has a billing address (line 1 + city + postal
+   * code). Required now that the leaner signup no longer captures an address —
+   * it's the address printed on invoices, quotes and EFT instructions. Callers
+   * that don't surface the business step (e.g. the dashboard checklist) may omit
+   * it; the setup wizard and the publish gate both pass it.
+   */
+  businessAddressSet?: boolean;
   /** A non-archived EFT bank account exists for the host. */
   hasBankAccount: boolean;
   listing: {
@@ -83,9 +91,12 @@ export function computeSetupCompletion(
     (host?.languages_spoken?.length ?? 0) > 0,
   );
 
-  // Business = the host has named their business (trading/legal name) — the
-  // identity that appears on invoices, quotes and EFT instructions.
-  const business = input.businessNameSet === true;
+  // Business = the host has named their business (trading/legal name) AND given
+  // it a billing address — the identity + address on invoices, quotes and EFT
+  // instructions. Address became required when the leaner signup stopped
+  // capturing it (the default business is otherwise created blank).
+  const business =
+    input.businessNameSet === true && input.businessAddressSet === true;
 
   const banking = input.hasBankAccount;
 

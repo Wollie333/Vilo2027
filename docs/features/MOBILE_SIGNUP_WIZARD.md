@@ -114,6 +114,15 @@ Ran the full wizard logged-out with a throwaway account
 
 ## 5. Setup-wizard handoff — TODO for `/dashboard/setup` (later task)
 
+> **Phase 1 status (done, this branch):** the wizard now **creates the first listing** in a
+> create-your-listing gate (`CreateFirstListing` + `createSetupListingAction`) instead of redirecting
+> a zero-listing host out, and the **business address is required** (`BusinessDetailsForm`
+> `requireAddress` + `computeSetupCompletion.businessAddressSet` + publish gate). Profile data already
+> pulls through from signup. **Remaining:** Phase 2 — the mobile one-step-per-screen redesign. Also
+> note: creating/publishing requires a **verified email** (`assertFullHost`), so a new host must verify
+> before setup lets them create/publish — consider a prominent verify-email nudge in the wizard.
+
+
 `/dashboard/setup` (`SetupWizard.tsx`, sections: Profile, Business, Banking, Listing,
 Rooms, Seasonal, Policies, Review) is the “finish setup” flow for a host’s first login.
 After this branch it must be updated so it **doesn’t re-ask what signup already captured**
