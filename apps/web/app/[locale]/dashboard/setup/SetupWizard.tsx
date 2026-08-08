@@ -587,44 +587,48 @@ export function SetupWizard(props: Props) {
 
           {/* footer nav — global Back (each step owns its own forward
           "Continue"/"Save & continue" button); the review step adds Publish.
-          Sticky on mobile so Back/Publish stay reachable; in-flow on desktop. */}
-          <div className="sticky bottom-0 z-10 mt-7 flex items-center justify-between gap-3 border-t border-brand-line bg-brand-light/95 py-4 backdrop-blur lg:static lg:bg-transparent lg:pb-0 lg:pt-5">
-            {current > 0 ? (
-              <button
-                type="button"
-                onClick={back}
-                className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-              >
-                <ArrowLeft className="h-4 w-4" /> {SECTIONS[current - 1].rail}
-              </button>
-            ) : (
-              <span />
-            )}
-            <span className="hidden text-[12px] font-medium tabular-nums text-brand-mute lg:inline">
-              {current + 1} / {SECTIONS.length}
-            </span>
-            {isReview ? (
-              <button
-                type="button"
-                onClick={publish}
-                disabled={publishing}
-                className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-[13px] font-semibold text-white transition ${
-                  ready
-                    ? "bg-brand-primary shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary"
-                    : "cursor-not-allowed bg-brand-mute/60"
-                }`}
-              >
-                <Rocket className="h-4 w-4" />
-                {publishing
-                  ? "Publishing…"
-                  : ready
-                    ? "Publish listing"
-                    : "Finish required steps"}
-              </button>
-            ) : (
-              <span />
-            )}
-          </div>
+          Sticky on mobile so Back/Publish stay reachable; in-flow on desktop.
+          Only rendered when it actually holds a control — on step 1 (no Back,
+          not the review step) it would otherwise be an empty green bar. */}
+          {current > 0 || isReview ? (
+            <div className="sticky bottom-0 z-10 mt-7 flex items-center justify-between gap-3 border-t border-brand-line bg-brand-light/95 py-4 backdrop-blur lg:static lg:bg-transparent lg:pb-0 lg:pt-5">
+              {current > 0 ? (
+                <button
+                  type="button"
+                  onClick={back}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                >
+                  <ArrowLeft className="h-4 w-4" /> {SECTIONS[current - 1].rail}
+                </button>
+              ) : (
+                <span />
+              )}
+              <span className="hidden text-[12px] font-medium tabular-nums text-brand-mute lg:inline">
+                {current + 1} / {SECTIONS.length}
+              </span>
+              {isReview ? (
+                <button
+                  type="button"
+                  onClick={publish}
+                  disabled={publishing}
+                  className={`inline-flex h-10 items-center gap-1.5 rounded-pill px-5 text-[13px] font-semibold text-white transition ${
+                    ready
+                      ? "bg-brand-primary shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary"
+                      : "cursor-not-allowed bg-brand-mute/60"
+                  }`}
+                >
+                  <Rocket className="h-4 w-4" />
+                  {publishing
+                    ? "Publishing…"
+                    : ready
+                      ? "Publish listing"
+                      : "Finish required steps"}
+                </button>
+              ) : (
+                <span />
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
 

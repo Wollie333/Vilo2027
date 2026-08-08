@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
-import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
 import { NotificationBell } from "@/app/[locale]/dashboard/_components/notifications/NotificationBell";
@@ -70,16 +69,11 @@ export default async function PortalLayout({
     redirect("/suspended");
   }
 
-  // Email-verification GATE (see dashboard/layout.tsx). Instead of redirecting
-  // away, land on the portal behind a blocking modal (EmailVerifyGate below) that
-  // auto-dismisses on confirm. A guest can still COMPLETE a booking (that flow
-  // creates the account and sends this very email); this only gates the
-  // persistent portal surfaces.
-  const emailUnverified =
-    staff?.is_active !== true &&
-    !(profile as { email_verified_at?: string | null } | null)
-      ?.email_verified_at;
-
+  // Email verification is a soft NUDGE on the guest side, never a wall. Founder
+  // directive (launch): a guest must be able to book AND manage their trip in any
+  // state — logged in, unverified, or freshly created at checkout. The persistent
+  // portal keeps only the dismissible VerifyEmailBanner (below); no blocking gate.
+  // Security-sensitive actions stay server-enforced (assertFullHost etc.).
   const displayName = profile?.full_name ?? user.email ?? "Guest";
   // canHost = hosts row OR user_profiles.role='host'. Lets the switcher
   // surface "Host workspace" for mid-signup hosts whose hosts row wasn't
@@ -166,10 +160,5 @@ export default async function PortalLayout({
     </ClassicShellFrame>
   );
 
-  return (
-    <>
-      {shell}
-      {emailUnverified ? <EmailVerifyGate email={user.email ?? null} /> : null}
-    </>
-  );
+  return shell;
 }
