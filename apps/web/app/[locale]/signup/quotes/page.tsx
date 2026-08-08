@@ -18,7 +18,7 @@ export default async function QuotesSignupPage() {
   const brandName = await getBrandName();
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.05fr_1fr]">
-      <aside className="relative flex min-h-[220px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:min-h-0 lg:p-14 xl:p-16">
+      <aside className="relative hidden min-h-[220px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:flex lg:min-h-0 lg:p-14 xl:p-16">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-dot-grid opacity-25"
