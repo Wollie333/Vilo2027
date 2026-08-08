@@ -75,8 +75,10 @@ export function StepListing({
   // Sub-sections start collapsed when they already hold saved data.
   const [editBasics, setEditBasics] = useState(!listing.name);
   const [editLocation, setEditLocation] = useState(!listing.address_line1);
+  const [editPhotos, setEditPhotos] = useState(photos.length === 0);
   const [editAmenities, setEditAmenities] = useState(amenities.length === 0);
   const amenityCount = amenities.length;
+  const photoCount = photos.length;
 
   const categoryLabel =
     categoryLeaves.find((l) => l.id === listing.category_id)?.label ?? null;
@@ -172,21 +174,53 @@ export function StepListing({
         />
       )}
 
-      {/* Photos — always the grid (uploads/reorder save immediately) */}
-      <section>
-        <SectionHead
+      {/* Photos — the grid while editing; collapses to a summary card once the
+          host is done. Uploads/reorder still save immediately; "Save photos"
+          just collapses the section so the completed Listing step ends as four
+          clean green cards (basics · location · photos · amenities). */}
+      {editPhotos ? (
+        <section>
+          <SectionHead
+            icon={<Camera className="h-4 w-4" />}
+            title="Photos"
+            desc="Add at least 3 — listings with 5+ get 2× more bookings."
+          />
+          <PhotosManager
+            listingId={listing.id}
+            photos={photos}
+            onChange={(next) =>
+              onPhotosChanged(next.map((p) => ({ id: p.id, url: p.url })))
+            }
+          />
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <span className="text-xs text-brand-mute">
+              {photoCount === 0
+                ? "Add at least one photo to continue."
+                : `${photoCount} photo${photoCount === 1 ? "" : "s"} added.`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditPhotos(false)}
+              disabled={photoCount === 0}
+              className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary disabled:opacity-50"
+            >
+              Save photos
+            </button>
+          </div>
+        </section>
+      ) : (
+        <SavedCard
           icon={<Camera className="h-4 w-4" />}
           title="Photos"
-          desc="Add at least 3 — listings with 5+ get 2× more bookings."
+          rows={[
+            {
+              label: "Uploaded",
+              value: `${photoCount} photo${photoCount === 1 ? "" : "s"}`,
+            },
+          ]}
+          onEdit={() => setEditPhotos(true)}
         />
-        <PhotosManager
-          listingId={listing.id}
-          photos={photos}
-          onChange={(next) =>
-            onPhotosChanged(next.map((p) => ({ id: p.id, url: p.url })))
-          }
-        />
-      </section>
+      )}
 
       {/* Amenities */}
       {editAmenities ? (
