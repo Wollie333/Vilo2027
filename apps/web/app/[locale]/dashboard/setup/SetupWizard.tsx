@@ -298,7 +298,9 @@ export function SetupWizard(props: Props) {
   return (
     <div className="space-y-5">
       {/* ============ IDENTITY BAR ============ */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
+      {/* Desktop only — on mobile it just eats vertical space; the sticky step
+          bar already shows the listing/step context. */}
+      <div className="hidden flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card lg:flex">
         <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -363,7 +365,9 @@ export function SetupWizard(props: Props) {
       {/* ============ SPLIT: step rail + active panel ============ */}
       <div className="grid gap-6 lg:grid-cols-[288px_1fr]">
         {/* ─── Left rail: progress ring + clickable steps ─── */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+        {/* Desktop only — on mobile the rail is replaced by the compact sticky
+            step bar inside the content column (one step per screen). */}
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
           {/* progress summary */}
           <div className="mb-3 flex items-center gap-3 rounded-card border border-brand-line bg-white p-3.5 shadow-card">
             <ProgressRing pct={pct} />
@@ -447,6 +451,47 @@ export function SetupWizard(props: Props) {
 
         {/* ─── Content column ─── */}
         <div className="min-w-0">
+          {/* Mobile-only sticky step bar — replaces the desktop rail. Dots for
+              orientation (tap a reached step to jump back) + "Step N of M". */}
+          <div className="sticky top-0 z-10 -mt-1 mb-4 border-b border-brand-line bg-brand-light/95 py-3 backdrop-blur lg:hidden">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                {cur.rail}
+              </span>
+              <span className="text-[11px] font-medium tabular-nums text-brand-mute">
+                {ready
+                  ? "Ready to publish"
+                  : `Step ${current + 1} of ${SECTIONS.length}`}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {SECTIONS.map((s, i) => {
+                const reachable = i <= maxReached;
+                const isCurrent = i === current;
+                const stepDone = done[s.key] && s.key !== "review";
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => goTo(i)}
+                    disabled={!reachable}
+                    aria-label={s.rail}
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`h-1.5 flex-1 rounded-full transition ${
+                      isCurrent
+                        ? "bg-brand-secondary"
+                        : stepDone
+                          ? "bg-brand-primary"
+                          : reachable
+                            ? "bg-brand-line"
+                            : "bg-brand-line/60"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
           {/* panel header */}
           <div className="mb-5 flex items-start gap-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-brand-accent text-brand-secondary">
@@ -565,8 +610,9 @@ export function SetupWizard(props: Props) {
           )}
 
           {/* footer nav — global Back (each step owns its own forward
-          "Continue"/"Save & continue" button); the review step adds Publish. */}
-          <div className="mt-7 flex items-center justify-between gap-3 border-t border-brand-line pt-5">
+          "Continue"/"Save & continue" button); the review step adds Publish.
+          Sticky on mobile so Back/Publish stay reachable; in-flow on desktop. */}
+          <div className="sticky bottom-0 z-10 mt-7 flex items-center justify-between gap-3 border-t border-brand-line bg-brand-light/95 py-4 backdrop-blur lg:static lg:bg-transparent lg:pb-0 lg:pt-5">
             {current > 0 ? (
               <button
                 type="button"
@@ -578,7 +624,7 @@ export function SetupWizard(props: Props) {
             ) : (
               <span />
             )}
-            <span className="text-[12px] font-medium tabular-nums text-brand-mute">
+            <span className="hidden text-[12px] font-medium tabular-nums text-brand-mute lg:inline">
               {current + 1} / {SECTIONS.length}
             </span>
             {isReview ? (
