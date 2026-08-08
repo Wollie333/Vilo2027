@@ -19,11 +19,13 @@ export type SetupStep = {
   ctaLabel: string;
 };
 
-// Every CTA points into the guided wizard at /dashboard/setup with a
-// ?step= deep-link so the wizard auto-jumps to the right pane. The wizard
-// itself is the single source of truth for finishing setup — the routes
-// it would otherwise be linked to (/settings/payouts, /settings/policies)
-// don't exist as standalone pages.
+// Every CTA points into the guided wizard at /dashboard/setup with NO ?step=
+// deep-link, so the host always enters at step one and walks the whole fixed
+// process in order (founder directive — the per-step jump was removed; it let
+// hosts skip ahead and was the source of the "lands on the listing tab" bug).
+// The wizard is the single source of truth for finishing setup — the routes it
+// would otherwise link to (/settings/payouts, /settings/policies) don't exist
+// as standalone pages.
 export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
   return [
     {
@@ -32,7 +34,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
       description: "Verifying unlocks payouts and guest messaging.",
       meta: state.email_verified.meta,
       done: state.email_verified.done,
-      href: "/dashboard/setup?step=profile",
+      href: "/dashboard/setup",
       ctaLabel: "Resend link",
     },
     {
@@ -42,7 +44,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
         "Profile photo, short bio, languages spoken — guests see this on your page.",
       meta: state.profile_completed.meta,
       done: state.profile_completed.done,
-      href: "/dashboard/setup?step=profile",
+      href: "/dashboard/setup",
       ctaLabel: "Continue",
     },
     {
@@ -52,7 +54,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
         "Pictures, nightly rate, capacity, and rooms — everything needed to take bookings.",
       meta: state.first_listing.meta,
       done: state.first_listing.done,
-      href: "/dashboard/setup?step=listing",
+      href: "/dashboard/setup",
       ctaLabel: "Continue",
     },
     {
@@ -62,7 +64,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
         "EFT for now — Paystack and PayPal connect from Settings once you've made your first booking.",
       meta: state.paystack_verified.meta,
       done: state.paystack_verified.done,
-      href: "/dashboard/setup?step=banking",
+      href: "/dashboard/setup",
       ctaLabel: "Add",
     },
     {
@@ -72,7 +74,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
         "Flexible, Moderate, or Strict. Plus check-in / check-out times and house rules.",
       meta: state.policies_set.meta,
       done: state.policies_set.done,
-      href: "/dashboard/setup?step=policies",
+      href: "/dashboard/setup",
       ctaLabel: "Choose",
     },
     {
@@ -81,7 +83,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
       description: `Share ${SITE_DOMAIN}/your-handle anywhere — Instagram bio, WhatsApp, email signature.`,
       meta: state.listing_published.meta,
       done: state.listing_published.done,
-      href: "/dashboard/setup?step=review",
+      href: "/dashboard/setup",
       ctaLabel: "Publish",
     },
   ];

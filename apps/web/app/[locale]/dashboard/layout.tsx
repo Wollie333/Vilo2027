@@ -28,6 +28,7 @@ import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { SavingsBadge } from "./_components/SavingsBadge";
 import { Sidebar } from "./_components/Sidebar";
 import { TrialBadge } from "./_components/TrialBadge";
+import { TrialCountdownPill } from "./_components/TrialCountdownPill";
 import { DashboardTour } from "./_components/tour/DashboardTour";
 
 // Full-bleed routes (Inbox) come from the shared rule in
@@ -135,6 +136,9 @@ export default async function DashboardLayout({
   // Competition free-trial widget — non-null only for competition-referred hosts
   // currently on a trial (drives the header chip left of the savings badge).
   let trialWidget: HostTrialWidget | null = null;
+  // Host's active free-trial end (status 'trialing') — drives the header
+  // countdown pill. Null when the host isn't on a trial.
+  let hostTrialEndsAt: string | null = null;
 
   if (host) {
     const [
@@ -144,6 +148,7 @@ export default async function DashboardLayout({
       { data: guestSummary },
       websiteEnabled,
       lookingForEnabled,
+      { data: trialRow },
     ] = await Promise.all([
       supabase
         .from("properties")
@@ -164,6 +169,16 @@ export default async function DashboardLayout({
       supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
       hostHasFeature(host.id, "website_builder"),
       hostHasFeature(host.id, "looking_for_access"),
+      // The host's live trial (if any) — soonest-ending trialing subscription.
+      supabase
+        .from("subscriptions")
+        .select("trial_ends_at")
+        .eq("host_id", host.id)
+        .eq("status", "trialing")
+        .not("trial_ends_at", "is", null)
+        .order("trial_ends_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
     ]);
     const rows = (listingRows ?? []) as Array<{
       id: string;
@@ -182,6 +197,9 @@ export default async function DashboardLayout({
       (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
     canWebsite = websiteEnabled;
     canLookingFor = lookingForEnabled;
+    hostTrialEndsAt =
+      (trialRow as { trial_ends_at: string | null } | null)?.trial_ends_at ??
+      null;
 
     trialWidget = await getHostTrialWidget(user.id, host.id);
 
@@ -225,6 +243,12 @@ export default async function DashboardLayout({
             search={<EntitySearch />}
             actions={
               <>
+                {/* Trial countdown pill (left of the header buttons). Shown for
+                    any host on a trial; suppressed when the richer competition
+                    TrialBadge is present so there's only one trial chip. */}
+                {host && hostTrialEndsAt && !trialWidget ? (
+                  <TrialCountdownPill trialEndsAt={hostTrialEndsAt} />
+                ) : null}
                 {trialWidget ? <TrialBadge trial={trialWidget} /> : null}
                 <SavingsBadge />
                 {host ? (
