@@ -39,6 +39,7 @@ import {
 import { firePurchase } from "@/lib/analytics/purchase";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { MobileStepPills } from "@/components/wizard/MobileStepPills";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
 import {
   ensureTurnstileToken,
@@ -842,8 +843,19 @@ export function Wizard({
         <SideRail stepKey={current.key} current={currentIndex} />
 
         <div className="flex min-w-0 flex-col bg-white">
-          {/* Sticky stepper bar */}
-          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-4 border-b border-brand-line bg-white/95 px-6 py-5 backdrop-blur lg:px-12 lg:py-6">
+          {/* Mobile: reusable light-green step pills (desktop keeps the stepper
+              bar below). Backward jumps only — signup gates forward progress. */}
+          <MobileStepPills
+            steps={STEPS.map((s, i) => ({
+              label: s.short,
+              done: i < currentIndex,
+            }))}
+            current={currentIndex}
+            onJump={jumpBack}
+            className="px-6"
+          />
+          {/* Sticky stepper bar — desktop only */}
+          <div className="sticky top-0 z-10 hidden flex-wrap items-center gap-4 border-b border-brand-line bg-white/95 px-6 py-5 backdrop-blur lg:flex lg:px-12 lg:py-6">
             <div className="min-w-0 flex-1">
               <Stepper current={currentIndex} onJump={jumpBack} />
             </div>

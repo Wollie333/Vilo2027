@@ -25,6 +25,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { BusyOverlay } from "@/components/ui/BusyOverlay";
+import { MobileStepPills } from "@/components/wizard/MobileStepPills";
 import { computeSetupCompletion } from "@/lib/setup/completion";
 
 import type { Account } from "@/app/[locale]/dashboard/settings/banking/_components/BankAccountList";
@@ -242,8 +243,11 @@ export function SetupWizard(props: Props) {
   const isReview = cur.key === "review";
 
   function goTo(i: number) {
-    if (i < 0 || i >= SECTIONS.length || i > maxReached) return;
+    if (i < 0 || i >= SECTIONS.length) return;
     setCurrent(i);
+    // Visiting a step marks it (and everything before it) reachable, so the
+    // desktop rail stays in sync after a free jump from the mobile pills.
+    setMaxReached((m) => Math.max(m, i));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function next() {
@@ -296,7 +300,7 @@ export function SetupWizard(props: Props) {
   const remaining = requiredSections.length - doneCount;
 
   return (
-    <div className="space-y-5">
+    <div className="lg:space-y-5">
       {/* ============ IDENTITY BAR ============ */}
       {/* Desktop only — on mobile it just eats vertical space; the sticky step
           bar already shows the listing/step context. */}
@@ -451,46 +455,18 @@ export function SetupWizard(props: Props) {
 
         {/* ─── Content column ─── */}
         <div className="min-w-0">
-          {/* Mobile-only sticky step bar — replaces the desktop rail. Dots for
-              orientation (tap a reached step to jump back) + "Step N of M". */}
-          <div className="sticky top-0 z-10 -mt-1 mb-4 border-b border-brand-line bg-brand-light/95 py-3 backdrop-blur lg:hidden">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-                {cur.rail}
-              </span>
-              <span className="text-[11px] font-medium tabular-nums text-brand-mute">
-                {ready
-                  ? "Ready to publish"
-                  : `Step ${current + 1} of ${SECTIONS.length}`}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {SECTIONS.map((s, i) => {
-                const reachable = i <= maxReached;
-                const isCurrent = i === current;
-                const stepDone = done[s.key] && s.key !== "review";
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => goTo(i)}
-                    disabled={!reachable}
-                    aria-label={s.rail}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className={`h-1.5 flex-1 rounded-full transition ${
-                      isCurrent
-                        ? "bg-brand-secondary"
-                        : stepDone
-                          ? "bg-brand-primary"
-                          : reachable
-                            ? "bg-brand-line"
-                            : "bg-brand-line/60"
-                    }`}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          {/* Mobile-only sticky step pills — reusable across wizards. The
+              -mx-6/-mt-6/px-6 breakout escapes the p-6 shell so it sits flush
+              under the header and spans full width. */}
+          <MobileStepPills
+            steps={SECTIONS.map((s) => ({
+              label: s.rail,
+              done: done[s.key] && s.key !== "review",
+            }))}
+            current={current}
+            onJump={goTo}
+            className="-mx-6 -mt-6 px-6"
+          />
 
           {/* panel header */}
           <div className="mb-5 flex items-start gap-3.5">
