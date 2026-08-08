@@ -262,54 +262,15 @@ export function LoginForm({
               <ArrowRight className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-3 pt-3">
-              <span className="h-px flex-1 bg-brand-line" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                Or continue with
-              </span>
-              <span className="h-px flex-1 bg-brand-line" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <OAuthOutlineButton
-                label="Google"
-                onClick={() =>
-                  toast.info("OAuth providers are not enabled yet.")
-                }
+            <div className="flex items-center justify-center gap-1.5 pt-3 text-[12.5px] text-brand-mute">
+              <Key className="h-3.5 w-3.5 text-brand-primary" />
+              <span>Forgot your password?</span>
+              <Link
+                href="/forgot-password"
+                className="font-semibold text-brand-primary hover:text-brand-secondary"
               >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.04c1.61 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.69 14.97.62 12 .62 7.39.62 3.4 3.27 1.46 7.13l3.67 2.85C6.06 7.07 8.79 5.04 12 5.04z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47c-.28 1.45-1.13 2.68-2.41 3.51l3.69 2.85c2.16-2 3.74-4.94 3.74-8.6z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.13 14.27a7.21 7.21 0 0 1-.38-2.27c0-.79.14-1.55.38-2.27L1.46 6.88A11.36 11.36 0 0 0 .25 12c0 1.84.44 3.57 1.21 5.12l3.67-2.85z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M12 23.38c3.24 0 5.95-1.07 7.93-2.91l-3.69-2.85c-1.02.68-2.33 1.08-4.24 1.08-3.21 0-5.94-2.03-6.87-4.94l-3.67 2.85C3.4 20.73 7.39 23.38 12 23.38z"
-                  />
-                </svg>
-              </OAuthOutlineButton>
-              <OAuthOutlineButton
-                label="Apple"
-                onClick={() =>
-                  toast.info("OAuth providers are not enabled yet.")
-                }
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 fill-current"
-                  aria-hidden="true"
-                >
-                  <path d="M17.05 12.04c-.03-2.62 2.14-3.88 2.24-3.94-1.22-1.78-3.12-2.03-3.8-2.06-1.62-.17-3.16.96-3.99.96-.83 0-2.1-.93-3.46-.9C6.27 6.13 4.66 7.13 3.78 8.7c-1.88 3.27-.48 8.1 1.36 10.75.9 1.3 1.97 2.75 3.37 2.7 1.36-.06 1.87-.88 3.51-.88 1.64 0 2.1.88 3.54.85 1.46-.02 2.39-1.32 3.28-2.63 1.04-1.5 1.46-2.97 1.48-3.05-.03-.01-2.85-1.1-2.88-4.36zm-2.7-8.06c.74-.9 1.24-2.14 1.1-3.38-1.06.04-2.36.71-3.13 1.6-.69.79-1.3 2.06-1.14 3.27 1.19.09 2.42-.6 3.17-1.49z" />
-                </svg>
-              </OAuthOutlineButton>
+                Reset it here
+              </Link>
             </div>
           </form>
 
@@ -338,27 +299,6 @@ export function LoginForm({
         </div>
       </main>
     </div>
-  );
-}
-
-function OAuthOutlineButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-medium text-brand-ink transition hover:border-brand-primary hover:bg-brand-light/60"
-    >
-      {children}
-      {label}
-    </button>
   );
 }
 
