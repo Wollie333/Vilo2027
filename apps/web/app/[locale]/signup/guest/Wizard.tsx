@@ -33,6 +33,7 @@ import {
 } from "@/lib/analytics/pixel";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { MobileStepPills } from "@/components/wizard/MobileStepPills";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
 import {
   ensureTurnstileToken,
@@ -390,7 +391,19 @@ export function Wizard({
         <SideRail stepKey={current.key} current={currentIndex} />
 
         <div className="flex min-w-0 flex-col bg-white">
-          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-4 border-b border-brand-line bg-white/95 px-6 py-5 backdrop-blur lg:px-12 lg:py-6">
+          {/* Mobile: reusable light-green step pills (desktop keeps the stepper
+              bar below). Backward jumps only — signup gates forward progress. */}
+          <MobileStepPills
+            steps={STEPS.map((s, i) => ({
+              label: s.short,
+              done: i < currentIndex,
+            }))}
+            current={currentIndex}
+            onJump={jumpBack}
+            className="px-6"
+          />
+          {/* Sticky stepper bar — desktop only */}
+          <div className="sticky top-0 z-10 hidden flex-wrap items-center gap-4 border-b border-brand-line bg-white/95 px-6 py-5 backdrop-blur lg:flex lg:px-12 lg:py-6">
             <div className="min-w-0 flex-1">
               <Stepper current={currentIndex} onJump={jumpBack} />
             </div>
@@ -457,7 +470,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
   const c = SIDE_RAIL[stepKey];
   const brandName = useBrandName();
   return (
-    <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:h-screen lg:p-12 xl:p-14">
+    <aside className="relative hidden flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:p-12 xl:p-14">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-30"
