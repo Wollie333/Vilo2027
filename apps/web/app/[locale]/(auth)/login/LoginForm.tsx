@@ -365,7 +365,7 @@ function OAuthOutlineButton({
 function Showcase() {
   const companyName = useCompanyName();
   return (
-    <aside className="relative flex min-h-[260px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:min-h-0 lg:p-14 xl:p-16">
+    <aside className="relative hidden min-h-[260px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:flex lg:min-h-0 lg:p-14 xl:p-16">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-25"

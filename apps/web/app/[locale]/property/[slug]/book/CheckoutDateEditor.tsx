@@ -63,11 +63,17 @@ export function CheckoutDateEditor({
   maxDate,
   maxNights,
   unavailable,
+  bare = false,
 }: {
   from: string;
   to: string;
   minNights: number;
   onChange: (from: string, to: string) => void;
+  /** Strip the card chrome (outer padding, inner bordered card, "Your dates"
+   *  label and the 320px width cap) so the calendar fills its container. Used by
+   *  the mobile checkout wizard, where the step already frames the calendar and
+   *  the container supplies the horizontal padding. Desktop keeps the card. */
+  bare?: boolean;
   /** Whole-listing unavailable nights (manual blocks + imported iCal/OTA holds):
    *  greyed out, unselectable, and a range may not span any of them. */
   unavailable?: string[];
@@ -163,14 +169,22 @@ export function CheckoutDateEditor({
     // close to the 44px tap target as a phone allows (a full 44px WIDTH is
     // physically impossible for 7 columns inside the page margins on a 375px
     // screen — the 44px HEIGHT carries the tap target, as on native pickers).
-    <div className="px-3 py-5 sm:p-5">
-      <div className="rounded-card border border-brand-line bg-brand-light/40 px-2.5 py-4 sm:p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-ink">
-          <CalendarDays className="h-4 w-4 text-brand-primary" />
-          Your dates
-        </div>
+    <div className={bare ? "" : "px-3 py-5 sm:p-5"}>
+      <div
+        className={
+          bare
+            ? ""
+            : "rounded-card border border-brand-line bg-brand-light/40 px-2.5 py-4 sm:p-4"
+        }
+      >
+        {bare ? null : (
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-ink">
+            <CalendarDays className="h-4 w-4 text-brand-primary" />
+            Your dates
+          </div>
+        )}
 
-        <div className="mx-auto w-full max-w-[320px]">
+        <div className={`mx-auto w-full ${bare ? "" : "max-w-[320px]"}`}>
           {/* Month header */}
           <div className="mb-2 flex items-center justify-between">
             <button

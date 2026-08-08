@@ -112,10 +112,31 @@ async function hasConflict(
   return (count ?? 0) > 0;
 }
 
+// A per-room line from the seasonal pricer, surfaced so the host sees WHY the
+// suggested total is what it is (which room, at what base for these dates).
+export type UpdateBreakdownRoom = {
+  room_id?: string | null;
+  base_amount?: number;
+  cleaning_fee?: number;
+};
+
+// The seasonal breakdown behind a suggested total — enough for the host UI to show
+// nights, the accommodation base, cleaning, add-ons and the per-room split.
+export type UpdateBreakdown = {
+  nights: number;
+  baseAmount: number;
+  cleaningFee: number;
+  accommodationTotal: number;
+  addonsTotal: number;
+  vatRate: number;
+  rooms: UpdateBreakdownRoom[];
+};
+
 // Accommodation total (ex-VAT) for the new dates/guests/rooms via the canonical
 // pricer, plus the booking's existing add-ons, grossed up by VAT — the SUGGESTED
 // total. Seasonal-aware (computeStayPricing loads real property_seasonal_pricing).
-// The host can override it before applying.
+// Returns the VAT-inclusive total AND the breakdown behind it. The host can
+// override the total before applying.
 async function suggestTotalFor(
   admin: Admin,
   b: BookingForEdit,
@@ -123,7 +144,7 @@ async function suggestTotalFor(
   checkOut: string,
   guestsCount: number,
   roomIds: string[],
-): Promise<number | null> {
+): Promise<{ total: number; breakdown: UpdateBreakdown } | null> {
   const perRoomGuests = Math.max(
     1,
     Math.round(guestsCount / Math.max(1, roomIds.length)),
@@ -143,7 +164,20 @@ async function suggestTotalFor(
   if (!priced.ok) return null;
   const exVat = priced.data.total + b.addonsTotal;
   const rate = b.vat_rate ?? 0;
-  return rate > 0 ? Math.round(exVat * (1 + rate / 100) * 100) / 100 : exVat;
+  const total =
+    rate > 0 ? Math.round(exVat * (1 + rate / 100) * 100) / 100 : exVat;
+  return {
+    total,
+    breakdown: {
+      nights: priced.data.nights,
+      baseAmount: priced.data.base_amount,
+      cleaningFee: priced.data.cleaning_fee,
+      accommodationTotal: priced.data.total,
+      addonsTotal: b.addonsTotal,
+      vatRate: rate,
+      rooms: (priced.data.rooms as UpdateBreakdownRoom[] | undefined) ?? [],
+    },
+  };
 }
 
 // Same, keeping the booking's current guests + rooms (date-only change).
@@ -152,7 +186,7 @@ async function suggestTotal(
   b: BookingForEdit,
   checkIn: string,
   checkOut: string,
-): Promise<number | null> {
+): Promise<{ total: number; breakdown: UpdateBreakdown } | null> {
   return suggestTotalFor(
     admin,
     b,
@@ -190,14 +224,14 @@ export async function previewDateChangeCore(
   const b = await loadBooking(admin, bookingId, hostId);
   if ("error" in b) return { ok: false, error: b.error };
   const conflict = await hasConflict(admin, b, checkIn, checkOut);
-  const suggestedTotal = conflict
+  const suggested = conflict
     ? null
     : await suggestTotal(admin, b, checkIn, checkOut);
   return {
     ok: true,
     available: !conflict,
     nights: nightsBetween(checkIn, checkOut),
-    suggestedTotal,
+    suggestedTotal: suggested?.total ?? null,
     currency: b.currency,
   };
 }
@@ -225,6 +259,8 @@ export type BookingUpdatePreview =
       /** newTotal − netPaid: >0 the guest owes more, <0 a refund/credit is due. */
       delta: number | null;
       currency: string;
+      /** Seasonal breakdown behind newTotal (null when unavailable/unpriceable). */
+      breakdown: UpdateBreakdown | null;
     }
   | { ok: false; error: string };
 
@@ -263,9 +299,10 @@ export async function previewBookingUpdateCore(
   );
 
   const netPaid = await sumCompletedPaid(admin, bookingId);
-  const newTotal = conflict
+  const suggested = conflict
     ? null
     : await suggestTotalFor(admin, b, checkIn, checkOut, guestsCount, roomIds);
+  const newTotal = suggested?.total ?? null;
   const delta =
     newTotal == null ? null : Math.round((newTotal - netPaid) * 100) / 100;
 
@@ -277,6 +314,7 @@ export async function previewBookingUpdateCore(
     netPaid,
     delta,
     currency: b.currency,
+    breakdown: suggested?.breakdown ?? null,
   };
 }
 

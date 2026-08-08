@@ -372,6 +372,7 @@ export async function respondToUpdateQuoteAction(
         check_in?: string;
         check_out?: string;
         guests_count?: number;
+        room_ids?: string[];
         quoted_total?: number;
         settlement?: string;
       }
@@ -394,6 +395,12 @@ export async function respondToUpdateQuoteAction(
     return { ok: true };
   }
 
+  // Stamp the acceptance moment BEFORE applying, so the guest's "accept" (and the
+  // "dates changed" it applies) is timestamped ahead of the refund/credit that
+  // applyBookingUpdate creates as a downstream effect — keeping the activity
+  // timeline in its true order (accepted → changed → refunded), not the reverse.
+  const acceptedAt = new Date().toISOString();
+
   // Accept → apply the change + settle. The quote was set by the host (host-gated
   // action), so applying with host authority on the guest's acceptance is correct.
   const applied = await applyBookingUpdate(admin, {
@@ -403,6 +410,10 @@ export async function respondToUpdateQuoteAction(
       checkIn: quote.check_in,
       checkOut: quote.check_out,
       guestsCount: quote.guests_count,
+      roomIds:
+        Array.isArray(quote.room_ids) && quote.room_ids.length > 0
+          ? quote.room_ids
+          : undefined,
     },
     total: Number(quote.quoted_total ?? 0),
     settlement: (quote.settlement as UpdateSettlement) ?? "charge",
@@ -414,7 +425,7 @@ export async function respondToUpdateQuoteAction(
     .from("booking_requests")
     .update({
       status: "approved",
-      actioned_at: new Date().toISOString(),
+      actioned_at: acceptedAt,
       actioned_by: user.id,
     })
     .eq("id", req.id);

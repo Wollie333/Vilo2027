@@ -149,7 +149,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, eft_proof_url, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, discount_amount, coupon_id, coupon_discount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, eft_proof_url, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, discount_amount, coupon_id, coupon_discount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, room_id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -719,31 +719,64 @@ export default async function BookingDetailPage({
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
     ]);
+  // The property's active rooms — so the host can add/drop rooms on a rooms-scoped
+  // booking right in the Review & quote panel (name + base for a quick read).
+  const propertyRooms =
+    booking.scope === "rooms"
+      ? (
+          (
+            await admin
+              .from("property_rooms")
+              .select("id, name, base_price, max_guests")
+              .eq("property_id", booking.property_id)
+              .is("deleted_at", null)
+              .eq("is_active", true)
+              .order("sort_order")
+          ).data ?? []
+        ).map((rm) => ({
+          id: rm.id as string,
+          name: (rm.name as string) ?? "Room",
+          basePrice: Number(rm.base_price ?? 0),
+          maxGuests: Number(rm.max_guests ?? 0),
+        }))
+      : [];
+  const currentRoomIds = (
+    (booking.booking_rooms ?? []) as unknown as Array<{
+      room_id: string | null;
+    }>
+  )
+    .map((br) => br.room_id)
+    .filter((id): id is string => !!id);
+
   const guestChangeRequests = await Promise.all(
     (openChangeRows ?? []).map(async (r) => {
       const payload = (r.payload ?? null) as Record<string, unknown> | null;
       const quote =
         (payload?.quote as Record<string, unknown> | undefined) ?? null;
       // Price the change server-side so the host sees the seasonal suggested
-      // total + delta and can quote (or override) in place.
+      // total + delta and can quote (or override) in place. For a date change we
+      // price the requested dates; for add-a-guest the booking's current dates
+      // with the requested headcount.
       let suggestedTotal: number | null = null;
       let netPaid = 0;
       let delta: number | null = null;
-      if (r.type === "date_change") {
-        const p = await previewBookingUpdateCore(
-          admin,
-          booking.id,
-          booking.host_id,
-          {
-            checkIn: String(payload?.check_in ?? ""),
-            checkOut: String(payload?.check_out ?? ""),
-          },
-        );
-        if (p.ok) {
-          suggestedTotal = p.newTotal;
-          netPaid = p.netPaid;
-          delta = p.delta;
-        }
+      const p = await previewBookingUpdateCore(
+        admin,
+        booking.id,
+        booking.host_id,
+        r.type === "date_change"
+          ? {
+              checkIn: String(payload?.check_in ?? ""),
+              checkOut: String(payload?.check_out ?? ""),
+            }
+          : {
+              guestsCount: Number(payload?.guests_count) || undefined,
+            },
+      );
+      if (p.ok) {
+        suggestedTotal = p.newTotal;
+        netPaid = p.netPaid;
+        delta = p.delta;
       }
       return {
         id: r.id,
@@ -756,6 +789,12 @@ export default async function BookingDetailPage({
         netPaid,
         delta,
         currency: booking.currency ?? "ZAR",
+        scope: (booking.scope as string) ?? "whole_listing",
+        currentCheckIn: booking.check_in as string | null,
+        currentCheckOut: booking.check_out as string | null,
+        currentGuests: (booking.guests_count as number) ?? 1,
+        currentRoomIds,
+        propertyRooms,
       };
     }),
   );

@@ -505,7 +505,12 @@ export default async function BookingPage({
     // scroll. BookingForm publishes the bar's measured height; unset it resolves
     // to 0. The bar is lg:hidden, hence lg:pb-0.
     <div className="bg-white pb-[var(--wielo-book-bar-h)] text-brand-ink lg:pb-0">
-      <SiteHeader />
+      {/* The marketing site header is hidden on phones: the mobile checkout is a
+          dedicated full-viewport flow (BookingForm) with its own persistent host
+          header. Desktop keeps the normal site chrome. */}
+      <div className="hidden lg:block">
+        <SiteHeader />
+      </div>
 
       {/* Meta InitiateCheckout — the DIRECTORY (Wielo) side of the booking, so
           this fires the WIELO platform pixel (the only pixel loaded on the app
@@ -591,7 +596,11 @@ export default async function BookingPage({
         />
       </main>
 
-      <SiteFooter />
+      {/* Hidden on phones — the dedicated mobile checkout shows only the Wielo
+          mark in its own footer. Desktop keeps the full site footer. */}
+      <div className="hidden lg:block">
+        <SiteFooter />
+      </div>
     </div>
   );
 }

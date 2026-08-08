@@ -61,6 +61,162 @@ finalize), `signup/host/page.tsx` (drop categoryLeaves). **Doc:** `docs/features
 (flow, DB writes, and the `/dashboard/setup` handoff spec for the later setup-wizard update).
 
 ---
+## 2026-08-08 — Quote room step: whole listing / not sure / multi-room + capacity.
+
+Reworked the "Which room(s)?" step of the quote request (`RequestQuoteButton.tsx`), guest +
+host mapped end to end:
+
+- **Three intents** (`RoomIntent`): **whole listing** → enquiry `scope=whole_listing`; **not
+  sure** → `scope=whole_listing` too, but a "Not sure which room — please recommend the best
+  fit for my party of N" note is prepended to the host thread so the host picks the room when
+  finalising (no DB change); **rooms** → `scope=rooms` + the chosen `room_ids`. `createEnquiry`
+  already maps these to `quotes.scope` + `quote_rooms` + the first thread message.
+- **Multi-select rooms with capacity.** Each room card shows "Sleeps N" (`max_guests`, now
+  passed through from `page.tsx`). On the mobile wizard the fewest rooms that cover the party
+  (adults + children) are auto-selected — e.g. 4 guests → a 3-bed + a 2-bed picked by default;
+  the guest can add/remove. A room too small is NOT disabled (combining is allowed, per the
+  chosen rule); if the picked rooms sleep fewer than the party a non-blocking amber note says
+  "sleep X — add a room for your Y guests".
+- **Both surfaces:** the mobile full-viewport wizard gets card-based whole/not-sure/multi-room;
+  the desktop `FormModal` gets the same options in its dropdown (single-select) mapped to the
+  same `roomIntent`. The unsure note is clamped to the 2000-char enquiry schema cap.
+- **Verified live (375px + desktop):** auto-fit (party 4 → two rooms, "Sleeps 5 · fits your 4"),
+  capacity warning on under-fill, and the exact `/api/enquiry` payloads for all three intents
+  (rooms → scope=rooms + 2 room_ids; whole → scope=whole_listing + []; not-sure → whole_listing
+  + [] + the prepended note). Desktop dropdown shows all options and maps correctly. `tsc` +
+  `next lint` green.
+
+## 2026-08-07 — Mobile "Request a quote" wizard (matches the checkout flow).
+
+On a phone the listing page's **Quote** button opened a cramped `FormModal`. Rebuilt it
+(`RequestQuoteButton.tsx`) so that, **on mobile only**, it opens a dedicated full-viewport
+wizard that looks and behaves exactly like the new mobile checkout: persistent host header,
+one decision per screen (Dates → Guests → Room → Message → Your details → Send), a "Powered
+by Wielo" mark (→ /signup) at the bottom of each step, and a single CTA footer. Desktop keeps
+the existing `FormModal` — completely unchanged.
+
+- **Same code, re-presented.** A new `fullscreen` prop (set only on the mobile-bar instance in
+  `page.tsx`) switches rendering; all state, validation and the `submitQuote()` → `/api/enquiry`
+  path are shared with the desktop modal (extracted from `onSubmit`), so the request, the
+  in-place thank-you and the create-account prompt are identical. Booked-date blocking reuses the
+  **same bare `CheckoutDateEditor`** as checkout (`unavailable={unavailableDates}` — whole-listing
+  holds greyed light-yellow + unselectable), so a guest can't request a quote for taken dates.
+- **Hardening:** `role="dialog"` + `aria-modal` + label; body-scroll lock while open (no scroll
+  bleed behind the overlay); Escape steps back / closes; back button on the header; send disabled
+  until each step is valid; honeypot preserved; no submit possible mid-send.
+- **Verified live (mobile 375px):** full flow Dates→Guests→Room→Message→Contact, per-step gating
+  (room required for a rooms-only listing, message required, valid email required), "Send request"
+  enables when valid, scroll locked; **desktop `FormModal` still opens with the original form**.
+  `tsc` + `next lint` green.
+
+## 2026-08-07 — Dedicated mobile checkout wizard (one decision per viewport).
+
+The guest checkout (`BookingForm.tsx`, used by BOTH the directory `/property/[slug]/book`
+and deal `/deal/[slug]/book`) crammed dates + rooms + guests onto one screen on a phone —
+"way too busy, the user gets confused." Rebuilt the mobile (< `lg`) experience as a
+**dedicated, app-style, full-viewport flow**, one decision per screen:
+**Dates → Rooms → Add-ons → Guests → Your details → Payment → Confirm & accept** (add-ons
+appears only when the host offers eligible add-ons; the last screen is the legal acceptance
++ Pay). 5 of 7 steps fit one viewport with no scroll; only Details + Confirm scroll inside
+their own content area (never the page).
+
+- **Mobile-only, additive, zero logic/backend change.** Desktop's two-column three-step
+  layout is untouched (gated `hidden lg:block`). The mobile flow (`fixed inset-0` flex column,
+  `lg:hidden`) reuses every existing state value, handler, pricing/availability computation and
+  `pay()` submit — it only re-presents them. Deal mode drops the rooms + add-ons screens and
+  shows the locked deal on the Dates screen with a party-size select.
+- **Dedicated shell:** the marketing `SiteHeader`/`SiteFooter` are hidden on phones (both book
+  pages); a **persistent host header** (property + host/type · city, avatar, Instant badge)
+  stays on every step; the footer is CTA-only; a **"Powered by Wielo"** mark (the `VLogo`,
+  linking to `/signup`) sits at the bottom of each step's content. No top step-indicator rail.
+- **Full-bleed calendar:** `CheckoutDateEditor` gained a `bare` variant (no card chrome / no
+  320px cap / no inner label) so the Dates step's calendar fills the content width; desktop
+  keeps the card.
+- **Availability semantics (as specified):** whole-listing blocked dates render **light-yellow
+  + struck-through + unselectable** on the calendar (existing `blocked_dates` where
+  `room_id IS NULL` — manual blocks, whole-place holds, iCal/OTA). A date booked for only SOME
+  rooms is NOT locked on the calendar; instead that room's card is unselectable and reads
+  **"Full · Full for these dates · <check-in> – <check-out>"**, so a partly-available night
+  stays bookable via a free room.
+- The price-details bottom sheet (tap the total) uses inline transform/opacity so its slide-up
+  is immune to Tailwind transform-var composition quirks.
+- **Verified live (mobile 375px):** full directory flow (7 steps) — Lion's Head shows "Full for
+  these dates 14–17 Aug" while Camps Bay stays bookable, pricing R4 300 = 3×R1 350 + cleaning,
+  validation gating, details fill, EFT, ack-gated Reserve, price sheet; deal flow (5 steps) —
+  locked deal + calendar, R2 250, party select; back nav; no page scroll; **desktop unchanged**
+  at 1280px. `pnpm build` + `tsc` + `next lint` all green.
+
+---
+
+## 2026-08-07 — Enriched the host "Review & quote" panel for booking-update requests.
+
+The amber "Guest requests awaiting you" banner's quote flow gave the host no context and no
+control — just a blind "New total" box. It now expands (inline, compact) into a full editor for
+both date-change and add-a-guest requests:
+
+- **Current → New summary** — existing dates/guests/rooms struck through next to the requested/
+  edited ones (changed values highlighted).
+- **Editable dates** (brand `DatePicker`), **guests** stepper, and a **rooms checklist** (add/drop
+  rooms on rooms-scoped listings, each chip showing its base price).
+- **Live seasonal reprice** — every edit calls a new pure-read `previewBookingUpdateAction`; the
+  "New total" auto-fills from the seasonal suggestion (overridable, with "reset to seasonal"),
+  alongside "already paid", the delta, and the refund/credit/none settlement chooser.
+
+Closed a real wiring gap: the host could not edit the request before quoting, and the stored quote
+never carried `room_ids`, so an added room would silently never apply on guest accept. The quote
+action now accepts host overrides (re-validated + re-priced server-side; client never trusted for
+money) and stores the full patch; the guest-accept path passes `room_ids` through to the tested
+`applyBookingUpdate` core.
+
+**Files:** `lib/bookings/change-dates-core.ts` (expose seasonal breakdown), `dashboard/bookings/[id]/
+guest-request-actions.ts` (+`previewBookingUpdateAction`, host-editable `quoteBookingChangeAction`),
+`portal/trips/[id]/actions.ts` (room_ids pass-through), `dashboard/bookings/[id]/page.tsx` (feed
+rooms + current context), `dashboard/bookings/[id]/GuestRequestBanner.tsx` (the editor). No migration.
+
+Also overhauled the **activity timelines** (`lib/bookings/activity.ts`, the derived aggregator feeding
+both the host booking Activity and the guest trip timeline) so every step is recorded in the true
+order it happened. Everything stays **derived** — no hardcoded sequence; each booking renders exactly
+what its real rows + timestamps say. Changes:
+- New events: **Quote sent** (host), **Quote accepted / Suggested dates accepted** (guest — the
+  explicit click, distinct from the "Dates changed" effect), **Quote declined / Suggested dates
+  declined** (guest) vs **… declined** (host), and **Store credit issued/applied** sourced from
+  `guest_credit_ledger` (previously unsourced → credit settlements were invisible).
+- **Every payment** now shows (was first-only) so a balance top-up after a change ("paid the
+  outstanding amount") appears as its own "Payment received".
+- Correct **guest** attribution on accept/decline (was mis-attributed to the host).
+- **Chronological order (oldest→newest)** with a logical-rank (`seq`) tie-break at whole-second
+  granularity, so the several DB writes of one atomic action (accept applies the change AND settles
+  the refund/credit) read in lifecycle order, not raw-millisecond order. The two rail surfaces pass
+  `sort={false}`; the cross-booking Guest-Record keeps its own newest-first sort.
+- Source fix in `respondToUpdateQuoteAction`: stamp the acceptance time **before** applying, so
+  "accepted / dates changed" precede the refund/credit they trigger. Refund "approved" is clamped to
+  `max(created_at, actioned_at)` so a host-asserted instant refund never shows "approved before
+  requested".
+
+Live-verified order (disposable bookings, deleted): accept flow reads **Booking requested → confirmed
+→ Payment +R4 600 → Date change requested → Quote sent → Quote accepted → Dates changed → Refund
+requested → Refund approved**; decline flow reads **… → Quote sent → Quote declined (guest)** with the
+booking left unchanged.
+
+**Verified — full live money round-trip on disposable bookings** (BK-TST-A/B/C/D under
+host1@wielostarter.com, seed guest, then deleted):
+- Host editor + live seasonal reprice (adding a room moved 3150 → 6100; date-change showed
+  28–30 Aug → 17–21 Nov, R6 050, 4 nights, Available).
+- **Charge** (add a room via host UI → guest accept): dates + `guests_count` applied, 2nd
+  `booking_rooms` row added, total 11 700, balance_due 7 100, `partial`, 8 calendar blocks. The
+  quote stored `room_ids` and they applied end-to-end.
+- **Refund**: total 2 900, `refund_requests` completed R1 700, `payments.refunded_amount` 1 700
+  (trigger), `partially_refunded`, balance 0.
+- **Credit**: total 2 900, `guest_credit_ledger` +R1 700, payment untouched, balance 0.
+- **Timelines**: guest trip + host booking both show Quote sent (host) → Dates changed (guest) →
+  Store credit issued (host, −R1 700), alongside the original request/confirm/payment events.
+- **Financials/ledger/reporting reconcile on every path.** Revenue KPI (`fetch_primary_kpis`) =
+  `SUM(total_amount)` for confirmed/checked-in/completed → always the live booking value, never
+  over/understated. Invoice updated in step (2 900). Identity holds: cash-in 4 600 = revenue 2 900 +
+  store credit 1 700 (credit path) / = revenue 2 900 + refund 1 700 (refund path). Model 2 →
+  `platform_ledger` correctly untouched (0% commission on bookings). No credit_note is issued on the
+  credit path *by design* — the invoice is reduced in place, so a credit_note would double-count;
+  store credit is tracked in `guest_credit_ledger` per the existing overpayment convention.
 
 ## 2026-08-07 — Launch-readiness sweep of the 4 core features; 7 fixes shipped to production.
 

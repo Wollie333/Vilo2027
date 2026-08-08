@@ -1024,7 +1024,10 @@ function Stepper({
         const done = i < current;
         const active = i === current;
         return (
-          <div key={s.key} className="flex items-center gap-1 md:gap-3">
+          <div
+            key={s.key}
+            className="flex flex-1 items-center gap-1 last:flex-none md:gap-3"
+          >
             <button
               type="button"
               onClick={() => done && onJump(i)}

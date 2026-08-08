@@ -50,7 +50,39 @@ export type BookingActivityEvent = {
   /** Booking this event belongs to (for the cross-booking guest history). */
   bookingId?: string | null;
   bookingRef?: string | null;
+  /**
+   * Logical rank within a booking's lifecycle — the tie-breaker that keeps the
+   * real flow in order when several events share a timestamp (accepting a quote
+   * applies the change AND settles the refund/credit in ONE transaction, so they
+   * land at the same instant). Lower = earlier in the story. Ordering is
+   * primarily by time; seq only decides ties.
+   */
+  seq: number;
 };
+
+// Canonical lifecycle order — the "how it actually happened" sequence used to
+// break ties between same-timestamp events (see BookingActivityEvent.seq).
+const SEQ = {
+  requested: 10,
+  confirmed: 20,
+  payment: 30,
+  changeRequested: 40,
+  counter: 45,
+  quoteSent: 50,
+  addon: 55,
+  responseAccepted: 58,
+  changeApplied: 60,
+  changeDeclined: 62,
+  bookingDeclined: 64,
+  refundRequested: 66,
+  refundApproved: 67,
+  creditIssued: 68,
+  checkedIn: 80,
+  checkedOut: 82,
+  cancelled: 90,
+  review: 95,
+  support: 42,
+} as const;
 
 const fmtDate = (iso: string | null): string =>
   iso
@@ -84,6 +116,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "booking",
       title: "Booking requested",
       actorKind: "guest",
+      seq: SEQ.requested,
       ...base,
     },
   ];
@@ -94,6 +127,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "booking",
       title: "Booking confirmed",
       actorKind: "host",
+      seq: SEQ.confirmed,
       ...base,
     });
   if (b.checked_in_at)
@@ -103,6 +137,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "stay",
       title: "Checked in",
       actorKind: "system",
+      seq: SEQ.checkedIn,
       ...base,
     });
   if (b.checked_out_at)
@@ -112,6 +147,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "stay",
       title: "Checked out",
       actorKind: "system",
+      seq: SEQ.checkedOut,
       ...base,
     });
   if (b.declined_at)
@@ -121,6 +157,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "booking",
       title: "Booking declined",
       actorKind: "host",
+      seq: SEQ.bookingDeclined,
       ...base,
     });
   if (b.cancelled_at)
@@ -130,6 +167,7 @@ function bookingLifecycleEvents(b: BookingRow): BookingActivityEvent[] {
       kind: "booking",
       title: "Booking cancelled",
       actorKind: "guest",
+      seq: SEQ.cancelled,
       ...base,
     });
   return out;
@@ -167,6 +205,7 @@ function refundEvents(
       amount: Number(r.requested_amount),
       currency: cur,
       flow: "out",
+      seq: SEQ.refundRequested,
       ...base,
     },
   ];
@@ -176,13 +215,19 @@ function refundEvents(
   )
     out.push({
       id: `rf-ok-${r.id}`,
-      at: r.actioned_at,
+      // A host-asserted refund is created ALREADY approved, so actioned_at is
+      // captured (in JS) a hair BEFORE the DB stamps created_at — which would sort
+      // "approved" ahead of "requested". Clamp to created_at so approval can never
+      // predate the request (a real-world invariant); a later real approval keeps
+      // its own, later time.
+      at: r.actioned_at > r.created_at ? r.actioned_at : r.created_at,
       kind: "refund",
       title: "Refund approved",
       actorKind: "host",
       amount: Number(r.approved_amount ?? r.requested_amount),
       currency: cur,
       flow: "out",
+      seq: SEQ.refundApproved,
       ...base,
     });
   if (r.actioned_at && r.status === "declined")
@@ -193,6 +238,7 @@ function refundEvents(
       title: "Refund declined",
       context: r.decline_reason ?? undefined,
       actorKind: "host",
+      seq: SEQ.refundApproved,
       ...base,
     });
   return out;
@@ -234,6 +280,34 @@ function requestContext(type: string, payload: unknown): string | undefined {
   return undefined;
 }
 
+type QuotePayload = {
+  quoted_total?: number;
+  delta?: number;
+  settlement?: string;
+  currency?: string;
+  priced_at?: string;
+  check_in?: string;
+  check_out?: string;
+  guests_count?: number;
+  room_ids?: string[];
+};
+
+// Human summary of a host quote: the new total plus how the difference resolves.
+function quoteContext(quote: QuotePayload): string {
+  const cur = quote.currency ?? "ZAR";
+  const total = Number(quote.quoted_total ?? 0);
+  const delta = Number(quote.delta ?? 0);
+  const parts = [`New total ${formatMoney(total, cur)}`];
+  if (delta > 0.009) parts.push(`guest pays ${formatMoney(delta, cur)}`);
+  else if (delta < -0.009) {
+    const s = quote.settlement;
+    const label =
+      s === "credit" ? "credit" : s === "none" ? "retained" : "refund";
+    parts.push(`${label} ${formatMoney(-delta, cur)}`);
+  } else parts.push("no price change");
+  return parts.join(" · ");
+}
+
 function requestEvents(
   q: RequestRow,
   refFor: (id: string) => string | null,
@@ -256,6 +330,13 @@ function requestEvents(
     ? `${fmtDate(counter?.check_in ?? null)} → ${fmtDate(counter?.check_out ?? null)}`
     : undefined;
 
+  // A host price quote stores the confirmed change in payload.quote. Its
+  // presence means the guest is the actor on the eventual approve/decline (they
+  // accepted/declined the host's quote), and gives us the priced figures to show.
+  const quote = (p.quote ?? null) as QuotePayload | null;
+  const hasQuote = !!(quote && quote.quoted_total != null);
+  const guestResponded = hasCounter || hasQuote;
+
   const out: BookingActivityEvent[] = [
     {
       id: `br-req-${q.id}`,
@@ -264,6 +345,7 @@ function requestEvents(
       title: q.type === "addon" ? "Add-on added" : `${noun} requested`,
       context: ctx,
       actorKind: "guest",
+      seq: q.type === "addon" ? SEQ.addon : SEQ.changeRequested,
       ...base,
     },
   ];
@@ -275,6 +357,32 @@ function requestEvents(
       title: "Alternative dates suggested",
       context: counterCtx,
       actorKind: "host",
+      seq: SEQ.counter,
+      ...base,
+    });
+  if (hasQuote)
+    out.push({
+      id: `br-quote-${q.id}`,
+      at: quote?.priced_at ?? q.actioned_at ?? q.created_at,
+      kind,
+      title: "Quote sent",
+      context: quoteContext(quote as QuotePayload),
+      actorKind: "host",
+      seq: SEQ.quoteSent,
+      ...base,
+    });
+  // The guest's explicit click when they accept a host quote / counter — a
+  // distinct action from the change it applies (the "Dates changed" effect
+  // below). Only for a guest response; a host-direct approval has no accept step.
+  if (q.actioned_at && q.status === "approved" && guestResponded)
+    out.push({
+      id: `br-accepted-${q.id}`,
+      at: q.actioned_at,
+      kind,
+      title: hasCounter ? "Suggested dates accepted" : "Quote accepted",
+      context: hasQuote ? quoteContext(quote as QuotePayload) : counterCtx,
+      actorKind: "guest",
+      seq: SEQ.responseAccepted,
       ...base,
     });
   if (q.actioned_at && q.status === "approved")
@@ -283,9 +391,14 @@ function requestEvents(
       at: q.actioned_at,
       kind,
       title: q.type === "date_change" ? "Dates changed" : `${noun} approved`,
-      // Accepting a counter applies the COUNTER dates, and the guest is the actor.
-      context: hasCounter ? counterCtx : ctx,
-      actorKind: hasCounter ? "guest" : "host",
+      // Accepting a counter/quote applies it, with the GUEST as the actor.
+      context: hasCounter
+        ? counterCtx
+        : hasQuote
+          ? quoteContext(quote as QuotePayload)
+          : ctx,
+      actorKind: guestResponded ? "guest" : "host",
+      seq: SEQ.changeApplied,
       ...base,
     });
   if (q.actioned_at && q.status === "declined")
@@ -293,9 +406,14 @@ function requestEvents(
       id: `br-no-${q.id}`,
       at: q.actioned_at,
       kind,
-      title: hasCounter ? "Suggested dates declined" : `${noun} declined`,
+      title: hasCounter
+        ? "Suggested dates declined"
+        : hasQuote
+          ? "Quote declined"
+          : `${noun} declined`,
       context: q.decline_reason ?? undefined,
-      actorKind: hasCounter ? "guest" : "host",
+      actorKind: guestResponded ? "guest" : "host",
+      seq: SEQ.changeDeclined,
       ...base,
     });
   return out;
@@ -342,10 +460,13 @@ async function assembleEvents(
       .in("status", ["completed", "partially_refunded", "refunded"])
       .not("captured_at", "is", null)
       .order("captured_at", { ascending: true });
-    const seen = new Set<string>();
+    const countByBooking = new Map<string, number>();
     for (const p of pays ?? []) {
-      if (seen.has(p.booking_id)) continue; // first capture only
-      seen.add(p.booking_id);
+      // EVERY captured payment is its own instance — the deposit, the balance,
+      // and any top-up after a booking change ("paid the outstanding amount")
+      // each show as a distinct "Payment received" so the money story is complete.
+      const n = (countByBooking.get(p.booking_id) ?? 0) + 1;
+      countByBooking.set(p.booking_id, n);
       payEvents.push({
         id: `pay-${p.id}`,
         at: p.captured_at as string,
@@ -359,6 +480,7 @@ async function assembleEvents(
         flow: "in",
         bookingId: p.booking_id,
         bookingRef: refFor(p.booking_id),
+        seq: SEQ.payment,
       });
     }
   }
@@ -385,6 +507,37 @@ async function assembleEvents(
           bookings.find((b) => b.id === a.booking_id)?.currency ?? "ZAR",
         bookingId: a.booking_id,
         bookingRef: refFor(a.booking_id),
+        seq: SEQ.addon,
+      });
+    }
+  }
+
+  // Store-credit movements tied to a booking (guest_credit_ledger). A reduced
+  // booking settled as "credit" inserts a positive grant here — otherwise it's
+  // invisible (unlike a refund, which surfaces via refund_requests). Negative
+  // rows are credit spent against this booking at checkout.
+  const creditEvents: BookingActivityEvent[] = [];
+  if (bookingIds.length > 0) {
+    const { data: credits } = await admin
+      .from("guest_credit_ledger")
+      .select("id, booking_id, amount, currency, reason, created_at")
+      .in("booking_id", bookingIds);
+    for (const c of credits ?? []) {
+      const amt = Number(c.amount);
+      if (!amt) continue;
+      creditEvents.push({
+        id: `credit-${c.id}`,
+        at: c.created_at as string,
+        kind: "refund",
+        title: amt > 0 ? "Store credit issued" : "Store credit applied",
+        context: (c.reason as string) ?? undefined,
+        actorKind: amt > 0 ? "host" : "guest",
+        amount: Math.abs(amt),
+        currency: (c.currency as string) ?? "ZAR",
+        flow: amt > 0 ? "out" : "in",
+        bookingId: c.booking_id,
+        bookingRef: c.booking_id ? refFor(c.booking_id) : null,
+        seq: amt > 0 ? SEQ.creditIssued : SEQ.payment,
       });
     }
   }
@@ -393,6 +546,7 @@ async function assembleEvents(
     ...bookings.flatMap(bookingLifecycleEvents),
     ...payEvents,
     ...addonEvents,
+    ...creditEvents,
     ...refunds.flatMap((r) => refundEvents(r, refFor)),
     ...requests.flatMap((q) => requestEvents(q, refFor)),
     ...supportTickets.map((m) => ({
@@ -408,6 +562,7 @@ async function assembleEvents(
       actorKind: "guest" as const,
       bookingId: m.booking_id,
       bookingRef: m.booking_id ? refFor(m.booking_id) : null,
+      seq: SEQ.support,
     })),
     ...reviews.map((rv) => ({
       id: `rev-${rv.id}`,
@@ -417,12 +572,23 @@ async function assembleEvents(
       actorKind: "guest" as const,
       bookingId: rv.booking_id,
       bookingRef: rv.booking_id ? refFor(rv.booking_id) : null,
+      seq: SEQ.review,
     })),
   ];
 
-  return events.sort(
-    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
-  );
+  // Chronological — the real order things happened (oldest first). We compare at
+  // WHOLE-SECOND granularity, then by `seq`: one logical action (accepting a
+  // quote applies the change, stamps the request AND writes the refund/credit)
+  // fires several DB writes milliseconds apart, and raw-millisecond ordering
+  // scrambles them (e.g. "refund approved" landing before "dates changed"). Same
+  // second → order by lifecycle rank; genuinely later events keep their place.
+  const sec = (iso: string) => Math.floor(new Date(iso).getTime() / 1000);
+  return events.sort((a, b) => {
+    const sa = sec(a.at);
+    const sb = sec(b.at);
+    if (sa !== sb) return sa - sb;
+    return a.seq - b.seq;
+  });
 }
 
 /** Activity for ONE booking (guest trip timeline + host booking timeline). */
