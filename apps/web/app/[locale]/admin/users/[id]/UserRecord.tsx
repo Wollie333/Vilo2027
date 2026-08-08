@@ -7,6 +7,7 @@ import {
   Building2,
   Calendar,
   CalendarCheck,
+  Clock,
   Coins,
   CreditCard,
   FileMinus,
@@ -1573,6 +1574,19 @@ function Dossier({
     .filter((t) => t.type === "charge" && t.status === "completed")
     .reduce((s, t) => s + t.amount, 0);
 
+  // The user's active free trial (status 'trialing' + a trial-end date),
+  // preferring their membership over any service trial. Drives the red trial
+  // countdown on the identity card and in the sidebar.
+  const trialSub =
+    data.subscriptions.find(
+      (s) =>
+        s.productType === "membership" &&
+        s.status === "trialing" &&
+        s.trialEndsAt,
+    ) ??
+    data.subscriptions.find((s) => s.status === "trialing" && s.trialEndsAt) ??
+    null;
+
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex flex-col gap-5 p-6">
@@ -1637,6 +1651,21 @@ function Dossier({
               {user.deleted_at ? <Pill tone="bad">Deleted</Pill> : null}
               {user.is_lead ? <Pill tone="muted">Passwordless</Pill> : null}
             </div>
+            {/* Free-trial countdown — the product on trial + a live red clock to
+                its end (days · hours · minutes · seconds). */}
+            {trialSub?.trialEndsAt ? (
+              <div className="mt-2.5 inline-flex items-center gap-2 rounded-pill border border-red-200 bg-red-50 px-3 py-1 text-[11.5px] font-semibold text-red-600">
+                <Clock className="h-3.5 w-3.5" />
+                <span>
+                  {trialSub.productName ?? trialSub.plan ?? "Trial"} trial ends
+                  in
+                </span>
+                <TrialCountdown
+                  endsAt={trialSub.trialEndsAt}
+                  className="font-mono"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -1791,8 +1820,59 @@ function Dossier({
             ) : null}
           </div>
         </div>
+
+        {/* trial — a live red countdown to the trial's end, below Lifetime */}
+        {trialSub?.trialEndsAt ? (
+          <>
+            {sep}
+            <div>
+              <div className={`${eyebrow} mb-2.5`}>Trial</div>
+              <div className="rounded-card border border-red-200 bg-red-50 p-3">
+                <div className="text-[11px] font-semibold text-red-600">
+                  {trialSub.productName ?? trialSub.plan ?? "Plan"} — ends in
+                </div>
+                <div className="mt-1 font-mono text-[16px] font-bold tabular-nums text-red-600">
+                  <TrialCountdown endsAt={trialSub.trialEndsAt} />
+                </div>
+                <div className="mt-0.5 text-[11px] text-brand-mute">
+                  {fmtDate(trialSub.trialEndsAt)}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
+  );
+}
+
+// Live trial countdown — ticks every second, rendered in red by the callers.
+// Mount-gated (now starts null) so the server and first client render agree,
+// avoiding a hydration mismatch on the ticking clock.
+function TrialCountdown({
+  endsAt,
+  className = "",
+}: {
+  endsAt: string;
+  className?: string;
+}) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (now === null) return <span className={className}>…</span>;
+  const diff = new Date(endsAt).getTime() - now;
+  if (diff <= 0) return <span className={className}>Trial ended</span>;
+  const d = Math.floor(diff / 86_400_000);
+  const h = Math.floor((diff % 86_400_000) / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1_000);
+  return (
+    <span className={`tabular-nums ${className}`}>
+      {d}d {h}h {m}m {s}s
+    </span>
   );
 }
 
