@@ -4,7 +4,7 @@
 > 
 > **Regenerate:** `node scripts/generate-schema-doc.mjs`
 > **Source of truth:** the **live linked Supabase project** — not the migrations, not prose.
-> **Last generated:** 2026-08-03
+> **Last generated:** 2026-08-08
 
 Every hand-written schema doc in this repo has eventually lied: a rename orphaned a cron
 for 30 days, a lifecycle doc described a call site that never existed, the lifecycle index
@@ -17,8 +17,8 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **212** (212 with RLS) |
-| Functions | **197** (156 SECURITY DEFINER, 75 trigger fns) |
-| Cron jobs | **49** (20 Vault-gated, 0 inactive) |
+| Functions | **204** (162 SECURITY DEFINER, 78 trigger fns) |
+| Cron jobs | **52** (20 Vault-gated, 0 inactive) |
 | Vault secrets set | **25** |
 
 ## 🚩 Automated red flags
@@ -26,10 +26,12 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 2 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
+### 4 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
 
 - `get_listing_policy_summary`
+- `pipeline_user_has_paid`
 - `record_error_event`
+- `search_directory`
 
 
 ## Cron jobs
@@ -47,6 +49,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `clean-expired-invites` | `0 2 * * *` | yes | — |
 | `clean-search-logs` | `0 1 * * *` | yes | — |
 | `clear-affiliate-commissions` | `7 * * * *` | yes | — |
+| `close-long-suspended-affiliates` | `45 3 * * *` | yes | — |
 | `deactivate-expired-broadcasts` | `15 * * * *` | yes | — |
 | `drain-campaign-comms` | `20 4 * * *` | yes | yes |
 | `drain-checkin-reminders` | `10 * * * *` | yes | yes |
@@ -70,6 +73,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `looking_for_region_digest` | `0 9 * * *` | yes | — |
 | `poll-website-domains` | `*/2 * * * *` | yes | yes |
 | `publish-scheduled-posts` | `*/5 * * * *` | yes | yes |
+| `purge-cron-run-history` | `30 3 * * *` | yes | — |
 | `queue-review-requests` | `0 9 * * *` | yes | — |
 | `recalculate-rankings` | `*/15 * * * *` | yes | — |
 | `recompute-affiliate-campaign-rates` | `35 1 * * *` | yes | — |
@@ -84,6 +88,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `subscription-expiry-warnings` | `0 8 * * *` | yes | — |
 | `sync-external-reviews` | `0 3 * * *` | yes | yes |
 | `sync-ical-feeds` | `*/15 * * * *` | yes | yes |
+| `trial-ending-warnings` | `5 * * * *` | yes | — |
 | `update-response-rates` | `0 3 * * *` | yes | — |
 
 ## Functions
@@ -128,6 +133,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clear_all` | **yes** | yes | callable |
 | `close_affiliate_account` | **yes** | yes | callable |
+| `close_long_suspended_affiliates` | **yes** | yes | callable |
 | `compute_addon_subtotal` | — | — | callable |
 | `compute_campaign_results` | **yes** | yes | callable |
 | `count_broadcast_recipients` | **yes** | yes | callable |
@@ -173,6 +179,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `forbid_forfeit_statement_mutation` | — | — | trigger |
 | `forbid_policy_snapshot_mutation` | — | — | trigger |
 | `forbid_second_active_membership` | — | — | trigger |
+| `gen_affiliate_partner_number` | **yes** | yes | callable |
 | `gen_booking_reference` | **yes** | yes | trigger |
 | `gen_refund_reference` | **yes** | yes | trigger |
 | `gen_url_token` | — | — | callable |
@@ -227,8 +234,10 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `on_review_published` | **yes** | yes | trigger |
 | `on_special_status_change` | **yes** | yes | trigger |
 | `on_subscription_change` | **yes** | yes | trigger |
+| `on_subscription_churned` | **yes** | yes | trigger |
 | `on_subscription_insert` | **yes** | yes | trigger |
 | `on_subscription_trialing` | **yes** | yes | trigger |
+| `pipeline_user_has_paid` | **yes** | yes | callable |
 | `product_units_sold` | **yes** | yes | callable |
 | `program_affiliate_funnel` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
@@ -251,14 +260,17 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `resolve_listing_policy_id` | **yes** | yes | callable |
 | `resolve_notification_prefs` | **yes** | yes | callable |
 | `room_is_available` | — | — | callable |
+| `search_directory` | **yes** | yes | callable |
 | `seed_host_policies_on_create` | **yes** | yes | trigger |
 | `send_due_access_cards` | **yes** | yes | callable |
 | `set_addon_currency` | **yes** | yes | trigger |
+| `set_affiliate_partner_number` | **yes** | yes | trigger |
 | `set_affiliate_status` | **yes** | yes | callable |
 | `set_guest_credit_business` | — | — | trigger |
 | `set_listing_default_business` | **yes** | yes | trigger |
 | `set_looking_for_post_expiry` | — | — | trigger |
 | `set_property_currency` | **yes** | yes | trigger |
+| `set_property_photo_sort_order` | — | — | trigger |
 | `set_seasonal_currency` | **yes** | yes | trigger |
 | `set_updated_at` | — | — | trigger |
 | `settle_affiliate_payout` | **yes** | yes | callable |
@@ -570,6 +582,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `closed_at` | timestamp with time zone | yes | — |
 | `closed_by` | uuid | yes | — |
 | `closed_reason` | text | yes | — |
+| `partner_number` | text | — | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (activated_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
@@ -589,6 +602,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 
 **Triggers:**
 - `trg_affiliate_activated` → `on_affiliate_activated()` *(SECURITY DEFINER)*
+- `trg_affiliate_partner_number` → `set_affiliate_partner_number()` *(SECURITY DEFINER)*
 
 **RLS policies:**
 - `affiliate_accounts_own_read` (SELECT) — `USING (user_id = auth.uid())`
@@ -842,7 +856,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 - `FOREIGN KEY (affiliate_id) REFERENCES affiliate_accounts(id) ON DELETE RESTRICT`
 - `FOREIGN KEY (payout_id) REFERENCES affiliate_payouts(id) ON DELETE SET NULL`
 - `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL`
-- `FOREIGN KEY (referral_id) REFERENCES affiliate_referrals(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (referral_id) REFERENCES affiliate_referrals(id) ON DELETE CASCADE`
 - `FOREIGN KEY (referred_host_id) REFERENCES hosts(id) ON DELETE SET NULL`
 - `FOREIGN KEY (refund_ledger_id) REFERENCES platform_ledger(id) ON DELETE SET NULL`
 - `FOREIGN KEY (source_ledger_id) REFERENCES platform_ledger(id) ON DELETE RESTRICT`
@@ -1425,6 +1439,10 @@ CASE
 | `cancelled_at` | timestamp with time zone | yes | — |
 | `email_fanout_completed_at` | timestamp with time zone | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
+| `show_banner` | boolean | — | `false` |
+| `banner_surfaces` | text[] | — | `'{}'::text[]` |
+| `banner_dismiss_mode` | text | — | `'dismissible'::text` |
+| `updated_at` | timestamp with time zone | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE RESTRICT`
@@ -1432,9 +1450,12 @@ CASE
 **Checks:**
 - `CHECK ((audience = ANY (ARRAY['all'::text, 'hosts'::text, 'guests'::text, 'staff'::text, 'super_admins'::text])))`
 - `CHECK ((severity = ANY (ARRAY['info'::text, 'warning'::text, 'critical'::text])))`
+- `CHECK ((banner_dismiss_mode = ANY (ARRAY['dismissible'::text, 'acknowledge'::text, 'persistent'::text])))`
+- `CHECK (((banner_surfaces <@ ARRAY['dashboard'::text, 'public'::text]) AND ((NOT show_banner) OR (COALESCE(array_length(banner_surfaces, 1), 0) >= 1))))`
 
 **RLS policies:**
 - `broadcast_admin_all` (ALL) — `USING is_super_admin() CHECK is_super_admin()`
+- `broadcast_public_banner_select` (SELECT) — `USING (show_banner AND ('public'::text = ANY (banner_surfaces)) AND (cancelled_at IS NULL) AND (starts_at <= now()) AND ((ends_at IS NULL) OR (ends_at > now())) AND (audience = ANY (ARRAY['all'::text, 'guests'::text])))`
 - `broadcast_recipients_select` (SELECT) — `USING ((cancelled_at IS NULL) AND (starts_at <= now()) AND ((ends_at IS NULL) OR (ends_at > now())) AND ((audience = 'all'::text) OR ((audience = 'hosts'::text) AND (get_my_role() = 'host'::text)) OR ((audience = 'guests'::text) AND (get_my_role() = 'guest'::text)) OR ((audience = 'staff'::text) AND (get_my_role() = 'staff'::text)) OR ((audience = 'super_admins'::text) AND (get_my_role() = 'super_admin'::text))))`
 
 ### `business_counters`
@@ -4069,6 +4090,7 @@ CASE
 | `last_activity_at` | timestamp with time zone | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
+| `at_risk` | boolean | — | `false` |
 
 **Foreign keys:**
 - `FOREIGN KEY (funnel_id) REFERENCES funnels(id) ON DELETE SET NULL`
@@ -4082,7 +4104,7 @@ CASE
 **Checks:**
 - `CHECK ((audience = ANY (ARRAY['host'::text, 'affiliate'::text])))`
 - `CHECK ((source_kind = ANY (ARRAY['host_funnel'::text, 'affiliate_funnel'::text, 'affiliate_referral'::text, 'competition'::text, 'direct'::text])))`
-- `CHECK ((status = ANY (ARRAY['open'::text, 'won'::text, 'lost'::text])))`
+- `CHECK ((status = ANY (ARRAY['open'::text, 'won'::text, 'lost'::text, 'churned'::text])))`
 
 **Triggers:**
 - `trg_pipeline_leads_updated` → `update_updated_at()`
@@ -4104,6 +4126,7 @@ CASE
 | `created_at` | timestamp with time zone | — | `now()` |
 | `updated_at` | timestamp with time zone | — | `now()` |
 | `is_customer` | boolean | — | `false` |
+| `system_managed` | boolean | — | `false` |
 
 **Unique:**
 - `UNIQUE (audience, key)`
@@ -4336,6 +4359,7 @@ CASE
 | `affiliate_commission_id` | uuid | yes | — |
 | `affiliate_payout_id` | uuid | yes | — |
 | `is_prorated_upgrade` | boolean | — | `false` |
+| `order_id` | uuid | yes | — |
 
 **Foreign keys:**
 - `FOREIGN KEY (affiliate_commission_id) REFERENCES affiliate_commissions(id) ON DELETE SET NULL`
@@ -4343,6 +4367,7 @@ CASE
 - `FOREIGN KEY (coupon_id) REFERENCES platform_coupons(id) ON DELETE SET NULL`
 - `FOREIGN KEY (created_by) REFERENCES user_profiles(id) ON DELETE SET NULL`
 - `FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE SET NULL`
+- `FOREIGN KEY (order_id) REFERENCES product_orders(id) ON DELETE SET NULL`
 - `FOREIGN KEY (plan) REFERENCES plans(key) ON UPDATE CASCADE`
 - `FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL`
 - `FOREIGN KEY (reverses_ledger_id) REFERENCES platform_ledger(id) ON DELETE SET NULL`
@@ -4830,7 +4855,6 @@ CASE
 | `is_featured` | boolean | — | `false` |
 | `is_suspended` | boolean | — | `false` |
 | `published_at` | timestamp with time zone | yes | — |
-| `search_vector` | tsvector | yes | `to_tsvector('english'::regconfig, ((((((((COALESCE(name, '':` |
 | `total_bookings` | integer | — | `0` |
 | `total_reviews` | integer | — | `0` |
 | `avg_rating` | numeric | yes | `0` |
@@ -4859,6 +4883,7 @@ CASE
 | `ranking_score` | numeric | — | `0` |
 | `direct_booking_enabled` | boolean | — | `true` |
 | `external_website_url` | text | yes | — |
+| `search_vector` | tsvector | yes | `(((setweight(to_tsvector('english'::regconfig, COALESCE(name` |
 
 **Foreign keys:**
 - `FOREIGN KEY (business_id) REFERENCES businesses(id)`
@@ -5083,7 +5108,7 @@ CASE
 | `property_id` | uuid | — | — |
 | `storage_path` | text | — | — |
 | `url` | text | — | — |
-| `sort_order` | integer | — | `0` |
+| `sort_order` | integer | — | — |
 | `caption` | text | yes | — |
 | `created_at` | timestamp with time zone | — | `now()` |
 | `room_id` | uuid | yes | — |
@@ -5091,6 +5116,9 @@ CASE
 **Foreign keys:**
 - `FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE`
 - `FOREIGN KEY (room_id) REFERENCES property_rooms(id) ON DELETE SET NULL`
+
+**Triggers:**
+- `trg_property_photos_sort_order` → `set_property_photo_sort_order()`
 
 **RLS policies:**
 - `admin_full_photos` (ALL) — `USING is_super_admin()`
@@ -6438,6 +6466,7 @@ CASE
 - `subscription_history_insert_trigger` → `on_subscription_insert()` *(SECURITY DEFINER)*
 - `subscription_history_trigger` → `on_subscription_change()` *(SECURITY DEFINER)*
 - `trg_one_active_membership` → `forbid_second_active_membership()`
+- `trg_subscription_churned` → `on_subscription_churned()` *(SECURITY DEFINER)*
 - `trg_subscription_trial` → `on_subscription_trialing()` *(SECURITY DEFINER)*
 
 **RLS policies:**
