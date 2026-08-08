@@ -904,7 +904,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
   const c = SIDE_RAIL[stepKey];
   const brandName = useBrandName();
   return (
-    <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:h-screen lg:p-12 xl:p-14">
+    <aside className="relative hidden flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:p-12 xl:p-14">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-30"
