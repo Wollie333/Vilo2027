@@ -233,8 +233,14 @@ export function RoomEditorSheet({
           mode="create"
           room={BLANK_ROOM}
           onCreated={(id) => {
+            // Advance to Photos IN PLACE. Do NOT refresh the wizard here —
+            // onChanged() re-runs the whole setup page mid-modal (heavy queries
+            // + policy RPC + full-screen "Saving…" overlay), which interrupted
+            // the flow and bounced the host out of the room modal. The parent
+            // room list is refreshed exactly once, when the modal closes (see
+            // close()), so the whole Details → Photos → Amenities flow stays
+            // self-contained in the modal.
             loadRoom(id);
-            onChanged();
             setStep(2);
           }}
         />
