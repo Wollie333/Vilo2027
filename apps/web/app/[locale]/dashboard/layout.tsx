@@ -13,13 +13,11 @@ import {
   type HostTrialWidget,
 } from "@/lib/affiliate/hostTrialWidget";
 import { getCreditBalance, getCreditLedger } from "@/lib/credits/wallet";
-import { fetchGettingStartedState } from "@/lib/help/queries";
 import { resolveAccountScope } from "@/lib/host/accountScope";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuotesOnlyGate } from "./_components/QuotesOnlyGate";
-import { buildSetupSteps } from "./_components/setupSteps";
 
 import { AvatarMenu } from "./_components/AvatarMenu";
 import { CreditPill, type CreditLedgerRow } from "./_components/CreditPill";
@@ -124,12 +122,6 @@ export default async function DashboardLayout({
   // Draft-only nudge: the host has listing(s) but none published yet.
   let hasLiveListing = false;
   let draftListing: { id: string; name: string } | null = null;
-  // Only nudge to publish once the guided setup is actually finished — the
-  // server publish gate (togglePublishAction) rejects going live until every
-  // required step is done, so showing "Publish my listing" mid-setup sends the
-  // host to a button they can't yet use. This is true when all required setup
-  // steps (everything except the publish step itself) are complete.
-  let setupReadyToPublish = false;
   let plan: string | null = null;
   let inboxUnread = 0;
   let guestCount = 0;
@@ -173,20 +165,6 @@ export default async function DashboardLayout({
       hostHasFeature(host.id, "website_builder"),
       hostHasFeature(host.id, "looking_for_access"),
     ]);
-    // Setup completion — same predicate the dashboard onboarding checklist and
-    // the server publish gate use (fetchGettingStartedState → buildSetupSteps),
-    // so the publish nudge, the checklist, and what publishing actually
-    // requires never disagree. "Ready to publish" = every required step done
-    // EXCEPT the publish step itself (which is the action the banner prompts).
-    const setupState = await fetchGettingStartedState(user.id).catch(
-      () => null,
-    );
-    const setupSteps = setupState ? buildSetupSteps(setupState) : [];
-    setupReadyToPublish =
-      setupSteps.length > 0 &&
-      setupSteps
-        .filter((s) => s.key !== "listing_published")
-        .every((s) => s.done);
     const rows = (listingRows ?? []) as Array<{
       id: string;
       name: string | null;
@@ -297,12 +275,13 @@ export default async function DashboardLayout({
             ) : null}
             <TwoFactorNudge />
             <BroadcastBanner />
+            {/* Draft nudge: the host has a listing but none live yet. The
+                banner itself only surfaces from the SECOND login onward (client
+                session count) so a brand-new host isn't nagged mid first-time
+                setup, and its button routes into the finish-setup wizard. */}
             <PublishListingReminder
               needsPublish={
-                Boolean(host) &&
-                listingCount > 0 &&
-                !hasLiveListing &&
-                setupReadyToPublish
+                Boolean(host) && listingCount > 0 && !hasLiveListing
               }
               draft={draftListing}
             />
