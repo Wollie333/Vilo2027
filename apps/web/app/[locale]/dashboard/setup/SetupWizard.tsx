@@ -230,12 +230,13 @@ export function SetupWizard(props: Props) {
   const missing = requiredSections.filter((s) => !done[s.key]);
   const ready = missing.length === 0;
 
-  // First incomplete required step (or the final review step).
-  const firstIncomplete = Math.max(
-    0,
-    SECTIONS.findIndex((s) => s.required && !done[s.key]),
-  );
-  const startIndex = ready ? SECTIONS.length - 1 : firstIncomplete;
+  // The guided wizard ALWAYS opens on step one (Host profile) and is walked
+  // through in order — even when steps are already complete — so the host runs
+  // through and confirms every step in one fixed process (founder directive).
+  // This shared state drives BOTH the desktop rail and the mobile step-pill
+  // layout, so both start on step one. Granular ?step= deep-links (the dashboard
+  // checklist) can still jump via the effect below.
+  const startIndex = 0;
 
   const [current, setCurrent] = useState(startIndex);
   const [maxReached, setMaxReached] = useState(startIndex);

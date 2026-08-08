@@ -104,8 +104,12 @@ export function OnboardingDashboard({
             ) : null}
 
             <div className="mt-6 flex flex-wrap gap-2.5">
+              {/* Always enter the guided wizard at step one — no ?step deep-link,
+                  so the host runs through the whole fixed process from the top
+                  (founder directive). The per-step checklist below still offers
+                  granular jumps for anyone who only wants to fix one thing. */}
               <Link
-                href={nextStep?.href ?? "/dashboard/setup"}
+                href="/dashboard/setup"
                 className="inline-flex h-11 items-center gap-1.5 rounded-pill bg-brand-primary px-5 text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] transition hover:bg-brand-secondary"
               >
                 Finish setting up <ArrowRight className="h-4 w-4" />
