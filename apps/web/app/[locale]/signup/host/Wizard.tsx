@@ -566,7 +566,13 @@ export function Wizard({
         honeypot,
       );
       if (!result.ok) {
-        toast.error(result.error);
+        // A `notice` result is friendly guidance (e.g. "you already have an
+        // account — check your inbox to claim it"), not a failure.
+        if (result.notice) {
+          toast.success(result.error);
+        } else {
+          toast.error(result.error);
+        }
         // The token is single-use — force a fresh challenge before a retry.
         setCaptchaReset((n) => n + 1);
         setCaptchaToken(null);
@@ -738,8 +744,13 @@ export function Wizard({
     !trialOffer &&
     !purchasedProductName &&
     !chosenProduct;
+  // On the account step, block "Create account" until the terms are accepted —
+  // the consent must be an explicit, deliberate tick before we mint anything.
   const nextDisabled =
-    createPending || finalizePending || planStepNeedsSelection;
+    createPending ||
+    finalizePending ||
+    planStepNeedsSelection ||
+    (current.key === "account" && !data.terms);
 
   const stepBody = (() => {
     switch (current.key) {

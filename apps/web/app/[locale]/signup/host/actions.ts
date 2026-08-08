@@ -40,7 +40,10 @@ import {
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string };
+  // `notice: true` marks a NON-failure message (e.g. "you already have an
+  // account — check your inbox to set your password") the UI shows as friendly
+  // guidance, not a red error.
+  | { ok: false; error: string; notice?: boolean };
 
 // Resolve a typed "Referred by" partner code (an affiliate slug) to the ACTIVE
 // partner behind it, so the signup field can confirm who the user will be
@@ -151,9 +154,11 @@ export async function createAccountAction(
       const sent = await sendSignupCollisionEmail({ email: d.email, origin });
       return {
         ok: false,
+        // Claim case = friendly guidance, not a failure; flag it for an info toast.
+        notice: sent === "claim",
         error:
           sent === "claim"
-            ? "You already have an account with this email — check your inbox for a link to set your password."
+            ? "Good news — you already have an account from a previous booking. Check your inbox for a link to set your password and claim it."
             : "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
       };
     }

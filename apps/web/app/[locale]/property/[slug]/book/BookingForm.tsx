@@ -1157,15 +1157,13 @@ export function BookingForm({
     return true;
   }
 
-  /** Step 2 (Details): contact + (for guests) a password. */
+  /** Step 2 (Details): contact. A not-signed-in visitor books with just a name +
+   *  email — no password. Checkout silently mints an UNCLAIMED guest account they
+   *  can claim later (see createCheckoutGuestAccountAction). */
   function validateDetails(): boolean {
     if (!isAuthenticated) {
-      if (
-        contact.fullName.trim().length < 2 ||
-        !contact.email.includes("@") ||
-        contact.password.length < 8
-      ) {
-        toast.error("Add your name, email and a password (8+ characters).");
+      if (contact.fullName.trim().length < 2 || !contact.email.includes("@")) {
+        toast.error("Add your name and a valid email to continue.");
         return false;
       }
     } else if (contact.fullName.trim().length < 2) {
@@ -1260,7 +1258,9 @@ export function BookingForm({
           const acc = await createCheckoutGuestAccountAction({
             full_name: contact.fullName.trim(),
             email: contact.email.trim(),
-            password: contact.password,
+            // No password field in checkout anymore → passwordless (unclaimed)
+            // guest account. Kept optional in case a variant ever collects one.
+            password: contact.password.trim() || undefined,
           });
           if (!acc.ok) {
             busy.hide(busyId);
@@ -1304,7 +1304,8 @@ export function BookingForm({
         const acc = await createCheckoutGuestAccountAction({
           full_name: contact.fullName.trim(),
           email: contact.email.trim(),
-          password: contact.password,
+          // Passwordless (unclaimed) guest account — no password collected.
+          password: contact.password.trim() || undefined,
         });
         if (!acc.ok) {
           busy.hide(busyId);
@@ -1392,11 +1393,7 @@ export function BookingForm({
   // enable/disable live. Same rules the submit re-checks.
   const detailsValid = (() => {
     if (!isAuthenticated) {
-      if (
-        contact.fullName.trim().length < 2 ||
-        !contact.email.includes("@") ||
-        contact.password.length < 8
-      )
+      if (contact.fullName.trim().length < 2 || !contact.email.includes("@"))
         return false;
     } else if (contact.fullName.trim().length < 2) {
       return false;
@@ -1514,7 +1511,7 @@ export function BookingForm({
       return !detailsValid
         ? isAuthenticated
           ? "Add the name for the booking (and complete any guest you started)."
-          : "Add your name, email and a password (8+ characters)."
+          : "Add your name and a valid email to continue."
         : null;
     if (key === "confirm") {
       if (policiesBlocked)
@@ -2218,12 +2215,12 @@ export function BookingForm({
       <section className={cardLabel}>
         <div className="border-b border-brand-line px-5 py-4">
           <div className="font-display font-semibold text-brand-ink">
-            {isAuthenticated ? "Contact details" : "Create your Wielo account"}
+            {isAuthenticated ? "Contact details" : "Your details"}
           </div>
           <div className="mt-0.5 text-xs text-brand-mute">
             {isAuthenticated
               ? "Your host uses this to share check-in instructions."
-              : "Booking without an account? We’ll set one up so you can manage your trip and message your host."}
+              : "No account needed — just your name and email. We’ll set up a guest account for your trip; claim it anytime by setting a password."}
           </div>
         </div>
         <div className="grid gap-4 p-5 sm:grid-cols-2">
@@ -2281,23 +2278,6 @@ export function BookingForm({
               className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
             />
           </div>
-          {!isAuthenticated ? (
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                Create a password
-              </label>
-              <input
-                type="password"
-                value={contact.password}
-                onChange={(e) =>
-                  setContact((s) => ({ ...s, password: e.target.value }))
-                }
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-              />
-            </div>
-          ) : null}
           {isAuthenticated ? (
             <p className="-mt-1 text-xs text-brand-mute sm:col-span-2">
               Booking as{" "}
@@ -3577,9 +3557,7 @@ export function BookingForm({
           <div className="space-y-4">
             <section className={`${mCard} p-4`}>
               <div className="mb-3 font-display font-semibold text-brand-ink">
-                {isAuthenticated
-                  ? "Contact details"
-                  : "Create your Wielo account"}
+                {isAuthenticated ? "Contact details" : "Your details"}
               </div>
               <div className="space-y-3">
                 <div>
@@ -3639,21 +3617,10 @@ export function BookingForm({
                   />
                 </div>
                 {!isAuthenticated ? (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                      Create a password
-                    </label>
-                    <input
-                      type="password"
-                      value={contact.password}
-                      onChange={(e) =>
-                        setContact((s) => ({ ...s, password: e.target.value }))
-                      }
-                      placeholder="At least 8 characters"
-                      autoComplete="new-password"
-                      className="w-full rounded border border-brand-line bg-white px-3.5 py-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                    />
-                  </div>
+                  <p className="rounded-lg bg-brand-light/60 px-3 py-2 text-[11.5px] leading-snug text-brand-mute">
+                    No account needed — we’ll set up a guest account for your
+                    trip. Claim it anytime by setting a password.
+                  </p>
                 ) : null}
                 {isAuthenticated ? (
                   <p className="text-xs text-brand-mute">

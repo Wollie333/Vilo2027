@@ -30,7 +30,10 @@ import {
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string };
+  // `notice: true` marks a NON-failure message (e.g. "you already have an
+  // account — check your inbox to set your password"): the UI shows it as
+  // friendly guidance, not a red error.
+  | { ok: false; error: string; notice?: boolean };
 
 // ─── Step 1: create the auth user + sign them in ─────────────────
 // Same shape + hardening as the host equivalent but never inserts a hosts row.
@@ -123,9 +126,13 @@ export async function createGuestAccountAction(
       const sent = await sendSignupCollisionEmail({ email: d.email, origin });
       return {
         ok: false,
+        // The claim case is helpful guidance (their unclaimed guest account is
+        // waiting), not a failure — flag it so the UI shows a friendly info
+        // toast instead of a red error.
+        notice: sent === "claim",
         error:
           sent === "claim"
-            ? "You already have an account with this email — check your inbox for a link to set your password."
+            ? "Good news — you already have an account from a previous booking. Check your inbox for a link to set your password and claim it."
             : "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
       };
     }

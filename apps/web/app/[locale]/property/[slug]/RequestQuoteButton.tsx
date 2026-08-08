@@ -856,9 +856,11 @@ export function RequestQuoteButton({
                     </div>
                   ) : null}
 
-                  {/* Wielo mark — bottom of each step's content, links to sign-up */}
+                  {/* Wielo mark — bottom of each step's content. Links HOME, never
+                      to sign-up: a visitor mid-quote must not be yanked out of the
+                      flow onto a signup form (same rule as checkout). */}
                   <a
-                    href="/signup"
+                    href="/"
                     className="mt-5 flex items-center justify-center gap-1.5 pb-1 text-[11px] font-medium text-brand-mute transition-colors hover:text-brand-ink"
                   >
                     <VLogo size={14} gradientId="quote-foot" /> Powered by Wielo

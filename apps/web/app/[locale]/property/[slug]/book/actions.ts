@@ -71,16 +71,31 @@ export async function checkAvailabilityAction(
 }
 
 // ─── Guest account creation at checkout ──────────────────────────
-// Lets an unauthenticated visitor create a guest account inline on the
-// checkout page (mirrors app/signup/guest createGuestAccountAction): the
-// admin client creates an auto-confirmed user, then we sign them in
-// server-side so the very next createBookingAction call sees the session.
+// Lets an unauthenticated visitor book WITHOUT consciously creating an account:
+// they enter only name + email (no password), and we silently mint an
+// auto-confirmed passwordless guest account, then sign them in server-side so
+// the very next createBookingAction call sees the session. They can log in
+// later via a magic link (or set a password from settings) — the verification
+// email we send below is their way back in. `password` stays OPTIONAL for the
+// rare visitor who chooses to set one; when omitted we generate a strong random
+// one they never see.
 const checkoutAccountSchema = z.object({
   full_name: z.string().trim().min(2, "Tell us your name.").max(120),
   email: z.string().trim().email("Enter a valid email."),
-  password: z.string().min(8, "Use at least 8 characters."),
+  password: z.string().min(8, "Use at least 8 characters.").optional(),
 });
 export type CheckoutAccountInput = z.infer<typeof checkoutAccountSchema>;
+
+/** A strong random password for a passwordless guest checkout — the visitor
+ *  never sees or types it; it only exists so we can establish their session
+ *  server-side. `Aa1!` guarantees upper/lower/digit/symbol so it clears any
+ *  complexity policy; one UUID adds 122 bits of entropy. Kept to 40 chars —
+ *  well under GoTrue's 72-char bcrypt limit (two UUIDs overflowed it and made
+ *  createUser fail silently). They sign in afterwards via magic link, never
+ *  this value. */
+function mintGuestPassword(): string {
+  return `Aa1!${crypto.randomUUID()}`;
+}
 
 export async function createCheckoutGuestAccountAction(
   input: CheckoutAccountInput,
@@ -90,7 +105,9 @@ export async function createCheckoutGuestAccountAction(
     const first = parsed.error.issues[0];
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
   }
-  const { full_name, email, password } = parsed.data;
+  const { full_name, email } = parsed.data;
+  // No password from the visitor → mint one they never see (passwordless guest).
+  const password = parsed.data.password ?? mintGuestPassword();
 
   // If they're already signed in, nothing to do.
   const existing = createServerClient();
@@ -140,6 +157,13 @@ export async function createCheckoutGuestAccountAction(
       .update({
         full_name,
         role: "guest",
+        // Passwordless checkout → the account is UNCLAIMED (is_lead = true): it
+        // exists so the booking has an owner, but the visitor never "created"
+        // it. If they later try to sign up with this email, the signup flow
+        // recognises the unclaimed account and offers to CLAIM it (set a
+        // password via the magic-link claim flow) instead of erroring. A visitor
+        // who DID set a password here is already claimed.
+        is_lead: !parsed.data.password,
         // Checkout REQUIRES accepting the terms (the booking's `ack` gate +
         // stored accepted_terms_version), so stamp platform-terms acceptance
         // here too. The three /signup/* paths already do this; this one didn't,
